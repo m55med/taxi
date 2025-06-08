@@ -1,0 +1,14 @@
+{
+    "name": "taxi/app",
+    "description": "Taxi Management System",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "phpoffice/phpspreadsheet": "^4.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}
