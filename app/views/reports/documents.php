@@ -1,4 +1,4 @@
-<?php require_once APPROOT . '/views/inc/header.php'; ?>
+<?php require_once APPROOT . '/app/views/inc/header.php'; ?>
 
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
@@ -121,4 +121,4 @@
     </div>
 </div>
 
-<?php require_once APPROOT . '/views/inc/footer.php'; ?> 
+<?php require_once APPROOT . '/app/views/inc/footer.php'; ?> 

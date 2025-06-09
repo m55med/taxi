@@ -1,4 +1,9 @@
 <?php
+
+namespace App\Core;
+
+use App\Controllers\AuthController;
+
 class App
 {
     protected $controller = 'AuthController';  // الكنترولر الافتراضي
@@ -49,8 +54,8 @@ class App
                     $controllerFile = '../app/controllers/' . $controllerPath . '.php';
 
                     if (file_exists($controllerFile)) {
-                        require_once $controllerFile;
-                        $this->controller = new $controllerName();
+                        $controllerClass = '\\App\\Controllers\\Reports\\' . $controllerName;
+                        $this->controller = new $controllerClass();
                         $this->method = isset($url[2]) && method_exists($this->controller, $url[2]) ? $url[2] : 'index';
                         unset($url[0], $url[1]);
                         if (isset($url[2])) {
@@ -64,27 +69,83 @@ class App
                     // Fallback for unknown report types
                     $this->triggerNotFound();
                 }
+            } elseif ($url[0] === 'ticket' || $url[0] === 'tickets') {
+                $controllerName = 'Ticket';
+                $methodName = 'index';
+                
+                // Is there a second segment? (potential method or 'data' for DataController)
+                if (isset($url[1])) {
+                    if ($url[1] === 'data' && isset($url[2])) {
+                        // Route to DataController, e.g., /tickets/data/getCategories
+                        $controllerName = 'Data';
+                        $methodName = $url[2];
+                        unset($url[0], $url[1], $url[2]);
+                    } else {
+                        // Route to TicketController, e.g., /tickets/show/123
+                        $methodName = $url[1];
+                        unset($url[0], $url[1]);
+                    }
+                } else {
+                    // Just /tickets
+                    unset($url[0]);
+                }
+
+                $controllerClass = '\\App\\Controllers\\Tickets\\' . ucfirst($controllerName) . 'Controller';
+                $controllerFile = '../app/controllers/tickets/' . ucfirst($controllerName) . 'Controller.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new $controllerClass();
+                    if (method_exists($this->controller, $methodName)) {
+                        $this->method = $methodName;
+                    } else {
+                        $this->triggerNotFound();
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
             } else {
                 // التعامل مع باقي المسارات
                 $controllerName = ucfirst($url[0]) . 'Controller';
-                $controllerFile = '../app/controllers/' . $controllerName . '.php';
                 
-                if (file_exists($controllerFile)) {
-                    require_once $controllerFile;
-                    $this->controller = new $controllerName();
-                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
-                    unset($url[0]);
-                    if (isset($url[1])) unset($url[1]);
+                // Check for modular controllers first (e.g. call/CallsController)
+                if ($url[0] === 'call') {
+                    $subController = isset($url[1]) ? ucfirst($url[1]) : 'Calls';
+                    $controllerClass = '\\App\\Controllers\\Call\\' . $subController . 'Controller';
+                    $controllerFile = '../app/controllers/call/' . $subController . 'Controller.php';
+                    
+                    if (file_exists($controllerFile)) {
+                        $this->controller = new $controllerClass();
+                        $this->method = isset($url[2]) && method_exists($this->controller, $url[2]) ? $url[2] : 'index';
+                        unset($url[0], $url[1]);
+                        if (isset($url[2])) unset($url[2]);
+                    } else {
+                        // If specific controller not found, use main CallsController
+                        $controllerClass = '\\App\\Controllers\\Call\\CallsController';
+                        $controllerFile = '../app/controllers/call/CallsController.php';
+                        $this->controller = new $controllerClass();
+                        $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                        unset($url[0]);
+                        if (isset($url[1])) unset($url[1]);
+                    }
                 } else {
-                    // إذا لم يوجد الملف، استخدم الكنترولر الافتراضي
-                    require_once '../app/controllers/AuthController.php';
-                    $this->controller = new AuthController();
-                    $this->method = 'login';
+                    // Regular controllers
+                    $controllerClass = '\\App\\Controllers\\' . $controllerName;
+                    $controllerFile = '../app/controllers/' . $controllerName . '.php';
+                    
+                    if (file_exists($controllerFile)) {
+                        $this->controller = new $controllerClass();
+                        $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                        unset($url[0]);
+                        if (isset($url[1])) unset($url[1]);
+                    } else {
+                        // إذا لم يوجد الملف، استخدم الكنترولر الافتراضي
+                        $this->controller = new AuthController();
+                        $this->method = 'login';
+                    }
                 }
             }
         } else {
             // المسار الافتراضي
-            require_once '../app/controllers/AuthController.php';
             $this->controller = new AuthController();
         }
 
@@ -92,23 +153,23 @@ class App
 
         // تحديد المسارات العامة (غير المحمية)
         $publicRoutes = [
-            'AuthController/login',
-            'AuthController/register'
+            'App\\Controllers\\AuthController/login',
+            'App\\Controllers\\AuthController/register'
         ];
 
         // تحديد المسارات المسموح بها للمستخدمين المسجلين
         $authenticatedRoutes = [
-            'ReviewController/index',
-            'ReviewController/getDriverDetails',
-            'ReviewController/updateDriver',
-            'ReviewController/transferDriver'
+            'App\\Controllers\\ReviewController/index',
+            'App\\Controllers\\ReviewController/getDriverDetails',
+            'App\\Controllers\\ReviewController/updateDriver',
+            'App\\Controllers\\ReviewController/transferDriver'
         ];
 
         // تحديد المسارات المقيدة للأدمن فقط
         $adminOnlyRoutes = [
-            'UploadController/index',
-            'UploadController/upload',
-            'DashboardController/users'
+            'App\\Controllers\\UploadController/index',
+            'App\\Controllers\\UploadController/upload',
+            'App\\Controllers\\DashboardController/users'
         ];
 
         $currentRoute = get_class($this->controller) . '/' . $this->method;
@@ -146,7 +207,6 @@ class App
     private function triggerNotFound() {
         // You can create a dedicated 404 controller/method
         http_response_code(404);
-        require_once '../app/controllers/AuthController.php'; // Or a dedicated error controller
         $this->controller = new AuthController();
         $this->method = 'login'; // Or a 'notFound' method
         // To prevent further errors, we should ensure this fallback path is always valid.

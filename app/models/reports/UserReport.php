@@ -1,5 +1,10 @@
 <?php
 
+namespace App\Models\Reports;
+
+use App\Core\Database;
+use PDO;
+
 class UserReport
 {
     private $db;

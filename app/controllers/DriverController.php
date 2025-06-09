@@ -1,204 +1,125 @@
 <?php
 
-class DriverController extends Controller {
+namespace App\Controllers;
+
+use App\Core\Controller;
+use Exception;
+
+class DriverController extends Controller
+{
     private $driverModel;
-    
-    public function __construct() {
-        // منع عرض أخطاء PHP في المخرجات
-        ini_set('display_errors', 0);
-        error_reporting(E_ALL);
-        
-        // التأكد من عدم إرسال أي مخرجات قبل الـ JSON
-        ob_start();
-        
+
+    public function __construct()
+    {
         parent::__construct();
         $this->driverModel = $this->model('Driver');
-        
-        // تعيين نوع المحتوى إلى JSON
-        header('Content-Type: application/json; charset=utf-8');
     }
 
-    public function update() {
+    public function update()
+    {
         try {
-            error_log("\n\n=== Driver Update Request Started ===");
-            
-            // التحقق من طريقة الطلب
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة');
+                throw new Exception('طريقة طلب غير صحيحة', 405);
             }
 
-            // التحقق من البيانات المطلوبة
-            if (!isset($_POST['driver_id']) || empty($_POST['driver_id'])) {
-                throw new Exception('معرف السائق مطلوب');
+            if (empty($_POST['driver_id']) || empty(trim($_POST['name']))) {
+                throw new Exception('البيانات المطلوبة غير مكتملة', 400);
             }
 
-            if (!isset($_POST['name']) || empty(trim($_POST['name']))) {
-                throw new Exception('اسم السائق مطلوب');
-            }
-
-            $driverId = $_POST['driver_id'];
-            $name = trim($_POST['name']);
-            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-            $gender = isset($_POST['gender']) ? trim($_POST['gender']) : '';
-            $nationality = isset($_POST['nationality']) ? trim($_POST['nationality']) : '';
-            $data_source = isset($_POST['data_source']) ? trim($_POST['data_source']) : '';
-
-            error_log("Processing update for driver ID: {$driverId}");
-            error_log("Data received: " . json_encode([
-                'name' => $name,
-                'email' => $email,
-                'gender' => $gender,
-                'nationality' => $nationality,
-                'data_source' => $data_source
-            ]));
-
-            // محاولة تحديث البيانات
             $result = $this->driverModel->update([
-                'id' => $driverId,
-                'name' => $name,
-                'email' => $email,
-                'gender' => $gender,
-                'nationality' => $nationality,
-                'data_source' => $data_source
+                'id' => $_POST['driver_id'],
+                'name' => trim($_POST['name']),
+                'email' => trim($_POST['email'] ?? ''),
+                'gender' => trim($_POST['gender'] ?? ''),
+                'nationality' => trim($_POST['nationality'] ?? ''),
+                'data_source' => trim($_POST['data_source'] ?? ''),
+                'app_status' => trim($_POST['app_status'] ?? 'active')
             ]);
 
             if (!$result) {
-                throw new Exception('فشل في تحديث البيانات');
+                throw new Exception('فشل في تحديث البيانات من جهة الخادم', 500);
             }
 
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'تم تحديث البيانات بنجاح'
-            ]);
+            // جلب بيانات السائق المحدثة لإرجاعها
+            $updatedDriver = $this->driverModel->getById($_POST['driver_id']);
+            if (!$updatedDriver) {
+                 throw new Exception('فشل في استرداد بيانات السائق المحدثة', 500);
+            }
+
+            $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث البيانات بنجاح', 'driver' => $updatedDriver]);
 
         } catch (Exception $e) {
-            error_log("Error in driver update: " . $e->getMessage());
-            
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+            error_log("Driver update error: " . $e->getMessage());
+            $this->sendJsonResponse(
+                ['success' => false, 'message' => $e->getMessage()],
+                $e->getCode() ?: 400
+            );
         }
     }
 
-    public function updateStatus() {
+    public function updateDocuments()
+    {
         try {
-            // التأكد من عدم إرسال أي مخرجات
-            ob_start();
-            
-            // تعيين نوع المحتوى إلى JSON
-            header('Content-Type: application/json; charset=utf-8');
-
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة');
+                throw new Exception('طريقة طلب غير صحيحة', 405);
             }
 
-            // قراءة البيانات المرسلة
-            $rawData = file_get_contents('php://input');
-            error_log("Received raw data: " . $rawData);
-            
-            $data = json_decode($rawData, true);
-            error_log("Decoded data: " . print_r($data, true));
-            
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('خطأ في تنسيق البيانات المرسلة: ' . json_last_error_msg());
-            }
-
-            if (!isset($data['driver_id']) || !isset($data['app_status'])) {
-                throw new Exception('البيانات المطلوبة غير مكتملة');
-            }
-
-            // التحقق من صحة الحالة
-            $validStatuses = ['active', 'inactive', 'banned'];
-            if (!in_array($data['app_status'], $validStatuses)) {
-                throw new Exception('حالة التطبيق غير صالحة');
-            }
-
-            error_log("Attempting to update status for driver ID: {$data['driver_id']} to {$data['app_status']}");
-
-            $result = $this->driverModel->updateStatus($data['driver_id'], $data['app_status']);
-
-            if (!$result) {
-                throw new Exception('فشل في تحديث الحالة');
-            }
-
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'تم تحديث الحالة بنجاح'
-            ]);
-
-        } catch (Exception $e) {
-            error_log("Error in status update: " . $e->getMessage());
-            
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-        }
-    }
-
-    public function updateDocuments() {
-        try {
-            // التأكد من عدم إرسال أي مخرجات
-            ob_start();
-            
-            // تعيين نوع المحتوى إلى JSON
-            header('Content-Type: application/json; charset=utf-8');
-
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة');
-            }
-
-            if (!isset($_POST['driver_id'])) {
-                throw new Exception('معرف السائق مطلوب');
+            if (empty($_POST['driver_id'])) {
+                throw new Exception('معرف السائق مطلوب', 400);
             }
 
             $driverId = $_POST['driver_id'];
-            $documents = isset($_POST['documents']) ? $_POST['documents'] : [];
-            $documentNotes = isset($_POST['document_notes']) ? $_POST['document_notes'] : [];
-
-            error_log("Updating documents for driver ID: {$driverId}");
-            error_log("Selected documents: " . json_encode($documents));
-            error_log("Document notes: " . json_encode($documentNotes));
+            $documents = $_POST['documents'] ?? [];
+            $documentNotes = $_POST['document_notes'] ?? [];
 
             $result = $this->driverModel->updateDocuments($driverId, $documents, $documentNotes);
 
             if (!$result) {
-                throw new Exception('فشل في تحديث المستندات');
+                throw new Exception('فشل تحديث المستندات في قاعدة البيانات', 500);
             }
 
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            echo json_encode([
+            $this->sendJsonResponse([
                 'success' => true,
                 'message' => 'تم تحديث المستندات بنجاح'
             ]);
 
         } catch (Exception $e) {
-            error_log("Error in documents update: " . $e->getMessage());
-            
-            // مسح أي مخرجات متراكمة
-            ob_clean();
-            
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
+            error_log("Driver documents update error: " . $e->getMessage());
+            $this->sendJsonResponse(
+                ['success' => false, 'message' => $e->getMessage()],
+                $e->getCode() ?: 400
+            );
         }
     }
+
+    // public function updateStatus()
+    // {
+    //     header('Content-Type: application/json');
+    //     $data = json_decode(file_get_contents('php://input'), true);
+
+    //     if (!$this->isAjax() || !$this->isAuthenticated()) {
+    //         http_response_code(401);
+    //         echo json_encode(['error' => 'Unauthorized']);
+    //         return;
+    //     }
+
+    //     if (!isset($data['driver_id']) || !isset($data['status'])) {
+    //         http_response_code(400);
+    //         echo json_encode(['error' => 'Invalid input']);
+    //         return;
+    //     }
+
+    //     try {
+    //         $result = $this->driverModel->updateStatus($data['driver_id'], $data['status']);
+    //         if ($result) {
+    //             echo json_encode(['success' => true]);
+    //         } else {
+    //             http_response_code(500);
+    //             echo json_encode(['error' => 'Failed to update status']);
+    //         }
+    //     } catch (Exception $e) {
+    //         http_response_code(500);
+    //         echo json_encode(['error' => $e->getMessage()]);
+    //     }
+    // }
 } 

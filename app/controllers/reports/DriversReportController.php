@@ -1,5 +1,9 @@
 <?php
 
+namespace App\Controllers\Reports;
+
+use App\Core\Controller;
+
 class DriversReportController extends Controller
 {
     private $driversReportModel;

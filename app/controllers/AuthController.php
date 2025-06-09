@@ -1,5 +1,10 @@
 <?php
 
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Database;
+
 class AuthController extends Controller
 {
     private $userModel;
@@ -62,7 +67,7 @@ class AuthController extends Controller
     {
         // إذا كان المستخدم مسجل دخوله بالفعل، قم بتوجيهه إلى لوحة التحكم
         if (isset($_SESSION['user_id'])) {
-            header("Location: /taxi/public/dashboard/index");
+            header('Location: ' . BASE_PATH . '/dashboard');
             exit();
         }
 
@@ -106,7 +111,7 @@ class AuthController extends Controller
             $this->userModel->logout($userId);
             
             // تحرير السائقين المحجوزين
-            $callModel = $this->model('Call');
+            $callModel = $this->model('call/Calls');
             $callModel->releaseAllHeldDrivers($userId);
             
             // تدمير الجلسة وإزالة جميع المتغيرات

@@ -17,12 +17,19 @@
                         رفع بيانات السائقين
                     </a>
                     <?php endif; ?>
-                    <a href="<?= BASE_PATH ?>/dashboard" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
-                        <i class="fas fa-tachometer-alt ml-1"></i>
+                    <a href="<?= BASE_PATH ?>/dashboard"
+                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                        <i class="fas fa-tachometer-alt ml-2"></i>
                         لوحة التحكم
                     </a>
-                    <a href="<?= BASE_PATH ?>/call" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
-                        <i class="fas fa-phone-alt ml-1"></i>
+                    <a href="<?= BASE_PATH ?>/tickets"
+                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                        <i class="fas fa-ticket-alt ml-2"></i>
+                        إدارة التذاكر
+                    </a>
+                    <a href="<?= BASE_PATH ?>/call"
+                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                        <i class="fas fa-headset ml-2"></i>
                         مركز الاتصال
                     </a>
                 </div>

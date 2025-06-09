@@ -1,5 +1,9 @@
 <?php
 
+namespace App\Controllers\Reports;
+
+use App\Core\Controller;
+
 class AnalyticsReportController extends Controller
 {
     private $analyticsReportModel;

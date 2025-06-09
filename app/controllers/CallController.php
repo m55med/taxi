@@ -1,46 +1,28 @@
 <?php
 
-class CallController extends Controller
+namespace App\Controllers;
+
+use App\Controllers\Call\BaseCallController;
+
+class CallController extends BaseCallController
 {
-    protected $db;
-    protected $callModel;
+    private $callsModel;
+    private $documentsModel;
+    private $assignmentsModel;
 
     public function __construct()
     {
         parent::__construct();
-        $this->db = Database::getInstance();
-        $this->callModel = $this->model('Call');
+        $this->callsModel = $this->model('call/Calls');
+        $this->documentsModel = $this->model('call/Documents');
+        $this->assignmentsModel = $this->model('call/Assignments');
     }
 
     public function index()
     {
-        // التحقق من تسجيل الدخول
-        if (!isset($_SESSION['user_id'])) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
-            header('Location: ' . BASE_PATH . '/auth/login');
-            exit();
-        }
-
-        // --- نظام تحديد معدل المكالمات ---
-        if (!isset($_SESSION['call_timestamps'])) {
-            $_SESSION['call_timestamps'] = [];
-        }
-
-        $limit = 10; // 10 مكالمات
-        $window = 60; // خلال 60 ثانية
-        $currentTime = time();
-
-        // تصفية الطوابع الزمنية التي تجاوزت المدة المحددة
-        $_SESSION['call_timestamps'] = array_filter(
-            $_SESSION['call_timestamps'],
-            fn($ts) => ($currentTime - $ts) < $window
-        );
-
-        // التحقق من تجاوز الحد
-        if (count($_SESSION['call_timestamps']) >= $limit) {
-            $oldestTimestamp = min($_SESSION['call_timestamps']);
-            $waitTime = ($oldestTimestamp + $window) - $currentTime;
-
+        // التحقق من تجاوز معدل المكالمات
+        $waitTime = $this->checkRateLimit();
+        if ($waitTime > 0) {
             $data = [
                 'rate_limit_exceeded' => true,
                 'wait_time' => $waitTime,
@@ -50,41 +32,41 @@ class CallController extends Controller
                 'required_documents' => [],
                 'nationalities' => [],
                 'call_status_text' => [],
-                'today_calls_count' => $this->callModel->getTodayCallsCount(),
-                'total_pending_calls' => $this->callModel->getTotalPendingCalls()
+                'today_calls_count' => $this->callsModel->getTodayCallsCount(),
+                'total_pending_calls' => $this->callsModel->getTotalPendingCalls()
             ];
             
             $this->view('call/index', $data);
             exit();
         }
-        // --- نهاية نظام تحديد المعدل ---
 
         // إحصائيات اليوم والاجماليات
-        $today_calls_count = $this->callModel->getTodayCallsCount();
-        $total_pending_calls = $this->callModel->getTotalPendingCalls();
+        $today_calls_count = $this->callsModel->getTodayCallsCount();
+        $total_pending_calls = $this->callsModel->getTotalPendingCalls();
 
         // جلب السائق التالي حسب الأولوية أو بالبحث بالهاتف
         $driver = null;
+        $skippedDriverId = $_SESSION['skipped_driver_id'] ?? null;
 
         // أولاً، حرر دائمًا السائق الذي كان مقفلاً في الجلسة السابقة
         if (isset($_SESSION['locked_driver_id'])) {
-            $this->callModel->releaseDriverHold($_SESSION['locked_driver_id']);
+            $this->callsModel->releaseDriverHold($_SESSION['locked_driver_id']);
             unset($_SESSION['locked_driver_id']);
         }
 
         // ثانيًا، تحقق مما إذا كان هناك طلب لسائق معين عبر الهاتف
         if (isset($_GET['phone']) && !empty($_GET['phone'])) {
-            $driver = $this->callModel->findAndLockDriverByPhone($_GET['phone']);
+            $driver = $this->callsModel->findAndLockDriverByPhone($_GET['phone']);
             
             // إذا لم نتمكن من قفل السائق المطلوب (لأنه مقفول من قبل موظف آخر)
             if (!$driver) {
                 $_SESSION['error'] = 'السائق المطلوب أصبح يعمل عليه موظف آخر. تم جلب السائق التالي.';
                 // حاول جلب السائق التالي في الطابور بدلاً منه
-                $driver = $this->callModel->findAndLockNextDriver();
+                $driver = $this->callsModel->findAndLockNextDriver($skippedDriverId);
             }
         } else {
             // إذا لم يتم طلب سائق معين، فقط اجلب السائق التالي في الطابور
-            $driver = $this->callModel->findAndLockNextDriver();
+            $driver = $this->callsModel->findAndLockNextDriver($skippedDriverId);
         }
 
         // ثالثًا، إذا حصلنا على سائق، قم بتسجيل القفل الجديد في الجلسة
@@ -96,37 +78,24 @@ class CallController extends Controller
 
             // إذا كان هذا السائق من تحويل، قم بتحديث حالة المشاهدة
             if (!empty($driver['assignment_id'])) {
-                $this->callModel->markAssignmentAsSeen($driver['assignment_id']);
+                $this->assignmentsModel->markAssignmentAsSeen($driver['assignment_id']);
             }
         }
 
+        // رابعاً، قم بإزالة معرّف السائق المتخطى من الجلسة بعد استخدامه
+        if (isset($_SESSION['skipped_driver_id'])) {
+            unset($_SESSION['skipped_driver_id']);
+        }
+
         // جلب الموظفين لنموذج التحويل
-        $users = $this->callModel->getUsers();
+        $users = $this->callsModel->getUsers();
 
         // سجل المكالمات والمستندات المطلوبة إن وجد سائق
         $call_history = [];
         $required_documents = [];
         if ($driver) {
-            $call_history = $this->callModel->getCallHistory($driver['id']);
-
-            // جلب المستندات المطلوبة وحالتها
-            $documentsQuery = "
-                SELECT 
-                    dt.id,
-                    dt.name AS document_name,
-                    COALESCE(ddr.status, 'missing') AS status,
-                    ddr.note,
-                    ddr.updated_at,
-                    u.username AS updated_by_name
-                FROM document_types dt
-                LEFT JOIN driver_documents_required ddr 
-                    ON dt.id = ddr.document_type_id AND ddr.driver_id = :driver_id
-                LEFT JOIN users u ON ddr.updated_by = u.id
-                ORDER BY dt.name ASC
-            ";
-            $stmt = $this->db->prepare($documentsQuery);
-            $stmt->execute([':driver_id' => $driver['id']]);
-            $required_documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $call_history = $this->callsModel->getCallHistory($driver['id']);
+            $required_documents = $this->documentsModel->getDriverDocuments($driver['id']);
         }
 
         // بيانات ثابتة
@@ -152,6 +121,7 @@ class CallController extends Controller
             'users' => $users,
             'call_history' => $call_history,
             'required_documents' => $required_documents,
+            'document_types' => $this->documentsModel->getAllTypes(),
             'nationalities' => $nationalities,
             'call_status_text' => $call_status_text,
             'today_calls_count' => $today_calls_count,
@@ -184,7 +154,7 @@ class CallController extends Controller
                 $nextCallAt = $_POST['next_call_at'];
             }
 
-            $result = $this->callModel->recordCall([
+            $result = $this->callsModel->recordCall([
                 'driver_id' => $driverId,
                 'user_id' => $_SESSION['user_id'],
                 'status' => $callStatus,
@@ -196,11 +166,11 @@ class CallController extends Controller
                 // تحديث حالة السائق في الجدول الرئيسي
                 $newStatus = $this->getNewDriverStatus($callStatus);
                 if ($newStatus) {
-                    $this->callModel->updateDriverStatus($driverId, $newStatus);
+                    $this->callsModel->updateDriverStatus($driverId, $newStatus);
                 }
 
                 // تحرير القفل عن السائق
-                $this->callModel->releaseDriverHold($driverId);
+                $this->callsModel->releaseDriverHold($driverId);
                 unset($_SESSION['locked_driver_id']);
 
                 echo json_encode(['success' => true]);
@@ -215,7 +185,7 @@ class CallController extends Controller
         }
     }
 
-    private function getNewDriverStatus($callStatus)
+    protected function getNewDriverStatus($callStatus)
     {
         $statusMap = [
             'no_answer' => 'pending',
@@ -238,7 +208,7 @@ class CallController extends Controller
             exit();
         }
 
-        $history = $this->callModel->getCallHistory($driverId);
+        $history = $this->callsModel->getCallHistory($driverId);
         echo json_encode($history);
         exit();
     }
@@ -255,7 +225,7 @@ class CallController extends Controller
             $toUserId = $_POST['to_user_id'];
             $note = isset($_POST['note']) ? $_POST['note'] : '';
 
-            $result = $this->callModel->assignDriver([
+            $result = $this->callsModel->assignDriver([
                 'driver_id' => $driverId,
                 'from_user_id' => $_SESSION['user_id'],
                 'to_user_id' => $toUserId,
@@ -264,10 +234,10 @@ class CallController extends Controller
 
             if ($result) {
                 // تحديث حالة السائق إلى 'transferred' عند التحويل
-                $this->callModel->updateDriverStatus($driverId, 'transferred');
+                $this->callsModel->updateDriverStatus($driverId, 'transferred');
                 
                 // تسجيل المكالمة كتحويل
-                $this->callModel->recordCall([
+                $this->callsModel->recordCall([
                     'driver_id' => $driverId,
                     'user_id' => $_SESSION['user_id'],
                     'status' => 'transferred',
@@ -276,7 +246,7 @@ class CallController extends Controller
                 ]);
 
                 // تحرير القفل عن السائق بعد تحويله
-                $this->callModel->releaseDriverHold($driverId);
+                $this->callsModel->releaseDriverHold($driverId);
                 unset($_SESSION['locked_driver_id']);
             }
 
@@ -296,7 +266,7 @@ class CallController extends Controller
 
         try {
             $assignmentId = $_POST['assignment_id'];
-            $result = $this->callModel->markAssignmentAsSeen($assignmentId);
+            $result = $this->assignmentsModel->markAssignmentAsSeen($assignmentId);
             echo json_encode(['success' => $result]);
         } catch (Exception $e) {
             error_log($e->getMessage());
@@ -308,7 +278,7 @@ class CallController extends Controller
     {
         // تم استدعاؤها بواسطة sendBeacon
         if (isset($_SESSION['locked_driver_id'])) {
-            $this->callModel->releaseDriverHold($_SESSION['locked_driver_id']);
+            $this->callsModel->releaseDriverHold($_SESSION['locked_driver_id']);
             unset($_SESSION['locked_driver_id']);
         }
         // لا ترسل أي شيء كرد، لأن sendBeacon لا يتوقع ردًا
@@ -322,7 +292,7 @@ class CallController extends Controller
             exit();
         }
 
-        $documents = $this->callModel->getRequiredDocuments($driverId);
+        $documents = $this->documentsModel->getDriverDocuments($driverId);
         echo json_encode($documents);
         exit();
     }

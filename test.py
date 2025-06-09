@@ -1,30 +1,16 @@
-import json
-import csv
+import os
 
-# مسار ملف الإدخال
-input_file_path = r"C:\xampp\htdocs\taxi\test.txt"
-# مسار ملف الإخراج
-output_file_path = r"C:\xampp\htdocs\taxi\hospitals.csv"
+# المسار الرئيسي
+base_path = r"C:\xampp\htdocs\taxi"
 
-# فتح ملف النص وقراءة المحتوى
-with open(input_file_path, "r", encoding="utf-8") as file:
-    data = file.read()
+# اسم ملف الإخراج (مثلاً على سطح المكتب)
+output_file = os.path.expanduser(r"~/Desktop/all_file_paths.txt")
 
-# محاولة لتحميل البيانات من JSON
-try:
-    hospitals = json.loads(data)
-except json.JSONDecodeError as e:
-    print("خطأ في قراءة JSON:", e)
-    exit()
+# جمع كل المسارات
+with open(output_file, 'w', encoding='utf-8') as f:
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            full_path = os.path.join(root, file)
+            f.write(full_path + '\n')
 
-# تحديد أسماء الأعمدة من أول عنصر
-fieldnames = list(hospitals[0].keys())
-
-# كتابة البيانات في ملف CSV
-with open(output_file_path, "w", newline="", encoding="utf-8-sig") as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()
-    for hospital in hospitals:
-        writer.writerow(hospital)
-
-print("تم التحويل بنجاح إلى:", output_file_path)
+print(f"تم حفظ جميع المسارات في الملف: {output_file}")

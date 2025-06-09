@@ -1,5 +1,10 @@
 <?php
 
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Database;
+
 class ReviewController extends Controller
 {
     private $reviewModel;

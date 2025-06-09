@@ -1,5 +1,12 @@
 <?php
 
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+use PDOException;
+use Exception;
+
 class Driver
 {
     private $db;
@@ -48,6 +55,7 @@ class Driver
                     gender = :gender,
                     nationality = :nationality,
                     data_source = :data_source,
+                    app_status = :app_status,
                     updated_at = NOW()
                 WHERE id = :id
             ";
@@ -62,7 +70,8 @@ class Driver
                 ':email' => $data['email'],
                 ':gender' => $data['gender'],
                 ':nationality' => $data['nationality'],
-                ':data_source' => $data['data_source']
+                ':data_source' => $data['data_source'],
+                ':app_status' => $data['app_status']
             ];
             error_log("Parameters: " . json_encode($params));
 
@@ -459,6 +468,18 @@ class Driver
         } catch (PDOException $e) {
             error_log("Error in getConversionRates: " . $e->getMessage());
             return [];
+        }
+    }
+
+    public function getById($driverId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM drivers WHERE id = :id");
+            $stmt->execute([':id' => $driverId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getById: " . $e->getMessage());
+            return null;
         }
     }
 } 

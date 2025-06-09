@@ -1,35 +1,26 @@
 <?php
-// بدء تخزين المخرجات
-ob_start();
-
-// ضبط الأخطاء (اختياري أثناء التطوير)
+// Set error reporting for development
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// تأكد من عدم وجود أي مخرجات قبل بدء الجلسة
+// Define application root directory
+define('APPROOT', dirname(__DIR__));
+
+// Autoload vendor libraries
+require_once APPROOT . '/vendor/autoload.php';
+
+// Load environment variables from .env file
+$dotenv = Dotenv\Dotenv::createImmutable(APPROOT);
+$dotenv->load();
+
+// Define Base Path for URLs
+define('BASE_PATH', $_ENV['APP_URL'] ?? 'http://localhost');
+
+// Start the session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// تحميل ملف التكوين
-require_once '../app/config/config.php';
-
-// تحميل الملفات الأساسية
-require_once '../app/core/App.php';
-require_once '../app/core/Controller.php';
-require_once '../app/core/Model.php';
-require_once '../app/models/User.php';
-require_once '../app/models/Driver.php';
-require_once '../app/models/Call.php';
-require_once '../app/controllers/AuthController.php';
-require_once '../app/controllers/DashboardController.php';
-require_once '../app/controllers/UploadController.php';
-require_once '../app/controllers/CallController.php';
-require_once '../app/controllers/DriverController.php';
-
-// تشغيل التطبيق
-$app = new App();
-
-// إنهاء وإرسال المخرجات المخزنة
-ob_end_flush();
+// Initialize the application
+$app = new \App\Core\App();
 

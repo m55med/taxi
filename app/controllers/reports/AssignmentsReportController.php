@@ -1,5 +1,9 @@
 <?php
 
+namespace App\Controllers\Reports;
+
+use App\Core\Controller;
+
 class AssignmentsReportController extends Controller
 {
     private $assignmentsReportModel;

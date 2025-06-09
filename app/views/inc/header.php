@@ -9,7 +9,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?php echo URLROOT; ?>/css/style.css">
+    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/css/style.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -19,6 +19,11 @@
     </style>
 </head>
 <body class="bg-gray-100">
-    <?php include __DIR__ . '/../includes/nav.php'; ?>
+    <?php 
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    include __DIR__ . '/../includes/nav.php'; 
+    ?>
     <!-- Main Content Container -->
     <main class="min-h-screen"> 

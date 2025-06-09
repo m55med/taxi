@@ -1,5 +1,9 @@
 <?php
-require_once '../app/core/Controller.php';
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Core\Database;
 
 class DashboardController extends Controller
 {

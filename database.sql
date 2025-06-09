@@ -35,7 +35,7 @@ CREATE TABLE drivers (
     phone VARCHAR(20) UNIQUE NOT NULL,
     email VARCHAR(100),
     gender ENUM('male', 'female') DEFAULT NULL,
-    nationality VARCHAR(100),
+    country_id INT DEFAULT NULL,  -- ربط الدولة بجدول countries
     car_type_id INT DEFAULT 1,
     rating DECIMAL(3,2) DEFAULT 0.0,
     app_status ENUM('active', 'inactive', 'banned') DEFAULT 'inactive',
@@ -59,8 +59,10 @@ CREATE TABLE drivers (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (car_type_id) REFERENCES car_types(id),
-    FOREIGN KEY (added_by) REFERENCES users(id)
+    FOREIGN KEY (added_by) REFERENCES users(id),
+    FOREIGN KEY (country_id) REFERENCES countries(id)
 );
+
 
 
 CREATE TABLE car_types (
@@ -124,3 +126,190 @@ INSERT INTO document_types (name) VALUES
 ('Captain\'s Pic'),
 ('Vehicle\'s pic'),
 ('Personal ID');
+
+
+-- جدول المنصات
+CREATE TABLE platforms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+-- جدول الفرق
+CREATE TABLE teams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    team_leader_id INT NOT NULL,
+    FOREIGN KEY (team_leader_id) REFERENCES users(id)
+);
+-- اعضاء الفرق
+CREATE TABLE team_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    team_id INT NOT NULL,
+    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (team_id) REFERENCES teams(id)
+);
+-- التصنيفات
+CREATE TABLE ticket_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+--التصنيفات الفرعيه
+CREATE TABLE ticket_subcategories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+
+    FOREIGN KEY (category_id) REFERENCES ticket_categories(id) ON DELETE CASCADE,
+    UNIQUE(category_id, name)
+);
+
+--جدول الاكواد
+CREATE TABLE ticket_codes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subcategory_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+
+    FOREIGN KEY (subcategory_id) REFERENCES ticket_subcategories(id) ON DELETE CASCADE,
+    UNIQUE(subcategory_id, name)
+);
+
+--جدول التيكتات
+CREATE TABLE tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    
+    ticket_number VARCHAR(50) NOT NULL UNIQUE, -- رقم التذكرة
+    is_vip BOOLEAN DEFAULT 0,                  -- هل VIP أم لا
+    platform_id INT NOT NULL,                  -- المنصة القادمة منها التذكرة
+    phone VARCHAR(20),                         -- رقم الهاتف (اختياري)
+    
+    category_id INT NOT NULL,                  -- التصنيف الرئيسي
+    subcategory_id INT NOT NULL,               -- التصنيف الفرعي
+    code_id INT NOT NULL,                      -- الكود المختار بناء على التصنيف
+
+    notes TEXT,                                -- ملاحظات (اختياري)
+    
+    country_id INT DEFAULT NULL,               -- الدولة (اختياري)
+
+    created_by INT NOT NULL,                   -- الموظف الذي أنشأ التذكرة
+    assigned_team_leader_id INT NOT NULL,      -- التيم ليدر المسؤول عن الموظف
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    -- العلاقات (Foreign Keys)
+    FOREIGN KEY (platform_id) REFERENCES platforms(id),
+    FOREIGN KEY (category_id) REFERENCES ticket_categories(id),
+    FOREIGN KEY (subcategory_id) REFERENCES ticket_subcategories(id),
+    FOREIGN KEY (code_id) REFERENCES ticket_codes(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (assigned_team_leader_id) REFERENCES users(id),
+    FOREIGN KEY (country_id) REFERENCES countries(id)
+);
+
+
+--جدول مراجعات التذاكر
+CREATE TABLE ticket_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    reviewed_by INT NOT NULL,
+    review_result ENUM('return_to_agent', 'accepted', 'rejected') NOT NULL,
+    review_notes TEXT,
+    reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (reviewed_by) REFERENCES users(id)
+);
+
+--المناقشات
+CREATE TABLE ticket_discussions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    opened_by INT NOT NULL,
+    reason TEXT NOT NULL,
+    notes TEXT,
+    status ENUM('open', 'objection_raised', 'resolved') DEFAULT 'open',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (opened_by) REFERENCES users(id)
+);
+
+--جدول الاعتراضات
+CREATE TABLE ticket_objections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    discussion_id INT NOT NULL,
+    objection_text TEXT NOT NULL,
+    replied_to_user_id INT NOT NULL,
+    replied_by_agent_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (discussion_id) REFERENCES ticket_discussions(id),
+    FOREIGN KEY (replied_to_user_id) REFERENCES users(id),
+    FOREIGN KEY (replied_by_agent_id) REFERENCES users(id)
+);
+
+--جدول التيكت
+CREATE TABLE tickets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_number VARCHAR(50) NOT NULL UNIQUE,
+    is_vip BOOLEAN DEFAULT 0,
+    platform_id INT NOT NULL,
+    phone VARCHAR(20), -- اختياري
+    category_id INT NOT NULL,
+    subcategory_id INT NOT NULL,
+    code_id INT NOT NULL,
+    coupon VARCHAR(50), -- اختياري
+    notes TEXT, -- اختياري
+
+    created_by INT NOT NULL,
+    assigned_team_leader_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (platform_id) REFERENCES platforms(id),
+    FOREIGN KEY (category_id) REFERENCES ticket_categories(id),
+    FOREIGN KEY (subcategory_id) REFERENCES ticket_subcategories(id),
+    FOREIGN KEY (code_id) REFERENCES ticket_codes(id),
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (assigned_team_leader_id) REFERENCES users(id)
+);
+--الكوبونات
+CREATE TABLE `coupons` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `code` VARCHAR(50) NOT NULL UNIQUE,
+    `value` DECIMAL(10, 2) NOT NULL, -- قيمة الكوبون
+    `country_id` INT, -- الدولة المرتبط بها الكوبون
+    `is_used` BOOLEAN DEFAULT 0, -- هل تم استخدام الكوبون
+    `held_by` INT(11) NULL DEFAULT NULL, -- الموظف الذي يحتفظ بالكوبون حاليًا
+    `held_at` DATETIME NULL DEFAULT NULL, -- توقيت إمساك الموظف بالكوبون
+    `used_by` INT, -- الموظف الذي استخدم الكوبون (user_id)
+    `used_in_ticket` INT, -- رقم التذكرة التي استُخدم فيها
+    `used_at` DATETIME, -- توقيت الاستخدام
+    `used_for_phone` VARCHAR(20), -- رقم العميل الذي استخدم لأجله الكوبون (اختياري)
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (`country_id`) REFERENCES `countries`(`id`),
+    FOREIGN KEY (`used_by`) REFERENCES `users`(`id`),
+    FOREIGN KEY (`used_in_ticket`) REFERENCES `tickets`(`id`),
+    FOREIGN KEY (`held_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
+);
+
+--الدول
+CREATE TABLE countries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+--تيكتات الكوبون الي تم استخدامها لان ممكن تيكت واحدة نستخدم معاها اكثر من كوبون
+CREATE TABLE ticket_coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    coupon_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (coupon_id) REFERENCES coupons(id),
+    
+    UNIQUE(ticket_id, coupon_id) -- يمنع تكرار نفس الكوبون لتذكرة واحدة
+);
+

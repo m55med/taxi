@@ -1,4 +1,10 @@
 <?php
+
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+
 class Role
 {
     private $db;

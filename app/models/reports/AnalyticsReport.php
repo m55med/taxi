@@ -1,5 +1,8 @@
 <?php
+namespace App\Models\Reports;
 
+use App\Core\Database;
+use PDO;
 class AnalyticsReport
 {
     private $db;

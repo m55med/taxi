@@ -1,5 +1,11 @@
 <?php
 
+namespace App\Models;
+
+use App\Core\Database;
+use PDO;
+use PDOException;
+
 class User
 {
     private $db;

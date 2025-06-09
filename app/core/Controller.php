@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/Database.php';
 
+namespace App\Core;
 
 class Controller
 {
@@ -11,20 +11,18 @@ class Controller
 
     protected function model($model)
     {
-        // Construct the full path to the model file
-        $modelPath = APPROOT . '/models/' . $model . '.php';
-
-        if (!file_exists($modelPath)) {
-            die('Model file not found at path: ' . $modelPath);
+        // Handle both namespaced and non-namespaced models
+        if (strpos($model, '/') !== false) {
+            // For models in subdirectories (e.g., 'call/Calls')
+            $parts = explode('/', $model);
+            $className = "\\App\\Models\\" . ucfirst($parts[0]) . "\\" . $parts[1];
+        } else {
+            // For models in the root models directory
+            $className = "\\App\\Models\\" . $model;
         }
 
-        require_once $modelPath;
-
-        // Extract class name from the model path, handling subdirectories
-        $className = basename(str_replace('\\', '/', $model));
-
         if (!class_exists($className)) {
-            die('Model class "' . $className . '" does not exist in file: ' . $modelPath);
+            die('Model class "' . $className . '" does not exist. Attempted to load: ' . $className);
         }
 
         return new $className();
@@ -32,12 +30,26 @@ class Controller
 
     protected function view($view, $data = [])
     {
-        $viewPath = APPROOT . '/views/' . $view . '.php';
+        $viewPath = APPROOT . '/app/views/' . $view . '.php';
         if (file_exists($viewPath)) {
             extract($data);
             require_once $viewPath;
         } else {
             die('View does not exist');
         }
+    }
+
+    protected function sendJsonResponse($data, $statusCode = 200)
+    {
+        // Clean any previous output buffer to prevent corrupting the JSON
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=utf-8');
+        // Ensure Arabic characters are encoded correctly
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        exit();
     }
 }

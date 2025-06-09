@@ -1,0 +1,4 @@
+ALTER TABLE `coupons`
+ADD COLUMN `held_by` INT(11) NULL DEFAULT NULL AFTER `is_used`,
+ADD COLUMN `held_at` DATETIME NULL DEFAULT NULL AFTER `held_by`,
+ADD CONSTRAINT `fk_coupons_held_by` FOREIGN KEY (`held_by`) REFERENCES `users`(`id`) ON DELETE SET NULL; 
