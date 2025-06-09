@@ -1,107 +1,67 @@
-const DriverInfoModule = {
-    init() {
-        this.form = document.getElementById('driverInfoForm');
-        if (this.form) {
-            this.initializeForm();
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('driverInfoToggle');
+    const contentDiv = document.getElementById('driverInfoContent');
+    const icon = document.getElementById('driverInfoIcon');
+    const form = document.getElementById('driverInfoForm');
 
-        // Toggle functionality
-        const toggleButton = document.getElementById('driverInfoToggle');
-        const content = document.getElementById('driverInfoContent');
-        const icon = document.getElementById('driverInfoIcon');
-        
-        if (toggleButton && content && icon) {
-            toggleButton.addEventListener('click', function() {
-                const isHidden = content.classList.toggle('hidden');
-                icon.classList.toggle('rotate-180');
-                
-                // Toggle border visibility
-                if (isHidden) {
-                    toggleButton.classList.add('border-transparent');
-                    toggleButton.classList.remove('border-gray-200');
-                } else {
-                    toggleButton.classList.remove('border-transparent');
-                    toggleButton.classList.add('border-gray-200');
-                }
-            });
-        }
-    },
+    // Toggle visibility of the driver info form
+    if (toggleButton && contentDiv && icon) {
+        toggleButton.addEventListener('click', () => {
+            contentDiv.classList.toggle('hidden');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        });
+    }
 
-    initializeForm() {
-        this.form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(this.form);
-            const submitButton = this.form.querySelector('button[type="submit"]');
-            
-            // Validate required fields
-            if (!formData.get('driver_id')) {
-                showNotification('خطأ: معرف السائق مفقود', 'error');
-                return;
-            }
+    // Handle form submission
+    if (form) {
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
 
-            if (!formData.get('name')) {
-                showNotification('خطأ: اسم السائق مطلوب', 'error');
-                return;
-            }
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
 
+            // Add a loading indicator to the button
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonContent = submitButton.innerHTML;
+            submitButton.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i> جارٍ الحفظ...`;
             submitButton.disabled = true;
-            
+
             try {
-                const response = await fetch(BASE_PATH + '/driver/update', {
+                const response = await fetch(`${BASE_PATH}/calls/updateDriverInfo`, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
                 });
-                
-                const data = await response.json();
-                
-                if (data.success && data.driver) {
-                    showNotification('تم حفظ البيانات بنجاح', 'success');
-                    this.updateProfileCard(data.driver);
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast(result.message || 'تم تحديث البيانات بنجاح!', 'success');
+                    
+                    if (document.querySelector('#driver-profile-name') && data.name) {
+                        document.querySelector('#driver-profile-name').textContent = data.name;
+                    }
+                    if (document.querySelector('#driver-profile-email') && data.email) {
+                        document.querySelector('#driver-profile-email').textContent = data.email;
+                    }
+
                 } else {
-                    throw new Error(data.error || 'فشل في حفظ البيانات');
+                    showToast(result.message || 'فشل تحديث البيانات.', 'error');
                 }
+
             } catch (error) {
-                console.error('Error:', error);
-                showNotification('حدث خطأ أثناء حفظ البيانات: ' + error.message, 'error');
+                console.error('Error submitting driver info form:', error);
+                showToast('حدث خطأ فني أثناء الاتصال بالخادم.', 'error');
             } finally {
+                // Restore button state
+                submitButton.innerHTML = originalButtonContent;
                 submitButton.disabled = false;
             }
         });
-    },
-
-    updateProfileCard(driver) {
-        // Update Name and ID
-        document.querySelector('.text-xl.font-bold').textContent = driver.name;
-        document.querySelector('.text-sm.text-gray-500').textContent = `ID: ${driver.id}`;
-
-        // Update Phone
-        const phoneSpan = document.getElementById('driverPhone');
-        if(phoneSpan) phoneSpan.textContent = driver.phone;
-        
-        // Helper maps for translation
-        const dataSourceMap = {
-            'form': 'نموذج تسجيل', 'referral': 'توصية', 'telegram': 'تلغرام', 
-            'staff': 'عن طريق موظف', 'admin': 'إضافة إدارية'
-        };
-        const appStatusMap = {
-            'active': { text: 'نشط', class: 'bg-green-100 text-green-800' },
-            'inactive': { text: 'غير نشط', class: 'bg-yellow-100 text-yellow-800' },
-            'banned': { text: 'محظور', class: 'bg-red-100 text-red-800' }
-        };
-
-        // Update Data Source
-        const dataSourceSpan = document.getElementById('driverDataSource');
-        if(dataSourceSpan) dataSourceSpan.textContent = dataSourceMap[driver.data_source] || driver.data_source;
-        
-        // Update App Status
-        const appStatusSpan = document.getElementById('driverAppStatus');
-        if(appStatusSpan) {
-            const statusInfo = appStatusMap[driver.app_status] || { text: driver.app_status, class: 'bg-gray-100 text-gray-800' };
-            appStatusSpan.textContent = statusInfo.text;
-            appStatusSpan.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
-        }
     }
-};
-
-// Initialize module when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => DriverInfoModule.init()); 
+});

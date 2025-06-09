@@ -31,19 +31,10 @@ class Assignments extends Model
                 $data['note']
             ]);
 
-            // Step 3: Update the driver's main system status
-            $this->updateDriverStatus($data['driver_id'], 'transferred');
+            // Step 3: Update the driver's main system status to 'pending' for the new agent
+            $this->updateDriverStatus($data['driver_id'], 'pending');
 
-            // Step 4: Record this action in the call history
-            $this->recordCall([
-                'driver_id' => $data['driver_id'],
-                'user_id' => $data['from_user_id'],
-                'status' => 'transferred',
-                'notes' => "تم التحويل إلى موظف آخر. " . ($data['note'] ?? ''),
-                'next_call_at' => null
-            ]);
-
-            // Step 5: Release the hold on the driver so they can be picked up by the new user
+            // Step 4: Release the hold on the driver so they can be picked up by the new user
             $this->releaseDriverHold($data['driver_id']);
 
             $this->db->commit();

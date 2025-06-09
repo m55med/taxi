@@ -1,7 +1,7 @@
 <?php
 defined('BASE_PATH') or define('BASE_PATH', '');
 // Initialize variables if not set
-$nationalities = $nationalities ?? [];
+$countries = $countries ?? [];
 ?>
 
 <?php if (isset($driver)): ?>
@@ -41,14 +41,16 @@ $nationalities = $nationalities ?? [];
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">الجنسية</label>
-                <select name="nationality" class="w-full px-4 py-2 border border-gray-300 rounded-md">
+                <select name="country_id" class="w-full px-4 py-2 border border-gray-300 rounded-md">
                     <option value="">اختر الجنسية</option>
-                    <?php foreach ($nationalities as $nationality): ?>
-                        <option value="<?= htmlspecialchars($nationality) ?>" 
-                                <?= $driver['nationality'] == $nationality ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($nationality) ?>
-                        </option>
-                    <?php endforeach; ?>
+                    <?php if (!empty($countries)): ?>
+                        <?php foreach ($countries as $country): ?>
+                            <option value="<?= $country['id'] ?>" 
+                                    <?= (isset($driver['country_id']) && $driver['country_id'] == $country['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($country['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </select>
             </div>
 

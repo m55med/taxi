@@ -47,7 +47,7 @@ class Documents extends Model
                     dt.id,
                     dt.name,
                     dt.is_required,
-                    COALESCE(ddr.status, 'submitted') as status,
+                    COALESCE(ddr.status, 'missing') as status,
                     COALESCE(ddr.note, '') as note,
                     ddr.updated_at,
                     u.username as updated_by_name
@@ -76,38 +76,25 @@ class Documents extends Model
     public function updateDocument($driverId, $documentId, $status, $note)
     {
         try {
-            if ($status === 'submitted' && empty($note)) {
-                $sql = "
-                    DELETE FROM driver_documents_required 
-                    WHERE driver_id = :driver_id 
-                    AND document_type_id = :doc_id
-                ";
-                $stmt = $this->db->prepare($sql);
-                $success = $stmt->execute([
-                    ':driver_id' => $driverId,
-                    ':doc_id' => $documentId
-                ]);
-            } else {
-                $sql = "
-                    INSERT INTO driver_documents_required 
-                        (driver_id, document_type_id, status, note, updated_by) 
-                    VALUES 
-                        (:driver_id, :doc_id, :status, :note, :user_id)
-                    ON DUPLICATE KEY UPDATE 
-                        status = VALUES(status),
-                        note = VALUES(note),
-                        updated_by = VALUES(updated_by)
-                ";
+            $sql = "
+                INSERT INTO driver_documents_required 
+                    (driver_id, document_type_id, status, note, updated_by) 
+                VALUES 
+                    (:driver_id, :doc_id, :status, :note, :user_id)
+                ON DUPLICATE KEY UPDATE 
+                    status = VALUES(status),
+                    note = VALUES(note),
+                    updated_by = VALUES(updated_by)
+            ";
 
-                $stmt = $this->db->prepare($sql);
-                $success = $stmt->execute([
-                    ':driver_id' => $driverId,
-                    ':doc_id' => $documentId,
-                    ':status' => $status,
-                    ':note' => $note,
-                    ':user_id' => $_SESSION['user_id']
-                ]);
-            }
+            $stmt = $this->db->prepare($sql);
+            $success = $stmt->execute([
+                ':driver_id' => $driverId,
+                ':doc_id' => $documentId,
+                ':status' => $status,
+                ':note' => $note,
+                ':user_id' => $_SESSION['user_id']
+            ]);
 
             if ($success) {
                 $this->updateDriverDocumentStatus($driverId);

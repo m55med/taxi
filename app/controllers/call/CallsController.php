@@ -89,6 +89,7 @@ class CallsController extends BaseCallController
 
         // جلب الموظفين لنموذج التحويل
         $users = $this->callsModel->getUsers();
+        $countries = $this->callsModel->getCountries();
 
         // سجل المكالمات والمستندات المطلوبة
         $call_history = [];
@@ -102,30 +103,22 @@ class CallsController extends BaseCallController
         }
 
         // بيانات ثابتة
-        $nationalities = [
-            'سعودي', 'يمني', 'مصري', 'سوداني', 'باكستاني',
-            'هندي', 'بنجلاديشي', 'فلبيني', 'أردني', 'سوري',
-            'فلسطيني', 'لبناني', 'عراقي', 'مغربي', 'تونسي',
-            'جزائري', 'صومالي', 'إثيوبي', 'إريتري', 'أخرى'
-        ];
-        
         $call_status_text = [
             'no_answer' => 'لم يتم الرد',
             'answered' => 'تم الرد',
             'busy' => 'مشغول',
             'not_available' => 'غير متاح',
             'wrong_number' => 'رقم خاطئ',
-            'rescheduled' => 'معاد جدولته',
-            'transferred' => 'تم التحويل'
+            'rescheduled' => 'معاد جدولته'
         ];
 
         $data = [
             'driver' => $driver,
             'users' => $users,
+            'countries' => $countries,
             'call_history' => $call_history,
             'document_types' => $document_types,
             'required_documents' => $required_documents,
-            'nationalities' => $nationalities,
             'call_status_text' => $call_status_text,
             'today_calls_count' => $today_calls_count,
             'total_pending_calls' => $total_pending_calls
@@ -222,6 +215,38 @@ class CallsController extends BaseCallController
         if (isset($_SESSION['locked_driver_id'])) {
             $this->callsModel->releaseDriverHold($_SESSION['locked_driver_id']);
             unset($_SESSION['locked_driver_id']);
+        }
+    }
+
+    public function updateDriverInfo()
+    {
+        // This method assumes the existence of sendJsonResponse in a parent controller
+        header('Content-Type: application/json');
+        ob_clean();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || empty($payload['driver_id'])) {
+            $this->sendJsonResponse(['success' => false, 'message' => 'بيانات غير صالحة.'], 400);
+            return;
+        }
+
+        try {
+            $result = $this->callsModel->updateDriverInfo($payload);
+
+            if ($result) {
+                $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث بيانات السائق بنجاح.']);
+            } else {
+                throw new \Exception('فشل تحديث بيانات السائق في قاعدة البيانات.');
+            }
+        } catch (\Exception $e) {
+            error_log('Update Driver Info Error: ' . $e->getMessage());
+            $this->sendJsonResponse(['success' => false, 'message' => 'حدث خطأ في الخادم أثناء تحديث البيانات.'], 500);
         }
     }
 

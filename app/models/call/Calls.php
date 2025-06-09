@@ -190,15 +190,22 @@ class Calls extends Model
             $userId = $_SESSION['user_id'];
             $params = [':userId' => $userId];
             
-            // Base query with priority logic
-            $sql = "SELECT d.id, d.name, d.phone, d.email, d.gender, d.nationality, d.app_status, d.data_source, a.id as assignment_id
+            // Base query with priority logic using LEFT JOIN for performance
+            $sql = "SELECT 
+                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, d.app_status, d.data_source, 
+                        d.country_id,
+                        a.id as assignment_id
                     FROM drivers d
+                    LEFT JOIN countries c ON d.country_id = c.id
                     LEFT JOIN driver_assignments a ON d.id = a.driver_id AND a.to_user_id = :userId AND a.is_seen = 0
+                    LEFT JOIN (
+                        SELECT driver_id, MAX(created_at) as last_call_time
+                        FROM driver_calls
+                        GROUP BY driver_id
+                    ) latest_call ON d.id = latest_call.driver_id
+                    LEFT JOIN driver_calls dc ON d.id = dc.driver_id AND dc.created_at = latest_call.last_call_time
                     WHERE d.hold = 0
-                      AND (
-                          (SELECT next_call_at FROM driver_calls WHERE driver_id = d.id ORDER BY created_at DESC LIMIT 1) IS NULL OR
-                          (SELECT next_call_at FROM driver_calls WHERE driver_id = d.id ORDER BY created_at DESC LIMIT 1) <= NOW()
-                      )
+                      AND (dc.id IS NULL OR dc.next_call_at IS NULL OR dc.next_call_at <= NOW())
                       AND d.main_system_status NOT IN ('completed', 'blocked')";
             
             if ($excludeDriverId) {
@@ -209,7 +216,7 @@ class Calls extends Model
             $sql .= " ORDER BY 
                         a.id IS NOT NULL DESC, -- Assigned first
                         d.main_system_status = 'reconsider' DESC,
-                        (SELECT created_at FROM driver_calls WHERE driver_id = d.id ORDER BY created_at DESC LIMIT 1) ASC, -- Oldest call first
+                        dc.created_at ASC, -- Oldest call first
                         d.created_at ASC -- Oldest driver first
                     LIMIT 1";
             
@@ -234,8 +241,12 @@ class Calls extends Model
             $this->db->beginTransaction();
 
             $userId = $_SESSION['user_id'];
-            $sql = "SELECT d.*, a.id as assignment_id
+            $sql = "SELECT 
+                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, d.app_status, d.data_source,
+                        d.main_system_status, d.registered_at, d.added_by, d.hold, d.has_missing_documents, d.notes,
+                        d.created_at, d.updated_at, a.id as assignment_id
                     FROM drivers d
+                    LEFT JOIN countries c ON d.country_id = c.id
                     LEFT JOIN driver_assignments a ON d.id = a.driver_id AND a.to_user_id = :userId AND a.is_seen = 0
                     WHERE d.phone = :phone AND d.hold = 0 FOR UPDATE";
             $stmt = $this->db->prepare($sql);
@@ -277,6 +288,45 @@ class Calls extends Model
         } catch (PDOException $e) {
             error_log("Error in getUsers: " . $e->getMessage());
             return [];
+        }
+    }
+
+    public function getCountries()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id, name FROM countries ORDER BY name ASC");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getCountries: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function updateDriverInfo($data)
+    {
+        try {
+            $sql = "UPDATE drivers SET 
+                        name = :name, 
+                        email = :email, 
+                        gender = :gender, 
+                        country_id = :country_id, 
+                        app_status = :app_status 
+                    WHERE id = :driver_id";
+            
+            $stmt = $this->db->prepare($sql);
+            
+            return $stmt->execute([
+                ':name' => $data['name'] ?? null,
+                ':email' => $data['email'] ?? null,
+                ':gender' => $data['gender'] ?? null,
+                ':country_id' => !empty($data['country_id']) ? $data['country_id'] : null,
+                ':app_status' => $data['app_status'] ?? 'inactive',
+                ':driver_id' => $data['driver_id']
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error in updateDriverInfo: " . $e->getMessage());
+            return false;
         }
     }
     

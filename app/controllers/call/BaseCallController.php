@@ -67,8 +67,7 @@ class BaseCallController extends Controller
             'not_available' => 'pending',
             'wrong_number' => 'blocked',
             'rescheduled' => 'pending',
-            'answered' => 'waiting_chat',
-            'transferred' => 'transferred'
+            'answered' => 'waiting_chat'
         ];
 
         return isset($statusMap[$callStatus]) ? $statusMap[$callStatus] : null;
