@@ -108,7 +108,9 @@
     <?php include __DIR__ . '/sections/transfer-modal.php'; ?>
 
     <!-- Core & Module Scripts -->
+    <script src="<?= BASE_PATH ?>/public/js/utils.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/shared.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-profile.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/driver-info.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/documents.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/transfer.js"></script>

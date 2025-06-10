@@ -43,11 +43,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok && result.success) {
                     showToast(result.message || 'تم تحديث البيانات بنجاح!', 'success');
                     
-                    if (document.querySelector('#driver-profile-name') && data.name) {
-                        document.querySelector('#driver-profile-name').textContent = data.name;
+                    // Update Name
+                    const nameElement = document.getElementById('driver-profile-name');
+                    if (nameElement && data.name) {
+                        nameElement.textContent = data.name;
                     }
-                    if (document.querySelector('#driver-profile-email') && data.email) {
-                        document.querySelector('#driver-profile-email').textContent = data.email;
+
+                    // Update Email
+                    const emailElement = document.getElementById('driver-profile-email');
+                    if (emailElement) {
+                        emailElement.textContent = data.email || 'غير متوفر';
+                    }
+
+                    // Update App Status
+                    const statusElement = document.getElementById('driverAppStatus');
+                    if (statusElement && data.app_status) {
+                        const statusMap = {
+                            active: { text: 'نشط', class: 'bg-green-100 text-green-800' },
+                            inactive: { text: 'غير نشط', class: 'bg-yellow-100 text-yellow-800' },
+                            banned: { text: 'محظور', class: 'bg-red-100 text-red-800' },
+                        };
+                        const statusInfo = statusMap[data.app_status] || { text: data.app_status, class: 'bg-gray-100 text-gray-800' };
+                        
+                        statusElement.textContent = statusInfo.text;
+                        statusElement.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
                     }
 
                 } else {

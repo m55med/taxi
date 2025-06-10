@@ -6,6 +6,7 @@ $driver = $driver ?? [
     'id' => '',
     'name' => '',
     'phone' => '',
+    'email' => '',
     'data_source' => '',
     'app_status' => 'active'
 ];
@@ -43,7 +44,7 @@ if (!function_exists('getAppStatusInfo')) {
             <i class="fas fa-user text-3xl text-gray-400"></i>
         </div>
         <div>
-            <h3 class="text-xl font-bold text-gray-800"><?= htmlspecialchars($driver['name']) ?></h3>
+            <h3 id="driver-profile-name" class="text-xl font-bold text-gray-800"><?= htmlspecialchars($driver['name']) ?></h3>
             <p class="text-sm text-gray-500">ID: <?= $driver['id'] ?></p>
         </div>
     </div>
@@ -57,6 +58,11 @@ if (!function_exists('getAppStatusInfo')) {
                     <i class="fas fa-copy"></i>
                 </button>
             </div>
+        </div>
+
+        <div class="flex justify-between items-center text-sm">
+            <span class="font-semibold text-gray-600">البريد الإلكتروني:</span>
+            <span id="driver-profile-email" class="font-mono text-gray-800 tracking-wider"><?= htmlspecialchars($driver['email'] ?? 'غير متوفر') ?></span>
         </div>
 
         <div class="flex justify-between items-center text-sm">

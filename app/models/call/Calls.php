@@ -311,7 +311,8 @@ class Calls extends Model
                         email = :email, 
                         gender = :gender, 
                         country_id = :country_id, 
-                        app_status = :app_status 
+                        app_status = :app_status,
+                        updated_at = NOW()
                     WHERE id = :driver_id";
             
             $stmt = $this->db->prepare($sql);
@@ -336,4 +337,4 @@ class Calls extends Model
         // For now, it's a placeholder.
         return true;
     }
-} 
+}

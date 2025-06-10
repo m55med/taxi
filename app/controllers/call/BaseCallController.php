@@ -72,4 +72,23 @@ class BaseCallController extends Controller
 
         return isset($statusMap[$callStatus]) ? $statusMap[$callStatus] : null;
     }
+
+    protected function sendJsonResponse($data, $statusCode = 200)
+    {
+        // Clean any previously buffered output
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        // Set headers
+        header_remove('Set-Cookie');
+        header('Content-Type: application/json');
+        http_response_code($statusCode);
+        
+        // Output the JSON
+        echo json_encode($data);
+        
+        // Terminate script execution
+        exit();
+    }
 } 

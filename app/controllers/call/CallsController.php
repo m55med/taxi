@@ -220,32 +220,38 @@ class CallsController extends BaseCallController
 
     public function updateDriverInfo()
     {
-        // This method assumes the existence of sendJsonResponse in a parent controller
-        header('Content-Type: application/json');
-        ob_clean();
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
-            return;
-        }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || empty($payload['driver_id'])) {
-            $this->sendJsonResponse(['success' => false, 'message' => 'بيانات غير صالحة.'], 400);
-            return;
-        }
-
         try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
+            }
+
+            $input = file_get_contents('php://input');
+            if (empty($input)) {
+                $this->sendJsonResponse(['success' => false, 'message' => 'لم يتم استلام أي بيانات.'], 400);
+            }
+
+            $payload = json_decode($input, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->sendJsonResponse(['success' => false, 'message' => 'بيانات JSON غير صالحة: ' . json_last_error_msg()], 400);
+            }
+            
+            if (empty($payload) || empty($payload['driver_id'])) {
+                $this->sendJsonResponse(['success' => false, 'message' => 'البيانات المستلمة غير مكتملة أو缺少 معرف السائق.'], 400);
+            }
+
             $result = $this->callsModel->updateDriverInfo($payload);
 
             if ($result) {
                 $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث بيانات السائق بنجاح.']);
             } else {
-                throw new \Exception('فشل تحديث بيانات السائق في قاعدة البيانات.');
+                // This else block might be too generic.
+                // The model should ideally log the specific DB error.
+                $this->sendJsonResponse(['success' => false, 'message' => 'فشل تحديث بيانات السائق في قاعدة البيانات.'], 500);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) { // Use Throwable to catch all kinds of errors
             error_log('Update Driver Info Error: ' . $e->getMessage());
+            error_log('Stack Trace: ' . $e->getTraceAsString());
             $this->sendJsonResponse(['success' => false, 'message' => 'حدث خطأ في الخادم أثناء تحديث البيانات.'], 500);
         }
     }
