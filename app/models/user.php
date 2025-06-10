@@ -86,6 +86,7 @@ class User
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'role' => $user['role'],
+                'role_id' => $user['role_id'],
                 'status' => $user['status']
             ];
         }

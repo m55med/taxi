@@ -17,7 +17,38 @@ class App
 
         // تعيين المتحكم
         if (!empty($url[0])) {
-            if ($url[0] === 'reports' && isset($url[1])) {
+            if ($url[0] === 'admin' && isset($url[1])) {
+                // Correctly convert snake_case URL to PascalCase controller name
+                $controllerName = str_replace('_', '', ucwords($url[1], '_')) . 'Controller';
+                $controllerFile = '../app/controllers/admin/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Admin\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[2]) && method_exists($this->controller, $url[2]) ? $url[2] : 'index';
+                    unset($url[0], $url[1]);
+                    if (isset($url[2])) {
+                        unset($url[2]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'referral') {
+                $controllerName = 'ReferralController';
+                $controllerFile = '../app/controllers/referral/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Referral\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'reports' && isset($url[1])) {
                 $reportType = $url[1];
                 $controllerName = '';
 
@@ -154,22 +185,8 @@ class App
         // تحديد المسارات العامة (غير المحمية)
         $publicRoutes = [
             'App\\Controllers\\AuthController/login',
-            'App\\Controllers\\AuthController/register'
-        ];
-
-        // تحديد المسارات المسموح بها للمستخدمين المسجلين
-        $authenticatedRoutes = [
-            'App\\Controllers\\ReviewController/index',
-            'App\\Controllers\\ReviewController/getDriverDetails',
-            'App\\Controllers\\ReviewController/updateDriver',
-            'App\\Controllers\\ReviewController/transferDriver'
-        ];
-
-        // تحديد المسارات المقيدة للأدمن فقط
-        $adminOnlyRoutes = [
-            'App\\Controllers\\UploadController/index',
-            'App\\Controllers\\UploadController/upload',
-            'App\\Controllers\\DashboardController/users'
+            'App\\Controllers\\AuthController/register',
+            'App\\Controllers\\Referral\\ReferralController/index'
         ];
 
         $currentRoute = get_class($this->controller) . '/' . $this->method;
@@ -181,23 +198,12 @@ class App
             exit;
         }
 
-        // التحقق من صلاحيات الأدمن
-        if (in_array($currentRoute, $adminOnlyRoutes) && $_SESSION['role'] !== 'admin') {
-            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
-        }
-
         // إذا كان المستخدم مسجل دخوله ويحاول الوصول إلى صفحات تسجيل الدخول/التسجيل
-        if (isset($_SESSION['user_id']) && in_array($currentRoute, $publicRoutes)) {
+        if (isset($_SESSION['user_id']) && in_array($currentRoute, [
+            'App\\Controllers\\AuthController/login',
+            'App\\Controllers\\AuthController/register'
+        ])) {
             header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
-        }
-
-        // التحقق من أن المستخدم مسجل دخوله للمسارات المحمية للمستخدمين المسجلين
-        if (in_array($currentRoute, $authenticatedRoutes) && !isset($_SESSION['user_id'])) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
-            header('Location: ' . BASE_PATH . '/auth/login');
             exit;
         }
 

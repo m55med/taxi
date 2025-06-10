@@ -86,6 +86,7 @@ class AuthController extends Controller
                 $_SESSION['user_id'] = $result['id'];
                 $_SESSION['username'] = $result['username'];
                 $_SESSION['role'] = $result['role'];
+                $_SESSION['role_id'] = $result['role_id'];
                 $_SESSION['is_online'] = true;
                 
                 header('Location: ' . BASE_PATH . '/dashboard');

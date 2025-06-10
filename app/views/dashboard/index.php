@@ -186,6 +186,22 @@
             <?php endif; ?>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- لوحة تحكم التسويق -->
+                <?php if (in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
+                <a href="<?= BASE_PATH ?>/referral/dashboard" 
+                   class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                            <i class="fas fa-bullhorn text-white text-2xl"></i>
+                        </div>
+                        <div class="mr-5">
+                            <h3 class="text-lg font-medium text-gray-900">لوحة تحكم التسويق</h3>
+                            <p class="mt-1 text-sm text-gray-500">تتبع زيارات وروابط المسوقين</p>
+                        </div>
+                    </div>
+                </a>
+                <?php endif; ?>
+
                 <!-- مركز الاتصال -->
                 <a href="<?= BASE_PATH ?>/call" 
                    class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">

@@ -15,7 +15,7 @@ if (!function_exists('getDataSourceText')) {
     function getDataSourceText($source) {
         $map = [
             'form' => 'نموذج تسجيل',
-            'referral' => 'توصية',
+            'referral' => 'مسوق',
             'telegram' => 'تلغرام',
             'staff' => 'عن طريق موظف',
             'admin' => 'إضافة إدارية',
