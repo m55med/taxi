@@ -18,26 +18,23 @@ class Calls extends Model
         try {
             $this->db->beginTransaction();
 
-            $sql = "INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at, created_at) 
-                    VALUES (?, ?, ?, ?, ?, NOW())";
+            $sql = "INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at) 
+                    VALUES (?, ?, ?, ?, ?)";
             
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
                 $data['driver_id'],
-                $data['user_id'],
-                $data['status'],
+                $data['call_by'],
+                $data['call_status'],
                 $data['notes'],
                 $data['next_call_at']
             ]);
 
             if (!$result) {
                 $this->db->rollBack();
-                error_log("Failed to insert call record");
+                error_log("Failed to insert call record for driver_id: " . $data['driver_id']);
                 return false;
             }
-
-            // تحرير حالة الـ hold بعد تسجيل المكالمة
-            $this->setDriverHold($data['driver_id'], false);
 
             $this->db->commit();
             return true;
@@ -52,18 +49,43 @@ class Calls extends Model
     public function getCallHistory($driverId)
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT 
-                    dc.*, 
-                    u.username as staff_name 
-                FROM driver_calls dc 
-                LEFT JOIN users u ON dc.call_by = u.id 
-                WHERE dc.driver_id = ? 
-                ORDER BY dc.created_at DESC
-            ");
+            $sql = "
+                (SELECT 
+                    'call' as event_type,
+                    dc.id as event_id,
+                    dc.created_at as event_date,
+                    dc.notes as notes,
+                    dc.call_status as details,
+                    u.username as actor_name,
+                    NULL as recipient_name,
+                    NULL as next_call_at
+                FROM driver_calls dc
+                LEFT JOIN users u ON dc.call_by = u.id
+                WHERE dc.driver_id = :driverId1)
+                
+                UNION ALL
+                
+                (SELECT
+                    'assignment' as event_type,
+                    da.id as event_id,
+                    da.created_at as event_date,
+                    da.note as notes,
+                    'تم التحويل' as details,
+                    uf.username as actor_name,
+                    ut.username as recipient_name,
+                    NULL as next_call_at
+                FROM driver_assignments da
+                LEFT JOIN users uf ON da.from_user_id = uf.id
+                LEFT JOIN users ut ON da.to_user_id = ut.id
+                WHERE da.driver_id = :driverId2)
+                
+                ORDER BY event_date DESC
+            ";
             
-            $stmt->execute([$driverId]);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':driverId1' => $driverId, ':driverId2' => $driverId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         } catch (PDOException $e) {
             error_log("Error in getCallHistory: " . $e->getMessage());
             return [];
@@ -192,11 +214,12 @@ class Calls extends Model
             
             // Base query with priority logic using LEFT JOIN for performance
             $sql = "SELECT 
-                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, d.app_status, d.data_source, 
-                        d.country_id,
+                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, ct.name as car_type, d.app_status, d.data_source, 
+                        d.country_id, d.car_type_id, d.notes,
                         a.id as assignment_id
                     FROM drivers d
                     LEFT JOIN countries c ON d.country_id = c.id
+                    LEFT JOIN car_types ct ON d.car_type_id = ct.id
                     LEFT JOIN driver_assignments a ON d.id = a.driver_id AND a.to_user_id = :userId AND a.is_seen = 0
                     LEFT JOIN (
                         SELECT driver_id, MAX(created_at) as last_call_time
@@ -242,11 +265,13 @@ class Calls extends Model
 
             $userId = $_SESSION['user_id'];
             $sql = "SELECT 
-                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, d.app_status, d.data_source,
-                        d.main_system_status, d.registered_at, d.added_by, d.hold, d.has_missing_documents, d.notes,
+                        d.id, d.name, d.phone, d.email, d.gender, c.name as nationality, ct.name as car_type, d.app_status, d.data_source,
+                        d.country_id, d.car_type_id, d.notes,
+                        d.main_system_status, d.registered_at, d.added_by, d.hold, d.has_missing_documents,
                         d.created_at, d.updated_at, a.id as assignment_id
                     FROM drivers d
                     LEFT JOIN countries c ON d.country_id = c.id
+                    LEFT JOIN car_types ct ON d.car_type_id = ct.id
                     LEFT JOIN driver_assignments a ON d.id = a.driver_id AND a.to_user_id = :userId AND a.is_seen = 0
                     WHERE d.phone = :phone AND d.hold = 0 FOR UPDATE";
             $stmt = $this->db->prepare($sql);
@@ -303,6 +328,18 @@ class Calls extends Model
         }
     }
 
+    public function getCarTypes()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id, name FROM car_types ORDER BY name ASC");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getCarTypes: " . $e->getMessage());
+            return [];
+        }
+    }
+
     public function updateDriverInfo($data)
     {
         try {
@@ -311,7 +348,9 @@ class Calls extends Model
                         email = :email, 
                         gender = :gender, 
                         country_id = :country_id, 
+                        car_type_id = :car_type_id,
                         app_status = :app_status,
+                        notes = :notes,
                         updated_at = NOW()
                     WHERE id = :driver_id";
             
@@ -322,7 +361,9 @@ class Calls extends Model
                 ':email' => $data['email'] ?? null,
                 ':gender' => $data['gender'] ?? null,
                 ':country_id' => !empty($data['country_id']) ? $data['country_id'] : null,
+                ':car_type_id' => !empty($data['car_type_id']) ? $data['car_type_id'] : null,
                 ':app_status' => $data['app_status'] ?? 'inactive',
+                ':notes' => $data['notes'] ?? null,
                 ':driver_id' => $data['driver_id']
             ]);
         } catch (PDOException $e) {

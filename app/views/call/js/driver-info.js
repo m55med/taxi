@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
 
             try {
-                const response = await fetch(`${BASE_PATH}/calls/updateDriverInfo`, {
+                const response = await fetch(`${BASE_PATH}/call/updateDriverInfo`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -67,6 +67,32 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         statusElement.textContent = statusInfo.text;
                         statusElement.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
+                    }
+
+                    // Update Gender
+                    const genderElement = document.getElementById('driver-profile-gender');
+                    if (genderElement && data.gender) {
+                        genderElement.textContent = data.gender === 'male' ? 'ذكر' : 'أنثى';
+                    }
+
+                    // Update Nationality
+                    const nationalityElement = document.getElementById('driver-profile-nationality');
+                    const countrySelect = form.querySelector('select[name="country_id"]');
+                    if (nationalityElement && countrySelect && countrySelect.selectedIndex > 0) {
+                        nationalityElement.textContent = countrySelect.options[countrySelect.selectedIndex].text;
+                    }
+
+                    // Update Car Type
+                    const carTypeElement = document.getElementById('driver-profile-car-type');
+                    const carTypeSelect = form.querySelector('select[name="car_type_id"]');
+                    if (carTypeElement && carTypeSelect && carTypeSelect.selectedIndex > 0) {
+                        carTypeElement.textContent = carTypeSelect.options[carTypeSelect.selectedIndex].text;
+                    }
+
+                    // Update Notes
+                    const notesElement = document.getElementById('driver-profile-notes');
+                    if (notesElement) {
+                        notesElement.textContent = data.notes || 'لا يوجد';
                     }
 
                 } else {

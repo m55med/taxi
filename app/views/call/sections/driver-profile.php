@@ -79,5 +79,10 @@ if (!function_exists('getAppStatusInfo')) {
                 <?= $statusInfo['text'] ?>
             </span>
         </div>
+
+        <div class="text-sm">
+            <span class="font-semibold text-gray-600">ملاحظات:</span>
+            <p id="driver-profile-notes" class="mt-1 text-gray-800 bg-gray-50 p-2 rounded-md whitespace-pre-wrap"><?= htmlspecialchars($driver['notes'] ?? 'لا يوجد') ?></p>
+        </div>
     </div>
 </div> 

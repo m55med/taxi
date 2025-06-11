@@ -10,18 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="<?= BASE_PATH ?>/app/views/call/css/styles.css" rel="stylesheet">
     <style>
-        /* Additional styles for active/inactive tabs */
-        .tab-button.active {
-            border-bottom-color: #4f46e5; /* indigo-600 */
-            color: #4f46e5;
-            font-weight: 700;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
     <script> const BASE_PATH = '<?= BASE_PATH ?>'; </script>
 </head>
@@ -31,11 +21,24 @@
 
     <div class="container mx-auto px-4 py-8">
         <!-- Notification Placeholder -->
-        <div id="notification-toast" class="fixed top-5 right-5 z-[100]"></div>
+        <div id="toast-container" class="fixed top-5 right-5 z-[100] space-y-2"></div>
 
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            <h1 class="text-2xl font-bold text-gray-800 mb-4 md:mb-0">مركز الاتصال</h1>
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+            <h1 class="text-2xl font-bold text-gray-800">مركز الاتصال</h1>
+            
+            <!-- Search Form -->
+            <form action="<?= BASE_PATH ?>/call" method="GET" class="flex-grow md:max-w-xs">
+                <div class="relative">
+                    <input type="search" name="phone" placeholder="البحث عن طريق رقم الهاتف..."
+                           class="w-full pl-10 pr-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                           value="<?= htmlspecialchars($_GET['phone'] ?? '') ?>">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                </div>
+            </form>
+
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white rounded-lg shadow p-4 text-center">
                     <h3 class="text-sm font-semibold text-gray-500 mb-1">مكالمات اليوم</h3>
@@ -73,15 +76,18 @@
                     <div class="bg-white rounded-lg shadow">
                         <!-- Tab Buttons -->
                         <div class="border-b border-gray-200">
-                            <nav class="-mb-px flex space-x-4 space-x-reverse px-6" aria-label="Tabs">
-                                <button class="tab-button active" data-tab="call-form">
-                                    <i class="fas fa-phone-alt ml-2"></i> تفاصيل المكالمة
+                            <nav class="flex space-x-2 space-x-reverse" aria-label="Tabs">
+                                <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-indigo-500 text-indigo-600" data-tab="call-form">
+                                    <i class="fas fa-phone-alt ml-2"></i>
+                                    <span>تفاصيل المكالمة</span>
                                 </button>
-                                <button class="tab-button" data-tab="call-history">
-                                    <i class="fas fa-history ml-2"></i> سجل المكالمات
+                                <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="call-history">
+                                    <i class="fas fa-history ml-2"></i>
+                                    <span>سجل المكالمات</span>
                                 </button>
-                                <button class="tab-button" data-tab="documents">
-                                    <i class="fas fa-file-alt ml-2"></i> المستندات
+                                <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="documents">
+                                    <i class="fas fa-file-alt ml-2"></i>
+                                    <span>المستندات</span>
                                 </button>
                             </nav>
                         </div>
@@ -110,8 +116,8 @@
     <!-- Core & Module Scripts -->
     <script src="<?= BASE_PATH ?>/public/js/utils.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/shared.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-profile.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-info.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-profile.js?v=1.1"></script>
+    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-info.js?v=1.2"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/documents.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/transfer.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/call/js/call-form.js"></script>
@@ -119,15 +125,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Tab switching logic
             const tabs = document.querySelectorAll('.tab-button');
+            const inactiveClasses = ['border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'];
+            const activeClasses = ['border-indigo-500', 'text-indigo-600'];
+
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Deactivate all tabs and content
-                    tabs.forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    // Deactivate all tabs
+                    tabs.forEach(t => {
+                        t.classList.remove(...activeClasses);
+                        t.classList.add(...inactiveClasses);
+                    });
 
-                    // Activate clicked tab and its content
-                    tab.classList.add('active');
-                    document.getElementById(tab.dataset.tab + '-content').classList.add('active');
+                    // Deactivate all content
+                    document.querySelectorAll('.tab-content').forEach(c => {
+                        c.classList.remove('active');
+                    });
+
+                    // Activate clicked tab
+                    tab.classList.remove(...inactiveClasses);
+                    tab.classList.add(...activeClasses);
+
+                    // Activate associated content
+                    const tabContentId = tab.dataset.tab + '-content';
+                    document.getElementById(tabContentId).classList.add('active');
                 });
             });
 

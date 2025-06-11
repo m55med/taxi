@@ -14,4 +14,7 @@ $router->post('/call/documents/update', 'call/DocumentsController@update');
 
 // التحويلات
 $router->post('/call/assign', 'call/AssignmentsController@assign');
-$router->post('/call/mark-seen', 'call/AssignmentsController@markAsSeen'); 
+$router->post('/call/mark-seen', 'call/AssignmentsController@markAsSeen');
+
+// تحديث بيانات السائق
+$router->post('/call/updateDriverInfo', 'call/CallsController@updateDriverInfo'); 

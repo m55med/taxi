@@ -52,7 +52,7 @@
                              x-transition:leave="transition ease-in duration-150" 
                              x-transition:leave-start="opacity-100 transform translate-y-0" 
                              x-transition:leave-end="opacity-0 transform -translate-y-2" 
-                             class="absolute left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden"
+                             class="absolute top-full left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden"
                              style="display: none;">
                             <div x-data="{ openSubmenu: '' }">
                                 <!-- System Settings -->

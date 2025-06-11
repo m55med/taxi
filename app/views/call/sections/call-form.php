@@ -51,6 +51,14 @@ defined('BASE_PATH') or define('BASE_PATH', '');
                     </div>
                     <span class="mt-2 text-sm font-medium text-gray-600">رقم خاطئ</span>
                 </button>
+
+                <button type="button" data-status="rescheduled"
+                    class="call-status-btn group relative flex flex-col items-center">
+                    <div class="w-16 h-16 flex items-center justify-center rounded-full border-2 transition-all duration-200 ease-in-out bg-white border-gray-300 text-gray-700">
+                        <i class="fas fa-calendar-alt text-xl"></i>
+                    </div>
+                    <span class="mt-2 text-sm font-medium text-gray-600">جدولة</span>
+                </button>
             </div>
             <input type="hidden" name="call_status" id="selectedCallStatus">
         </div>
@@ -58,11 +66,10 @@ defined('BASE_PATH') or define('BASE_PATH', '');
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
                 ملاحظات المكالمة
-                <span class="text-red-500">*</span>
             </label>
             <textarea name="notes" rows="3" 
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="أدخل نتيجة المكالمة وملاحظاتك هنا..."></textarea>
+                placeholder="أدخل نتيجة المكالمة وملاحظاتك هنا... (اختياري)"></textarea>
         </div>
 
         <div class="hidden" id="nextCallSection">

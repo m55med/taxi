@@ -38,7 +38,7 @@ class BaseCallController extends Controller
             $_SESSION['call_timestamps'] = [];
         }
 
-        $limit = 10; // 10 مكالمات
+        $limit = 50; // 10 مكالمات
         $window = 60; // خلال 60 ثانية
         $currentTime = time();
 
@@ -66,7 +66,7 @@ class BaseCallController extends Controller
             'busy' => 'pending',
             'not_available' => 'pending',
             'wrong_number' => 'blocked',
-            'rescheduled' => 'pending',
+            'rescheduled' => 'rescheduled',
             'answered' => 'waiting_chat'
         ];
 

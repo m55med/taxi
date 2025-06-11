@@ -63,6 +63,26 @@ $countries = $countries ?? [];
                 </select>
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">نوع السيارة</label>
+                <select name="car_type_id" class="w-full px-4 py-2 border border-gray-300 rounded-md">
+                    <option value="">اختر نوع السيارة</option>
+                    <?php if (!empty($car_types)): ?>
+                        <?php foreach ($car_types as $car_type): ?>
+                            <option value="<?= $car_type['id'] ?>" 
+                                    <?= (isset($driver['car_type_id']) && $driver['car_type_id'] == $car_type['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($car_type['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md"><?= htmlspecialchars($driver['notes'] ?? '') ?></textarea>
+            </div>
+
             <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-3 rounded-md hover:bg-indigo-700 font-semibold">
                 <i class="fas fa-user-edit ml-2"></i>
                 تحديث بيانات السائق

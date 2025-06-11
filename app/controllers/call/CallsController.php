@@ -90,6 +90,7 @@ class CallsController extends BaseCallController
         // جلب الموظفين لنموذج التحويل
         $users = $this->callsModel->getUsers();
         $countries = $this->callsModel->getCountries();
+        $car_types = $this->callsModel->getCarTypes();
 
         // سجل المكالمات والمستندات المطلوبة
         $call_history = [];
@@ -116,6 +117,7 @@ class CallsController extends BaseCallController
             'driver' => $driver,
             'users' => $users,
             'countries' => $countries,
+            'car_types' => $car_types,
             'call_history' => $call_history,
             'document_types' => $document_types,
             'required_documents' => $required_documents,
@@ -141,58 +143,96 @@ class CallsController extends BaseCallController
 
     public function record()
     {
-        header('Content-Type: application/json');
-        ob_clean();
-
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'طريقة طلب غير صحيحة']);
+            $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
             return;
         }
 
         try {
-            $driverId = $_POST['driver_id'];
-            $callStatus = $_POST['call_status'];
-            $notes = isset($_POST['notes']) ? $_POST['notes'] : '';
-
-            // إذا كان الوضع "لم يتم الرد"، نقوم بجدولة المكالمة تلقائياً بعد ساعة
-            if ($callStatus === 'no_answer') {
-                $_POST['next_call_at'] = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            // التحقق من وجود البيانات المطلوبة
+            if (!isset($_POST['driver_id']) || !isset($_POST['call_status'])) {
+                throw new \Exception('بيانات ناقصة: معرف السائق أو حالة المكالمة مفقودة');
             }
 
-            // إذا تم تحديد موعد المكالمة القادمة يدوياً
+            $driverId = filter_var($_POST['driver_id'], FILTER_VALIDATE_INT);
+            if (!$driverId) {
+                throw new \Exception('معرف السائق غير صالح');
+            }
+
+            $callStatus = $_POST['call_status'];
+            $validStatuses = ['no_answer', 'answered', 'busy', 'not_available', 'wrong_number', 'rescheduled'];
+            if (!in_array($callStatus, $validStatuses)) {
+                throw new \Exception('حالة المكالمة غير صالحة');
+            }
+
+            $notes = $_POST['notes'] ?? '';
+            /* -- تم إلغاء الإجبارية --
+            if (empty($notes)) {
+                throw new \Exception('الرجاء إدخال ملاحظات المكالمة');
+            }
+            */
+
             $nextCallAt = null;
-            if (isset($_POST['next_call_at']) && !empty($_POST['next_call_at'])) {
+            if (in_array($callStatus, ['no_answer', 'busy', 'not_available', 'rescheduled'])) {
+                if (empty($_POST['next_call_at'])) {
+                    throw new \Exception('الرجاء تحديد موعد المكالمة التالية');
+                }
                 $nextCallAt = $_POST['next_call_at'];
             }
 
-            $result = $this->callsModel->recordCall([
+            // تسجيل المكالمة
+            $callData = [
                 'driver_id' => $driverId,
-                'user_id' => $_SESSION['user_id'],
-                'status' => $callStatus,
+                'call_by' => $_SESSION['user_id'],
+                'call_status' => $callStatus,
                 'notes' => $notes,
                 'next_call_at' => $nextCallAt
-            ]);
+            ];
 
-            if ($result) {
-                // تحديث حالة السائق في الجدول الرئيسي
-                $newStatus = $this->getNewDriverStatus($callStatus);
-                if ($newStatus) {
-                    $this->callsModel->updateDriverStatus($driverId, $newStatus);
-                }
-
-                // تحرير القفل عن السائق
-                $this->callsModel->releaseDriverHold($driverId);
-                unset($_SESSION['locked_driver_id']);
-
-                echo json_encode(['success' => true]);
-                return;
+            $result = $this->callsModel->recordCall($callData);
+            if (!$result) {
+                throw new \Exception('فشل في تسجيل المكالمة في قاعدة البيانات');
             }
 
-            echo json_encode(['success' => false, 'message' => 'فشل في تسجيل المكالمة']);
+            // تحديث حالة السائق في الجدول الرئيسي
+            $newStatus = $this->getNewDriverStatus($callStatus);
+            if ($newStatus) {
+                $this->callsModel->updateDriverStatus($driverId, $newStatus);
+            }
 
-        } catch (Exception $e) {
-            error_log($e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'حدث خطأ أثناء تسجيل المكالمة']);
+            // تحرير القفل عن السائق
+            $this->callsModel->releaseDriverHold($driverId);
+            if (isset($_SESSION['locked_driver_id'])) {
+                unset($_SESSION['locked_driver_id']);
+            }
+
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'تم تسجيل المكالمة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('Call recording error: ' . $e->getMessage());
+            $this->sendJsonResponse([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    protected function getNewDriverStatus($callStatus)
+    {
+        switch ($callStatus) {
+            case 'answered':
+                return 'waiting_chat';
+            case 'no_answer':
+                return 'no_answer';
+            case 'rescheduled':
+                return 'rescheduled';
+            case 'wrong_number':
+                return 'blocked';
+            default:
+                return null;
         }
     }
 
@@ -237,7 +277,7 @@ class CallsController extends BaseCallController
             }
             
             if (empty($payload) || empty($payload['driver_id'])) {
-                $this->sendJsonResponse(['success' => false, 'message' => 'البيانات المستلمة غير مكتملة أو缺少 معرف السائق.'], 400);
+                $this->sendJsonResponse(['success' => false, 'message' => 'البيانات المستلمة غير مكتملة أو مفقودة معرف السائق.'], 400);
             }
 
             $result = $this->callsModel->updateDriverInfo($payload);
@@ -245,14 +285,11 @@ class CallsController extends BaseCallController
             if ($result) {
                 $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث بيانات السائق بنجاح.']);
             } else {
-                // This else block might be too generic.
-                // The model should ideally log the specific DB error.
                 $this->sendJsonResponse(['success' => false, 'message' => 'فشل تحديث بيانات السائق في قاعدة البيانات.'], 500);
             }
-        } catch (\Throwable $e) { // Use Throwable to catch all kinds of errors
-            error_log('Update Driver Info Error: ' . $e->getMessage());
-            error_log('Stack Trace: ' . $e->getTraceAsString());
-            $this->sendJsonResponse(['success' => false, 'message' => 'حدث خطأ في الخادم أثناء تحديث البيانات.'], 500);
+        } catch (\Throwable $e) {
+            error_log('Error updating driver info: ' . $e->getMessage());
+            $this->sendJsonResponse(['success' => false, 'message' => 'حدث خطأ فني أثناء تحديث البيانات: ' . $e->getMessage()], 500);
         }
     }
 
