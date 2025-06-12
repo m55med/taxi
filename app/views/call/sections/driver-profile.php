@@ -17,7 +17,7 @@ if (!function_exists('getDataSourceText')) {
         $map = [
             'form' => 'نموذج تسجيل',
             'referral' => 'مسوق',
-            'telegram' => 'تلغرام',
+            'telegram' => 'تيليجرام',
             'staff' => 'عن طريق موظف',
             'admin' => 'إضافة إدارية',
         ];

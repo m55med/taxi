@@ -62,6 +62,7 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'system'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'system'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إعدادات تليجرام</a>
                                         <a href="<?= BASE_PATH ?>/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة المنصات</a>
                                         <a href="<?= BASE_PATH ?>/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة الأدوار</a>
                                         <a href="<?= BASE_PATH ?>/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة أنواع السيارات</a>

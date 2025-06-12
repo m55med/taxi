@@ -28,6 +28,21 @@ CREATE TABLE users (
 );
 
 
+CREATE TABLE telegram_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    telegram_user_id BIGINT NOT NULL,
+    telegram_chat_id BIGINT NOT NULL, -- هذا هو معرف الجروب
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE (user_id), -- كل user_id يمكن ربطه فقط بتليجرام واحد
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+
+
 CREATE TABLE car_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL

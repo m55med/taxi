@@ -13,6 +13,14 @@ class App
     public function __construct()
     {
         $url = $this->parseUrl();
+
+        // Handle Telegram Webhook - Check if the last part of the URL is 'telegram'
+        if (!empty($url) && end($url) === 'telegram') {
+            $controller = new \App\Controllers\Telegram\TelegramController();
+            $controller->handleWebhook();
+            return; // Stop further processing
+        }
+        
         $url = is_array($url) ? $url : [];
 
         // تعيين المتحكم
@@ -186,7 +194,8 @@ class App
         $publicRoutes = [
             'App\\Controllers\\AuthController/login',
             'App\\Controllers\\AuthController/register',
-            'App\\Controllers\\Referral\\ReferralController/index'
+            'App\\Controllers\\Referral\\ReferralController/index',
+            'App\\Controllers\\Telegram\\TelegramController/handleWebhook'
         ];
 
         $currentRoute = get_class($this->controller) . '/' . $this->method;

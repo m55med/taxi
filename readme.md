@@ -1,0 +1,2 @@
+https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/getWebhookInfo
+https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/setWebhook?url=https://b730-154-239-158-2.ngrok-free.app/taxi/public/telegram/
