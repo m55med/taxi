@@ -93,6 +93,7 @@
                                         <a href="<?= BASE_PATH ?>/admin/ticket_categories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة التصنيفات</a>
                                         <a href="<?= BASE_PATH ?>/admin/ticket_subcategories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة التصنيفات الفرعية</a>
                                         <a href="<?= BASE_PATH ?>/admin/ticket_codes" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة الأكواد</a>
+                                        <a href="<?= BASE_PATH ?>/admin/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة الكوبونات</a>
                                     </div>
                                 </div>
                             </div>

@@ -120,7 +120,7 @@ class DataController extends Controller
         }
 
         $couponModel = new Coupon();
-        $coupons = $couponModel->getAvailableByCountry((int)$countryId, $excludeIds);
+        $coupons = $couponModel->getAvailableByCountry((int)$countryId, $_SESSION['user_id'], $excludeIds);
 
         if (empty($coupons)) {
             $this->sendJsonResponse(['success' => true, 'coupons' => [], 'message' => 'No available coupons found for this country.']);

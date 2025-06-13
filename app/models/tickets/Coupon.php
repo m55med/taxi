@@ -16,16 +16,24 @@ class Coupon extends Model
 
     /**
      * Gets available coupons for a country, excluding those recently held by others.
+     * Limits the result to 3 coupons per distinct value.
      */
     public function getAvailableByCountry(int $countryId, int $currentUserId, array $excludeIds = [])
     {
-        // Base query to get un-used coupons for the specified country.
-        $sql = "SELECT id, code, value FROM coupons 
-                WHERE country_id = :countryId AND is_used = 0";
+        // This query uses a window function (ROW_NUMBER) to rank coupons within each value group.
+        // It's efficient for "get N items per group" tasks. Requires MySQL 8.0+ or MariaDB 10.2+.
+        // We partition by `value` and order by RAND() to get a random selection of 3 coupons per value.
+        $sql = "
+            SELECT id, code, value
+            FROM (
+                SELECT 
+                    id, code, value,
+                    ROW_NUMBER() OVER(PARTITION BY `value` ORDER BY RAND()) as rn
+                FROM coupons
+                WHERE country_id = :countryId AND is_used = 0
+                AND (held_by IS NULL OR held_by = :currentUserId OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)
+        ";
 
-        // Exclude coupons that are currently held by *another* user and the hold is still valid.
-        $sql .= " AND (held_by IS NULL OR held_by = :currentUserId OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)";
-        
         $params = [
             ':countryId' => $countryId,
             ':currentUserId' => $currentUserId
@@ -42,7 +50,11 @@ class Coupon extends Model
             }
         }
         
-        $sql .= " ORDER BY code ASC";
+        $sql .= "
+            ) AS ranked_coupons
+            WHERE rn <= 3
+            ORDER BY `value` ASC, code ASC
+        ";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

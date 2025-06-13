@@ -165,11 +165,10 @@ class ReferralController extends Controller
             'referral_link' => '',
             'visits' => [],
             'stats' => [],
+            'dashboardStats' => [],
             'marketers' => [],
             'filters' => $filters
         ];
-
-        $stats_filters = $filters; // Copy filters for stats query
 
         if ($user_role === 'marketer') {
             // Generate personal referral link
@@ -179,15 +178,17 @@ class ReferralController extends Controller
             $data['visits'] = $this->referralModel->getVisitsForMarketer($user_id, $filters);
             
             // Fetch stats for this marketer
-            $stats_filters['user_id'] = $user_id;
-            $data['stats'] = $this->referralModel->getSummaryStats($stats_filters);
+            $filters['user_id'] = $user_id;
+            $data['dashboardStats'] = $this->referralModel->getDashboardStats($filters);
+            $data['stats'] = $data['dashboardStats']['summary'];
 
         } elseif ($user_role === 'admin') {
             // Fetch all data for admin based on filters
             $data['visits'] = $this->referralModel->getAllVisits($filters);
             
             // Fetch stats for admin based on filters
-            $data['stats'] = $this->referralModel->getSummaryStats($filters);
+            $data['dashboardStats'] = $this->referralModel->getDashboardStats($filters);
+            $data['stats'] = $data['dashboardStats']['summary'];
 
             // Fetch list of marketers for the filter dropdown
             $data['marketers'] = $this->referralModel->getMarketers();

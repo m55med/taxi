@@ -133,4 +133,22 @@ class TicketController extends Controller
             echo json_encode(['success' => false, 'message' => 'Ticket not found.']);
         }
     }
+
+    public function details($id) {
+        $ticket = $this->ticketModel->findById($id);
+
+        if (!$ticket) {
+            // Or redirect to a 404 page
+            die('Ticket not found.');
+        }
+
+        // Fetch other tickets by the same phone number
+        $relatedTickets = $this->ticketModel->findByPhone($ticket['phone'], $id);
+        
+        $this->view('tickets/details', [
+            'page_main_title' => 'تفاصيل التذكرة',
+            'ticket' => $ticket,
+            'relatedTickets' => $relatedTickets
+        ]);
+    }
 } 

@@ -185,4 +185,66 @@ class Ticket extends Model
 
         return $ticket ?: null;
     }
+
+    public function findById(int $id)
+    {
+        $sql = "SELECT t.*, 
+                       p.name as platform_name, 
+                       cat.name as category_name, 
+                       sc.name as subcategory_name, 
+                       cod.name as code_name, 
+                       u_creator.username as creator_username, 
+                       u_leader.username as leader_username,
+                       cnt.name as country_name
+                FROM tickets t
+                LEFT JOIN platforms p ON t.platform_id = p.id
+                LEFT JOIN ticket_categories cat ON t.category_id = cat.id
+                LEFT JOIN ticket_subcategories sc ON t.subcategory_id = sc.id
+                LEFT JOIN ticket_codes cod ON t.code_id = cod.id
+                LEFT JOIN users u_creator ON t.created_by = u_creator.id
+                LEFT JOIN users u_leader ON t.assigned_team_leader_id = u_leader.id
+                LEFT JOIN countries cnt ON t.country_id = cnt.id
+                WHERE t.id = :id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($ticket) {
+            // Fetch associated coupons for the ticket
+            $couponSql = "SELECT c.id, c.code, c.value 
+                          FROM coupons c
+                          JOIN ticket_coupons tc ON c.id = tc.coupon_id
+                          WHERE tc.ticket_id = ?";
+            
+            $couponStmt = $this->db->prepare($couponSql);
+            $couponStmt->execute([$ticket['id']]);
+            $ticket['coupons'] = $couponStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        return $ticket ?: null;
+    }
+
+    /**
+     * Find all tickets associated with a given phone number, excluding a specific ticket ID.
+     */
+    public function findByPhone(string $phone, int $excludeTicketId)
+    {
+        if (empty($phone)) {
+            return [];
+        }
+
+        $sql = "SELECT id, ticket_number, created_at 
+                FROM tickets 
+                WHERE phone = :phone AND id != :exclude_id
+                ORDER BY created_at DESC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':phone' => $phone,
+            ':exclude_id' => $excludeTicketId
+        ]);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } 

@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn: document.getElementById('submit-btn'),
         resetBtn: document.getElementById('reset-btn'),
         ticketExistsError: document.getElementById('ticket-exists-error'),
+        viewTicketContainer: document.getElementById('view-ticket-container'),
+        viewTicketBtn: document.getElementById('view-ticket-btn'),
 
     // --- State Management ---
         heldCoupons: new Map(), // Tracks coupons held by the current user {selectorId: couponId}
@@ -152,8 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await App.api.get('tickets/data/getTicket', { ticket_number: ticketNumber });
             
             if (result.ok && result.data.success) {
-                DetailsHandler.fillFormWithTicketData(result.data.ticket);
+                const ticket = result.data.ticket;
+                DetailsHandler.fillFormWithTicketData(ticket);
                 App.ticketExistsError.classList.remove('hidden');
+                
+                App.viewTicketBtn.href = `${BASE_PATH}/tickets/details/${ticket.id}`;
+                App.viewTicketContainer.classList.remove('hidden-transition');
+
                 App.submitBtn.innerHTML = '<i class="fas fa-sync-alt ml-2"></i> تحديث التذكرة';
                 App.isUpdateMode = true;
             }
@@ -301,51 +308,68 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Main Form Logic ---
     const FormHandler = {
         init: () => {
-            App.form.addEventListener('submit', FormHandler.handleFormSubmit);
+            App.form.addEventListener('submit', FormHandler.handleSubmit);
             App.resetBtn.addEventListener('click', () => FormHandler.resetForm(true, true));
             App.pasteTicketBtn.addEventListener('click', () => App.pasteFromClipboard(App.ticketNumberInput));
             App.pastePhoneBtn.addEventListener('click', () => App.pasteFromClipboard(App.phoneInput));
             window.addEventListener('beforeunload', FormHandler.handlePageUnload);
             DetailsHandler.updateCouponSectionVisibility();
         },
-        resetForm: (fullReset = true, showNotification = true) => {
-            const currentTicketNumber = App.ticketNumberInput.value;
-            App.form.reset();
-            if (!fullReset) {
-                App.ticketNumberInput.value = currentTicketNumber;
-            }
-            
-            App.isUpdateMode = false;
-            App.couponsContainer.innerHTML = '';
-            App.heldCoupons.clear();
-            
+        resetForm: (fullReset = true, showToast = true) => {
+            // Hide feedback elements
             App.ticketExistsError.classList.add('hidden');
-            App.submitBtn.innerHTML = '<i class="fas fa-plus ml-2"></i> إنشاء تذكرة';
-            
-            [App.subcategorySelect, App.codeSelect].forEach(select => {
-            select.innerHTML = `<option value="">اختر التصنيف الرئيسي أولاً</option>`;
-            select.disabled = true;
-        });
+            App.viewTicketContainer.classList.add('hidden-transition');
 
-            DetailsHandler.updateCouponSectionVisibility();
-            if (showNotification) {
-                App.showToast('تم مسح الحقول.', 'info');
+            // Reset update mode
+            App.isUpdateMode = false;
+            App.submitBtn.innerHTML = '<i class="fas fa-plus ml-2"></i> إنشاء تذكرة';
+
+            if (fullReset) {
+                // Clear all form fields
+                App.form.reset();
+
+                // Manually trigger change events for selects to reset dependent dropdowns
+                App.categorySelect.dispatchEvent(new Event('change'));
+                App.countrySelect.dispatchEvent(new Event('change'));
+
+                // Clear dynamic elements
+                App.couponsContainer.innerHTML = '';
+                App.heldCoupons.clear();
+
+                if (showToast) {
+                    App.showToast('تم مسح جميع الحقول.', 'info');
+                }
+            } else {
+                // On partial reset (ticket search), only reset fields that are filled by search
+                const fieldsToReset = [
+                    App.platformSelect, App.phoneInput, App.isVipCheckbox, App.notesTextarea,
+                    App.teamLeaderSelect, App.countrySelect, App.categorySelect, App.subcategorySelect, App.codeSelect
+                ];
+                fieldsToReset.forEach(field => {
+                    if (field.type === 'checkbox') field.checked = false;
+                    else field.value = '';
+                });
+
+                App.couponsContainer.innerHTML = '';
+                App.heldCoupons.clear();
+                DetailsHandler.updateCouponSectionVisibility();
+                ClassificationHandler.handleCategoryChange();
             }
         },
-        handleFormSubmit: async (e) => {
-        e.preventDefault();
+        handleSubmit: async (e) => {
+            e.preventDefault();
             const formData = new FormData(App.form);
-        const data = Object.fromEntries(formData.entries());
+            const data = Object.fromEntries(formData.entries());
             data.coupons = DetailsHandler.getExistingCouponIds();
 
             const endpoint = App.isUpdateMode ? 'tickets/update' : 'tickets/store';
             const result = await App.api.post(endpoint, data);
 
-        if (result.ok && result.data.success) {
+            if (result.ok && result.data.success) {
                 App.showToast(result.data.message, 'success');
                 App.heldCoupons.clear();
                 FormHandler.resetForm();
-        } else {
+            } else {
                 const actionText = App.isUpdateMode ? 'تحديث' : 'حفظ';
                 App.showToast(result.data.message || `حدث خطأ أثناء ${actionText} التذكرة.`, 'error');
             }

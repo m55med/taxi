@@ -5,11 +5,16 @@
         <!-- Ticket Number -->
         <div class="md:col-span-2">
             <label for="ticket_number" class="block text-sm font-semibold text-gray-700 mb-2">رقم التذكرة <span class="text-red-500">*</span></label>
-            <div class="relative">
-                <input type="text" id="ticket_number" name="ticket_number" class="form-input block w-full pr-12" placeholder="الصق أو أدخل رقم التذكرة" required>
-                <button type="button" id="paste-ticket-number" class="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-gray-500 hover:text-indigo-600">
-                    <i class="fas fa-paste fa-lg"></i>
-                </button>
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <div class="relative flex-grow">
+                    <input type="text" id="ticket_number" name="ticket_number" class="form-input block w-full pr-12" placeholder="الصق أو أدخل رقم التذكرة" required>
+                    <button type="button" id="paste-ticket-number" class="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-gray-500 hover:text-indigo-600">
+                        <i class="fas fa-paste fa-lg"></i>
+                    </button>
+                </div>
+                <div id="view-ticket-container" class="hidden-transition">
+                    <a href="#" id="view-ticket-btn" class="btn btn-info whitespace-nowrap"><i class="fas fa-eye mr-2"></i>عرض التذكرة</a>
+                </div>
             </div>
             <p id="ticket-exists-error" class="text-green-600 text-sm mt-2 hidden"><i class="fas fa-check-circle mr-1"></i> رقم التذكرة موجود. تم ملء البيانات.</p>
         </div>

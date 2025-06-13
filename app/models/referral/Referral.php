@@ -398,50 +398,108 @@ class Referral
     
     public function getSummaryStats($filters = [])
     {
-        // Base query for total visits
-        $sql_visits = "SELECT COUNT(id) FROM referral_visits";
-        // Base query for successful registrations
-        $sql_regs = "SELECT COUNT(id) FROM referral_visits WHERE registration_status = 'successful'";
-
-        $where = [];
         $params = [];
+        $where_clauses = [];
 
-        // Apply filters to both queries
-        if (!empty($filters['user_id'])) { // For marketer-specific stats
-             $where[] = "affiliate_user_id = :user_id";
-             $params[':user_id'] = $filters['user_id'];
+        if (!empty($filters['user_id'])) {
+            $where_clauses[] = "affiliate_user_id = :user_id";
+            $params[':user_id'] = $filters['user_id'];
         }
-        if (!empty($filters['marketer_id'])) { // For admin filtering by marketer
-             $where[] = "affiliate_user_id = :marketer_id";
-             $params[':marketer_id'] = $filters['marketer_id'];
+
+        if (!empty($filters['marketer_id'])) {
+            $where_clauses[] = "affiliate_user_id = :marketer_id";
+            $params[':marketer_id'] = $filters['marketer_id'];
         }
+
         if (!empty($filters['date_from'])) {
-            $where[] = "visit_date >= :date_from";
+            $where_clauses[] = "visit_date >= :date_from";
             $params[':date_from'] = $filters['date_from'];
         }
+
         if (!empty($filters['date_to'])) {
-            $where[] = "visit_date <= :date_to";
+            $where_clauses[] = "visit_date <= :date_to";
             $params[':date_to'] = $filters['date_to'];
         }
 
-        if (!empty($where)) {
-            $conditions = " WHERE " . implode(' AND ', $where);
-            $sql_visits .= $conditions;
-            $sql_regs .= " AND " . implode(' AND ', $where);
+        $sql = "SELECT 
+                    COUNT(*) as total_visits,
+                    SUM(CASE WHEN registration_status = 'successful' THEN 1 ELSE 0 END) as total_registrations
+                FROM referral_visits";
+
+        if (!empty($where_clauses)) {
+            $sql .= " WHERE " . implode(" AND ", $where_clauses);
         }
 
-        $stmt_visits = $this->db->prepare($sql_visits);
-        $stmt_visits->execute($params);
-        $total_visits = $stmt_visits->fetchColumn();
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stmt_regs = $this->db->prepare($sql_regs);
-        $stmt_regs->execute($params);
-        $total_registrations = $stmt_regs->fetchColumn();
+        $total_visits = (int) $result['total_visits'];
+        $total_registrations = (int) $result['total_registrations'];
 
         return [
             'total_visits' => $total_visits,
             'total_registrations' => $total_registrations,
             'conversion_rate' => $total_visits > 0 ? round(($total_registrations / $total_visits) * 100, 2) : 0
+        ];
+    }
+
+    public function getDashboardStats($filters = []) {
+        $summary = $this->getSummaryStats($filters);
+
+        $base_sql = "FROM referral_visits";
+        $params = [];
+        $where_clauses = [];
+
+        if (!empty($filters['user_id'])) {
+            $where_clauses[] = "affiliate_user_id = :user_id";
+            $params[':user_id'] = $filters['user_id'];
+        }
+        if (!empty($filters['marketer_id'])) {
+            $where_clauses[] = "affiliate_user_id = :marketer_id";
+            $params[':marketer_id'] = $filters['marketer_id'];
+        }
+        if (!empty($filters['date_from'])) {
+            $where_clauses[] = "visit_date >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $where_clauses[] = "visit_date <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+
+        $where_sql = "";
+        if (!empty($where_clauses)) {
+            $where_sql = " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        // Helper function to run GROUP BY queries
+        $run_group_query = function($field, $limit = 5) use ($base_sql, $where_sql, $params) {
+            // Handle referer_url parsing to get the source domain
+            if ($field === 'referer_source') {
+                 $field_expression = "CASE WHEN referer_url IS NULL OR referer_url = '' THEN 'Direct' ELSE COALESCE(REPLACE(REPLACE(SUBSTRING_INDEX(referer_url, '/', 3), 'https://', ''), 'http://', ''), 'Unknown') END";
+            } else {
+                $field_expression = "COALESCE({$field}, 'Unknown')";
+            }
+
+            $query = "SELECT {$field_expression} as item, COUNT(*) as count 
+                      {$base_sql} 
+                      {$where_sql} 
+                      GROUP BY item
+                      ORDER BY count DESC 
+                      LIMIT {$limit}";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        };
+        
+        return [
+            'summary' => $summary,
+            'by_source' => $run_group_query('referer_source'),
+            'by_country' => $run_group_query('country'),
+            'by_device' => $run_group_query('device_type'),
+            'by_browser' => $run_group_query('browser_name'),
+            'by_os' => $run_group_query('operating_system'),
         ];
     }
     

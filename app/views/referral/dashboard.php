@@ -31,6 +31,89 @@
         </div>
     </div>
 
+    <!-- Detailed Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- By Source -->
+        <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">أهم مصادر الزيارات</h3>
+            <ul class="space-y-2 text-sm">
+                <?php foreach($dashboardStats['by_source'] as $item): ?>
+                    <li class="flex justify-between items-center text-gray-600">
+                        <span><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span class="font-bold bg-gray-100 px-2 py-1 rounded"><?php echo number_format($item['count']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+                 <?php if (empty($dashboardStats['by_source'])): ?>
+                    <p class="text-gray-500">لا توجد بيانات.</p>
+                <?php endif; ?>
+            </ul>
+        </div>
+
+        <!-- By Country -->
+        <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">أهم الدول</h3>
+            <ul class="space-y-2 text-sm">
+                <?php foreach($dashboardStats['by_country'] as $item): ?>
+                     <li class="flex justify-between items-center text-gray-600">
+                        <span><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span class="font-bold bg-gray-100 px-2 py-1 rounded"><?php echo number_format($item['count']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+                 <?php if (empty($dashboardStats['by_country'])): ?>
+                    <p class="text-gray-500">لا توجد بيانات.</p>
+                <?php endif; ?>
+            </ul>
+        </div>
+
+        <!-- By Device Type -->
+        <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">أنواع الأجهزة</h3>
+            <ul class="space-y-2 text-sm">
+                <?php foreach($dashboardStats['by_device'] as $item): ?>
+                     <li class="flex justify-between items-center text-gray-600">
+                        <span><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span class="font-bold bg-gray-100 px-2 py-1 rounded"><?php echo number_format($item['count']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+                 <?php if (empty($dashboardStats['by_device'])): ?>
+                    <p class="text-gray-500">لا توجد بيانات.</p>
+                <?php endif; ?>
+            </ul>
+        </div>
+        
+        <!-- By Browser -->
+        <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">أهم المتصفحات</h3>
+            <ul class="space-y-2 text-sm">
+                <?php foreach($dashboardStats['by_browser'] as $item): ?>
+                     <li class="flex justify-between items-center text-gray-600">
+                        <span><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span class="font-bold bg-gray-100 px-2 py-1 rounded"><?php echo number_format($item['count']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+                 <?php if (empty($dashboardStats['by_browser'])): ?>
+                    <p class="text-gray-500">لا توجد بيانات.</p>
+                <?php endif; ?>
+            </ul>
+        </div>
+        
+        <!-- By OS -->
+        <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-700 mb-3">أنظمة التشغيل</h3>
+            <ul class="space-y-2 text-sm">
+                <?php foreach($dashboardStats['by_os'] as $item): ?>
+                     <li class="flex justify-between items-center text-gray-600">
+                        <span><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span class="font-bold bg-gray-100 px-2 py-1 rounded"><?php echo number_format($item['count']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+                 <?php if (empty($dashboardStats['by_os'])): ?>
+                    <p class="text-gray-500">لا توجد بيانات.</p>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <form action="" method="GET" class="flex flex-wrap items-center gap-4">
