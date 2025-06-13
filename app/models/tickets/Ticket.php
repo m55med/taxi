@@ -4,6 +4,7 @@ namespace App\Models\Tickets;
 
 use App\Core\Model;
 use PDO;
+use PDOException;
 
 class Ticket extends Model
 {
@@ -246,5 +247,174 @@ class Ticket extends Model
         ]);
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTicketDetails($id)
+    {
+        try {
+            $sql = "SELECT t.*, p.name as platform_name, c.name as country_name, 
+                           u_creator.username as creator_username, 
+                           u_leader.username as leader_username,
+                           tc.name as category_name, ts.name as subcategory_name, tco.name as code_name
+                    FROM tickets t
+                    LEFT JOIN platforms p ON t.platform_id = p.id
+                    LEFT JOIN countries c ON t.country_id = c.id
+                    LEFT JOIN users u_creator ON t.created_by = u_creator.id
+                    LEFT JOIN users u_leader ON t.assigned_team_leader_id = u_leader.id
+                    LEFT JOIN ticket_categories tc ON t.category_id = tc.id
+                    LEFT JOIN ticket_subcategories ts ON t.subcategory_id = ts.id
+                    LEFT JOIN ticket_codes tco ON t.code_id = tco.id
+                    WHERE t.id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error getting ticket details: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getTicketCoupons($ticketId)
+    {
+        try {
+            $sql = "SELECT c.code, c.value 
+                    FROM ticket_coupons tc
+                    JOIN coupons c ON tc.coupon_id = c.id
+                    WHERE tc.ticket_id = :ticket_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':ticket_id' => $ticketId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error getting ticket coupons: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getRelatedTickets($phone, $currentTicketId)
+    {
+        if (empty($phone)) return [];
+        try {
+            $stmt = $this->db->prepare("SELECT id, ticket_number, created_at FROM tickets WHERE phone = :phone AND id != :current_id ORDER BY created_at DESC");
+            $stmt->execute([':phone' => $phone, ':current_id' => $currentTicketId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error getting related tickets: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getReviews($ticketId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT tr.*, u.username as reviewer_username
+                FROM ticket_reviews tr
+                JOIN users u ON tr.reviewed_by = u.id
+                WHERE tr.ticket_id = :ticket_id
+                ORDER BY tr.reviewed_at DESC
+            ");
+            $stmt->execute([':ticket_id' => $ticketId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getReviews: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getDiscussions($ticketId)
+    {
+         try {
+            $stmt = $this->db->prepare("
+                SELECT td.*, u.username as opener_username
+                FROM ticket_discussions td
+                JOIN users u ON td.opened_by = u.id
+                WHERE td.ticket_id = :ticket_id
+                ORDER BY td.created_at DESC
+            ");
+            $stmt->execute([':ticket_id' => $ticketId]);
+            $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($discussions as &$discussion) {
+                $discussion['objections'] = $this->getObjections($discussion['id']);
+            }
+
+            return $discussions;
+        } catch (PDOException $e) {
+            error_log("Error in getDiscussions: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getObjections($discussionId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT tob.*, u_replier.username as replier_username, u_replied_to.username as replied_to_username
+                FROM ticket_objections tob
+                JOIN users u_replier ON tob.replied_by_agent_id = u_replier.id
+                JOIN users u_replied_to ON tob.replied_to_user_id = u_replied_to.id
+                WHERE tob.discussion_id = :discussion_id
+                ORDER BY tob.created_at ASC
+            ");
+            $stmt->execute([':discussion_id' => $discussionId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getObjections: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function addReview($data) {
+        try {
+            $sql = "INSERT INTO ticket_reviews (ticket_id, reviewed_by, review_result, review_notes) VALUES (:ticket_id, :reviewed_by, :review_result, :review_notes)";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($data);
+        } catch (PDOException $e) {
+            error_log("Error adding review: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function addDiscussion($data) {
+        try {
+            $this->db->beginTransaction();
+            
+            $sql = "INSERT INTO ticket_discussions (ticket_id, opened_by, reason, notes) VALUES (:ticket_id, :opened_by, :reason, :notes)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($data);
+
+            $discussionId = $this->db->lastInsertId();
+
+            // Potentially update ticket status here
+            $updateSql = "UPDATE tickets SET status = 'under_discussion' WHERE id = :ticket_id";
+            // Note: 'status' column is not in the tickets table schema provided. This would need to be added.
+            // For now, we will skip this part.
+            // $updateStmt = $this->db->prepare($updateSql);
+            // $updateStmt->execute([':ticket_id' => $data['ticket_id']]);
+
+            $this->db->commit();
+            return $discussionId;
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error adding discussion: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function addObjection($data) {
+        try {
+            $sql = "INSERT INTO ticket_objections (discussion_id, objection_text, replied_to_user_id, replied_by_agent_id) VALUES (:discussion_id, :objection_text, :replied_to_user_id, :replied_by_agent_id)";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($data);
+        } catch (PDOException $e) {
+            error_log("Error adding objection: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function closeDiscussion($discussionId) {
+        $sql = "UPDATE ticket_discussions SET status = 'closed', updated_at = NOW() WHERE id = :discussion_id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':discussion_id' => $discussionId]);
     }
 } 

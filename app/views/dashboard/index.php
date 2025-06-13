@@ -243,6 +243,20 @@
                         </div>
                     </div>
                 </a>
+
+                <!-- المناقشات -->
+                <a href="<?= BASE_PATH ?>/discussions"
+                   class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                            <i class="fas fa-comments text-white text-2xl"></i>
+                        </div>
+                        <div class="mr-5">
+                            <h3 class="text-lg font-medium text-gray-900">المناقشات</h3>
+                            <p class="mt-1 text-sm text-gray-500">متابعة وتحديث المناقشات المفتوحة</p>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>

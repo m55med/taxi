@@ -64,4 +64,16 @@ class TeamMember
             return false;
         }
     }
+
+    public function isUserInAnyTeam($user_id)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id FROM team_members WHERE user_id = :user_id");
+            $stmt->execute([':user_id' => $user_id]);
+            return $stmt->fetch() !== false;
+        } catch (PDOException $e) {
+            // Log error if needed
+            return false;
+        }
+    }
 } 

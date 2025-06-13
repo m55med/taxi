@@ -10,7 +10,8 @@ INSERT INTO roles (name) VALUES
 ('agent'),
 ('marketer'),
 ('quality_manager'),
-('developer');
+('developer'),
+('Team_leader');
 
 
 CREATE TABLE users (
@@ -248,12 +249,13 @@ CREATE TABLE ticket_discussions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ticket_id INT NOT NULL,
     opened_by INT NOT NULL,
-    reason TEXT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
     notes TEXT,
-    status ENUM('open', 'objection_raised', 'resolved') DEFAULT 'open',
+    status ENUM('open', 'closed') NOT NULL DEFAULT 'open',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     FOREIGN KEY (opened_by) REFERENCES users(id)
 );
 

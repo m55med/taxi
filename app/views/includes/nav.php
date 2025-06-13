@@ -32,6 +32,30 @@
                         <i class="fas fa-headset ml-2"></i>
                         مركز الاتصال
                     </a>
+
+                    <!-- Logs Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-history ml-2"></i>
+                            <span>السجلات</span>
+                            <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" 
+                             x-transition:enter="transition ease-out duration-200" 
+                             x-transition:enter-start="opacity-0 transform -translate-y-2" 
+                             x-transition:enter-end="opacity-100 transform translate-y-0" 
+                             x-transition:leave="transition ease-in duration-150" 
+                             x-transition:leave-start="opacity-100 transform translate-y-0" 
+                             x-transition:leave-end="opacity-0 transform -translate-y-2" 
+                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20"
+                             style="display: none;">
+                            <a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-clipboard-list ml-2"></i>
+                                <span>سجل الأنشطة</span>
+                            </a>
+                        </div>
+                    </div>
+
                     <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
                     <a href="<?= BASE_PATH ?>/referral/dashboard" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
                         <i class="fas fa-bullhorn ml-2"></i>

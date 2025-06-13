@@ -474,12 +474,71 @@ class Driver
     public function getById($driverId)
     {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM drivers WHERE id = :id");
-            $stmt->execute([':id' => $driverId]);
+            $stmt = $this->db->prepare("
+                SELECT d.*, c.name as country_name, ct.name as car_type_name, u.username as added_by_username
+                FROM drivers d
+                LEFT JOIN countries c ON d.country_id = c.id
+                LEFT JOIN car_types ct ON d.car_type_id = ct.id
+                LEFT JOIN users u ON d.added_by = u.id
+                WHERE d.id = :driver_id
+            ");
+            $stmt->execute([':driver_id' => $driverId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error in getById: " . $e->getMessage());
             return null;
         }
+    }
+
+    public function getCallHistory($driverId)
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT dc.*, u.username as staff_name 
+                FROM driver_calls dc 
+                LEFT JOIN users u ON dc.call_by = u.id 
+                WHERE dc.driver_id = :driver_id 
+                ORDER BY dc.created_at DESC
+            ");
+            $stmt->execute([':driver_id' => $driverId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getCallHistory: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getAssignmentHistory($driverId)
+    {
+        $sql = "SELECT da.created_at, da.note, u_from.username as from_username, u_to.username as to_username
+                FROM driver_assignments da
+                JOIN users u_from ON da.from_user_id = u_from.id
+                JOIN users u_to ON da.to_user_id = u_to.id
+                WHERE da.driver_id = :driver_id
+                ORDER BY da.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':driver_id' => $driverId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAssignableUsers()
+    {
+        // Fetches users who can be assigned a driver (e.g., agents, team leaders)
+        $sql = "SELECT id, username, is_online, role_id FROM users WHERE status = 'active' AND role_id IN (3, 4, 5)"; // Assuming roles 3,4,5 are agent, leader, quality
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function assignDriver($driverId, $fromUserId, $toUserId, $note)
+    {
+        $sql = "INSERT INTO driver_assignments (driver_id, from_user_id, to_user_id, note) VALUES (:driver_id, :from_user_id, :to_user_id, :note)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':driver_id' => $driverId,
+            ':from_user_id' => $fromUserId,
+            ':to_user_id' => $toUserId,
+            ':note' => $note
+        ]);
     }
 } 

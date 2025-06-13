@@ -43,10 +43,14 @@ class TeamMembersController extends Controller {
             
             if ($user_id && $team_id) {
                 $teamMemberModel = new TeamMember();
-                if ($teamMemberModel->create($user_id, $team_id)) {
+                
+                // Check if user is already in any team
+                if ($teamMemberModel->isUserInAnyTeam($user_id)) {
+                    $_SESSION['error'] = 'هذا المستخدم عضو بالفعل في فريق آخر ولا يمكن إضافته مرة أخرى.';
+                } elseif ($teamMemberModel->create($user_id, $team_id)) {
                     $_SESSION['message'] = 'تمت إضافة عضو الفريق بنجاح.';
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن العضو موجود بالفعل في هذا الفريق.';
+                    $_SESSION['error'] = 'حدث خطأ أثناء إضافة العضو. قد يكون موجود بالفعل في هذا الفريق.';
                 }
             } else {
                 $_SESSION['error'] = 'البيانات المدخلة غير صالحة. يرجى اختيار مستخدم وفريق.';

@@ -62,13 +62,17 @@
 
         <!-- Coupons Section -->
         <div class="md:col-span-2 hidden" id="coupons-section">
-             <label class="block text-sm font-semibold text-gray-700 mb-2">الكوبونات</label>
-            <div id="coupons-container" class="space-y-3">
-                <!-- Dynamic coupons will be added here -->
-            </div>
-            <button type="button" id="add-coupon-btn" class="btn btn-secondary mt-3 text-sm">
-                <i class="fas fa-plus ml-2"></i>إضافة كوبون
-            </button>
-        </div>
+    <label class="block text-sm font-semibold text-gray-700 mb-2">الكوبونات</label>
+    
+    <div id="coupons-container" class="space-y-3">
+        <!-- Dynamic coupons will be added here -->
+    </div>
+
+    <button type="button" id="add-coupon-btn"
+        class="inline-flex items-center px-4 py-2 mt-3 border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-colors duration-200 rounded-md text-sm font-medium shadow-sm">
+        <i class="fas fa-plus ml-2"></i>إضافة كوبون
+    </button>
+</div>
+
     </div>
 </div> 

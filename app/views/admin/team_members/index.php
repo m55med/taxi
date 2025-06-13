@@ -9,24 +9,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; }
+        /* Custom Toast Styles (from ticket system) */
+        .toast {
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast.hide {
+            opacity: 0;
+            transform: translateX(100%);
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <?php include __DIR__ . '/../../includes/nav.php'; ?>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-8 right-8 z-[100] w-full max-w-sm space-y-3"></div>
 
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">إدارة أعضاء الفرق</h1>
-
-        <?php if (isset($data['message'])): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= htmlspecialchars($data['message']) ?></span>
-            </div>
-        <?php endif; ?>
-        <?php if (isset($data['error'])): ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= htmlspecialchars($data['error']) ?></span>
-            </div>
-        <?php endif; ?>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="md:col-span-1">
@@ -91,7 +97,7 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($member['user_name']) ?></td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($member['team_name']) ?></td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                                                    <form action="<?= BASE_PATH ?>/admin/team_members/delete/<?= $member['id'] ?>" method="POST" onsubmit="return confirm('هل أنت متأكد من رغبتك في إزالة هذا العضو من الفريق؟');">
+                                                    <form action="<?= BASE_PATH ?>/admin/team_members/delete/<?= $member['id'] ?>" method="POST" class="delete-form">
                                                         <button type="submit" class="text-red-600 hover:text-red-900">
                                                             <i class="fas fa-trash-alt"></i>
                                                         </button>
@@ -108,5 +114,72 @@
             </div>
         </div>
     </div>
+    
+    <!-- SweetAlert2 for Delete Confirmation ONLY -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Custom Toast Function (from ticket system)
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            const toastId = 'toast-' + Date.now();
+            toast.id = toastId;
+            
+            const icon = type === 'success' 
+                ? '<i class="fas fa-check-circle"></i>' 
+                : '<i class="fas fa-times-circle"></i>';
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+            toast.className = `toast ${bgColor} text-white font-bold rounded-lg shadow-lg p-4 flex items-center`;
+            toast.innerHTML = `<div class="ml-3 text-sm font-medium">${icon} <span class="mr-2">${message}</span></div>`;
+            
+            container.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.add('hide');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 4000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check for PHP session messages and show toast
+            <?php if (isset($data['message'])): ?>
+                showToast('<?= addslashes(htmlspecialchars($data['message'])) ?>', 'success');
+                <?php unset($_SESSION['message']); ?>
+            <?php endif; ?>
+            
+            <?php if (isset($data['error'])): ?>
+                showToast('<?= addslashes(htmlspecialchars($data['error'])) ?>', 'error');
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+
+            // Handle delete confirmation with SweetAlert2
+            document.querySelectorAll('.delete-form').forEach(form => {
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    Swal.fire({
+                        title: 'هل أنت متأكد؟',
+                        text: "هل تريد حقًا إزالة هذا العضو من الفريق؟",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'نعم، قم بالحذف!',
+                        cancelButtonText: 'إلغاء'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html> 

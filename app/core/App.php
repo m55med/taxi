@@ -109,23 +109,27 @@ class App
                     $this->triggerNotFound();
                 }
             } elseif ($url[0] === 'ticket' || $url[0] === 'tickets') {
-                $controllerName = 'Ticket';
-                $methodName = 'index';
-                
-                // Is there a second segment? (potential method or 'data' for DataController)
+                $controllerName = 'Ticket'; // Default controller
+                $methodName = 'index';     // Default method
+
                 if (isset($url[1])) {
-                    if ($url[1] === 'data' && isset($url[2])) {
-                        // Route to DataController, e.g., /tickets/data/getCategories
+                    // Route to the new TicketsController for details, reviews, discussions, etc.
+                    if (in_array($url[1], ['details', 'addReview', 'addDiscussion', 'addObjection'])) {
+                        $controllerName = 'Tickets'; // The new controller with the 's'
+                        $methodName = $url[1];
+                        unset($url[0], $url[1]);
+                    } elseif ($url[1] === 'data' && isset($url[2])) {
+                        // Handle existing data routes
                         $controllerName = 'Data';
                         $methodName = $url[2];
                         unset($url[0], $url[1], $url[2]);
                     } else {
-                        // Route to TicketController, e.g., /tickets/show/123
+                        // Fallback to the old TicketController for other methods like 'create', 'index' etc.
                         $methodName = $url[1];
                         unset($url[0], $url[1]);
                     }
                 } else {
-                    // Just /tickets
+                    // Just /tickets -> goes to old TicketController@index
                     unset($url[0]);
                 }
 
@@ -139,6 +143,32 @@ class App
                     } else {
                         $this->triggerNotFound();
                     }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'logs') { // Handle logs route
+                $controllerName = 'LogsController';
+                $controllerFile = '../app/controllers/logs/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Logs\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'discussions') { // Handle discussions route
+                $controllerName = 'DiscussionsController';
+                $controllerFile = '../app/controllers/' . $controllerName . '.php';
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\DiscussionsController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) unset($url[1]);
                 } else {
                     $this->triggerNotFound();
                 }
@@ -167,6 +197,11 @@ class App
                         if (isset($url[1])) unset($url[1]);
                     }
                 } else {
+                    // Handle 'drivers' route specifically to map to 'DriverController'
+                    if (strtolower($url[0]) === 'drivers') {
+                        $controllerName = 'DriverController';
+                    }
+
                     // Regular controllers
                     $controllerClass = '\\App\\Controllers\\' . $controllerName;
                     $controllerFile = '../app/controllers/' . $controllerName . '.php';

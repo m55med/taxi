@@ -25,6 +25,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Initialize the application
+// Load Helpers
+require_once '../app/helpers/url_helper.php';
+
+// Initialize and run the application
 $app = new \App\Core\App();
 

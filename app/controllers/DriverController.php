@@ -122,4 +122,56 @@ class DriverController extends Controller
     //         echo json_encode(['error' => $e->getMessage()]);
     //     }
     // }
-} 
+
+    public function assign($driverId) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('drivers/details/' . $driverId);
+        }
+
+        // Basic validation
+        if (empty($driverId) || empty($_POST['to_user_id'])) {
+            $_SESSION['error_message'] = 'بيانات التحويل غير مكتملة.';
+            redirect('drivers/details/' . $driverId);
+        }
+        
+        $fromUserId = $_SESSION['user_id']; // Assuming the logged-in user is doing the assignment
+        $toUserId = $_POST['to_user_id'];
+        $note = trim($_POST['note'] ?? '');
+
+        if ($this->driverModel->assignDriver($driverId, $fromUserId, $toUserId, $note)) {
+            $_SESSION['success_message'] = 'تم تحويل السائق بنجاح.';
+        } else {
+            $_SESSION['error_message'] = 'حدث خطأ أثناء تحويل السائق.';
+        }
+
+        redirect('drivers/details/' . $driverId);
+    }
+
+    public function details($id)
+    {
+        if (empty($id)) {
+            redirect('errors/notfound');
+        }
+
+        $driver = $this->driverModel->getById($id);
+
+        if (!$driver) {
+            redirect('errors/notfound');
+        }
+
+        $callHistory = $this->driverModel->getCallHistory($id);
+        $assignmentHistory = $this->driverModel->getAssignmentHistory($id);
+        $assignableUsers = $this->driverModel->getAssignableUsers(); // Fetch users for the form
+
+        $data = [
+            'page_main_title' => 'تفاصيل السائق',
+            'driver' => $driver,
+            'callHistory' => $callHistory,
+            'assignmentHistory' => $assignmentHistory,
+            'assignableUsers' => $assignableUsers,
+            'currentUser' => ['id' => $_SESSION['user_id']] // Pass current user info
+        ];
+
+        $this->view('drivers/details', $data);
+    }
+}
