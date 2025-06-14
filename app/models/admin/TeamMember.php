@@ -76,4 +76,27 @@ class TeamMember
             return false;
         }
     }
+
+    public function getUnassignedUsers()
+    {
+        try {
+            // This query selects users who are not in the team_members table.
+            // It also excludes roles that typically shouldn't be in teams like 'admin' or 'developer'.
+            $stmt = $this->db->query("
+                SELECT u.id, u.username
+                FROM users u
+                LEFT JOIN team_members tm ON u.id = tm.user_id
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE tm.user_id IS NULL 
+                  AND u.status = 'active'
+                  AND r.name NOT IN ('admin', 'developer')
+                ORDER BY u.username ASC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // Log error if needed
+            error_log("Error fetching unassigned users: " . $e->getMessage());
+            return [];
+        }
+    }
 } 

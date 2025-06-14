@@ -114,7 +114,7 @@ class App
 
                 if (isset($url[1])) {
                     // Route to the new TicketsController for details, reviews, discussions, etc.
-                    if (in_array($url[1], ['details', 'addReview', 'addDiscussion', 'addObjection'])) {
+                    if (in_array($url[1], ['details', 'addReview', 'addDiscussion', 'addObjection', 'closeDiscussion'])) {
                         $controllerName = 'Tickets'; // The new controller with the 's'
                         $methodName = $url[1];
                         unset($url[0], $url[1]);

@@ -16,11 +16,10 @@ class TeamMembersController extends Controller {
     public function index() {
         $teamMemberModel = new TeamMember();
         $teamModel = new Team();
-        $userModel = $this->model('User');
 
         $team_members = $teamMemberModel->getAll();
         $teams = $teamModel->getAll();
-        $users = $userModel->getActiveStaff();
+        $users = $teamMemberModel->getUnassignedUsers();
         
         $data = [
             'team_members' => $team_members,

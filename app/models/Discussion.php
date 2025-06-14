@@ -32,8 +32,8 @@ class Discussion
                 t.id as ticket_id,
                 t.ticket_number,
                 opener.username as opener_username,
-                (SELECT COUNT(*) FROM ticket_discussion_objections WHERE discussion_id = d.id) as replies_count,
-                (SELECT MAX(created_at) FROM ticket_discussion_objections WHERE discussion_id = d.id) as last_reply_at
+                (SELECT COUNT(*) FROM ticket_objections WHERE discussion_id = d.id) as replies_count,
+                (SELECT MAX(created_at) FROM ticket_objections WHERE discussion_id = d.id) as last_reply_at
             FROM ticket_discussions d
             JOIN tickets t ON d.ticket_id = t.id
             JOIN users opener ON d.opened_by = opener.id
