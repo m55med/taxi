@@ -50,8 +50,8 @@ class Discussion
                 // Team leaders see discussions on their team's tickets or ones they opened
                 $sql .= " WHERE (team.team_leader_id = :user_id OR d.opened_by = :user_id)";
             } else { // For agents or other roles
-                // Agents see discussions they opened or are on their tickets
-                $sql .= " WHERE (t.created_by = :user_id OR d.opened_by = :user_id)";
+                // Agents see discussions only on tickets they created
+                $sql .= " WHERE t.created_by = :user_id";
             }
              $params[':user_id'] = $userId;
         }

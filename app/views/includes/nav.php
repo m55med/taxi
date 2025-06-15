@@ -7,6 +7,11 @@
                     <a href="<?= BASE_PATH ?>/dashboard" class="text-2xl font-bold text-indigo-600">تاكسي</a>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8 sm:space-x-reverse">
+                    <a href="<?= BASE_PATH ?>/dashboard"
+                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                        <i class="fas fa-tachometer-alt ml-2"></i>
+                        لوحة التحكم
+                    </a>
                     <?php if ($_SESSION['role'] === 'admin'): ?>
                     <a href="<?= BASE_PATH ?>/dashboard/users" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
                         <i class="fas fa-users-cog ml-1"></i>
@@ -17,11 +22,6 @@
                         رفع بيانات السائقين
                     </a>
                     <?php endif; ?>
-                    <a href="<?= BASE_PATH ?>/dashboard"
-                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                        <i class="fas fa-tachometer-alt ml-2"></i>
-                        لوحة التحكم
-                    </a>
                     <a href="<?= BASE_PATH ?>/tickets"
                        class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
                         <i class="fas fa-ticket-alt ml-2"></i>
