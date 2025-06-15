@@ -135,7 +135,7 @@ class UploadController extends Controller
             'بريميوم' => 6
         ];
 
-        $type = strtolower(trim($vehicleType));
+        $type = strtolower(trim($vehicleType ?? ''));
         return $types[$type] ?? 1; // إرجاع سيدان كقيمة افتراضية
     }
 } 
