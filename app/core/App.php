@@ -3,6 +3,7 @@
 namespace App\Core;
 
 use App\Controllers\AuthController;
+use App\Models\User;
 
 class App
 {
@@ -12,6 +13,25 @@ class App
 
     public function __construct()
     {
+        // Force logout check
+        if (isset($_SESSION['user_id'])) {
+            $forceLogoutFile = APPROOT . '/database/force_logout/' . $_SESSION['user_id'];
+            if (file_exists($forceLogoutFile)) {
+                $userModel = new User();
+                $userModel->logout($_SESSION['user_id']);
+                
+                unlink($forceLogoutFile); // Clean up the flag file
+                
+                session_unset();
+                session_destroy();
+
+                session_start();
+                $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول.';
+                header('Location: ' . BASE_PATH . '/auth/login');
+                exit;
+            }
+        }
+
         $url = $this->parseUrl();
 
         // Handle Telegram Webhook - Check if the last part of the URL is 'telegram'

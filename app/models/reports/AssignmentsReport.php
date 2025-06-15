@@ -6,6 +6,10 @@ use PDO;
 class AssignmentsReport
 {
     private $db;
+    private $baseQuery = "FROM driver_assignments da
+                        JOIN drivers d ON da.driver_id = d.id
+                        JOIN users from_user ON da.from_user_id = from_user.id
+                        JOIN users to_user ON da.to_user_id = to_user.id";
 
     public function __construct()
     {
@@ -43,7 +47,16 @@ class AssignmentsReport
         return ['where' => $whereClause, 'params' => $params];
     }
 
-    public function getAssignments($filters = [])
+    public function countAssignments($filters = [])
+    {
+        $queryParts = $this->getFilteredQueryParts($filters);
+        $sql = "SELECT COUNT(da.id) FROM driver_assignments da {$queryParts['where']}";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($queryParts['params']);
+        return $stmt->fetchColumn();
+    }
+
+    public function getPaginatedAssignments($limit, $offset, $filters = [])
     {
         $queryParts = $this->getFilteredQueryParts($filters);
         $sql = "SELECT
@@ -54,12 +67,10 @@ class AssignmentsReport
                     da.created_at AS assigned_at,
                     da.note AS reason,
                     da.note AS notes
-                FROM driver_assignments da
-                JOIN drivers d ON da.driver_id = d.id
-                JOIN users from_user ON da.from_user_id = from_user.id
-                JOIN users to_user ON da.to_user_id = to_user.id
+                {$this->baseQuery}
                 {$queryParts['where']}
-                ORDER BY da.created_at DESC";
+                ORDER BY da.created_at DESC
+                LIMIT {$limit} OFFSET {$offset}";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($queryParts['params']);

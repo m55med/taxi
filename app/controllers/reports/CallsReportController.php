@@ -27,7 +27,26 @@ class CallsReportController extends Controller
             'date_to' => $_GET['date_to'] ?? ''
         ];
 
-        $data = $this->callsReportModel->getCallsReport($filters);
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $offset = ($page - 1) * $limit;
+        
+        $stats = $this->callsReportModel->getCallsStats($filters);
+        $totalRecords = $this->callsReportModel->countCalls($filters);
+        $totalPages = ceil($totalRecords / $limit);
+        
+        $calls = $this->callsReportModel->getPaginatedCalls($limit, $offset, $filters);
+        
+        $data = array_merge($stats, [
+            'calls' => $calls,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords
+            ],
+            'filters' => $filters
+        ]);
         
         $this->view('reports/calls', $data);
     }

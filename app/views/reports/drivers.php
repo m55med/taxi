@@ -177,53 +177,63 @@
         <!-- Filters -->
         <div class="bg-gray-50 rounded-lg p-4 mb-8">
             <h3 class="text-lg font-medium text-gray-800 mb-4">تصفية النتائج</h3>
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
+            <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">حالة السائق</label>
                     <select name="main_system_status" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">الكل</option>
-                    <option value="pending" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'pending' ? 'selected' : '' ?>>قيد الانتظار</option>
-                    <option value="completed" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'completed' ? 'selected' : '' ?>>مكتمل</option>
-                    <option value="rejected" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'rejected' ? 'selected' : '' ?>>مرفوض</option>
-                </select>
-            </div>
+                        <option value="">الكل</option>
+                        <option value="pending" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'pending' ? 'selected' : '' ?>>قيد الانتظار</option>
+                        <option value="completed" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'completed' ? 'selected' : '' ?>>مكتمل</option>
+                        <option value="rejected" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'rejected' ? 'selected' : '' ?>>مرفوض</option>
+                    </select>
+                </div>
 
-            <div>
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">مصدر البيانات</label>
                     <select name="data_source" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">الكل</option>
-                    <option value="call_center" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'call_center' ? 'selected' : '' ?>>مركز الاتصال</option>
-                    <option value="website" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'website' ? 'selected' : '' ?>>الموقع الإلكتروني</option>
-                    <option value="app" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'app' ? 'selected' : '' ?>>التطبيق</option>
-                </select>
-            </div>
+                        <option value="">الكل</option>
+                        <option value="call_center" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'call_center' ? 'selected' : '' ?>>مركز الاتصال</option>
+                        <option value="website" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'website' ? 'selected' : '' ?>>الموقع الإلكتروني</option>
+                        <option value="app" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'app' ? 'selected' : '' ?>>التطبيق</option>
+                    </select>
+                </div>
 
-            <div>
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">المستندات</label>
                     <select name="has_missing_documents" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">الكل</option>
-                    <option value="1" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '1' ? 'selected' : '' ?>>مستندات ناقصة</option>
-                    <option value="0" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '0' ? 'selected' : '' ?>>مستندات مكتملة</option>
-                </select>
-            </div>
+                        <option value="">الكل</option>
+                        <option value="1" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '1' ? 'selected' : '' ?>>مستندات ناقصة</option>
+                        <option value="0" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '0' ? 'selected' : '' ?>>مستندات مكتملة</option>
+                    </select>
+                </div>
 
-            <div>
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">من تاريخ</label>
                     <input type="date" name="date_from" value="<?= isset($_GET['date_from']) ? $_GET['date_from'] : '' ?>" 
                            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
+                </div>
 
-            <div>
+                <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">إلى تاريخ</label>
                     <input type="date" name="date_to" value="<?= isset($_GET['date_to']) ? $_GET['date_to'] : '' ?>" 
                            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
+                </div>
 
-            <div class="flex items-end">
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">عدد النتائج</label>
+                    <select name="limit" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="25" <?= ($data['pagination']['limit'] ?? 25) == 25 ? 'selected' : '' ?>>25</option>
+                        <option value="50" <?= ($data['pagination']['limit'] ?? 25) == 50 ? 'selected' : '' ?>>50</option>
+                        <option value="100" <?= ($data['pagination']['limit'] ?? 25) == 100 ? 'selected' : '' ?>>100</option>
+                        <option value="500" <?= ($data['pagination']['limit'] ?? 25) == 500 ? 'selected' : '' ?>>500</option>
+                    </select>
+                </div>
+
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="fas fa-filter ml-1"></i>
-                    تصفية
-                </button>
+                        تصفية
+                    </button>
                 </div>
             </form>
         </div>
@@ -261,6 +271,66 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-6">
+        <?php
+            $pagination = $data['pagination'];
+            if ($pagination['total_records'] > 0) {
+                $filters = $data['filters'];
+                // To prevent empty filter values from being in the URL
+                $filters = array_filter($filters);
+                $queryParams = http_build_query(array_merge($filters, ['limit' => $pagination['limit']]));
+                $currentPage = $pagination['page'];
+                $totalPages = $pagination['total_pages'];
+
+                $startRecord = ($currentPage - 1) * $pagination['limit'] + 1;
+                $endRecord = $startRecord + count($data['drivers']) - 1;
+        ?>
+            <div class="flex flex-col sm:flex-row items-center justify-between">
+                <div class="text-sm text-gray-700 mb-4 sm:mb-0">
+                    عرض <span class="font-medium"><?= $startRecord ?></span> إلى <span class="font-medium"><?= $endRecord ?></span> من <span class="font-medium"><?= $pagination['total_records'] ?></span> نتيجة
+                </div>
+                
+                <?php if ($totalPages > 1): ?>
+                <nav class="flex items-center space-x-1 space-x-reverse">
+                    <a href="?page=1&<?= $queryParams ?>" class="px-3 py-2 rounded-md text-sm font-medium <?= $currentPage == 1 ? 'bg-gray-200 text-gray-400 pointer-events-none' : 'bg-white text-gray-600 hover:bg-gray-50' ?>"><i class="fas fa-angle-double-right"></i></a>
+                    <a href="?page=<?= max(1, $currentPage - 1) ?>&<?= $queryParams ?>" class="px-3 py-2 rounded-md text-sm font-medium <?= $currentPage <= 1 ? 'bg-gray-200 text-gray-400 pointer-events-none' : 'bg-white text-gray-600 hover:bg-gray-50' ?>"><i class="fas fa-angle-right"></i></a>
+                    
+                    <?php
+                        $window = 1;
+                        if ($totalPages > 10) {
+                             if($currentPage > $window + 2) {
+                                echo '<a href="?page=1&'.$queryParams.'" class="px-4 py-2 rounded-md text-sm font-medium bg-white text-gray-600 hover:bg-gray-50">1</a>';
+                                if($currentPage > $window + 3) {
+                                    echo '<span class="px-4 py-2 text-sm font-medium text-gray-500">...</span>';
+                                }
+                            }
+
+                            for ($i = max(1, $currentPage - $window); $i <= min($totalPages, $currentPage + $window); $i++) {
+                                echo '<a href="?page='.$i.'&'.$queryParams.'" class="px-4 py-2 rounded-md text-sm font-medium '.($i == $currentPage ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50').'">'.$i.'</a>';
+                            }
+                            
+                            if($currentPage < $totalPages - ($window + 2)) {
+                                if($currentPage < $totalPages - ($window + 3)) {
+                                     echo '<span class="px-4 py-2 text-sm font-medium text-gray-500">...</span>';
+                                }
+                                echo '<a href="?page='.$totalPages.'&'.$queryParams.'" class="px-4 py-2 rounded-md text-sm font-medium bg-white text-gray-600 hover:bg-gray-50">'.$totalPages.'</a>';
+                            }
+                        } else {
+                             for ($i = 1; $i <= $totalPages; $i++) {
+                                echo '<a href="?page='.$i.'&'.$queryParams.'" class="px-4 py-2 rounded-md text-sm font-medium '.($i == $currentPage ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50').'">'.$i.'</a>';
+                            }
+                        }
+                    ?>
+
+                    <a href="?page=<?= min($totalPages, $currentPage + 1) ?>&<?= $queryParams ?>" class="px-3 py-2 rounded-md text-sm font-medium <?= $currentPage >= $totalPages ? 'bg-gray-200 text-gray-400 pointer-events-none' : 'bg-white text-gray-600 hover:bg-gray-50' ?>"><i class="fas fa-angle-left"></i></a>
+                    <a href="?page=<?= $totalPages ?>&<?= $queryParams ?>" class="px-3 py-2 rounded-md text-sm font-medium <?= $currentPage == $totalPages ? 'bg-gray-200 text-gray-400 pointer-events-none' : 'bg-white text-gray-600 hover:bg-gray-50' ?>"><i class="fas fa-angle-double-left"></i></a>
+                </nav>
+                <?php endif; ?>
+            </div>
+        <?php } ?>
         </div>
     </div>
 </div>

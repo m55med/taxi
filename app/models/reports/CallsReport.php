@@ -8,24 +8,23 @@ use PDO;
 class CallsReport
 {
     private $db;
+    private $baseQuery = "FROM driver_calls dc
+                        LEFT JOIN users u ON dc.call_by = u.id
+                        LEFT JOIN drivers d ON dc.driver_id = d.id";
 
     public function __construct()
     {
         $this->db = Database::getInstance();
     }
 
-    public function getCallsReport($filters = [])
+    private function getWhereClause($filters)
     {
-        $baseSql = "FROM driver_calls dc
-                    LEFT JOIN users u ON dc.call_by = u.id
-                    LEFT JOIN drivers d ON dc.driver_id = d.id";
-        
         $whereConditions = [];
         $params = [];
 
         if (!empty($filters['status'])) {
             $status_mapping = [
-                'completed' => 'answered', // Mapping view value to db value
+                'completed' => 'answered',
                 'no_answer' => 'no_answer',
                 'busy' => 'busy'
             ];
@@ -42,40 +41,61 @@ class CallsReport
             $whereConditions[] = "DATE(dc.created_at) <= ?";
             $params[] = $filters['date_to'];
         }
+        
+        return [
+            'where' => !empty($whereConditions) ? " WHERE " . implode(" AND ", $whereConditions) : "",
+            'params' => $params
+        ];
+    }
 
-        $whereClause = !empty($whereConditions) ? " WHERE " . implode(" AND ", $whereConditions) : "";
-
-        // Stats query
+    public function getCallsStats($filters = [])
+    {
+        $queryParts = $this->getWhereClause($filters);
         $statsSql = "SELECT
                         COUNT(dc.id) as total_calls,
                         SUM(CASE WHEN dc.call_status = 'answered' THEN 1 ELSE 0 END) as successful_calls
-                     $baseSql $whereClause";
+                     {$this->baseQuery} {$queryParts['where']}";
         
         $stmtStats = $this->db->prepare($statsSql);
-        $stmtStats->execute($params);
+        $stmtStats->execute($queryParts['params']);
         $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
 
         $stats['failed_calls'] = ($stats['total_calls'] ?? 0) - ($stats['successful_calls'] ?? 0);
-        $stats['avg_duration'] = 'N/A'; // Duration column is missing from schema
+        $stats['avg_duration'] = 'N/A';
 
-        // List query
+        return $stats;
+    }
+
+    public function countCalls($filters = [])
+    {
+        $queryParts = $this->getWhereClause($filters);
+        $sql = "SELECT COUNT(dc.id) {$this->baseQuery} {$queryParts['where']}";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($queryParts['params']);
+        return $stmt->fetchColumn();
+    }
+    
+    public function getPaginatedCalls($limit, $offset, $filters = [])
+    {
+        $queryParts = $this->getWhereClause($filters);
         $listSql = "SELECT
                         dc.id as call_id,
                         d.phone as phone_number,
                         dc.call_status as status,
                         u.username as staff_name,
                         dc.created_at
-                    $baseSql $whereClause
-                    ORDER BY dc.created_at DESC";
+                    {$this->baseQuery} {$queryParts['where']}
+                    ORDER BY dc.created_at DESC
+                    LIMIT {$limit} OFFSET {$offset}";
         
         $stmtList = $this->db->prepare($listSql);
-        $stmtList->execute($params);
+        $stmtList->execute($queryParts['params']);
         $callsList = $stmtList->fetchAll(PDO::FETCH_ASSOC);
         
         foreach($callsList as &$call) {
             $call['duration'] = 'N/A';
         }
 
-        return array_merge($stats, ['calls' => $callsList]);
+        return $callsList;
     }
 } 

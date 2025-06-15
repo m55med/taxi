@@ -1,0 +1,32 @@
+body {
+    font-family: 'Cairo', sans-serif;
+}
+.online-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 5px;
+}
+.online-badge.active {
+    background-color: #34D399;
+    box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2);
+}
+.online-badge.offline {
+    background-color: #9CA3AF;
+}
+.status-select {
+    transition: all 0.3s ease;
+}
+.status-select.active {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+.status-select.banned {
+    background-color: #FEE2E2;
+    color: #991B1B;
+}
+.status-select.pending {
+    background-color: #FEF3C7;
+    color: #92400E;
+}

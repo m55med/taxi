@@ -8,13 +8,34 @@ use PDO;
 class DocumentsReport
 {
     private $db;
+    private $baseQuery = "FROM driver_documents_required ddr
+                          JOIN drivers d ON ddr.driver_id = d.id
+                          JOIN document_types dt ON ddr.document_type_id = dt.id
+                          LEFT JOIN users u ON ddr.updated_by = u.id";
 
     public function __construct()
     {
         $this->db = Database::getInstance();
     }
 
-    public function getDocumentsReport($filters = [])
+    public function getStaffMembers()
+    {
+        $staffSql = "SELECT id, username FROM users WHERE role_id IN (SELECT id FROM roles WHERE name IN ('admin', 'quality_manager'))";
+        $staffStmt = $this->db->prepare($staffSql);
+        $staffStmt->execute();
+        return $staffStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countDocuments($filters = [])
+    {
+        $queryParts = $this->buildQuery($filters);
+        $sql = "SELECT COUNT(ddr.id) {$this->baseQuery} {$queryParts['where']}";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($queryParts['params']);
+        return $stmt->fetchColumn();
+    }
+
+    public function getPaginatedDocuments($limit, $offset, $filters = [])
     {
         $queryParts = $this->buildQuery($filters);
         
@@ -25,26 +46,14 @@ class DocumentsReport
                     u.username as verified_by_name,
                     ddr.updated_at as verified_at,
                     ddr.note as verification_notes
-                FROM driver_documents_required ddr
-                JOIN drivers d ON ddr.driver_id = d.id
-                JOIN document_types dt ON ddr.document_type_id = dt.id
-                LEFT JOIN users u ON ddr.updated_by = u.id
+                {$this->baseQuery}
                 {$queryParts['where']}
-                ORDER BY ddr.updated_at DESC";
+                ORDER BY ddr.updated_at DESC
+                LIMIT {$limit} OFFSET {$offset}";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($queryParts['params']);
-        $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $staffSql = "SELECT id, username FROM users WHERE role_id IN (SELECT id FROM roles WHERE name IN ('admin', 'quality_manager'))";
-        $staffStmt = $this->db->prepare($staffSql);
-        $staffStmt->execute();
-        $staff_members = $staffStmt->fetchAll(PDO::FETCH_ASSOC);
-
-        return [
-            'documents' => $documents,
-            'staff_members' => $staff_members
-        ];
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function buildQuery($filters)

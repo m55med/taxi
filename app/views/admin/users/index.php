@@ -8,44 +8,11 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-        }
-        .online-badge {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 5px;
-        }
-        .online-badge.active {
-            background-color: #34D399;
-            box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2);
-        }
-        .online-badge.offline {
-            background-color: #9CA3AF;
-        }
-        .status-select {
-            transition: all 0.3s ease;
-        }
-        .status-select.active {
-            background-color: #D1FAE5;
-            color: #065F46;
-        }
-        .status-select.banned {
-            background-color: #FEE2E2;
-            color: #991B1B;
-        }
-        .status-select.pending {
-            background-color: #FEF3C7;
-            color: #92400E;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= BASE_PATH ?>/admin/users/css/styles.css">
 </head>
 
 <body class="bg-gray-100">
-    <?php include __DIR__ . '/../includes/nav.php'; ?>
+    <?php include __DIR__ . '/../../includes/nav.php'; ?>
 
     <div class="container mx-auto px-4 py-8">
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
@@ -172,6 +139,9 @@
                                         <a href="<?= BASE_PATH ?>/dashboard/editUser/<?= htmlspecialchars($user['id'] ?? '') ?>" class="text-indigo-600 hover:text-indigo-900 ml-3">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <a href="<?= BASE_PATH ?>/dashboard/forceLogout/<?= htmlspecialchars($user['id'] ?? '') ?>" class="text-yellow-600 hover:text-yellow-900 ml-3" onclick="return confirm('هل أنت متأكد من أنك تريد إجبار هذا المستخدم على تسجيل الخروج؟')">
+                                            <i class="fas fa-sign-out-alt"></i>
+                                        </a>
                                         <a href="<?= BASE_PATH ?>/dashboard/deleteUser/<?= htmlspecialchars($user['id'] ?? '') ?>" class="text-red-600 hover:text-red-900" onclick="return confirm('هل أنت متأكد من حذف هذا المستخدم؟')">
                                             <i class="fas fa-trash"></i>
                                         </a>
@@ -196,71 +166,7 @@
         </div>
     </div>
 
-    <script>
-    function updateUserRole(selectElement) {
-        const userId = selectElement.dataset.userId;
-        const roleId = selectElement.value;
-
-        fetch(`${BASE_PATH}/dashboard/updateUserRole/${userId}/${roleId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.status) {
-                alert(data.message || 'حدث خطأ أثناء تحديث الدور');
-                location.reload();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ أثناء تحديث الدور');
-            location.reload();
-        });
-    }
-
-    function updateUserStatus(selectElement) {
-        const userId = selectElement.dataset.userId;
-        const newStatus = selectElement.value;
-
-        fetch(`${BASE_PATH}/dashboard/updateUserStatus/${userId}/${newStatus}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status) {
-                // تحديث الفئة CSS للقائمة المنسدلة
-                selectElement.className = `status-select text-xs font-semibold rounded-full px-2 py-1 ${newStatus}`;
-                
-                // تحديث آخر نشاط
-                const row = selectElement.closest('tr');
-                const lastActivityCell = row.querySelector('td:nth-last-child(2)');
-                lastActivityCell.textContent = 'منذ لحظات';
-            } else {
-                alert(data.message || 'حدث خطأ أثناء تحديث الحالة');
-                location.reload();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ أثناء تحديث الحالة');
-            location.reload();
-        });
-    }
-
-    // تطبيق الفئات الأولية على قوائم الحالة
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusSelects = document.querySelectorAll('.status-select');
-        statusSelects.forEach(select => {
-            select.className = `status-select text-xs font-semibold rounded-full px-2 py-1 ${select.value}`;
-        });
-    });
-    </script>
+<script src="<?= BASE_PATH ?>/admin/users/js/users.js"></script>
 </body>
 
 </html> 

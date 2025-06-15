@@ -29,10 +29,26 @@ class AssignmentsReportController extends Controller
             'date_to' => $_GET['date_to'] ?? ''
         ];
 
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $offset = ($page - 1) * $limit;
+
+        $totalRecords = $this->assignmentsReportModel->countAssignments($filters);
+        $totalPages = ceil($totalRecords / $limit);
+        
+        $assignments = $this->assignmentsReportModel->getPaginatedAssignments($limit, $offset, $filters);
+        
         $data = [
-            'assignments' => $this->assignmentsReportModel->getAssignments($filters),
+            'assignments' => $assignments,
             'summary' => $this->assignmentsReportModel->getSummary($filters),
-            'staff_members' => $this->assignmentsReportModel->getStaffMembers()
+            'staff_members' => $this->assignmentsReportModel->getStaffMembers(),
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords
+            ],
+            'filters' => $filters
         ];
 
         $this->view('reports/assignments', $data);

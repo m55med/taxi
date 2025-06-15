@@ -29,7 +29,27 @@ class DriversReportController extends Controller
             'date_to' => $_GET['date_to'] ?? ''
         ];
 
-        $data = $this->driversReportModel->getDriversReport($filters);
+        // Pagination
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $offset = ($page - 1) * $limit;
+
+        $totalRecords = $this->driversReportModel->countDrivers($filters);
+        $totalPages = ceil($totalRecords / $limit);
+        
+        $drivers = $this->driversReportModel->getPaginatedDrivers($limit, $offset, $filters);
+        $stats = $this->driversReportModel->getDriversStats($filters);
+
+        $data = array_merge($stats, [
+            'drivers' => $drivers,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords
+            ],
+            'filters' => $filters
+        ]);
         
         $this->view('reports/drivers', $data);
     }

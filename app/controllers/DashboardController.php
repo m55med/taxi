@@ -58,7 +58,7 @@ class DashboardController extends Controller
             'title' => 'إدارة المستخدمين'
         ];
 
-        $this->view('admin/users', $data);
+        $this->view('admin/users/index', $data);
     }
 
     public function addUser()
@@ -99,14 +99,14 @@ class DashboardController extends Controller
                     'roles' => $roles,
                     'title' => 'إضافة مستخدم جديد'
                 ];
-                $this->view('admin/addUser', $data);
+                $this->view('admin/users/sections/addUser', $data);
             }
         } else {
             $data = [
                 'roles' => $roles,
                 'title' => 'إضافة مستخدم جديد'
             ];
-            $this->view('admin/addUser', $data);
+            $this->view('admin/users/sections/addUser', $data);
         }
     }
 
@@ -170,7 +170,7 @@ class DashboardController extends Controller
             'title' => 'تعديل المستخدم'
         ];
         
-        $this->view('admin/editUser', $data);
+        $this->view('admin/users/sections/editUser', $data);
     }
 
     public function deleteUser($id = null)
@@ -199,6 +199,45 @@ class DashboardController extends Controller
             $_SESSION['success'] = 'تم حذف المستخدم بنجاح';
         } else {
             $_SESSION['error'] = $result['message'];
+        }
+
+        header('Location: ' . BASE_PATH . '/dashboard/users');
+        exit;
+    }
+
+    public function forceLogout($id = null)
+    {
+        // التحقق من صلاحيات المدير
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
+            header('Location: ' . BASE_PATH . '/dashboard');
+            exit;
+        }
+
+        if ($id === null) {
+            header('Location: ' . BASE_PATH . '/dashboard/users');
+            exit;
+        }
+
+        // لا يمكن للمدير إجبار نفسه على الخروج
+        if ($id == $_SESSION['user_id']) {
+            $_SESSION['error'] = 'لا يمكنك إجبار نفسك على تسجيل الخروج';
+            header('Location: ' . BASE_PATH . '/dashboard/users');
+            exit;
+        }
+
+        // إنشاء مجلد force_logout إذا لم يكن موجودًا
+        $logoutDir = APPROOT . '/database/force_logout';
+        if (!is_dir($logoutDir)) {
+            mkdir($logoutDir, 0755, true);
+        }
+
+        // إنشاء ملف الإشارة لإجبار تسجيل الخروج
+        $forceFile = $logoutDir . '/' . $id;
+        if (file_put_contents($forceFile, '1')) {
+            $_SESSION['success'] = 'سيتم إجبار المستخدم على تسجيل الخروج في طلبه التالي.';
+        } else {
+            $_SESSION['error'] = 'حدث خطأ أثناء محاولة إجبار المستخدم على الخروج.';
         }
 
         header('Location: ' . BASE_PATH . '/dashboard/users');
@@ -293,6 +332,6 @@ class DashboardController extends Controller
             }
         }
 
-        $this->view('admin/changePassword', ['title' => 'تغيير كلمة المرور']);
+        $this->view('admin/users/sections/changePassword', ['title' => 'تغيير كلمة المرور']);
     }
 }

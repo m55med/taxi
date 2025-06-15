@@ -4,65 +4,90 @@
         <div class="flex justify-between h-16">
             <div class="flex">
                 <div class="flex-shrink-0 flex items-center">
-                    <a href="<?= BASE_PATH ?>/dashboard" class="text-2xl font-bold text-indigo-600">تاكسي</a>
+                    <a href="<?= BASE_PATH ?>/dashboard" class="text-2xl font-bold text-indigo-600 hover:text-indigo-700">تاكسي</a>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8 sm:space-x-reverse">
-                    <a href="<?= BASE_PATH ?>/dashboard"
-                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                        <i class="fas fa-tachometer-alt ml-2"></i>
-                        لوحة التحكم
-                    </a>
                     <?php if ($_SESSION['role'] === 'admin'): ?>
                     <a href="<?= BASE_PATH ?>/dashboard/users" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
                         <i class="fas fa-users-cog ml-1"></i>
                         إدارة المستخدمين
                     </a>
-                    <a href="<?= BASE_PATH ?>/upload" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
-                        <i class="fas fa-file-upload ml-1"></i>
-                        رفع بيانات السائقين
-                    </a>
                     <?php endif; ?>
-                    <a href="<?= BASE_PATH ?>/tickets"
-                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                        <i class="fas fa-ticket-alt ml-2"></i>
-                        إدارة التذاكر
-                    </a>
-                    <a href="<?= BASE_PATH ?>/call"
-                       class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                        <i class="fas fa-headset ml-2"></i>
-                        مركز الاتصال
-                    </a>
 
-                    <!-- Logs Dropdown -->
+                    <!-- Activities Dropdown -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-history ml-2"></i>
-                            <span>السجلات</span>
+                            <i class="fas fa-tasks ml-2"></i>
+                            <span>الأنشطة</span>
                             <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                         </button>
                         <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" 
-                             x-transition:enter-start="opacity-0 transform -translate-y-2" 
-                             x-transition:enter-end="opacity-100 transform translate-y-0" 
-                             x-transition:leave="transition ease-in duration-150" 
-                             x-transition:leave-start="opacity-100 transform translate-y-0" 
-                             x-transition:leave-end="opacity-0 transform -translate-y-2" 
-                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20"
-                             style="display: none;">
-                            <a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <i class="fas fa-clipboard-list ml-2"></i>
-                                <span>سجل الأنشطة</span>
-                            </a>
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                            <a href="<?= BASE_PATH ?>/call" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset ml-2"></i>مركز الاتصال</a>
+                            <a href="<?= BASE_PATH ?>/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt ml-2"></i>إدارة التذاكر</a>
+                            <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
+                            <a href="<?= BASE_PATH ?>/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-bullhorn ml-2"></i>لوحة التسويق</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <!-- Reports Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-chart-bar ml-2"></i>
+                            <span>التقارير</span>
+                            <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open"
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                            <a href="<?= BASE_PATH ?>/reports/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المستخدمين</a>
+                            <a href="<?= BASE_PATH ?>/reports/drivers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير السائقين</a>
+                            <a href="<?= BASE_PATH ?>/reports/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المكالمات</a>
+                            <a href="<?= BASE_PATH ?>/reports/assignments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير التعيينات</a>
+                            <a href="<?= BASE_PATH ?>/reports/analytics" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">التحليلات</a>
+                            <a href="<?= BASE_PATH ?>/reports/documents" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المستندات</a>
                         </div>
                     </div>
 
-                    <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
-                    <a href="<?= BASE_PATH ?>/referral/dashboard" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                        <i class="fas fa-bullhorn ml-2"></i>
-                        <span>لوحة التسويق</span>
-                    </a>
+                    <!-- Upload Center Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-upload ml-2"></i>
+                            <span>مركز الرفع</span>
+                            <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open"
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                             <a href="<?= BASE_PATH ?>/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">رفع بيانات السائقين</a>
+                        </div>
+                    </div>
                     <?php endif; ?>
+
+                    <!-- Logs & Tracking Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-history ml-2"></i>
+                            <span>السجلات والمتابعة</span>
+                            <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" 
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                            <a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-clipboard-list ml-2"></i>سجل الأنشطة</a>
+                             <a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments ml-2"></i>المناقشات</a>
+                        </div>
+                    </div>
+
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
+                    <!-- Settings Dropdown -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
                             <i class="fas fa-cogs ml-2"></i>
@@ -146,4 +171,4 @@
     <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </nav>
-<?php endif; ?> 
+<?php endif; ?>

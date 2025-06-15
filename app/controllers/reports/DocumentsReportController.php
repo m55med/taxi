@@ -29,7 +29,27 @@ class DocumentsReportController extends Controller
             'date_to' => $_GET['date_to'] ?? ''
         ];
 
-        $data = $this->documentsReportModel->getDocumentsReport($filters);
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $offset = ($page - 1) * $limit;
+        
+        $totalRecords = $this->documentsReportModel->countDocuments($filters);
+        $totalPages = ceil($totalRecords / $limit);
+
+        $documents = $this->documentsReportModel->getPaginatedDocuments($limit, $offset, $filters);
+        $staff_members = $this->documentsReportModel->getStaffMembers();
+
+        $data = [
+            'documents' => $documents,
+            'staff_members' => $staff_members,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => $totalPages,
+                'total_records' => $totalRecords
+            ],
+            'filters' => $filters
+        ];
         
         $this->view('reports/documents', $data);
     }

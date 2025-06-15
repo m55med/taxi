@@ -14,10 +14,8 @@ class DriversReport
         $this->db = Database::getInstance();
     }
 
-    public function getDriversReport($filters = [])
+    private function getWhereClause($filters)
     {
-        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
-        
         $whereConditions = [];
         $params = [];
 
@@ -43,18 +41,14 @@ class DriversReport
         }
 
         $whereClause = !empty($whereConditions) ? " WHERE " . implode(" AND ", $whereConditions) : "";
+        return ['clause' => $whereClause, 'params' => $params];
+    }
 
-        // Fetch drivers list
-        $listSql = "SELECT 
-                        d.id, d.name, d.phone, d.main_system_status, d.data_source, d.created_at,
-                        u.username AS added_by_name
-                    {$baseQuery} {$whereClause} ORDER BY d.created_at DESC";
+    public function getDriversStats($filters = [])
+    {
+        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
+        $filterData = $this->getWhereClause($filters);
         
-        $stmtList = $this->db->prepare($listSql);
-        $stmtList->execute($params);
-        $driversList = $stmtList->fetchAll(PDO::FETCH_ASSOC);
-
-        // Fetch stats
         $statsSql = "SELECT
                         COUNT(*) as total_drivers,
                         SUM(CASE WHEN d.app_status = 'active' THEN 1 ELSE 0 END) as active_drivers,
@@ -71,14 +65,42 @@ class DriversReport
                         SUM(CASE WHEN d.main_system_status = 'no_answer' THEN 1 ELSE 0 END) as no_answer,
                         SUM(CASE WHEN d.main_system_status = 'rescheduled' THEN 1 ELSE 0 END) as rescheduled,
                         SUM(CASE WHEN d.main_system_status = 'reconsider' THEN 1 ELSE 0 END) as reconsider
-                    {$baseQuery} {$whereClause}";
+                    {$baseQuery} {$filterData['clause']}";
 
         $stmtStats = $this->db->prepare($statsSql);
-        $stmtStats->execute($params);
+        $stmtStats->execute($filterData['params']);
         $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
 
         $stats['docs_completion_rate'] = ($stats['total_drivers'] > 0) ? round(($stats['complete_docs'] / $stats['total_drivers']) * 100, 1) : 0;
         
-        return array_merge($stats, ['drivers' => $driversList]);
+        return $stats;
+    }
+
+    public function countDrivers($filters = [])
+    {
+        $baseQuery = "FROM drivers d";
+        $filterData = $this->getWhereClause($filters);
+        $countSql = "SELECT COUNT(d.id) {$baseQuery} {$filterData['clause']}";
+        
+        $stmt = $this->db->prepare($countSql);
+        $stmt->execute($filterData['params']);
+        return $stmt->fetchColumn();
+    }
+
+    public function getPaginatedDrivers($limit, $offset, $filters = [])
+    {
+        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
+        $filterData = $this->getWhereClause($filters);
+
+        $listSql = "SELECT 
+                        d.id, d.name, d.phone, d.main_system_status, d.data_source, d.created_at,
+                        u.username AS added_by_name
+                    {$baseQuery} {$filterData['clause']} 
+                    ORDER BY d.created_at DESC
+                    LIMIT {$limit} OFFSET {$offset}";
+        
+        $stmtList = $this->db->prepare($listSql);
+        $stmtList->execute($filterData['params']);
+        return $stmtList->fetchAll(PDO::FETCH_ASSOC);
     }
 } 
