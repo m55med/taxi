@@ -259,14 +259,18 @@ class User
 
     // تسجيل الخروج
     public function logout($userId) {
-        return $this->updateOnlineStatus($userId, 0);
+        $this->updateOnlineStatus($userId, 0);
     }
 
-    // تحديث حالة الاتصال
-    private function updateOnlineStatus($userId, $status) {
-        $sql = "UPDATE users SET is_online = ? WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$status, $userId]);
+    public function updateOnlineStatus($userId, $status) {
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET is_online = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
+            $stmt->execute([':status' => $status, ':id' => $userId]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Error updating online status: " . $e->getMessage());
+            return false;
+        }
     }
 
     // تحديث دور المستخدم

@@ -177,7 +177,63 @@ class Coupon {
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
+
+    /**
+     * Delete multiple unused coupons by their IDs.
+     */
+    public function deleteBulkCoupons($ids) {
+        if (empty($ids)) {
+            return 0;
+        }
+        // Ensure all IDs are integers for security
+        $ids = array_map('intval', $ids);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        // We only delete coupons that are NOT used
+        $sql = "DELETE FROM coupons WHERE id IN ($placeholders) AND is_used = 0";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($ids);
+        
+        return $stmt->rowCount();
+    }
     
+    /**
+     * Get all coupons based on filters, without pagination.
+     */
+    public function getCouponsWithoutPagination($filters = []) {
+        $sql = "SELECT c.*, 
+                       cnt.name as country_name, 
+                       u_used.username as used_by_username,
+                       t.ticket_number
+                FROM coupons c
+                LEFT JOIN countries cnt ON c.country_id = cnt.id
+                LEFT JOIN users u_used ON c.used_by = u_used.id
+                LEFT JOIN tickets t ON c.used_in_ticket = t.id
+                WHERE 1=1";
+
+        $params = [];
+
+        if (!empty($filters['search'])) {
+            $sql .= " AND c.code LIKE :search";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+        if (isset($filters['is_used']) && $filters['is_used'] !== '') {
+            $sql .= " AND c.is_used = :is_used";
+            $params[':is_used'] = $filters['is_used'];
+        }
+        if (!empty($filters['country_id'])) {
+            $sql .= " AND c.country_id = :country_id";
+            $params[':country_id'] = $filters['country_id'];
+        }
+
+        $sql .= " ORDER BY c.created_at DESC";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Get a list of all countries for dropdowns.
      */

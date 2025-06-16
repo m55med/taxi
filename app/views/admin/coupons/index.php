@@ -87,9 +87,10 @@
     <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">قائمة الكوبونات</h2>
 
-        <!-- Filters -->
+        <!-- Filters & Actions -->
         <div class="mb-6">
-            <form action="" method="GET" class="flex flex-wrap items-center gap-4">
+            <!-- Filter Form -->
+            <form action="" method="GET" class="flex flex-wrap items-center gap-4 mb-4">
                  <div class="flex-grow">
                     <label for="search" class="sr-only">بحث عن كوبون</label>
                     <input type="text" name="search" id="search" value="<?= htmlspecialchars($filters['search'] ?? '') ?>" placeholder="ابحث بالكود..." class="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -118,72 +119,116 @@
                      <a href="<?= BASE_PATH ?>/admin/coupons" class="bg-gray-200 text-gray-700 px-5 py-2 rounded-md hover:bg-gray-300 text-sm font-medium">مسح</a>
                 </div>
             </form>
-        </div>
 
-        <!-- Table -->
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-4 py-3">الكود</th>
-                        <th scope="col" class="px-4 py-3">القيمة</th>
-                        <th scope="col" class="px-4 py-3">الدولة</th>
-                        <th scope="col" class="px-4 py-3">الحالة</th>
-                        <th scope="col" class="px-4 py-3">تاريخ الإنشاء</th>
-                        <th scope="col" class="px-4 py-3">معلومات الاستخدام</th>
-                        <th scope="col" class="px-4 py-3">إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($coupons)): ?>
-                        <tr><td colspan="7" class="px-6 py-4 text-center">لا توجد كوبونات تطابق البحث.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($coupons as $coupon): ?>
-                        <tr class="bg-white border-b hover:bg-gray-50">
-                            <td class="px-4 py-4 font-mono">
-                                <span class="mr-2"><?= htmlspecialchars($coupon['code']) ?></span>
-                                <button @click="copyToClipboard('<?= htmlspecialchars($coupon['code']) ?>')" class="text-gray-400 hover:text-blue-600"><i class="far fa-copy"></i></button>
-                            </td>
-                            <td class="px-4 py-4 font-semibold"><?= htmlspecialchars($coupon['value']) ?></td>
-                            <td class="px-4 py-4"><?= htmlspecialchars($coupon['country_name'] ?? 'N/A') ?></td>
-                            <td class="px-4 py-4">
-                                <?php if ($coupon['is_used']): ?>
-                                    <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">مستخدم</span>
-                                <?php else: ?>
-                                    <span class="px-2 py-1 font-semibold leading-tight text-yellow-700 bg-yellow-100 rounded-full">غير مستخدم</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="px-4 py-4"><?= date('Y-m-d', strtotime($coupon['created_at'])) ?></td>
-                            <td class="px-4 py-4">
-                                <?php if ($coupon['is_used']): ?>
-                                    <div class="text-xs">
-                                        <p><strong>التذكرة:</strong> <a href="<?= BASE_PATH . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
-                                        <p><strong>المستخدم:</strong> <?= htmlspecialchars($coupon['used_by_username']) ?></p>
-                                        <p><strong>بتاريخ:</strong> <?= date('Y-m-d H:i', strtotime($coupon['used_at'])) ?></p>
-                                    </div>
-                                <?php else: ?>
-                                    N/A
-                                <?php endif; ?>
-                            </td>
-                            <td class="px-4 py-4">
-                                <?php if (!$coupon['is_used']): ?>
-                                <button @click="openEditModal(<?= htmlspecialchars(json_encode($coupon)) ?>)" class="text-blue-600 hover:text-blue-800"><i class="fas fa-edit"></i></button>
-                                <form action="<?= BASE_PATH ?>/admin/coupons" method="POST" class="inline" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذا الكوبون؟');">
-                                    <input type="hidden" name="id" value="<?= $coupon['id'] ?>">
-                                    <input type="hidden" name="action" value="delete">
-                                    <button type="submit" class="text-red-600 hover:text-red-800 mr-2"><i class="fas fa-trash"></i></button>
-                                </form>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-4">
+                <!-- Bulk Actions Dropdown -->
+                <div class="relative" x-show="selectedCoupons.length > 0" x-cloak>
+                    <button @click="actionOpen = !actionOpen" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        إجراءات للمحدد <span x-text="`(${selectedCoupons.length})`" class="mr-1"></span>
+                        <i class="fas fa-chevron-down -ml-1 mr-2 h-5 w-5 transition-transform" :class="{'rotate-180': actionOpen}"></i>
+                    </button>
+                    <div x-show="actionOpen" @click.away="actionOpen = false" x-collapse class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                        <div class="py-1">
+                            <button @click="submitBulkDelete()" class="w-full text-right flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                <i class="fas fa-trash text-red-500 w-5 text-center ml-2"></i> حذف المحدد
+                            </button>
+                            <button @click="copySelected()" class="w-full text-right flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                <i class="fas fa-copy text-blue-500 w-5 text-center ml-2"></i> نسخ المحدد
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Button -->
+                <div>
+                    <button @click="openExportModal()" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        <i class="fas fa-file-export ml-2"></i> تصدير
+                    </button>
+                </div>
+            </div>
         </div>
         
-        <!-- Pagination -->
-         <?php require_once APPROOT . '/app/views/inc/pagination.php'; ?>
+        <!-- Table Form for Bulk Actions -->
+        <form action="<?= BASE_PATH ?>/admin/coupons" method="POST" id="bulkActionForm">
+            <input type="hidden" name="action" id="bulkActionInput" value="">
+            <template x-for="couponId in selectedCoupons" :key="couponId">
+                <input type="hidden" name="coupon_ids[]" :value="couponId">
+            </template>
+            
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th scope="col" class="p-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" @click="toggleAll($event.target.checked)" :checked="allVisibleUnusedCoupons.length > 0 && selectedCoupons.length === allVisibleUnusedCoupons.length" :disabled="allVisibleUnusedCoupons.length === 0" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                </div>
+                            </th>
+                            <th scope="col" class="px-4 py-3">الكود</th>
+                            <th scope="col" class="px-4 py-3">القيمة</th>
+                            <th scope="col" class="px-4 py-3">الدولة</th>
+                            <th scope="col" class="px-4 py-3">الحالة</th>
+                            <th scope="col" class="px-4 py-3">تاريخ الإنشاء</th>
+                            <th scope="col" class="px-4 py-3">معلومات الاستخدام</th>
+                            <th scope="col" class="px-4 py-3">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($coupons)): ?>
+                            <tr><td colspan="8" class="px-6 py-4 text-center">لا توجد كوبونات تطابق البحث.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($coupons as $coupon): ?>
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                                <td class="w-4 p-4">
+                                    <?php if (!$coupon['is_used']): ?>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" :value="<?= $coupon['id'] ?>" x-model="selectedCoupons" data-code="<?= htmlspecialchars($coupon['code']) ?>" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                    </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-4 font-mono">
+                                    <span class="mr-2"><?= htmlspecialchars($coupon['code']) ?></span>
+                                    <button @click="copyToClipboard('<?= htmlspecialchars($coupon['code']) ?>')" class="text-gray-400 hover:text-blue-600"><i class="far fa-copy"></i></button>
+                                </td>
+                                <td class="px-4 py-4 font-semibold"><?= htmlspecialchars($coupon['value']) ?></td>
+                                <td class="px-4 py-4"><?= htmlspecialchars($coupon['country_name'] ?? 'N/A') ?></td>
+                                <td class="px-4 py-4">
+                                    <?php if ($coupon['is_used']): ?>
+                                        <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">مستخدم</span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-1 font-semibold leading-tight text-yellow-700 bg-yellow-100 rounded-full">غير مستخدم</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-4"><?= date('Y-m-d', strtotime($coupon['created_at'])) ?></td>
+                                <td class="px-4 py-4">
+                                    <?php if ($coupon['is_used']): ?>
+                                        <div class="text-xs">
+                                            <p><strong>التذكرة:</strong> <a href="<?= BASE_PATH . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
+                                            <p><strong>المستخدم:</strong> <?= htmlspecialchars($coupon['used_by_username']) ?></p>
+                                            <p><strong>بتاريخ:</strong> <?= date('Y-m-d H:i', strtotime($coupon['used_at'])) ?></p>
+                                        </div>
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <?php if (!$coupon['is_used']): ?>
+                                    <button @click="openEditModal(<?= htmlspecialchars(json_encode($coupon)) ?>)" class="text-blue-600 hover:text-blue-800"><i class="fas fa-edit"></i></button>
+                                    <button @click.prevent="submitSingleDelete(<?= $coupon['id'] ?>)" class="text-red-600 hover:text-red-800 mr-2"><i class="fas fa-trash"></i></button>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+             <?php require_once APPROOT . '/app/views/inc/pagination.php'; ?>
+        </form>
     </div>
 </div>
 
@@ -221,11 +266,65 @@
     </div>
 </div>
 
+<!-- Export Modal -->
+<div x-show="exportModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @keydown.escape.window="closeExportModal()">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.away="closeExportModal()">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h3 class="text-lg font-semibold text-gray-800">تصدير الكوبونات</h3>
+            <button @click="closeExportModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-6">سيتم تصدير البيانات بناءً على الفلاتر المطبقة حالياً.</p>
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">اختر صيغة التصدير:</label>
+            <div class="grid grid-cols-3 gap-3">
+                <button type="button" @click="exportType = 'excel'" :class="{ 'bg-blue-600 text-white border-blue-600 shadow-lg': exportType === 'excel', 'bg-white hover:bg-gray-50 border-gray-300': exportType !== 'excel' }" class="w-full flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200">
+                    <i class="fas fa-file-excel text-3xl mb-2" :class="exportType === 'excel' ? 'text-white' : 'text-green-500'"></i>
+                    <span class="font-semibold text-sm">Excel</span>
+                </button>
+                <button type="button" @click="exportType = 'txt'" :class="{ 'bg-blue-600 text-white border-blue-600 shadow-lg': exportType === 'txt', 'bg-white hover:bg-gray-50 border-gray-300': exportType !== 'txt' }" class="w-full flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200">
+                    <i class="fas fa-file-alt text-3xl mb-2" :class="exportType === 'txt' ? 'text-white' : 'text-gray-500'"></i>
+                    <span class="font-semibold text-sm">Text</span>
+                </button>
+                 <button type="button" @click="exportType = 'json'" :class="{ 'bg-blue-600 text-white border-blue-600 shadow-lg': exportType === 'json', 'bg-white hover:bg-gray-50 border-gray-300': exportType !== 'json' }" class="w-full flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200">
+                    <i class="fas fa-file-code text-3xl mb-2" :class="exportType === 'json' ? 'text-white' : 'text-blue-500'"></i>
+                    <span class="font-semibold text-sm">JSON</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 space-x-reverse pt-4 border-t">
+            <button type="button" @click="closeExportModal()" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 font-semibold text-sm">إلغاء</button>
+            <button type="button" @click="submitExport()" class="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm flex items-center">
+                <i class="fas fa-download ml-2"></i>
+                تصدير الآن
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     function couponsPage() {
         return {
             editModalOpen: false,
             editingCoupon: {},
+            selectedCoupons: [],
+            actionOpen: false,
+            exportModalOpen: false,
+            exportType: 'excel',
+            get allVisibleUnusedCoupons() {
+                return <?= json_encode(array_column(array_filter($coupons, fn($c) => !$c['is_used']), 'id')) ?>;
+            },
+            toggleAll(checked) {
+                if (checked) {
+                    this.selectedCoupons = this.allVisibleUnusedCoupons;
+                } else {
+                    this.selectedCoupons = [];
+                }
+            },
             openEditModal(coupon) {
                 this.editingCoupon = coupon;
                 setTimeout(() => {
@@ -240,6 +339,64 @@
                     toastr.error('فشل النسخ!');
                     console.error('Failed to copy: ', err);
                 });
+            },
+            copySelected() {
+                const codes = [];
+                this.selectedCoupons.forEach(id => {
+                    const checkbox = document.querySelector(`input[type="checkbox"][value="${id}"]`);
+                    if(checkbox) {
+                        codes.push(checkbox.dataset.code);
+                    }
+                });
+                if(codes.length > 0) {
+                    this.copyToClipboard(codes.join('\\n'));
+                }
+            },
+            submitBulkDelete() {
+                if (this.selectedCoupons.length === 0) {
+                    toastr.error('الرجاء تحديد كوبون واحد على الأقل.');
+                    return;
+                }
+                if (confirm(`هل أنت متأكد من رغبتك في حذف الكوبونات المحددة (${this.selectedCoupons.length})؟`)) {
+                    document.getElementById('bulkActionInput').value = 'bulk_delete';
+                    const singleIdInput = document.getElementById('singleDeleteIdInput');
+                    if(singleIdInput) singleIdInput.remove();
+                    document.getElementById('bulkActionForm').submit();
+                }
+            },
+            submitSingleDelete(id) {
+                if (confirm('هل أنت متأكد من رغبتك في حذف هذا الكوبون؟')) {
+                    document.getElementById('bulkActionInput').value = 'delete';
+                    
+                    document.querySelectorAll('input[name="coupon_ids[]"]').forEach(el => el.remove());
+
+                    const form = document.getElementById('bulkActionForm');
+                    let idInput = document.getElementById('singleDeleteIdInput');
+                    if (!idInput) {
+                        idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'id';
+                        idInput.id = 'singleDeleteIdInput';
+                        form.appendChild(idInput);
+                    }
+                    idInput.value = id;
+                    form.submit();
+                }
+            },
+            openExportModal() {
+                this.exportModalOpen = true;
+            },
+            closeExportModal() {
+                this.exportModalOpen = false;
+            },
+            submitExport() {
+                window.location.href = this.exportUrl(this.exportType);
+                this.closeExportModal();
+            },
+            exportUrl(type) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('export', type);
+                return url.toString();
             },
             init() {
                 toastr.options = {

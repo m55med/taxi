@@ -16,7 +16,7 @@
 </head>
 
 <body class="bg-gray-100">
-    <?php include __DIR__ . '/../includes/nav.php'; ?>
+    <?php include __DIR__ . '/../../../includes/nav.php'; ?>
 
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-6">

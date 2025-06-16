@@ -178,46 +178,46 @@
         <div class="bg-gray-50 rounded-lg p-4 mb-8">
             <h3 class="text-lg font-medium text-gray-800 mb-4">تصفية النتائج</h3>
             <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div>
+            <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">حالة السائق</label>
                     <select name="main_system_status" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">الكل</option>
-                        <option value="pending" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'pending' ? 'selected' : '' ?>>قيد الانتظار</option>
-                        <option value="completed" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'completed' ? 'selected' : '' ?>>مكتمل</option>
-                        <option value="rejected" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'rejected' ? 'selected' : '' ?>>مرفوض</option>
-                    </select>
-                </div>
+                    <option value="">الكل</option>
+                    <option value="pending" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'pending' ? 'selected' : '' ?>>قيد الانتظار</option>
+                    <option value="completed" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'completed' ? 'selected' : '' ?>>مكتمل</option>
+                    <option value="rejected" <?= isset($_GET['main_system_status']) && $_GET['main_system_status'] == 'rejected' ? 'selected' : '' ?>>مرفوض</option>
+                </select>
+            </div>
 
-                <div>
+            <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">مصدر البيانات</label>
                     <select name="data_source" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">الكل</option>
-                        <option value="call_center" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'call_center' ? 'selected' : '' ?>>مركز الاتصال</option>
-                        <option value="website" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'website' ? 'selected' : '' ?>>الموقع الإلكتروني</option>
-                        <option value="app" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'app' ? 'selected' : '' ?>>التطبيق</option>
-                    </select>
-                </div>
+                    <option value="">الكل</option>
+                    <option value="call_center" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'call_center' ? 'selected' : '' ?>>مركز الاتصال</option>
+                    <option value="website" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'website' ? 'selected' : '' ?>>الموقع الإلكتروني</option>
+                    <option value="app" <?= isset($_GET['data_source']) && $_GET['data_source'] == 'app' ? 'selected' : '' ?>>التطبيق</option>
+                </select>
+            </div>
 
-                <div>
+            <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">المستندات</label>
                     <select name="has_missing_documents" class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">الكل</option>
-                        <option value="1" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '1' ? 'selected' : '' ?>>مستندات ناقصة</option>
-                        <option value="0" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '0' ? 'selected' : '' ?>>مستندات مكتملة</option>
-                    </select>
-                </div>
+                    <option value="">الكل</option>
+                    <option value="1" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '1' ? 'selected' : '' ?>>مستندات ناقصة</option>
+                    <option value="0" <?= isset($_GET['has_missing_documents']) && $_GET['has_missing_documents'] == '0' ? 'selected' : '' ?>>مستندات مكتملة</option>
+                </select>
+            </div>
 
-                <div>
+            <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">من تاريخ</label>
                     <input type="date" name="date_from" value="<?= isset($_GET['date_from']) ? $_GET['date_from'] : '' ?>" 
                            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
+            </div>
 
-                <div>
+            <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">إلى تاريخ</label>
                     <input type="date" name="date_to" value="<?= isset($_GET['date_to']) ? $_GET['date_to'] : '' ?>" 
                            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
+            </div>
 
                 <div>
                     <label class="block text-gray-700 text-sm font-medium mb-2">عدد النتائج</label>
@@ -229,11 +229,11 @@
                     </select>
                 </div>
 
-                <div class="flex items-end">
+            <div class="flex items-end">
                     <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="fas fa-filter ml-1"></i>
-                        تصفية
-                    </button>
+                    تصفية
+                </button>
                 </div>
             </form>
         </div>

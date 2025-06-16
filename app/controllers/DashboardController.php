@@ -214,6 +214,34 @@ class DashboardController extends Controller
             exit;
         }
 
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            header('Content-Type: application/json');
+            $userId = $_POST['user_id'] ?? null;
+            $message = trim($_POST['message'] ?? '');
+
+            if (!$userId || $userId == $_SESSION['user_id']) {
+                echo json_encode(['status' => false, 'message' => 'طلب غير صالح.']);
+                exit;
+            }
+            
+            $logoutDir = APPROOT . '/database/force_logout';
+            if (!is_dir($logoutDir)) {
+                mkdir($logoutDir, 0755, true);
+            }
+
+            $adminUsername = $_SESSION['username'] ?? 'Admin';
+            $fullMessage = $message . ' (بواسطة: ' . $adminUsername . ')';
+
+            $forceFile = $logoutDir . '/' . $userId;
+            if (file_put_contents($forceFile, $fullMessage)) {
+                echo json_encode(['status' => true, 'message' => 'سيتم إجبار المستخدم على تسجيل الخروج في طلبه التالي.']);
+            } else {
+                echo json_encode(['status' => false, 'message' => 'حدث خطأ أثناء محاولة إجبار المستخدم على الخروج.']);
+            }
+            exit;
+        }
+
+        // The GET request part remains for backward compatibility or direct access, though it won't have a custom message
         if ($id === null) {
             header('Location: ' . BASE_PATH . '/dashboard/users');
             exit;
@@ -234,7 +262,7 @@ class DashboardController extends Controller
 
         // إنشاء ملف الإشارة لإجبار تسجيل الخروج
         $forceFile = $logoutDir . '/' . $id;
-        if (file_put_contents($forceFile, '1')) {
+        if (file_put_contents($forceFile, '1')) { // "1" as a default message
             $_SESSION['success'] = 'سيتم إجبار المستخدم على تسجيل الخروج في طلبه التالي.';
         } else {
             $_SESSION['error'] = 'حدث خطأ أثناء محاولة إجبار المستخدم على الخروج.';

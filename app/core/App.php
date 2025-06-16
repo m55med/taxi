@@ -18,18 +18,29 @@ class App
             $forceLogoutFile = APPROOT . '/database/force_logout/' . $_SESSION['user_id'];
             if (file_exists($forceLogoutFile)) {
                 $userModel = new User();
-                $userModel->logout($_SESSION['user_id']);
+                $logoutMessage = trim(file_get_contents($forceLogoutFile));
                 
-                unlink($forceLogoutFile); // Clean up the flag file
+                // Unlink the file first to prevent loop issues
+                unlink($forceLogoutFile);
+                
+                $userModel->logout($_SESSION['user_id']);
                 
                 session_unset();
                 session_destroy();
-
+                
                 session_start();
-                $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول.';
+                if (!empty($logoutMessage) && $logoutMessage !== '1') {
+                    $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول: ' . htmlspecialchars($logoutMessage);
+                } else {
+                    $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول.';
+                }
                 header('Location: ' . BASE_PATH . '/auth/login');
                 exit;
             }
+
+            // Update user's online status periodically
+            $userModel = new User();
+            $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
         }
 
         $url = $this->parseUrl();
