@@ -2,7 +2,7 @@
 <div class="form-section">
     <h2 class="section-title">3. الإسناد والملاحظات</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
+        <div hidden>
             <label for="assigned_team_leader_id" class="block text-sm font-semibold text-gray-700 mb-2">قائد الفريق (تلقائي)</label>
             <select id="assigned_team_leader_id" name="assigned_team_leader_id" class="form-select block w-full" disabled>
                 <option value="">يتم تحديده تلقائياً</option>

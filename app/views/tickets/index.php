@@ -29,8 +29,8 @@
 
                 <!-- Form Actions -->
                 <div class="mt-8 flex justify-end space-x-4 space-x-reverse">
-                    <button type="button" id="reset-btn" class="btn btn-secondary"><i class="fas fa-redo ml-2"></i>مسح الحقول</button>
-                    <button type="submit" id="submit-btn" class="btn btn-primary"><i class="fas fa-plus ml-2"></i>إنشاء تذكرة</button>
+                    <button type="button" id="reset-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors duration-200"><i class="fas fa-redo ml-2"></i>مسح الحقول</button>
+                    <button type="submit" id="submit-btn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors duration-200"><i class="fas fa-plus ml-2"></i>إنشاء تذكرة</button>
                 </div>
             </form>
         </main>

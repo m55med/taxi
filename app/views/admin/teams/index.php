@@ -9,24 +9,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; }
+        .toast {
+            transition: opacity 0.5s, transform 0.5s;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
     <?php include __DIR__ . '/../../includes/nav.php'; ?>
 
+    <!-- Toast Notification -->
+    <div id="toast" class="toast fixed top-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-md hidden opacity-0 transform -translate-y-10">
+        <p id="toast-message"></p>
+    </div>
+
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">إدارة الفرق</h1>
-
-        <?php if (isset($data['message'])): ?>
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= htmlspecialchars($data['message']) ?></span>
-            </div>
-        <?php endif; ?>
-        <?php if (isset($data['error'])): ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline"><?= htmlspecialchars($data['error']) ?></span>
-            </div>
-        <?php endif; ?>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="md:col-span-1">
@@ -86,11 +83,9 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($team['name']) ?></td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($team['team_leader_name']) ?></td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                                                    <form action="<?= BASE_PATH ?>/admin/teams/delete/<?= $team['id'] ?>" method="POST" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذا الفريق؟');">
-                                                        <button type="submit" class="text-red-600 hover:text-red-900">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </button>
-                                                    </form>
+                                                    <button onclick="openDeleteModal(<?= $team['id'] ?>)" class="text-red-600 hover:text-red-900">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -103,5 +98,85 @@
             </div>
         </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-right">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                حذف الفريق
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500">
+                                    هل أنت متأكد من رغبتك في حذف هذا الفريق؟ لا يمكن التراجع عن هذا الإجراء.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <form id="deleteForm" action="" method="POST">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            حذف
+                        </button>
+                    </form>
+                    <button type="button" onclick="closeDeleteModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        إلغاء
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            
+            toastMessage.innerText = message;
+            toast.classList.remove('hidden', 'opacity-0', 'bg-green-500', 'bg-red-500', '-translate-y-10');
+            toast.classList.add(isError ? 'bg-red-500' : 'bg-green-500');
+
+            setTimeout(() => {
+                toast.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-10');
+                setTimeout(() => toast.classList.add('hidden'), 500);
+            }, 3000);
+        }
+
+        function openDeleteModal(id) {
+            const modal = document.getElementById('deleteModal');
+            const form = document.getElementById('deleteForm');
+            form.action = `<?= BASE_PATH ?>/admin/teams/delete/${id}`;
+            modal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('hidden');
+        }
+
+        window.onload = function() {
+            <?php if (isset($data['message'])): ?>
+                showToast('<?= addslashes(htmlspecialchars($data['message'])) ?>');
+            <?php endif; ?>
+            <?php if (isset($data['error'])): ?>
+                showToast('<?= addslashes(htmlspecialchars($data['error'])) ?>', true);
+            <?php endif; ?>
+        };
+    </script>
+
 </body>
 </html> 

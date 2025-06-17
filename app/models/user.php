@@ -445,15 +445,17 @@ class User
         }
     }
 
-    public function getActiveUsers() {
-        try {
-            $sql = "SELECT id, username, is_online FROM users WHERE status = 'active'";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error getting active users: " . $e->getMessage());
-            return [];
-        }
+    public function getActiveUsers()
+    {
+        $stmt = $this->db->prepare("SELECT id, username FROM users WHERE status = 'active'");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getAvailableForTeamLeadership() {
+        $query = "SELECT u.id, u.username FROM users u WHERE u.id NOT IN (SELECT t.team_leader_id FROM teams t WHERE t.team_leader_id IS NOT NULL)";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

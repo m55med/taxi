@@ -17,7 +17,7 @@ class TeamsController extends Controller {
         $userModel = $this->model('User');
 
         $teams = $teamModel->getAll();
-        $users = $userModel->getActiveStaff();
+        $users = $userModel->getAvailableForTeamLeadership();
         
         $data = [
             'teams' => $teams,
