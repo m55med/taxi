@@ -30,6 +30,30 @@ class Team
         }
     }
 
+    public function findById($id)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM teams WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    public function findByLeaderId($leaderId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM teams WHERE team_leader_id = :leader_id");
+            $stmt->bindParam(':leader_id', $leaderId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
     public function create($name, $team_leader_id)
     {
         try {

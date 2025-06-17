@@ -35,12 +35,12 @@ class Controller
     {
         // Handle both namespaced and non-namespaced models
         if (strpos($model, '/') !== false) {
-            // For models in subdirectories (e.g., 'call/Calls')
+            // For models in subdirectories (e.g., 'reports/Analytics/AnalyticsReport')
             $parts = explode('/', $model);
-            $className = "\\App\\Models\\" . ucfirst($parts[0]) . "\\" . $parts[1];
+            $className = "\\App\\Models\\" . implode('\\', array_map('ucfirst', $parts));
         } else {
             // For models in the root models directory
-            $className = "\\App\\Models\\" . $model;
+            $className = "\\App\Models\\" . ucfirst($model);
         }
 
         if (!class_exists($className)) {

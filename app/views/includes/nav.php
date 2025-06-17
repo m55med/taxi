@@ -42,15 +42,102 @@
                             <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                         </button>
                         <div @click.away="open = false" x-show="open"
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <a href="<?= BASE_PATH ?>/reports/users" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المستخدمين</a>
-                            <a href="<?= BASE_PATH ?>/reports/drivers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير السائقين</a>
-                            <a href="<?= BASE_PATH ?>/reports/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المكالمات</a>
-                            <a href="<?= BASE_PATH ?>/reports/assignments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير التعيينات</a>
-                            <a href="<?= BASE_PATH ?>/reports/analytics" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">التحليلات</a>
-                            <a href="<?= BASE_PATH ?>/reports/documents" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">تقرير المستندات</a>
+                             x-transition:enter="transition ease-out duration-200" 
+                             x-transition:enter-start="opacity-0 transform -translate-y-2" 
+                             x-transition:enter-end="opacity-100 transform translate-y-0" 
+                             x-transition:leave="transition ease-in duration-150" 
+                             x-transition:leave-start="opacity-100 transform translate-y-0" 
+                             x-transition:leave-end="opacity-0 transform -translate-y-2" 
+                             class="absolute top-full left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden"
+                             style="display: none;">
+                            <div x-data="{ openSubmenu: '' }">
+
+                                <!-- General Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'general' ? '' : 'general')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير عامة</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'general'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'general'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">التحليلات</a>
+                                        <a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">سجلات النظام</a>
+                                    </div>
+                                </div>
+
+                                <!-- Users & Teams Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'users' ? '' : 'users')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير المستخدمين والفرق</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'users'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'users'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير المستخدمين</a>
+                                        <a href="<?= BASE_PATH ?>/reports/teamperformance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">أداء الفريق</a>
+                                        <a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">لوحة صدارة الفرق</a>
+                                        <a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">أداء الموظفين</a>
+                                        <a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">نشاطي</a>
+                                    </div>
+                                </div>
+
+                                <!-- Drivers Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'drivers' ? '' : 'drivers')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير السائقين</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'drivers'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'drivers'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير السائقين</a>
+                                        <a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تعيينات السائقين</a>
+                                        <a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">مكالمات السائقين</a>
+                                        <a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">امتثال مستندات السائقين</a>
+                                    </div>
+                                </div>
+
+                                <!-- Tickets Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'tickets' ? '' : 'tickets')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير التذاكر</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'tickets'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'tickets'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">ملخص التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">مراجعات التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">مناقشات التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">كوبونات التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إعادة عمل التذاكر</a>
+                                        <a href="<?= BASE_PATH ?>/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">جودة المراجعة</a>
+                                    </div>
+                                </div>
+
+                                <!-- Marketing Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'marketing' ? '' : 'marketing')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير التسويق</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'marketing'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'marketing'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">ملخص المسوق</a>
+                                        <a href="<?= BASE_PATH ?>/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">زيارات الإحالة</a>
+                                    </div>
+                                </div>
+
+                                <!-- Other Reports -->
+                                <div>
+                                    <button @click="openSubmenu = (openSubmenu === 'other' ? '' : 'other')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير أخرى</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'other'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'other'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير المكالمات</a>
+                                        <a href="<?= BASE_PATH ?>/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير التعيينات</a>
+                                        <a href="<?= BASE_PATH ?>/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير المستندات</a>
+                                        <a href="<?= BASE_PATH ?>/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير الكوبونات</a>
+                                        <a href="<?= BASE_PATH ?>/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقارير مخصصة</a>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
 

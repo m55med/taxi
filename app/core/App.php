@@ -95,27 +95,84 @@ class App
                 switch ($reportType) {
                     case 'user':
                     case 'users':
-                        $controllerName = 'UserReportController';
+                        $controllerName = 'Users/UsersController';
                         break;
                     case 'driver':
                     case 'drivers':
-                        $controllerName = 'DriversReportController';
+                        $controllerName = 'Drivers/DriversController';
                         break;
                     case 'call':
                     case 'calls':
-                        $controllerName = 'CallsReportController';
+                        $controllerName = 'Calls/CallsController';
+                        break;
+                    case 'driver-calls':
+                        $controllerName = 'DriverCalls/DriverCallsController';
                         break;
                     case 'assignment':
                     case 'assignments':
-                        $controllerName = 'AssignmentsReportController';
+                        $controllerName = 'Assignments/AssignmentsController';
                         break;
                     case 'analytic':
                     case 'analytics':
-                        $controllerName = 'AnalyticsReportController';
+                        $controllerName = 'Analytics/AnalyticsController';
                         break;
                     case 'document':
                     case 'documents':
-                        $controllerName = 'DocumentsReportController';
+                        $controllerName = 'Documents/DocumentsController';
+                        break;
+                    case 'myactivity':
+                        $controllerName = 'MyActivity/MyActivityController';
+                        break;
+                    case 'teamperformance':
+                        $controllerName = 'TeamPerformance/TeamPerformanceController';
+                        break;
+                    case 'coupons':
+                        $controllerName = 'Coupons/CouponsController';
+                        break;
+                    case 'system-logs':
+                        $controllerName = 'SystemLogs/SystemLogsController';
+                        break;
+                    case 'tickets':
+                        $controllerName = 'Tickets/TicketsController';
+                        break;
+                    case 'driver-documents-compliance':
+                        $controllerName = 'DriverDocumentsCompliance/DriverDocumentsComplianceController';
+                        break;
+                    case 'driver-assignments':
+                        $controllerName = 'DriverAssignments/DriverAssignmentsController';
+                        break;
+                    case 'tickets-summary':
+                        $controllerName = 'TicketsSummary/TicketsSummaryController';
+                        break;
+                    case 'ticket-reviews':
+                        $controllerName = 'TicketReviews/TicketReviewsController';
+                        break;
+                    case 'ticket-discussions':
+                        $controllerName = 'TicketDiscussions/TicketDiscussionsController';
+                        break;
+                    case 'ticket-coupons':
+                        $controllerName = 'TicketCoupons/TicketCouponsController';
+                        break;
+                    case 'referral-visits':
+                        $controllerName = 'ReferralVisits/ReferralVisitsController';
+                        break;
+                    case 'marketer-summary':
+                        $controllerName = 'MarketerSummary/MarketerSummaryController';
+                        break;
+                    case 'review-quality':
+                        $controllerName = 'ReviewQuality/ReviewQualityController';
+                        break;
+                    case 'ticket-rework':
+                        $controllerName = 'TicketRework/TicketReworkController';
+                        break;
+                    case 'employee-activity-score':
+                        $controllerName = 'EmployeeActivityScore/EmployeeActivityScoreController';
+                        break;
+                    case 'team-leaderboard':
+                        $controllerName = 'TeamLeaderboard/TeamLeaderboardController';
+                        break;
+                    case 'custom':
+                        $controllerName = 'Custom/CustomController';
                         break;
                 }
 
@@ -124,6 +181,7 @@ class App
                     $controllerFile = '../app/controllers/' . $controllerPath . '.php';
 
                     if (file_exists($controllerFile)) {
+                        $controllerName = str_replace('/', '\\', $controllerName);
                         $controllerClass = '\\App\\Controllers\\Reports\\' . $controllerName;
                         $this->controller = new $controllerClass();
                         $this->method = isset($url[2]) && method_exists($this->controller, $url[2]) ? $url[2] : 'index';
