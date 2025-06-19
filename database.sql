@@ -367,3 +367,117 @@ CREATE TABLE referral_visits (
     FOREIGN KEY (registered_driver_id) REFERENCES drivers(id) ON DELETE SET NULL ON UPDATE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE trips (
+    order_id CHAR(36) PRIMARY KEY COMMENT 'معرّف الطلب الفريد (UUID)',
+
+    created_at DATETIME COMMENT 'تاريخ ووقت إنشاء الطلب',
+    author_id CHAR(36) COMMENT 'معرّف المستخدم الذي أنشأ الطلب',
+    order_source VARCHAR(100) COMMENT 'مصدر إنشاء الطلب (تطبيق، نظام خارجي، إلخ)',
+    bundle VARCHAR(100) COMMENT 'اسم الباقة المستخدمة في الطلب',
+    requested_vehicle_type VARCHAR(50) COMMENT 'نوع المركبة المطلوبة',
+    requested_pickup_time VARCHAR(50) COMMENT 'وقت الاستلام المطلوب (فوري / مجدول)',
+
+    origin_type VARCHAR(50) COMMENT 'نوع موقع الانطلاق (نقطة على الخريطة، عنوان، إلخ)',
+    origin_location VARCHAR(100) COMMENT 'إحداثيات الانطلاق (خط العرض، خط الطول)',
+    origin_address TEXT COMMENT 'العنوان النصي لموقع الانطلاق',
+
+    destination_type VARCHAR(50) COMMENT 'نوع موقع الوجهة',
+    destination_location VARCHAR(100) COMMENT 'إحداثيات الوجهة',
+    destination_address TEXT COMMENT 'العنوان النصي للوجهة',
+
+    dropoff_type VARCHAR(50) COMMENT 'نوع موقع التسليم الأخير (drop-off)',
+    dropoff_location VARCHAR(100) COMMENT 'إحداثيات نقطة التسليم',
+    dropoff_address TEXT COMMENT 'العنوان النصي للتسليم',
+
+    dropoffs_count INT COMMENT 'عدد نقاط الإنزال في الرحلة',
+    order_notes TEXT COMMENT 'ملاحظات إضافية من العميل',
+    passengers_number INT COMMENT 'عدد الركاب في الرحلة',
+
+    client_documents TEXT COMMENT 'مستندات العميل - إن وُجدت',
+    driver_payment_documents TEXT COMMENT 'مستندات الدفع الخاصة بالسائق',
+
+    passenger_id CHAR(36) COMMENT 'معرّف الراكب',
+    passenger_name VARCHAR(100) COMMENT 'اسم الراكب',
+    passenger_email VARCHAR(100) COMMENT 'البريد الإلكتروني للراكب',
+    passenger_phone VARCHAR(20) COMMENT 'رقم هاتف الراكب',
+
+    passenger_operator_id CHAR(36) COMMENT 'معرّف مشغل الراكب - إن وجد',
+    passenger_operator_name VARCHAR(100) COMMENT 'اسم مشغل الراكب',
+    passenger_operator_email VARCHAR(100) COMMENT 'بريد مشغل الراكب',
+
+    driver_operator_id CHAR(36) COMMENT 'معرّف مشغل السائق',
+    driver_operator_name VARCHAR(100) COMMENT 'اسم مشغل السائق',
+    driver_operator_email VARCHAR(100) COMMENT 'بريد مشغل السائق',
+
+    driver_id CHAR(36) COMMENT 'معرّف السائق',
+    driver_custom_key VARCHAR(100) COMMENT 'مفتاح مخصص للسائق (إن وُجد)',
+    driver_name VARCHAR(100) COMMENT 'اسم السائق',
+    driver_email VARCHAR(100) COMMENT 'البريد الإلكتروني للسائق',
+    driver_phone VARCHAR(20) COMMENT 'رقم هاتف السائق',
+
+    vehicle_type VARCHAR(50) COMMENT 'نوع السيارة المستخدمة',
+    vehicle_plate_number VARCHAR(50) COMMENT 'رقم لوحة المركبة',
+    vehicle_board_number VARCHAR(50) COMMENT 'رقم تسجيل المركبة',
+
+    estimation_time VARCHAR(50) COMMENT 'المدة المتوقعة للرحلة',
+    estimation_distance VARCHAR(50) COMMENT 'المسافة المتوقعة للرحلة',
+    driver_rate_plan VARCHAR(50) COMMENT 'خطة التسعير الخاصة بالسائق',
+
+    offer_count INT COMMENT 'عدد العروض المقدمة من السائقين',
+    reject_count INT COMMENT 'عدد مرات رفض الطلب',
+    total_bid_count INT COMMENT 'عدد عروض التسعير (مزايدات)',
+    driver_bid_count INT COMMENT 'عدد عروض التسعير من السائقين',
+    dispatcher_bid_count INT COMMENT 'عدد عروض التسعير من الموزعين',
+
+    order_status VARCHAR(50) COMMENT 'حالة الطلب النهائية (مكتمل، ملغى، قيد التنفيذ...)',
+    unpaid_reason TEXT COMMENT 'سبب عدم الدفع - إن وجد',
+    cancellation_reason TEXT COMMENT 'سبب الإلغاء - إن وُجد',
+    cancellation_comment TEXT COMMENT 'تعليق الإلغاء من المستخدم أو النظام',
+
+    trip_distance_km VARCHAR(50) COMMENT 'المسافة الفعلية للرحلة (كم)',
+    trip_time VARCHAR(50) COMMENT 'مدة الرحلة الفعلية',
+    intermediate_driver_ids TEXT COMMENT 'معرّفات السائقين الوسطاء - إن وُجدوا',
+
+    passenger_cancellation_fee_omr DECIMAL(10,3) COMMENT 'رسوم إلغاء الراكب (ريال عماني)',
+    driver_cancellation_fee_omr DECIMAL(10,3) COMMENT 'رسوم إلغاء السائق',
+    trip_cost_omr DECIMAL(10,3) COMMENT 'تكلفة الرحلة الأساسية',
+    extra_cost_omr DECIMAL(10,3) COMMENT 'تكاليف إضافية',
+    total_cost_omr DECIMAL(10,3) COMMENT 'التكلفة الكلية قبل الخصومات والضرائب',
+    coupon_discount_omr DECIMAL(10,3) COMMENT 'قيمة الخصم من القسيمة',
+    tips_omr DECIMAL(10,3) COMMENT 'الإكرامية (Tips)',
+    bonus_amount_omr DECIMAL(10,3) COMMENT 'مكافآت إضافية',
+    including_tax_omr DECIMAL(10,3) COMMENT 'المبلغ متضمناً الضرائب',
+    tax_omr DECIMAL(10,3) COMMENT 'قيمة الضريبة',
+    transactional_fee_omr DECIMAL(10,3) COMMENT 'رسوم المعاملات',
+    final_cost_omr DECIMAL(10,3) COMMENT 'التكلفة النهائية بعد كل العمليات',
+    unpaid_cost_omr DECIMAL(10,3) COMMENT 'المبلغ غير المدفوع',
+    rounding_correction_value_omr DECIMAL(10,3) COMMENT 'قيمة التصحيح الناتجة عن التقريب',
+    excess_payment_omr DECIMAL(10,3) COMMENT 'المبلغ الزائد عن الفاتورة',
+
+    payment_method VARCHAR(50) COMMENT 'طريقة الدفع المستخدمة',
+    payment_card VARCHAR(100) COMMENT 'معلومات البطاقة إن وُجدت',
+    corporate_account VARCHAR(100) COMMENT 'حساب الشركات - إن وُجد',
+    payment_errors TEXT COMMENT 'أخطاء الدفع إن حصلت',
+
+    rating_by_driver INT COMMENT 'تقييم الراكب من قبل السائق',
+    rating_by_passenger INT COMMENT 'تقييم السائق من قبل الراكب',
+
+    started_at DATETIME COMMENT 'وقت بدء الرحلة',
+    started_location VARCHAR(100) COMMENT 'إحداثيات بداية الرحلة',
+    arrived_at DATETIME COMMENT 'وقت وصول السائق لموقع الراكب',
+    arrived_location VARCHAR(100) COMMENT 'إحداثيات وصول السائق',
+    loaded_at DATETIME COMMENT 'وقت تحميل الراكب',
+    loaded_location VARCHAR(100) COMMENT 'إحداثيات التحميل',
+    finished_at DATETIME COMMENT 'وقت إنهاء الرحلة',
+    finished_location VARCHAR(100) COMMENT 'إحداثيات نهاية الرحلة',
+    closed_at DATETIME COMMENT 'وقت إغلاق الطلب (نهائي)',
+    closed_location VARCHAR(100) COMMENT 'إحداثيات إغلاق الطلب',
+
+    service_space VARCHAR(50) COMMENT 'بيئة التشغيل (مثلاً: production)',
+    active BOOLEAN COMMENT 'هل الطلب نشط حاليًا؟',
+    linked_order CHAR(36) COMMENT 'طلب مرتبط - إن وُجد',
+    price_multiplier DECIMAL(4,2) COMMENT 'عامل ضرب السعر (الزيادة الديناميكية)',
+    coupon_code VARCHAR(50) COMMENT 'رمز القسيمة المستخدمة',
+    promo_campaign_name VARCHAR(100) COMMENT 'اسم الحملة الترويجية - إن وُجدت'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

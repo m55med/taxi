@@ -155,32 +155,32 @@
             <template x-for="couponId in selectedCoupons" :key="couponId">
                 <input type="hidden" name="coupon_ids[]" :value="couponId">
             </template>
-            
-            <!-- Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
                             <th scope="col" class="p-4">
                                 <div class="flex items-center">
                                     <input type="checkbox" @click="toggleAll($event.target.checked)" :checked="allVisibleUnusedCoupons.length > 0 && selectedCoupons.length === allVisibleUnusedCoupons.length" :disabled="allVisibleUnusedCoupons.length === 0" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
                                 </div>
                             </th>
-                            <th scope="col" class="px-4 py-3">الكود</th>
-                            <th scope="col" class="px-4 py-3">القيمة</th>
-                            <th scope="col" class="px-4 py-3">الدولة</th>
-                            <th scope="col" class="px-4 py-3">الحالة</th>
-                            <th scope="col" class="px-4 py-3">تاريخ الإنشاء</th>
-                            <th scope="col" class="px-4 py-3">معلومات الاستخدام</th>
-                            <th scope="col" class="px-4 py-3">إجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($coupons)): ?>
+                        <th scope="col" class="px-4 py-3">الكود</th>
+                        <th scope="col" class="px-4 py-3">القيمة</th>
+                        <th scope="col" class="px-4 py-3">الدولة</th>
+                        <th scope="col" class="px-4 py-3">الحالة</th>
+                        <th scope="col" class="px-4 py-3">تاريخ الإنشاء</th>
+                        <th scope="col" class="px-4 py-3">معلومات الاستخدام</th>
+                        <th scope="col" class="px-4 py-3">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($coupons)): ?>
                             <tr><td colspan="8" class="px-6 py-4 text-center">لا توجد كوبونات تطابق البحث.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($coupons as $coupon): ?>
-                            <tr class="bg-white border-b hover:bg-gray-50">
+                    <?php else: ?>
+                        <?php foreach ($coupons as $coupon): ?>
+                        <tr class="bg-white border-b hover:bg-gray-50">
                                 <td class="w-4 p-4">
                                     <?php if (!$coupon['is_used']): ?>
                                     <div class="flex items-center">
@@ -188,46 +188,46 @@
                                     </div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-4 py-4 font-mono">
-                                    <span class="mr-2"><?= htmlspecialchars($coupon['code']) ?></span>
-                                    <button @click="copyToClipboard('<?= htmlspecialchars($coupon['code']) ?>')" class="text-gray-400 hover:text-blue-600"><i class="far fa-copy"></i></button>
-                                </td>
-                                <td class="px-4 py-4 font-semibold"><?= htmlspecialchars($coupon['value']) ?></td>
-                                <td class="px-4 py-4"><?= htmlspecialchars($coupon['country_name'] ?? 'N/A') ?></td>
-                                <td class="px-4 py-4">
-                                    <?php if ($coupon['is_used']): ?>
-                                        <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">مستخدم</span>
-                                    <?php else: ?>
-                                        <span class="px-2 py-1 font-semibold leading-tight text-yellow-700 bg-yellow-100 rounded-full">غير مستخدم</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-4 py-4"><?= date('Y-m-d', strtotime($coupon['created_at'])) ?></td>
-                                <td class="px-4 py-4">
-                                    <?php if ($coupon['is_used']): ?>
-                                        <div class="text-xs">
-                                            <p><strong>التذكرة:</strong> <a href="<?= BASE_PATH . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
-                                            <p><strong>المستخدم:</strong> <?= htmlspecialchars($coupon['used_by_username']) ?></p>
-                                            <p><strong>بتاريخ:</strong> <?= date('Y-m-d H:i', strtotime($coupon['used_at'])) ?></p>
-                                        </div>
-                                    <?php else: ?>
-                                        N/A
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <?php if (!$coupon['is_used']): ?>
-                                    <button @click="openEditModal(<?= htmlspecialchars(json_encode($coupon)) ?>)" class="text-blue-600 hover:text-blue-800"><i class="fas fa-edit"></i></button>
+                            <td class="px-4 py-4 font-mono">
+                                <span class="mr-2"><?= htmlspecialchars($coupon['code']) ?></span>
+                                <button @click="copyToClipboard('<?= htmlspecialchars($coupon['code']) ?>')" class="text-gray-400 hover:text-blue-600"><i class="far fa-copy"></i></button>
+                            </td>
+                            <td class="px-4 py-4 font-semibold"><?= htmlspecialchars($coupon['value']) ?></td>
+                            <td class="px-4 py-4"><?= htmlspecialchars($coupon['country_name'] ?? 'N/A') ?></td>
+                            <td class="px-4 py-4">
+                                <?php if ($coupon['is_used']): ?>
+                                    <span class="px-2 py-1 font-semibold leading-tight text-green-700 bg-green-100 rounded-full">مستخدم</span>
+                                <?php else: ?>
+                                    <span class="px-2 py-1 font-semibold leading-tight text-yellow-700 bg-yellow-100 rounded-full">غير مستخدم</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-4"><?= date('Y-m-d', strtotime($coupon['created_at'])) ?></td>
+                            <td class="px-4 py-4">
+                                <?php if ($coupon['is_used']): ?>
+                                    <div class="text-xs">
+                                        <p><strong>التذكرة:</strong> <a href="<?= BASE_PATH . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
+                                        <p><strong>المستخدم:</strong> <?= htmlspecialchars($coupon['used_by_username']) ?></p>
+                                        <p><strong>بتاريخ:</strong> <?= date('Y-m-d H:i', strtotime($coupon['used_at'])) ?></p>
+                                    </div>
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-4">
+                                <?php if (!$coupon['is_used']): ?>
+                                <button @click="openEditModal(<?= htmlspecialchars(json_encode($coupon)) ?>)" class="text-blue-600 hover:text-blue-800"><i class="fas fa-edit"></i></button>
                                     <button @click.prevent="submitSingleDelete(<?= $coupon['id'] ?>)" class="text-red-600 hover:text-red-800 mr-2"><i class="fas fa-trash"></i></button>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination -->
-             <?php require_once APPROOT . '/app/views/inc/pagination.php'; ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+         <?php require_once APPROOT . '/app/views/inc/pagination.php'; ?>
         </form>
     </div>
 </div>

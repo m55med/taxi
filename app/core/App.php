@@ -174,6 +174,9 @@ class App
                     case 'custom':
                         $controllerName = 'Custom/CustomController';
                         break;
+                    case 'trips':
+                        $controllerName = 'TripsReportController';
+                        break;
                 }
 
                 if ($controllerName) {
@@ -195,6 +198,36 @@ class App
                     }
                 } else {
                     // Fallback for unknown report types
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'trips') { // Handle trips upload route
+                $controllerName = 'TripsController';
+                $controllerFile = '../app/controllers/trips/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Trips\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    
+                    // Determine method: /trips/upload or /trips/process
+                    $methodName = 'upload'; // Default method if only /trips is provided
+                    if (isset($url[1])) {
+                        if ($url[1] === 'upload') {
+                            $methodName = 'upload';
+                        } elseif ($url[1] === 'process') {
+                            $methodName = 'process';
+                        }
+                    }
+
+                    if(method_exists($this->controller, $methodName)) {
+                        $this->method = $methodName;
+                    } else {
+                        // Fallback to upload form if an invalid method is specified
+                        $this->method = 'upload'; 
+                    }
+
+                    unset($url[0], $url[1], $url[2]);
+
+                } else {
                     $this->triggerNotFound();
                 }
             } elseif ($url[0] === 'ticket' || $url[0] === 'tickets') {

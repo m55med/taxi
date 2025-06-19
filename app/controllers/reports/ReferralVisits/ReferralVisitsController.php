@@ -27,7 +27,8 @@ class ReferralVisitsController extends Controller
     public function index()
     {
         $filters = [
-            'referral_code' => $_GET['referral_code'] ?? '',
+            'affiliate_name' => $_GET['affiliate_name'] ?? '',
+            'registration_status' => $_GET['registration_status'] ?? '',
             'date_from' => $_GET['date_from'] ?? '',
             'date_to' => $_GET['date_to'] ?? '',
         ];

@@ -18,36 +18,41 @@ class ReferralVisitsReport
     {
         $sql = "SELECT 
                     rv.id,
-                    rv.referral_code,
-                    u.username as referrer_name,
+                    rv.visit_recorded_at,
+                    u.username as affiliate_user_name,
                     rv.ip_address,
                     rv.user_agent,
-                    rv.created_at
+                    rv.registration_status,
+                    d.name as registered_driver_name
                 FROM referral_visits rv
-                LEFT JOIN referrals r ON rv.referral_code = r.referral_code
-                LEFT JOIN users u ON r.user_id = u.id";
+                LEFT JOIN users u ON rv.affiliate_user_id = u.id
+                LEFT JOIN drivers d ON rv.registered_driver_id = d.id";
 
         $conditions = [];
         $params = [];
 
-        if (!empty($filters['referral_code'])) {
-            $conditions[] = "rv.referral_code = :referral_code";
-            $params[':referral_code'] = $filters['referral_code'];
+        if (!empty($filters['affiliate_name'])) {
+            $conditions[] = "u.username LIKE :affiliate_name";
+            $params[':affiliate_name'] = '%' . $filters['affiliate_name'] . '%';
         }
         if (!empty($filters['date_from'])) {
-            $conditions[] = "rv.created_at >= :date_from";
+            $conditions[] = "DATE(rv.visit_recorded_at) >= :date_from";
             $params[':date_from'] = $filters['date_from'];
         }
         if (!empty($filters['date_to'])) {
-            $conditions[] = "rv.created_at <= :date_to";
-            $params[':date_to'] = $filters['date_to'] . ' 23:59:59';
+            $conditions[] = "DATE(rv.visit_recorded_at) <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+        if (!empty($filters['registration_status'])) {
+            $conditions[] = "rv.registration_status = :registration_status";
+            $params[':registration_status'] = $filters['registration_status'];
         }
 
         if (count($conditions) > 0) {
             $sql .= " WHERE " . implode(" AND ", $conditions);
         }
 
-        $sql .= " ORDER BY rv.created_at DESC";
+        $sql .= " ORDER BY rv.visit_recorded_at DESC";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

@@ -41,7 +41,7 @@
                             <span>التقارير</span>
                             <i class="fas fa-chevron-down mr-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                         </button>
-                        <div @click.away="open = false" x-show="open"
+                        <div @click.away="open = false" x-show="open" 
                              x-transition:enter="transition ease-out duration-200" 
                              x-transition:enter-start="opacity-0 transform -translate-y-2" 
                              x-transition:enter-end="opacity-100 transform translate-y-0" 
@@ -90,6 +90,17 @@
                                         <a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تعيينات السائقين</a>
                                         <a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">مكالمات السائقين</a>
                                         <a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">امتثال مستندات السائقين</a>
+                                    </div>
+                                </div>
+
+                                <!-- Trips Reports -->
+                                <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'trips' ? '' : 'trips')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>تقارير الرحلات</span>
+                                        <i class="fas fa-route text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'trips'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'trips'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير الرحلات المفصل</a>
                                     </div>
                                 </div>
 
@@ -153,6 +164,7 @@
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
                              <a href="<?= BASE_PATH ?>/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">رفع بيانات السائقين</a>
+                             <a href="<?= BASE_PATH ?>/trips/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">رفع بيانات الرحلات</a>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -258,4 +270,4 @@
     <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </nav>
-<?php endif; ?>
+<?php endif; ?> 

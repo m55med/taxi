@@ -233,7 +233,7 @@ class Coupon {
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
+    
     /**
      * Get a list of all countries for dropdowns.
      */
