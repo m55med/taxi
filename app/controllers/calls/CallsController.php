@@ -2,320 +2,244 @@
 
 namespace App\Controllers\Calls;
 
-use App\Core\Database;
+use App\Core\Controller;
+use App\Core\Auth;
 
-class CallsController extends BaseCallController
+class CallsController extends Controller
 {
-    private $callsModel;
-    private $documentsModel;
-    private $assignmentsModel;
-    private $carTypeModel;
-    private $countryModel;
-    private $driverModel;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->callsModel = $this->model('Calls/Call');
-        $this->documentsModel = $this->model('Document/Document');
-        $this->assignmentsModel = $this->model('Assignment/Assignment');
-        $this->carTypeModel = $this->model('Admin/CarType');
-        $this->countryModel = $this->model('Admin/Country');
-        $this->driverModel = $this->model('Driver/Driver');
-    }
-
     public function index()
     {
-        // =================================================================
-        // هذا هو الجزء الرئيسي المسؤول عن جلب السائق وعرض الصفحة
-        // =================================================================
+        if (!Auth::isLoggedIn()) {
+            redirect('auth/login');
+        }
+        $this->authorize('App\Controllers\Calls');
 
-        // الخطوة 1: تحرير أي سائق كان محجوزًا لهذا المستخدم في جلسة سابقة ولم تتم معالجته
-        if (isset($_SESSION['locked_driver_id'])) {
-            $this->callsModel->releaseDriverHold($_SESSION['locked_driver_id']);
-            unset($_SESSION['locked_driver_id']);
+        // Load models only when needed
+        $callModel = $this->model('Calls/Call');
+        
+        // If a model fails to load, it will be null.
+        if (!$callModel) {
+            die('Error: Call model could not be loaded.');
         }
 
+        // Release any driver that was locked by this user in a previous session
+        if (isset($_SESSION['locked_driver_id'])) {
+            $callModel->releaseDriverHold($_SESSION['locked_driver_id']);
+            unset($_SESSION['locked_driver_id']);
+        }
+        
         $driver = null;
-        $phone = filter_input(INPUT_GET, 'phone', FILTER_SANITIZE_NUMBER_INT);
-        $phone = $phone ? ltrim($phone, '0') : null;
+        $searchPhone = filter_input(INPUT_GET, 'phone', FILTER_SANITIZE_SPECIAL_CHARS);
 
-        // الخطوة 2: البحث عن سائق. إما عن طريق الهاتف أو جلب السائق التالي في الطابور
-        if (!empty($phone)) {
-            // البحث عن سائق محدد بالهاتف وحجزه
-            $driver = $this->callsModel->findAndLockDriverByPhone($phone);
+        if (!empty($searchPhone)) {
+            // Priority 1: Search by phone number if provided
+            $driver = $callModel->findAndLockDriverByPhone($searchPhone);
         } else {
-            // جلب السائق التالي المتاح حسب الأولوية وحجزه
-            $skippedDriverId = $_SESSION['skipped_driver_id'] ?? null;
-            $driver = $this->callsModel->findAndLockNextDriver($skippedDriverId);
-            if (isset($_SESSION['skipped_driver_id'])) {
-                unset($_SESSION['skipped_driver_id']);
+            // Priority 2: Check for an unseen assignment.
+            $unseenAssignment = $callModel->getUnseenAssignment($_SESSION['user_id']);
+            if ($unseenAssignment) {
+                $driver = $callModel->getDriverById($unseenAssignment['driver_id']);
+                if ($driver) {
+                    $callModel->markAssignmentAsSeen($unseenAssignment['id']);
+                    $callModel->setDriverHold($driver['id'], true);
+                }
+            } 
+            
+            // Priority 3: Get next driver from the queue.
+            if (!$driver) {
+                $skippedDrivers = $_SESSION['skipped_drivers'] ?? [];
+                $result = $callModel->findAndLockNextDriver($_SESSION['user_id'], $skippedDrivers);
+                $driver = $result['driver'];
+                $data['debug_info'] = $result['debug_info'] ?? null;
             }
         }
 
-        // الخطوة 3: تحضير جميع البيانات اللازمة للعرض في الصفحة
+        // Prepare all data required for the view
+        $documentModel = $this->model('Document/Document');
+        $countryModel = $this->model('Admin/Country');
+        $carTypeModel = $this->model('Admin/CarType');
+
         $data = [
-            'driver' => null, // القيمة الافتراضية في حال عدم وجود سائق
-            'users' => $this->callsModel->getUsers(),
-            'countries' => $this->countryModel->getAll(),
-            'car_types' => $this->carTypeModel->getAll(),
-            'document_types' => $this->documentsModel->getAllTypes(),
-            'required_documents' => [],
-            'call_history' => [],
-            'today_calls_count' => $this->callsModel->getTodayCallsCount(),
-            'total_pending_calls' => $this->callsModel->getTotalPendingCalls(),
-            'call_status_text' => [
-                'no_answer' => 'لم يتم الرد',
-                'answered' => 'تم الرد',
-                'busy' => 'مشغول',
+            'driver'               => $driver,
+            'users'                => $callModel->getUsers(),
+            'countries'            => $countryModel ? $countryModel->getAll() : [],
+            'car_types'            => $carTypeModel ? $carTypeModel->getAll() : [],
+            'document_types'       => $documentModel ? $documentModel->getAllTypes() : [],
+            'required_documents'   => [],
+            'call_history'         => [],
+            'today_calls_count'    => $callModel->getTodayCallsCount(),
+            'total_pending_calls'  => $callModel->getTotalPendingCalls(),
+            'call_status_text'     => [
+                'no_answer'     => 'لم يتم الرد',
+                'answered'      => 'تم الرد',
+                'busy'          => 'مشغول',
                 'not_available' => 'غير متاح',
-                'wrong_number' => 'رقم خاطئ',
-                'rescheduled' => 'معاد جدولته'
+                'wrong_number'  => 'رقم خاطئ',
+                'rescheduled'   => 'معاد جدولته'
             ]
         ];
-        
-        // الخطوة 4: إذا تم العثور على سائق، يتم تحديث بيانات العرض وحجز السائق في الجلسة
-        if ($driver) {
+
+        if ($driver && $documentModel) {
             $_SESSION['locked_driver_id'] = $driver['id'];
-            $data['driver'] = $driver;
-
-            // جلب المستندات المطلوبة. البيانات الآن مفلترة وجاهزة من المودل مباشرة.
-            $docs = $this->documentsModel->getDriverDocuments($driver['id']);
-            $data['required_documents'] = array_column($docs, null, 'document_type_id');
-            
-            $data['call_history'] = $this->callsModel->getCallHistory($driver['id']);
+            $data['required_documents'] = $documentModel->getDriverDocuments($driver['id'], true);
+            $data['call_history'] = $callModel->getCallHistory($driver['id']);
         }
-
-        // الخطوة 5: عرض الصفحة مع تمرير كافة البيانات
-        $this->view('call/index', $data);
-    }
-
-    public function getNextDriver()
-    {
-        header('Content-Type: application/json');
         
-        if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'User not authenticated.']);
-            http_response_code(401);
+        $this->view('calls/index', $data);
+    }
+    
+    public function record()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
 
-        $agentId = $_SESSION['user_id'];
-        $country_id = isset($_GET['country_id']) && $_GET['country_id'] !== '' ? (int)$_GET['country_id'] : null;
-        $car_type_id = isset($_GET['car_type_id']) && $_GET['car_type_id'] !== '' ? (int)$_GET['car_type_id'] : null;
+        $this->authorize('App\Controllers\Calls');
+        
+        $callModel = $this->model('Calls/Call');
+        if (!$callModel) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Error loading call model.']);
+            return;
+        }
+        
+        $driverId = filter_input(INPUT_POST, 'driver_id', FILTER_VALIDATE_INT);
+        $rawCallStatus = $_POST['call_status'] ?? '';
+        $allowedStatuses = ['answered', 'no_answer', 'busy', 'not_available', 'wrong_number', 'rescheduled'];
+        $callStatus = in_array($rawCallStatus, $allowedStatuses) ? $rawCallStatus : null;
+        
+        if (!$driverId || !$callStatus) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Driver ID and Call Status are required.']);
+            return;
+        }
 
-        $driver = $this->callsModel->getDriver($agentId, $country_id, $car_type_id);
+        try {
+            $callModel->getDb()->beginTransaction();
 
-        if ($driver) {
-            $required_documents = $this->documentsModel->getDriverDocuments($driver->id);
-            $call_history = $this->callsModel->getCallHistory($driver->id);
-            echo json_encode([
-                'success' => true,
-                'driver' => $driver,
-                'documents' => $required_documents,
-                'history' => $call_history
-            ]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'لا يوجد سائقين في قائمة الانتظار حالياً']);
+            $callData = [
+                'driver_id' => $driverId,
+                'call_by' => $_SESSION['user_id'],
+                'call_status' => $callStatus,
+                'notes' => $_POST['notes'] ?? '',
+                'next_call_at' => (in_array($callStatus, ['no_answer', 'rescheduled', 'busy', 'not_available'])) ? ($_POST['next_call_at'] ?? null) : null
+            ];
+            
+            $callModel->recordCall($callData);
+            $callModel->updateDriverStatusBasedOnCall($driverId, $callStatus);
+            $callModel->releaseDriverHold($driverId);
+            unset($_SESSION['locked_driver_id']);
+
+            $callModel->getDb()->commit();
+
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Call recorded successfully.']);
+
+        } catch (\Exception $e) {
+            $callModel->getDb()->rollBack();
+            error_log("Call Record Error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'A server error occurred.']);
         }
     }
-
+    
+    // Any other methods like skip(), transfer() should also be reviewed
+    // to use this new pattern of loading models.
     public function skip($driverId = null)
     {
-        if ($driverId && isset($_SESSION['user_id'])) {
-            $this->callsModel->releaseDriverHold($driverId);
-            // Add the skipped driver ID to the session to prevent immediate re-fetching
-            $_SESSION['skipped_driver_id'] = $driverId;
+        if (!Auth::isLoggedIn()) {
+            redirect('auth/login');
         }
-        // Redirect to the main call page to get a new driver
-        header("Location: " . BASE_PATH . "/calls");
-        exit();
+        $this->authorize('App\Controllers\Calls');
+
+        if ($driverId) {
+            // Add driver to a skipped list in the session
+            if (!isset($_SESSION['skipped_drivers'])) {
+                $_SESSION['skipped_drivers'] = [];
+            }
+            $_SESSION['skipped_drivers'][] = (int)$driverId;
+            $_SESSION['skipped_drivers'] = array_unique($_SESSION['skipped_drivers']);
+
+            // Release the hold
+            $callModel = $this->model('Calls/Call');
+            if ($callModel) {
+                $callModel->releaseDriverHold($driverId);
+            }
+            
+            // Ensure the session's locked driver is also cleared
+            if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
+                unset($_SESSION['locked_driver_id']);
+            }
+        }
+
+        // Redirect to get the next driver
+        redirect('calls');
     }
 
-    public function record()
+    public function updateDocuments()
     {
+        $this->authorize('calls.documents.update');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
             return;
         }
 
-        try {
-            // التحقق من وجود البيانات المطلوبة
-            if (!isset($_POST['driver_id']) || !isset($_POST['call_status'])) {
-                throw new \Exception('بيانات ناقصة: معرف السائق أو حالة المكالمة مفقودة');
-            }
+        $jsonData = file_get_contents('php://input');
+        $data = json_decode($jsonData, true);
 
-            $driverId = filter_var($_POST['driver_id'], FILTER_VALIDATE_INT);
-            if (!$driverId) {
-                throw new \Exception('معرف السائق غير صالح');
-            }
-
-            $callStatus = $_POST['call_status'];
-            $validStatuses = ['no_answer', 'answered', 'busy', 'not_available', 'wrong_number', 'rescheduled'];
-            if (!in_array($callStatus, $validStatuses)) {
-                throw new \Exception('حالة المكالمة غير صالحة');
-            }
-
-            $notes = $_POST['notes'] ?? '';
-            /* -- تم إلغاء الإجبارية --
-            if (empty($notes)) {
-                throw new \Exception('الرجاء إدخال ملاحظات المكالمة');
-            }
-            */
-
-            $nextCallAt = null;
-            if (in_array($callStatus, ['no_answer', 'busy', 'not_available', 'rescheduled'])) {
-                if (empty($_POST['next_call_at'])) {
-                    throw new \Exception('الرجاء تحديد موعد المكالمة التالية');
-                }
-                $nextCallAt = $_POST['next_call_at'];
-            }
-
-            // تسجيل المكالمة
-            $callData = [
-                'driver_id' => $driverId,
-                'call_by' => $_SESSION['user_id'],
-                'call_status' => $callStatus,
-                'notes' => $notes,
-                'next_call_at' => $nextCallAt
-            ];
-
-            $result = $this->callsModel->recordCall($callData);
-            if (!$result) {
-                throw new \Exception('فشل في تسجيل المكالمة في قاعدة البيانات');
-            }
-
-            // تحديث حالة السائق في الجدول الرئيسي
-            $newStatus = $this->getNewDriverStatus($callStatus);
-            if ($newStatus) {
-                $this->driverModel->updateStatus($driverId, $newStatus);
-            }
-
-            // تحرير القفل عن السائق
-            $this->callsModel->releaseDriverHold($driverId);
-            if (isset($_SESSION['locked_driver_id'])) {
-                unset($_SESSION['locked_driver_id']);
-            }
-
-            $this->sendJsonResponse([
-                'success' => true,
-                'message' => 'تم تسجيل المكالمة بنجاح'
-            ]);
-
-        } catch (\Exception $e) {
-            error_log('Call recording error: ' . $e->getMessage());
-            $this->sendJsonResponse([
-                'success' => false,
-                'message' => $e->getMessage()
+        if (json_last_error() !== JSON_ERROR_NONE) {
+             $this->sendJsonResponse([
+                'success' => false, 
+                'message' => 'بيانات JSON غير صالحة',
+                'debug_info' => ['error' => json_last_error_msg()]
             ], 400);
-        }
-    }
-
-    protected function getNewDriverStatus($callStatus)
-    {
-        switch ($callStatus) {
-            case 'answered':
-                return 'waiting_chat';
-            case 'no_answer':
-                return 'no_answer';
-            case 'rescheduled':
-                return 'rescheduled';
-            case 'wrong_number':
-                return 'blocked';
-            default:
-                return null;
-        }
-    }
-
-    public function getHistory($driverId)
-    {
-        if (!$driverId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'معرف السائق غير صحيح']);
             return;
         }
-        $history = $this->callsModel->getCallHistory($driverId);
-        echo json_encode($history);
-    }
 
-    public function releaseHold()
-    {
-        if (isset($_SESSION['locked_driver_id'])) {
-            $this->callsModel->releaseDriverHold($_SESSION['locked_driver_id']);
-            unset($_SESSION['locked_driver_id']);
-            $this->sendJsonResponse(['success' => true]);
-        } else {
-            $this->sendJsonResponse(['success' => false, 'message' => 'No driver was on hold.']);
-        }
-    }
-
-    public function updateDriverInfo()
-    {
-        try {
-            $json = file_get_contents('php://input');
-            $data = json_decode($json, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Exception('JSON غير صالح.');
-            }
-
-            if (empty($data['driver_id'])) {
-                throw new \Exception('معرف السائق مفقود.');
-            }
-
-            // Rename driver_id to id for the model
-            $data['id'] = $data['driver_id'];
-            unset($data['driver_id']);
-
-            $result = $this->driverModel->update($data);
-
-            if ($result) {
-                $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث بيانات السائق بنجاح.']);
-            } else {
-                throw new \Exception('فشل تحديث بيانات السائق في قاعدة البيانات.');
-            }
-        } catch (\Exception $e) {
-            error_log('Error in updateDriverInfo: ' . $e->getMessage());
-            $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
-        }
-    }
-
-    public function updateDocuments()
-    {
-        $json = file_get_contents('php://input');
-        $data = json_decode($json, true);
-
-        if (!$data || !isset($data['driver_id']) || !isset($data['documents'])) {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Invalid data.'], 400);
+        if (!isset($data['driver_id']) || !isset($data['documents']) || !is_array($data['documents'])) {
+            $this->sendJsonResponse([
+                'success' => false, 
+                'message' => 'بيانات غير صحيحة',
+                'debug_info' => ['received_data' => $data]
+            ], 400);
             return;
         }
 
         $driverId = $data['driver_id'];
         $documents = $data['documents'];
-        $updatedDocsData = [];
+        $notes = $data['notes'] ?? [];
 
         try {
-            foreach ($documents as $doc) {
-                $this->documentsModel->updateDocument(
-                    $driverId,
-                    $doc['id'],
-                    $doc['status'],
-                    $doc['note'] ?? ''
-                );
+            $documentsModel = $this->model('Document/Document');
+            if (!$documentsModel) {
+                throw new \Exception('فشل تحميل نموذج المستندات.');
             }
+            
+            $result = $documentsModel->updateDriverDocuments($driverId, $documents, $notes);
 
-            // Fetch the updated document info to send back to the client
-            $updatedDocsData = $this->documentsModel->getDriverDocuments($driverId);
-
-            $this->sendJsonResponse([
-                'success' => true,
-                'message' => 'تم تحديث المستندات بنجاح',
-                'documents' => $updatedDocsData
-            ]);
-
+            if ($result) {
+                $updatedDocs = $documentsModel->getDriverDocuments($driverId, true);
+                $this->sendJsonResponse([
+                    'success' => true,
+                    'message' => 'تم تحديث المستندات بنجاح',
+                    'documents' => $updatedDocs
+                ]);
+            } else {
+                throw new \Exception('فشل تحديث المستندات في قاعدة البيانات.');
+            }
         } catch (\Exception $e) {
-            error_log('Update Documents Error: ' . $e->getMessage());
-            $this->sendJsonResponse(['success' => false, 'message' => 'فشل تحديث المستندات.'], 500);
+            error_log("Error in updateDocuments: " . $e->getMessage());
+            $this->sendJsonResponse([
+                'success' => false, 
+                'message' => 'حدث خطأ في النظام',
+                'debug_info' => [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]
+            ], 500);
         }
     }
-} 
+}

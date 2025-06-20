@@ -15,7 +15,7 @@ class Document
         $this->db = Database::getInstance();
     }
 
-    public function getDriverDocuments($driverId)
+    public function getDriverDocuments($driverId, $keyedById = false)
     {
         try {
             $sql = "
@@ -34,10 +34,71 @@ class Document
             ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['driver_id' => $driverId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if ($keyedById) {
+                $keyedDocuments = [];
+                foreach ($documents as $doc) {
+                    $keyedDocuments[$doc['document_type_id']] = $doc;
+                }
+                return $keyedDocuments;
+            }
+
+            return $documents;
+
         } catch (PDOException $e) {
             error_log("Error in getDriverDocuments: " . $e->getMessage());
             return [];
+        }
+    }
+
+    public function updateDriverDocuments($driverId, $submittedDocIds, $notes)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Get current documents for the driver
+            $stmt = $this->db->prepare("SELECT document_type_id FROM driver_documents_required WHERE driver_id = :driver_id AND status = 'submitted'");
+            $stmt->execute([':driver_id' => $driverId]);
+            $currentDocIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            // 2. Determine which documents to remove
+            $docsToRemove = array_diff($currentDocIds, $submittedDocIds);
+            if (!empty($docsToRemove)) {
+                $inClause = implode(',', array_fill(0, count($docsToRemove), '?'));
+                $removeStmt = $this->db->prepare("DELETE FROM driver_documents_required WHERE driver_id = ? AND document_type_id IN ($inClause)");
+                $removeStmt->execute(array_merge([$driverId], $docsToRemove));
+            }
+
+            // 3. Determine which documents to add and which to update
+            $docsToAdd = array_diff($submittedDocIds, $currentDocIds);
+            $docsToUpdate = array_intersect($currentDocIds, $submittedDocIds);
+
+            // Add new documents
+            if (!empty($docsToAdd)) {
+                $addStmt = $this->db->prepare("INSERT INTO driver_documents_required (driver_id, document_type_id, status, note, updated_by) VALUES (?, ?, 'submitted', ?, ?)");
+                foreach ($docsToAdd as $docId) {
+                    $note = $notes[$docId] ?? '';
+                    $addStmt->execute([$driverId, $docId, $note, $_SESSION['user_id']]);
+                }
+            }
+            
+            // Update existing documents (specifically their notes)
+            if (!empty($docsToUpdate)) {
+                $updateStmt = $this->db->prepare("UPDATE driver_documents_required SET note = ?, updated_by = ?, updated_at = NOW() WHERE driver_id = ? AND document_type_id = ?");
+                foreach ($docsToUpdate as $docId) {
+                     if (isset($notes[$docId])) {
+                        $updateStmt->execute([$notes[$docId], $_SESSION['user_id'], $driverId, $docId]);
+                    }
+                }
+            }
+            
+            $this->db->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error updating driver documents: " . $e->getMessage());
+            throw $e; // Re-throw to be caught by controller
         }
     }
 

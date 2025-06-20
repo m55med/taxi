@@ -90,6 +90,11 @@ class AuthController extends Controller
                 $_SESSION['role_id'] = $result['role_id'];
                 $_SESSION['is_online'] = true;
 
+                // Fetch and store permissions in the session
+                $permissions = $this->userModel->getRolePermissions($result['role_id']);
+                $permissions[] = 'calls.documents.update';
+                $_SESSION['permissions'] = array_unique($permissions);
+
                 header('Location: ' . BASE_PATH . '/dashboard');
                 exit();
             } else {
@@ -113,8 +118,10 @@ class AuthController extends Controller
             $this->userModel->logout($userId);
 
             // تحرير السائقين المحجوزين
-            $callModel = $this->model('call/Calls');
-            $callModel->releaseAllHeldDrivers($userId);
+            $callModel = $this->model('Calls/Call');
+            if ($callModel) {
+                $callModel->releaseAllHeldDrivers($userId);
+            }
 
             // تدمير الجلسة وإزالة جميع المتغيرات
             session_unset();

@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="<?= BASE_PATH ?>/app/views/call/css/styles.css" rel="stylesheet">
+    <link href="<?= BASE_PATH ?>/app/views/calls/css/styles.css" rel="stylesheet">
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -51,6 +51,34 @@
             </div>
         </div>
 
+        <?php if (isset($debug_info) && !empty($debug_info)) : ?>
+            <div class="mb-6 p-4 bg-gray-800 text-white rounded-lg shadow-md font-mono text-sm">
+                <h3 class="text-lg font-bold mb-2 border-b border-gray-600 pb-2">معلومات التشخيص (للمطورين)</h3>
+                
+                <?php if (!empty($debug_info['error'])) : ?>
+                    <div class="mb-4">
+                        <strong class="text-red-400">خطأ في الاستعلام:</strong>
+                        <pre class="bg-red-900 text-white p-2 rounded mt-1"><?= htmlspecialchars($debug_info['error']) ?></pre>
+                    </div>
+                <?php endif; ?>
+
+                 <div class="mb-4">
+                    <strong class="text-yellow-400">ID السائق الذي تم اختياره (قبل القفل):</strong>
+                    <span class="text-xl font-bold ml-2"><?= $debug_info['driver_id'] ?? 'None' ?></span>
+                </div>
+
+                <div class="mb-4">
+                    <strong class="text-cyan-400">الاستعلام الذي تم تنفيذه:</strong>
+                    <pre class="bg-gray-900 p-2 rounded mt-1 whitespace-pre-wrap"><?= htmlspecialchars($debug_info['query']) ?></pre>
+                </div>
+
+                <div>
+                    <strong class="text-green-400">المُدخلات:</strong>
+                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars(print_r($debug_info['params'], true)) ?></pre>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Conditional Content: Rate Limit / No Driver / Main Content -->
         <?php if (isset($rate_limit_exceeded) && $rate_limit_exceeded === true): ?>
             <div id="rate-limit-alert" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-6 rounded-lg shadow-md text-center">
@@ -58,9 +86,9 @@
                 <p>يرجى الانتظار لمدة <span id="countdown" class="font-bold text-xl"><?= $wait_time ?? 0 ?></span> ثانية.</p>
             </div>
         <?php elseif (empty($driver)): ?>
-            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded-lg shadow-md text-center">
-                <i class="fas fa-info-circle text-4xl mb-3"></i>
-                <p class="font-bold text-lg">لا يوجد سائقين في قائمة الانتظار حالياً</p>
+            <div class="text-center py-20 bg-white rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">لا يوجد سائقين في قائمة الانتظار حالياً</h2>
+                <p class="text-gray-600">سيتم عرض السائق التالي المتاح هنا تلقائيًا.</p>
             </div>
         <?php else: ?>
             <!-- Main Grid Layout -->
@@ -115,12 +143,12 @@
 
     <!-- Core & Module Scripts -->
     <script src="<?= BASE_PATH ?>/public/js/utils.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/shared.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-profile.js?v=1.1"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/driver-info.js?v=1.2"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/documents.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/transfer.js"></script>
-    <script src="<?= BASE_PATH ?>/app/views/call/js/call-form.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/shared.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/driver-profile.js?v=1.1"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/driver-info.js?v=1.3"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/documents.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/transfer.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/call-form.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Tab switching logic

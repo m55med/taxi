@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
 
             const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
 
             // Add a loading indicator to the button
             const submitButton = form.querySelector('button[type="submit"]');
@@ -28,14 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
 
             try {
-                const response = await fetch(`${BASE_PATH}/calls/updateDriverInfo`, {
+                const response = await fetch(`${BASE_PATH}/driver/update`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(data)
+                    body: formData // Send as form data, not JSON
                 });
 
                 const result = await response.json();
@@ -45,25 +39,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Update Name
                     const nameElement = document.getElementById('driver-profile-name');
-                    if (nameElement && data.name) {
-                        nameElement.textContent = data.name;
+                    if (nameElement && formData.get('name')) {
+                        nameElement.textContent = formData.get('name');
                     }
 
                     // Update Email
                     const emailElement = document.getElementById('driver-profile-email');
                     if (emailElement) {
-                        emailElement.textContent = data.email || 'غير متوفر';
+                        emailElement.textContent = formData.get('email') || 'غير متوفر';
                     }
 
                     // Update App Status
                     const statusElement = document.getElementById('driverAppStatus');
-                    if (statusElement && data.app_status) {
+                    if (statusElement && formData.get('app_status')) {
                         const statusMap = {
                             active: { text: 'نشط', class: 'bg-green-100 text-green-800' },
                             inactive: { text: 'غير نشط', class: 'bg-yellow-100 text-yellow-800' },
                             banned: { text: 'محظور', class: 'bg-red-100 text-red-800' },
                         };
-                        const statusInfo = statusMap[data.app_status] || { text: data.app_status, class: 'bg-gray-100 text-gray-800' };
+                        const statusInfo = statusMap[formData.get('app_status')] || { text: formData.get('app_status'), class: 'bg-gray-100 text-gray-800' };
                         
                         statusElement.textContent = statusInfo.text;
                         statusElement.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
@@ -71,8 +65,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Update Gender
                     const genderElement = document.getElementById('driver-profile-gender');
-                    if (genderElement && data.gender) {
-                        genderElement.textContent = data.gender === 'male' ? 'ذكر' : 'أنثى';
+                    if (genderElement && formData.get('gender')) {
+                        genderElement.textContent = formData.get('gender') === 'male' ? 'ذكر' : 'أنثى';
                     }
 
                     // Update Nationality
@@ -92,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Update Notes
                     const notesElement = document.getElementById('driver-profile-notes');
                     if (notesElement) {
-                        notesElement.textContent = data.notes || 'لا يوجد';
+                        notesElement.textContent = formData.get('notes') || 'لا يوجد';
                     }
 
                 } else {

@@ -85,10 +85,13 @@ defined('BASE_PATH') or define('BASE_PATH', '');
                 <span>حفظ المكالمة</span>
             </button>
             
-            <a href="<?= BASE_PATH ?>/call/skip/<?= $driver['id'] ?? '' ?>" title="تخطي"
-               class="flex-shrink-0 bg-yellow-500 text-white w-12 h-12 flex items-center justify-center rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all duration-200">
-                <i class="fas fa-forward"></i>
-            </a>
+            <div class="flex-shrink-0">
+                <!-- Skip Button -->
+                <a href="<?= BASE_PATH ?>/calls/skip/<?= $driver['id'] ?? '' ?>" title="تخطي"
+                   class="skip-btn inline-flex items-center justify-center h-10 w-10 rounded-full text-gray-500 hover:text-white hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+                    <i class="fas fa-forward"></i>
+                </a>
+            </div>
 
             <button type="button" onclick="showTransferModal()" title="تحويل السائق"
                 class="flex-shrink-0 bg-gray-200 text-gray-700 w-12 h-12 flex items-center justify-center rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">

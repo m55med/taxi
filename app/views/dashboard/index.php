@@ -185,7 +185,7 @@
             </div>
             <?php endif; ?>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- لوحة تحكم التسويق -->
                 <?php if (in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
                 <a href="<?= BASE_PATH ?>/referral/dashboard" 
@@ -203,16 +203,11 @@
                 <?php endif; ?>
 
                 <!-- مركز الاتصال -->
-                <a href="<?= BASE_PATH ?>/call" 
-                   class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
-                            <i class="fas fa-phone-alt text-white text-2xl"></i>
-                        </div>
-                        <div class="mr-5">
-                            <h3 class="text-lg font-medium text-gray-900">مركز الاتصال</h3>
-                            <p class="mt-1 text-sm text-gray-500">إدارة المكالمات والتواصل مع السائقين</p>
-                        </div>
+                <a href="<?= BASE_PATH ?>/calls" class="flex items-center justify-center text-center bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-200">
+                    <div>
+                        <i class="fas fa-headset text-4xl text-indigo-500 mb-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-800">مركز الاتصال</h3>
+                        <p class="text-sm text-gray-500">الانتقال إلى واجهة المكالمات</p>
                     </div>
                 </a>
 
@@ -231,16 +226,11 @@
                 </a>
 
                 <!-- إدارة التذاكر -->
-                <a href="<?= BASE_PATH ?>/tickets" 
-                   class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                            <i class="fas fa-ticket-alt text-white text-2xl"></i>
-                        </div>
-                        <div class="mr-5">
-                            <h3 class="text-lg font-medium text-gray-900">إدارة التذاكر</h3>
-                            <p class="mt-1 text-sm text-gray-500">إنشاء وتتبع تذاكر الدعم الفني</p>
-                        </div>
+                <a href="<?= BASE_PATH ?>/tickets" class="flex items-center justify-center text-center bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-200">
+                    <div>
+                        <i class="fas fa-ticket-alt text-4xl text-purple-500 mb-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-800">إدارة التذاكر</h3>
+                        <p class="text-sm text-gray-500">إنشاء وتتبع تذاكر الدعم الفني</p>
                     </div>
                 </a>
 

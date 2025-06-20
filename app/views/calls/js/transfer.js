@@ -53,7 +53,7 @@ const TransferModule = {
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري التحويل...';
             
             try {
-                const response = await fetch(`${BASE_PATH}/calls/assignments/assign`, {
+                const response = await fetch(`${BASE_PATH}/driver/assign`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
@@ -83,8 +83,8 @@ const TransferModule = {
                 if (data.success) {
                     showNotification(data.message || 'تم تحويل السائق بنجاح', 'success');
                     window.hideTransferModal();
-                    // Redirect after a short delay
-                    setTimeout(() => window.location.href = `${BASE_PATH}/call`, 500);
+                    // Redirect after a short delay to the new calls page
+                    setTimeout(() => window.location.href = `${BASE_PATH}/calls`, 500);
                 } else {
                     throw new Error(data.message || 'فشل في تحويل السائق');
                 }

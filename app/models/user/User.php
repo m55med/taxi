@@ -471,9 +471,28 @@ class User
 
     public function getAvailableForTeamLeadership()
     {
-        $query = "SELECT u.id, u.username FROM users u WHERE u.id NOT IN (SELECT t.team_leader_id FROM teams t WHERE t.team_leader_id IS NOT NULL)";
-        $stmt = $this->db->prepare($query);
+        $stmt = $this->db->prepare("SELECT u.id, u.username FROM users u WHERE u.role_id NOT IN (1,2) AND u.id NOT IN (SELECT leader_id FROM teams)");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Fetches all permission strings for a given role ID.
+     *
+     * @param int $roleId The ID of the role.
+     * @return array An array of permission strings.
+     */
+    public function getRolePermissions(int $roleId): array
+    {
+        try {
+            $sql = "SELECT permission FROM role_permissions WHERE role_id = :role_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':role_id' => $roleId]);
+            // Fetch all rows and return just the 'permission' column as a simple array
+            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        } catch (PDOException $e) {
+            error_log("Error fetching permissions for role ID {$roleId}: " . $e->getMessage());
+            return []; // Return empty array on error
+        }
     }
 }

@@ -194,8 +194,8 @@ const CallFormModule = {
                 if (result.success) {
                     showToast('تم تسجيل المكالمة بنجاح، جاري جلب السائق التالي...', 'success');
                     setTimeout(() => {
-                        window.location.href = BASE_PATH + '/call';
-                    }, 1500);
+                        window.location.reload();
+                    }, 1000);
                 } else {
                     throw new Error(result.message || 'حدث خطأ غير متوقع أثناء تسجيل المكالمة.');
                 }

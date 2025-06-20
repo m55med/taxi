@@ -3,19 +3,20 @@
 namespace App\Controllers\Calls;
 
 use App\Core\Controller;
+use Exception;
 
 class AssignmentsController extends Controller
 {
-    private $assignmentsModel;
+    private $driverModel;
 
     public function __construct()
     {
         parent::__construct();
         if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_PATH . '/auth/login');
+            $this->sendJsonResponse(['success' => false, 'message' => 'انتهت صلاحية الجلسة', 'redirect' => BASE_PATH . '/auth/login'], 401);
             exit;
         }
-        $this->assignmentsModel = $this->model('Assignment/Assignment');
+        $this->driverModel = $this->model('driver/Driver');
     }
 
     public function assign()
@@ -26,15 +27,19 @@ class AssignmentsController extends Controller
         }
 
         try {
-            $result = $this->assignmentsModel->assignDriver([
-                'driver_id' => $_POST['driver_id'],
-                'from_user_id' => $_SESSION['user_id'],
-                'to_user_id' => $_POST['to_user_id'],
-                'note' => $_POST['note'] ?? ''
-            ]);
+            $driverId = $_POST['driver_id'];
+            
+            $result = $this->driverModel->assignDriver(
+                $driverId,
+                $_SESSION['user_id'],
+                $_POST['to_user_id'],
+                $_POST['note'] ?? ''
+            );
 
             if ($result) {
-                unset($_SESSION['locked_driver_id']);
+                if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
+                    unset($_SESSION['locked_driver_id']);
+                }
                 $this->sendJsonResponse(['success' => true, 'message' => 'تم تحويل السائق بنجاح.']);
             } else {
                 throw new Exception('فشل تحويل السائق في قاعدة البيانات.');

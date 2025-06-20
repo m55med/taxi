@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers\Reports;
+namespace App\Controllers\Reports\TripsReport;
 
 use App\Core\Controller;
 

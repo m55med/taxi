@@ -123,28 +123,41 @@ class DriverController extends Controller
     //     }
     // }
 
-    public function assign($driverId) {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('drivers/details/' . $driverId);
-        }
+    public function assign()
+    {
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('طريقة طلب غير صحيحة', 405);
+            }
 
-        // Basic validation
-        if (empty($driverId) || empty($_POST['to_user_id'])) {
-            $_SESSION['error_message'] = 'بيانات التحويل غير مكتملة.';
-            redirect('drivers/details/' . $driverId);
-        }
-        
-        $fromUserId = $_SESSION['user_id']; // Assuming the logged-in user is doing the assignment
-        $toUserId = $_POST['to_user_id'];
-        $note = trim($_POST['note'] ?? '');
+            if (empty($_POST['driver_id']) || empty($_POST['to_user_id'])) {
+                throw new Exception('البيانات المطلوبة للتحويل غير مكتملة', 400);
+            }
 
-        if ($this->driverModel->assignDriver($driverId, $fromUserId, $toUserId, $note)) {
-            $_SESSION['success_message'] = 'تم تحويل السائق بنجاح.';
-        } else {
-            $_SESSION['error_message'] = 'حدث خطأ أثناء تحويل السائق.';
-        }
+            $driverId = $_POST['driver_id'];
+            $fromUserId = $_SESSION['user_id'];
+            $toUserId = $_POST['to_user_id'];
+            $note = trim($_POST['note'] ?? '');
 
-        redirect('drivers/details/' . $driverId);
+            $result = $this->driverModel->assignDriver($driverId, $fromUserId, $toUserId, $note);
+
+            if ($result) {
+                // Since this is an AJAX request from the call center, we don't redirect.
+                // The frontend will handle the redirect.
+                if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
+                    unset($_SESSION['locked_driver_id']);
+                }
+                $this->sendJsonResponse(['success' => true, 'message' => 'تم تحويل السائق بنجاح.']);
+            } else {
+                throw new Exception('فشل تحويل السائق في قاعدة البيانات.', 500);
+            }
+        } catch (Exception $e) {
+            error_log("Driver assignment error: " . $e->getMessage());
+            $this->sendJsonResponse(
+                ['success' => false, 'message' => $e->getMessage()],
+                $e->getCode() ?: 400
+            );
+        }
     }
 
     public function details($id)

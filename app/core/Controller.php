@@ -12,33 +12,50 @@ class Controller
         // Constructor is now empty, enforcement is done in App.php
     }
 
-    protected function model($model, $data = [])
+    /**
+     * Loads a model file.
+     *
+     * @param string $model The name of the model in PascalCase, optionally with subdirectories.
+     * @return object|null An instance of the model, or null if the file doesn't exist.
+     */
+    public function model($model)
     {
-        // Convert file path to class name, ensuring PascalCase for namespaces
-        $parts = explode('/', $model);
-        $classNameParts = array_map(function($part) {
-            // Converts snake_case and kebab-case to PascalCase
-            return str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $part)));
-        }, $parts);
-        $className = 'App\\Models\\' . implode('\\', $classNameParts);
-        
-        if (class_exists($className, true)) {
-            return new $className($data);
-        }
+        // Construct the full path to the model file
+        $modelPath = '../app/models/' . $model . '.php';
 
-        // Fallback for debugging, should not be reached with a correct autoloader setup
-        error_log("Model class not found by autoloader: " . $className);
+        // Check if the model file exists before trying to require it
+        if (file_exists($modelPath)) {
+            require_once $modelPath;
+            // Construct the full class name with namespace
+            $modelClass = 'App\\Models\\' . str_replace('/', '\\', $model);
+            if (class_exists($modelClass)) {
+                return new $modelClass();
+            }
+        }
+        
+        // In case of any failure, log the error and return null.
+        // This prevents fatal errors and helps in debugging.
+        error_log("Model not found or class does not exist: " . $model);
         return null;
     }
 
-    protected function view($view, $data = [])
+    /**
+     * Loads a view file.
+     *
+     * @param string $view The name of the view file.
+     * @param array $data Data to be extracted for use in the view.
+     * @return void
+     */
+    public function view($view, $data = [])
     {
-        $viewPath = '../app/views/' . $view . '.php';
-        if (file_exists($viewPath)) {
+        // Check for view file
+        if (file_exists('../app/views/' . $view . '.php')) {
+            // Extract data so it can be used by variable names in the view
             extract($data);
-            require_once $viewPath;
+            require_once '../app/views/' . $view . '.php';
         } else {
-            die('View does not exist');
+            // If view does not exist, stop everything and show an error.
+            die('View does not exist: ' . $view);
         }
     }
 
@@ -54,6 +71,33 @@ class Controller
         // Ensure Arabic characters are encoded correctly
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         exit();
+    }
+
+    /**
+     * Checks if the current user has the required permission.
+     * If not, it shows a 403 Forbidden page and stops execution.
+     *
+     * @param string $requiredPermission The permission string to check for.
+     * @return void
+     */
+    public function authorize($requiredPermission)
+    {
+        if (!Auth::hasPermission($requiredPermission)) {
+            http_response_code(403);
+            
+            // Prepare debug information for the 403 page
+            $debug_info = [
+                'required_permission' => $requiredPermission,
+                'user_role' => $_SESSION['role'] ?? 'Not Set',
+                'user_permissions' => $_SESSION['permissions'] ?? 'Not Set'
+            ];
+            
+            // Pass debug info to the view
+            $data['debug_info'] = $debug_info;
+            
+            require_once '../app/views/errors/403.php';
+            exit;
+        }
     }
 }
 

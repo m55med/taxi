@@ -200,6 +200,34 @@ class App
                     // Fallback for unknown report types
                     $this->triggerNotFound();
                 }
+            } elseif ($url[0] === 'call' || $url[0] === 'calls') {
+                $controllerName = 'CallsController';
+                $controllerFile = '../app/controllers/calls/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\Calls\CallsController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'driver') {
+                $controllerName = 'DriverController';
+                $controllerFile = '../app/controllers/driver/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\Driver\DriverController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
             } elseif ($url[0] === 'trips') { // Handle trips upload route
                 $controllerName = 'TripsController';
                 $controllerFile = '../app/controllers/trips/' . $controllerName . '.php';
@@ -503,23 +531,11 @@ class App
 
     private function triggerNotFound($message = 'Page not found.')
     {
-        // Log the not found error for debugging purposes
-        error_log("404 Not Found: " . $_SERVER['REQUEST_URI']);
-
-        // Set the response code
         http_response_code(404);
-
-        // Include a user-friendly 404 page
-        // You can create a view for this. e.g., /app/views/errors/404.php
-        $viewPath = APPROOT . '/views/errors/404.php';
-        if (file_exists($viewPath)) {
-            // Pass a message to the view
-            $data['message'] = $message;
-            include $viewPath;
-        } else {
-            // Fallback plain text message
-            echo $message;
-        }
+        // Log the detailed error message for debugging
+        error_log("404 Not Found: " . $message);
+        // Show the user-friendly 404 page
+        require_once '../app/views/errors/404.php';
         exit;
     }
 

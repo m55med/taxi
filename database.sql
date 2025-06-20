@@ -85,7 +85,9 @@ CREATE TABLE drivers (
 
     FOREIGN KEY (car_type_id) REFERENCES car_types(id),
     FOREIGN KEY (added_by) REFERENCES users(id),
-    FOREIGN KEY (country_id) REFERENCES countries(id)
+    FOREIGN KEY (country_id) REFERENCES countries(id),
+    INDEX idx_hold (hold),
+    INDEX idx_status_hold (main_system_status, hold)
 );
 
 
@@ -101,7 +103,8 @@ CREATE TABLE driver_calls (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (driver_id) REFERENCES drivers(id),
-    FOREIGN KEY (call_by) REFERENCES users(id)
+    FOREIGN KEY (call_by) REFERENCES users(id),
+    INDEX idx_next_call_at (next_call_at) -- Index for filtering by call time
 );
 
 CREATE TABLE driver_assignments (
@@ -488,4 +491,16 @@ CREATE TABLE role_permissions (
   permission VARCHAR(255) NOT NULL,
   FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
   UNIQUE KEY unique_permission (role_id, permission)
+);
+
+CREATE TABLE driver_snoozes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    user_id INT NOT NULL,
+    snoozed_until DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_snooze (user_id, snoozed_until)
 );

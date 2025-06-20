@@ -29,5 +29,27 @@
            <?php echo isset($_SESSION['user_id']) ? 'العودة إلى لوحة التحكم' : 'الذهاب إلى صفحة الدخول'; ?>
         </a>
     </div>
+
+    <?php if (isset($data['debug_info']) && !empty($data['debug_info'])) : ?>
+        <div class="fixed bottom-0 left-0 right-0 p-4 bg-gray-800 text-white font-mono text-sm">
+            <h3 class="text-lg font-bold mb-2 border-b border-gray-600 pb-2">معلومات تشخيص الصلاحيات (للمطورين)</h3>
+            
+            <div class="mb-2">
+                <strong class="text-red-400">الصلاحية المطلوبة للوصول لهذه الصفحة:</strong>
+                <pre class="bg-red-900 text-white p-2 rounded mt-1"><?= htmlspecialchars($data['debug_info']['required_permission']) ?></pre>
+            </div>
+
+            <div class="mb-2">
+                <strong class="text-yellow-400">دور المستخدم الحالي:</strong>
+                 <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars($data['debug_info']['user_role']) ?></pre>
+            </div>
+
+            <div>
+                <strong class="text-cyan-400">الصلاحيات الممنوحة لهذا الدور (من الجلسة):</strong>
+                <pre class="bg-gray-900 p-2 rounded mt-1"><?php print_r($data['debug_info']['user_permissions']); ?></pre>
+            </div>
+        </div>
+    <?php endif; ?>
+
 </body>
 </html> 
