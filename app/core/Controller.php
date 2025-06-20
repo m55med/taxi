@@ -3,56 +3,37 @@
 namespace App\Core;
 
 use App\Core\Auth;
+use App\Models\Admin\Permission;
 
 class Controller
 {
     public function __construct()
     {
-        // Constructor is empty but available for inheritance
+        // Constructor is now empty, enforcement is done in App.php
     }
 
-    protected function authorize(array $roles)
+    protected function model($model, $data = [])
     {
-        Auth::requireLogin(); // This handles redirection if not logged in.
+        // Convert file path to class name, ensuring PascalCase for namespaces
+        $parts = explode('/', $model);
+        $classNameParts = array_map(function($part) {
+            // Converts snake_case and kebab-case to PascalCase
+            return str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $part)));
+        }, $parts);
+        $className = 'App\\Models\\' . implode('\\', $classNameParts);
         
-        $userRole = Auth::getUserRole();
-        if (!in_array($userRole, $roles)) {
-            // User is logged in, but does not have the required role.
-            http_response_code(403);
-            $viewPath = APPROOT . '/app/views/errors/403.php';
-            if (file_exists($viewPath)) {
-                // To avoid variable scope issues inside the view
-                $message = 'You do not have permission to access this page.';
-                require_once $viewPath;
-            } else {
-                die('403 Forbidden: You do not have permission to access this page.');
-            }
-            exit;
-        }
-    }
-
-    protected function model($model)
-    {
-        // Handle both namespaced and non-namespaced models
-        if (strpos($model, '/') !== false) {
-            // For models in subdirectories (e.g., 'reports/Analytics/AnalyticsReport')
-            $parts = explode('/', $model);
-            $className = "\\App\\Models\\" . implode('\\', array_map('ucfirst', $parts));
-        } else {
-            // For models in the root models directory
-            $className = "\\App\Models\\" . ucfirst($model);
+        if (class_exists($className, true)) {
+            return new $className($data);
         }
 
-        if (!class_exists($className)) {
-            die('Model class "' . $className . '" does not exist. Attempted to load: ' . $className);
-        }
-
-        return new $className();
+        // Fallback for debugging, should not be reached with a correct autoloader setup
+        error_log("Model class not found by autoloader: " . $className);
+        return null;
     }
 
     protected function view($view, $data = [])
     {
-        $viewPath = APPROOT . '/app/views/' . $view . '.php';
+        $viewPath = '../app/views/' . $view . '.php';
         if (file_exists($viewPath)) {
             extract($data);
             require_once $viewPath;
@@ -75,3 +56,4 @@ class Controller
         exit();
     }
 }
+

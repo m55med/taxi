@@ -29,8 +29,8 @@ class UsersController extends Controller
         }
 
         $this->usersReportModel = $this->model('reports/Users/UsersReport');
-        $this->roleModel = $this->model('Role');
-        $this->teamModel = $this->model('Admin/Team');
+        $this->roleModel = $this->model('role/Role');
+        $this->teamModel = $this->model('admin/Team');
     }
 
     public function index()
@@ -41,6 +41,7 @@ class UsersController extends Controller
             'team_id' => $_GET['team_id'] ?? '',
             'date_from' => $_GET['date_from'] ?? '',
             'date_to' => $_GET['date_to'] ?? '',
+            'user_id' => $_GET['user_id'] ?? ''
         ];
 
         $usersData = $this->usersReportModel->getUsersReport($filters);
@@ -50,6 +51,7 @@ class UsersController extends Controller
             'summary_stats' => $usersData['summary_stats'],
             'roles' => $this->roleModel->getAll(),
             'teams' => $this->teamModel->getAll(),
+            'all_users' => $this->usersReportModel->getAllUsersForFilter(),
             'filters' => $filters,
         ];
 
@@ -64,6 +66,7 @@ class UsersController extends Controller
             'team_id' => $_GET['team_id'] ?? '',
             'date_from' => $_GET['date_from'] ?? '',
             'date_to' => $_GET['date_to'] ?? '',
+            'user_id' => $_GET['user_id'] ?? ''
         ];
 
         $usersData = $this->usersReportModel->getUsersReport($filters);
@@ -80,66 +83,68 @@ class UsersController extends Controller
 
         echo "\xEF\xBB\xBF"; // UTF-8 BOM
 
-        $excluded_keys = ['call_stats'];
+        // Define headers in Arabic for clarity and order
+        $headers = [
+            'username' => 'المستخدم',
+            'email' => 'البريد الإلكتروني',
+            'role_name' => 'الدور',
+            'team_name' => 'الفريق',
+            'status' => 'الحالة',
+            'is_online' => 'متصل',
+            'total_calls' => 'إجمالي المكالمات',
+            'answered' => 'مكالمات مجابة',
+            'no_answer' => 'مكالمات لم يرد عليها',
+            'busy' => 'مشغول',
+            'answered_rate' => 'نسبة الرد (%)',
+            'today_total' => 'إجمالي مكالمات اليوم',
+            'today_answered' => 'مكالمات اليوم المجابة',
+            'normal_tickets' => 'تذاكر عادية',
+            'vip_tickets' => 'تذاكر VIP',
+            'assignments_count' => 'التحويلات'
+        ];
 
         echo '<table border="1">';
-
-        // رأس الجدول
-        if (!empty($data)) {
-            echo '<tr>';
-            foreach (array_keys($data[0]) as $key) {
-                if (in_array($key, $excluded_keys)) {
-                    continue;
-                }
-                echo '<th>' . htmlspecialchars($key) . '</th>';
-            }
-            // Add call_stats headers
-            echo '<th>total_calls</th>';
-            echo '<th>answered</th>';
-            echo '<th>no_answer</th>';
-            echo '<th>busy</th>';
-            echo '<th>answered_rate</th>';
-            echo '<th>no_answer_rate</th>';
-            echo '<th>busy_rate</th>';
-            echo '<th>today_total</th>';
-            echo '<th>today_answered</th>';
-            echo '<th>today_no_answer</th>';
-            echo '<th>today_busy</th>';
-            echo '</tr>';
+        
+        // Print headers
+        echo '<tr>';
+        foreach ($headers as $header) {
+            echo '<th>' . htmlspecialchars($header) . '</th>';
         }
+        echo '</tr>';
 
-        // بيانات الجدول
+        // Print data rows
         foreach ($data as $row) {
             echo '<tr>';
-            foreach ($row as $key => $value) {
-                if (in_array($key, $excluded_keys)) {
-                    continue;
-                }
-                if (is_array($value)) {
-                    echo '<td>' . htmlspecialchars(json_encode($value, JSON_UNESCAPED_UNICODE)) . '</td>';
-                } else {
-                    echo '<td>' . htmlspecialchars($value ?? '') . '</td>';
-                }
-            }
-            // Add call_stats data
-            if (isset($row['call_stats'])) {
-                $stats = $row['call_stats'];
-                echo '<td>' . htmlspecialchars($stats['total_calls'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['answered'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['no_answer'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['busy'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars(number_format($stats['answered_rate'] ?? 0, 1)) . '%</td>';
-                echo '<td>' . htmlspecialchars(number_format($stats['no_answer_rate'] ?? 0, 1)) . '%</td>';
-                echo '<td>' . htmlspecialchars(number_format($stats['busy_rate'] ?? 0, 1)) . '%</td>';
-                echo '<td>' . htmlspecialchars($stats['today_total'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['today_answered'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['today_no_answer'] ?? '0') . '</td>';
-                echo '<td>' . htmlspecialchars($stats['today_busy'] ?? '0') . '</td>';
-            } else {
-                for ($i = 0; $i < 11; $i++) {
-                    echo '<td>0</td>';
-                }
-            }
+            
+            $status_translation = [
+                'active' => 'نشط',
+                'pending' => 'معلق',
+                'banned' => 'محظور'
+            ];
+
+            // Manually map each column to ensure correct order and handling
+            echo '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>';
+            echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
+            echo '<td>' . htmlspecialchars($row['role_name'] ?? '') . '</td>';
+            echo '<td>' . htmlspecialchars($row['team_name'] ?? 'N/A') . '</td>';
+            echo '<td>' . htmlspecialchars($status_translation[$row['status']] ?? $row['status']) . '</td>';
+            echo '<td>' . (isset($row['is_online']) && $row['is_online'] ? 'متصل' : 'غير متصل') . '</td>';
+            
+            // Call stats from the nested array
+            $stats = $row['call_stats'] ?? [];
+            echo '<td>' . htmlspecialchars($stats['total_calls'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($stats['answered'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($stats['no_answer'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($stats['busy'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars(number_format($stats['answered_rate'] ?? 0, 1)) . '</td>';
+            echo '<td>' . htmlspecialchars($stats['today_total'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($stats['today_answered'] ?? '0') . '</td>';
+
+            // New stats from the main row
+            echo '<td>' . htmlspecialchars($row['normal_tickets'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($row['vip_tickets'] ?? '0') . '</td>';
+            echo '<td>' . htmlspecialchars($row['assignments_count'] ?? '0') . '</td>';
+            
             echo '</tr>';
         }
 

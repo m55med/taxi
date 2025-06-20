@@ -2,8 +2,8 @@
 
 namespace App\Core;
 
-use App\Controllers\AuthController;
-use App\Models\User;
+use App\Controllers\Auth\AuthController;
+use App\Models\User\User;
 
 class App
 {
@@ -19,15 +19,15 @@ class App
             if (file_exists($forceLogoutFile)) {
                 $userModel = new User();
                 $logoutMessage = trim(file_get_contents($forceLogoutFile));
-                
+
                 // Unlink the file first to prevent loop issues
                 unlink($forceLogoutFile);
-                
+
                 $userModel->logout($_SESSION['user_id']);
-                
+
                 session_unset();
                 session_destroy();
-                
+
                 session_start();
                 if (!empty($logoutMessage) && $logoutMessage !== '1') {
                     $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول: ' . htmlspecialchars($logoutMessage);
@@ -47,11 +47,11 @@ class App
 
         // Handle Telegram Webhook - Check if the last part of the URL is 'telegram'
         if (!empty($url) && end($url) === 'telegram') {
-            $controller = new \App\Controllers\Telegram\TelegramController();
-            $controller->handleWebhook();
+            $controller = new \App\Controllers\Telegram\WebhookController();
+            $controller->handle();
             return; // Stop further processing
         }
-        
+
         $url = is_array($url) ? $url : [];
 
         // تعيين المتحكم
@@ -175,7 +175,7 @@ class App
                         $controllerName = 'Custom/CustomController';
                         break;
                     case 'trips':
-                        $controllerName = 'TripsReportController';
+                        $controllerName = 'TripsReport/TripsReportController';
                         break;
                 }
 
@@ -207,7 +207,7 @@ class App
                 if (file_exists($controllerFile)) {
                     $controllerClass = '\\App\\Controllers\\Trips\\' . $controllerName;
                     $this->controller = new $controllerClass();
-                    
+
                     // Determine method: /trips/upload or /trips/process
                     $methodName = 'upload'; // Default method if only /trips is provided
                     if (isset($url[1])) {
@@ -218,11 +218,11 @@ class App
                         }
                     }
 
-                    if(method_exists($this->controller, $methodName)) {
+                    if (method_exists($this->controller, $methodName)) {
                         $this->method = $methodName;
                     } else {
                         // Fallback to upload form if an invalid method is specified
-                        $this->method = 'upload'; 
+                        $this->method = 'upload';
                     }
 
                     unset($url[0], $url[1], $url[2]);
@@ -287,73 +287,139 @@ class App
                 $controllerName = 'DiscussionsController';
                 $controllerFile = '../app/controllers/' . $controllerName . '.php';
                 if (file_exists($controllerFile)) {
-                    $this->controller = new \App\Controllers\DiscussionsController();
+                    $this->controller = new \App\Controllers\Discussions\DiscussionsController();
                     $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
                     unset($url[0]);
-                    if (isset($url[1])) unset($url[1]);
+                    if (isset($url[1]))
+                        unset($url[1]);
                 } else {
                     $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'review') { // Handle review route
+                $controllerName = 'ReviewController';
+                $controllerFile = '../app/controllers/review/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Review\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'dashboard') { // Handle dashboard route
+                $controllerName = 'DashboardController';
+                $controllerFile = '../app/controllers/dashboard/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Dashboard\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'auth') {
+                $controllerName = 'AuthController';
+                $controllerFile = '../app/controllers/Auth/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Auth\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'login';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'calls' || $url[0] === 'call') {
+                $url[0] = 'calls';
+                $controllerName = 'Calls';
+                $methodName = 'index';
+                $paramsOffset = 1;
+
+                // Check for sub-controllers like assignments or documents
+                if (isset($url[1]) && in_array($url[1], ['assignments', 'documents'])) {
+                    $controllerName = ucfirst($url[1]);
+                    $methodName = $url[2] ?? 'index';
+                    $paramsOffset = 3;
+                } elseif (isset($url[1])) {
+                    // It's a method on the main CallsController
+                    $methodName = $url[1];
+                    $paramsOffset = 2;
+                }
+
+                $controllerFile = '../app/controllers/calls/' . $controllerName . 'Controller.php';
+                $controllerClass = '\\App\\Controllers\\Calls\\' . $controllerName . 'Controller';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new $controllerClass();
+                    if (method_exists($this->controller, $methodName)) {
+                        $this->method = $methodName;
+                        // Unset controller and method parts from URL array
+                        for ($i = 0; $i < $paramsOffset; $i++) {
+                            unset($url[$i]);
+                        }
+                    } else {
+                        $this->triggerNotFound("Method {$methodName} not found in controller {$controllerClass}.");
+                    }
+                } else {
+                    $this->triggerNotFound("Controller {$controllerClass} not found at {$controllerFile}.");
                 }
             } else {
                 // التعامل مع باقي المسارات
                 $controllerName = ucfirst($url[0]) . 'Controller';
-                
-                // Check for modular controllers first (e.g. call/CallsController)
-                if ($url[0] === 'call') {
-                    $subController = isset($url[1]) ? ucfirst($url[1]) : 'Calls';
-                    $controllerClass = '\\App\\Controllers\\Call\\' . $subController . 'Controller';
-                    $controllerFile = '../app/controllers/call/' . $subController . 'Controller.php';
-                    
-                    if (file_exists($controllerFile)) {
-                        $this->controller = new $controllerClass();
-                        $this->method = isset($url[2]) && method_exists($this->controller, $url[2]) ? $url[2] : 'index';
-                        unset($url[0], $url[1]);
-                        if (isset($url[2])) unset($url[2]);
-                    } else {
-                        // If specific controller not found, use main CallsController
-                        $controllerClass = '\\App\\Controllers\\Call\\CallsController';
-                        $controllerFile = '../app/controllers/call/CallsController.php';
-                        $this->controller = new $controllerClass();
-                        $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
-                        unset($url[0]);
-                        if (isset($url[1])) unset($url[1]);
-                    }
-                } else {
-                    // Handle 'drivers' route specifically to map to 'DriverController'
-                    if (strtolower($url[0]) === 'drivers') {
-                        $controllerName = 'DriverController';
-                    }
 
-                    // Regular controllers
-                    $controllerClass = '\\App\\Controllers\\' . $controllerName;
-                    $controllerFile = '../app/controllers/' . $controllerName . '.php';
-                    
-                    if (file_exists($controllerFile)) {
-                        $this->controller = new $controllerClass();
-                        $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
-                        unset($url[0]);
-                        if (isset($url[1])) unset($url[1]);
+                // Handle 'drivers' route specifically to map to 'DriverController'
+                if (strtolower($url[0]) === 'drivers') {
+                    $controllerName = 'Driver/DriverController';
+                } else {
+                    // Handle other controllers in subdirectories
+                    if (in_array(strtolower($url[0]), ['upload'])) {
+                        $controllerName = strtolower($url[0]) . '/' . ucfirst($url[0]) . 'Controller';
                     } else {
-                        // إذا لم يوجد الملف، استخدم الكنترولر الافتراضي
-                        $this->controller = new AuthController();
-                        $this->method = 'login';
+                        $controllerName = ucfirst($url[0]) . 'Controller';
                     }
+                }
+
+                // Regular controllers
+                $controllerNameParts = explode('/', $controllerName);
+                $controllerClassName = implode('\\', array_map('ucfirst', $controllerNameParts));
+                $controllerClass = '\\App\\Controllers\\' . $controllerClassName;
+                $controllerFile = '../app/controllers/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1]))
+                        unset($url[1]);
+                } else {
+                    $this->triggerNotFound('Controller not found: ' . $controllerFile);
                 }
             }
         } else {
             // المسار الافتراضي
-            $this->controller = new AuthController();
+            $this->controller = new \App\Controllers\Auth\AuthController();
         }
 
         $this->params = $url ? array_values($url) : [];
 
-        // تحديد المسارات العامة (غير المحمية)
         $publicRoutes = [
-            'App\\Controllers\\AuthController/login',
-            'App\\Controllers\\AuthController/register',
+            'App\\Controllers\\Auth\\AuthController/login',
+            'App\\Controllers\\Auth\\AuthController/register',
             'App\\Controllers\\Referral\\ReferralController/index',
-            'App\\Controllers\\Telegram\\TelegramController/handleWebhook'
+            'App\\Controllers\\Telegram\\WebhookController/handle'
         ];
+
 
         $currentRoute = get_class($this->controller) . '/' . $this->method;
 
@@ -364,24 +430,97 @@ class App
             exit;
         }
 
+        // --- New Permission Enforcement Logic ---
+        if (isset($_SESSION['user_id'])) {
+            $userRole = $_SESSION['role'] ?? '';
+            $roleId = $_SESSION['role_id'] ?? null;
+
+            if (!in_array($userRole, ['admin', 'developer'])) {
+                $controllerClass = get_class($this->controller);
+
+                $alwaysAllowedPrefixes = [
+                    'App\\Controllers\\Dashboard',
+                    'App\\Controllers\\Auth',
+                ];
+
+                $isAllowed = false;
+                foreach($alwaysAllowedPrefixes as $prefix) {
+                    if (str_starts_with($controllerClass, $prefix)) {
+                        $isAllowed = true;
+                        break;
+                    }
+                }
+
+                if (!$isAllowed && $roleId) {
+                    require_once APPROOT . '/app/models/admin/Permission.php';
+                    $permissionModel = new \App\Models\Admin\Permission();
+                    $userPermissions = $permissionModel->getPermissionsByRole($roleId);
+
+                    $hasPermission = false;
+                    foreach ($userPermissions as $userPermissionPrefix) {
+                        if (str_starts_with($controllerClass, $userPermissionPrefix)) {
+                            $hasPermission = true;
+                            break;
+                        }
+                    }
+
+                    if (!$hasPermission) {
+                        http_response_code(403);
+                        $message = 'ليس لديك الصلاحية للوصول إلى هذا القسم.';
+                        require APPROOT . '/app/views/errors/403.php';
+                        exit;
+                    }
+                }
+            }
+        }
+        // --- End of New Permission Enforcement Logic ---
+
         // إذا كان المستخدم مسجل دخوله ويحاول الوصول إلى صفحات تسجيل الدخول/التسجيل
-        if (isset($_SESSION['user_id']) && in_array($currentRoute, [
-            'App\\Controllers\\AuthController/login',
-            'App\\Controllers\\AuthController/register'
-        ])) {
+        if (
+            isset($_SESSION['user_id']) && in_array($currentRoute, [
+                'App\\Controllers\\Auth\\AuthController/login',
+                'App\\Controllers\\Auth\\AuthController/register'
+            ])
+        ) {
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
 
-        call_user_func_array([$this->controller, $this->method], $this->params);
+        // استدعاء الميثود في المتحكم مع تمرير البارامترات
+        try {
+            call_user_func_array([$this->controller, $this->method], $this->params);
+        } catch (\TypeError $e) {
+            // Log the error for debugging
+            error_log("TypeError in App.php: " . $e->getMessage());
+            // You can also check the number of arguments expected vs. passed
+            $reflection = new \ReflectionMethod($this->controller, $this->method);
+            error_log("Method {$this->method} expects " . $reflection->getNumberOfRequiredParameters() . " parameters.");
+            error_log("Passed params: " . print_r($this->params, true));
+
+            $this->triggerNotFound("Error processing request.");
+        }
     }
 
-    private function triggerNotFound() {
-        // You can create a dedicated 404 controller/method
+    private function triggerNotFound($message = 'Page not found.')
+    {
+        // Log the not found error for debugging purposes
+        error_log("404 Not Found: " . $_SERVER['REQUEST_URI']);
+
+        // Set the response code
         http_response_code(404);
-        $this->controller = new AuthController();
-        $this->method = 'login'; // Or a 'notFound' method
-        // To prevent further errors, we should ensure this fallback path is always valid.
+
+        // Include a user-friendly 404 page
+        // You can create a view for this. e.g., /app/views/errors/404.php
+        $viewPath = APPROOT . '/views/errors/404.php';
+        if (file_exists($viewPath)) {
+            // Pass a message to the view
+            $data['message'] = $message;
+            include $viewPath;
+        } else {
+            // Fallback plain text message
+            echo $message;
+        }
+        exit;
     }
 
     public function parseUrl()

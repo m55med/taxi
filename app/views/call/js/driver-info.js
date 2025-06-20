@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
 
             try {
-                const response = await fetch(`${BASE_PATH}/call/updateDriverInfo`, {
+                const response = await fetch(`${BASE_PATH}/calls/updateDriverInfo`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -481,3 +481,11 @@ CREATE TABLE trips (
     coupon_code VARCHAR(50) COMMENT 'رمز القسيمة المستخدمة',
     promo_campaign_name VARCHAR(100) COMMENT 'اسم الحملة الترويجية - إن وُجدت'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE role_permissions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  role_id INT NOT NULL,
+  permission VARCHAR(255) NOT NULL,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_permission (role_id, permission)
+);

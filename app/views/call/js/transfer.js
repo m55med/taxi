@@ -53,7 +53,7 @@ const TransferModule = {
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري التحويل...';
             
             try {
-                const response = await fetch(`${BASE_PATH}/call/assignments/assign`, {
+                const response = await fetch(`${BASE_PATH}/calls/assignments/assign`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
