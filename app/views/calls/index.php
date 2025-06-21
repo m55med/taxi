@@ -69,12 +69,12 @@
 
                 <div class="mb-4">
                     <strong class="text-cyan-400">الاستعلام الذي تم تنفيذه:</strong>
-                    <pre class="bg-gray-900 p-2 rounded mt-1 whitespace-pre-wrap"><?= htmlspecialchars($debug_info['query']) ?></pre>
+                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars($debug_info['query'] ?? '') ?></pre>
                 </div>
 
                 <div>
                     <strong class="text-green-400">المُدخلات:</strong>
-                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars(print_r($debug_info['params'], true)) ?></pre>
+                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars(print_r($debug_info['params'] ?? [], true)) ?></pre>
                 </div>
             </div>
         <?php endif; ?>

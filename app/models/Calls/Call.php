@@ -32,8 +32,12 @@ class Call extends Model
             'driver_id' => null
         ];
 
+        $isTransactionActive = $this->db->inTransaction();
+
         try {
-            $this->db->beginTransaction();
+            if (!$isTransactionActive) {
+                $this->db->beginTransaction();
+            }
 
             $queryParams = [':userId' => $userId];
 
@@ -97,14 +101,18 @@ class Call extends Model
                 if ($driver) {
                     $this->setDriverHold($driver['id'], true);
                 }
-                $this->db->commit();
+                if (!$isTransactionActive) {
+                    $this->db->commit();
+                }
                 return ['driver' => $driver, 'debug_info' => $debug];
             }
 
-            $this->db->commit();
+            if (!$isTransactionActive) {
+                $this->db->commit();
+            }
             return ['driver' => null, 'debug_info' => $debug];
         } catch (PDOException $e) {
-            if ($this->db->inTransaction()) {
+            if (!$isTransactionActive && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             $debug['error'] = $e->getMessage();

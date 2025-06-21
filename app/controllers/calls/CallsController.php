@@ -30,6 +30,7 @@ class CallsController extends Controller
         
         $driver = null;
         $searchPhone = filter_input(INPUT_GET, 'phone', FILTER_SANITIZE_SPECIAL_CHARS);
+        $debug_info = []; // Initialize debug_info to prevent view errors
 
         if (!empty($searchPhone)) {
             // Priority 1: Search by phone number if provided
@@ -50,7 +51,7 @@ class CallsController extends Controller
                 $skippedDrivers = $_SESSION['skipped_drivers'] ?? [];
                 $result = $callModel->findAndLockNextDriver($_SESSION['user_id'], $skippedDrivers);
                 $driver = $result['driver'];
-                $data['debug_info'] = $result['debug_info'] ?? null;
+                $debug_info = $result['debug_info'] ?? []; // Assign debug info from model
             }
         }
 
@@ -61,6 +62,7 @@ class CallsController extends Controller
 
         $data = [
             'driver'               => $driver,
+            'debug_info'           => $debug_info,
             'users'                => $callModel->getUsers(),
             'countries'            => $countryModel ? $countryModel->getAll() : [],
             'car_types'            => $carTypeModel ? $carTypeModel->getAll() : [],
@@ -81,6 +83,9 @@ class CallsController extends Controller
 
         if ($driver && $documentModel) {
             $_SESSION['locked_driver_id'] = $driver['id'];
+
+            // The getDriverDocuments function is now responsible for enriching the data.
+            // No need for manual merging here anymore.
             $data['required_documents'] = $documentModel->getDriverDocuments($driver['id'], true);
             $data['call_history'] = $callModel->getCallHistory($driver['id']);
         }
@@ -132,10 +137,19 @@ class CallsController extends Controller
             $callModel->releaseDriverHold($driverId);
             unset($_SESSION['locked_driver_id']);
 
+            // Fetch the next driver
+            $skippedDrivers = $_SESSION['skipped_drivers'] ?? [];
+            $result = $callModel->findAndLockNextDriver($_SESSION['user_id'], $skippedDrivers);
+            $nextDriver = $result['driver'];
+            
+            if ($nextDriver) {
+                $_SESSION['locked_driver_id'] = $nextDriver['id'];
+            }
+
             $callModel->getDb()->commit();
 
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'message' => 'Call recorded successfully.']);
+            echo json_encode(['success' => true, 'message' => 'Call recorded successfully.', 'next_driver' => $nextDriver]);
 
         } catch (\Exception $e) {
             $callModel->getDb()->rollBack();
@@ -210,7 +224,6 @@ class CallsController extends Controller
 
         $driverId = $data['driver_id'];
         $documents = $data['documents'];
-        $notes = $data['notes'] ?? [];
 
         try {
             $documentsModel = $this->model('Document/Document');
@@ -218,7 +231,7 @@ class CallsController extends Controller
                 throw new \Exception('فشل تحميل نموذج المستندات.');
             }
             
-            $result = $documentsModel->updateDriverDocuments($driverId, $documents, $notes);
+            $result = $documentsModel->updateDriverDocuments($driverId, $documents);
 
             if ($result) {
                 $updatedDocs = $documentsModel->getDriverDocuments($driverId, true);

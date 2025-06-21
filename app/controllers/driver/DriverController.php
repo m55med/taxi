@@ -142,6 +142,12 @@ class DriverController extends Controller
             $result = $this->driverModel->assignDriver($driverId, $fromUserId, $toUserId, $note);
 
             if ($result) {
+                // Release the hold on the driver so they are available for the new user
+                $callModel = $this->model('Calls/Call');
+                if ($callModel) {
+                    $callModel->releaseDriverHold($driverId);
+                }
+
                 // Since this is an AJAX request from the call center, we don't redirect.
                 // The frontend will handle the redirect.
                 if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {

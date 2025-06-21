@@ -13,7 +13,7 @@ class UploadController extends Controller
 
     public function __construct()
     {
-        $this->driverModel = $this->model('Driver');
+        $this->driverModel = $this->model('driver/Driver');
     }
 
     public function index()
@@ -62,7 +62,7 @@ class UploadController extends Controller
 
         try {
             // قراءة وتحليل الملف
-            require_once __DIR__ . '/../../vendor/autoload.php'; // تحديث المسار للوصول إلى مجلد vendor
+            require_once __DIR__ . '/../../../vendor/autoload.php'; // تحديث المسار للوصول إلى مجلد vendor
             
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file['tmp_name']);
             $worksheet = $spreadsheet->getActiveSheet();

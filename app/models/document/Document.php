@@ -18,33 +18,57 @@ class Document
     public function getDriverDocuments($driverId, $keyedById = false)
     {
         try {
+            // Step 1: Fetch all document types and create a name lookup map for efficiency.
+            $allTypesStmt = $this->db->prepare("SELECT id, name FROM document_types");
+            $allTypesStmt->execute();
+            $docTypeMap = $allTypesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Step 2: Fetch all users and create a name lookup map.
+            $allUsersStmt = $this->db->prepare("SELECT id, name FROM users");
+            $allUsersStmt->execute();
+            $userMap = $allUsersStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            // Step 3: Fetch the raw required document data for the specified driver.
             $sql = "
                 SELECT 
-                    ddr.document_type_id,
-                    dt.name,
-                    ddr.status,
-                    ddr.note,
-                    ddr.updated_at,
-                    u.name as updated_by_name
-                FROM driver_documents_required ddr
-                INNER JOIN document_types dt ON ddr.document_type_id = dt.id
-                LEFT JOIN users u ON ddr.updated_by = u.id
-                WHERE ddr.driver_id = :driver_id AND ddr.status = 'submitted'
-                ORDER BY dt.name
+                    id,
+                    driver_id,
+                    document_type_id,
+                    status,
+                    note,
+                    updated_at,
+                    updated_by
+                FROM driver_documents_required
+                WHERE driver_id = :driver_id
             ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['driver_id' => $driverId]);
             $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Step 4: Manually enrich the documents with names from the maps.
+            $enrichedDocuments = [];
+            foreach ($documents as $doc) {
+                // Add the document type name.
+                $doc['name'] = $docTypeMap[$doc['document_type_id']] ?? 'مستند غير معروف';
+                // Add the updater's name.
+                $doc['updated_by_name'] = $userMap[$doc['updated_by']] ?? 'غير معروف';
+                $enrichedDocuments[] = $doc;
+            }
+
+            // Sort by the newly added name field.
+            usort($enrichedDocuments, function($a, $b) {
+                return strcmp($a['name'], $b['name']);
+            });
+
             if ($keyedById) {
                 $keyedDocuments = [];
-                foreach ($documents as $doc) {
+                foreach ($enrichedDocuments as $doc) {
                     $keyedDocuments[$doc['document_type_id']] = $doc;
                 }
                 return $keyedDocuments;
             }
 
-            return $documents;
+            return $enrichedDocuments;
 
         } catch (PDOException $e) {
             error_log("Error in getDriverDocuments: " . $e->getMessage());
@@ -52,17 +76,21 @@ class Document
         }
     }
 
-    public function updateDriverDocuments($driverId, $submittedDocIds, $notes)
+    public function updateDriverDocuments($driverId, $documentsData)
     {
         try {
             $this->db->beginTransaction();
 
-            // 1. Get current documents for the driver
-            $stmt = $this->db->prepare("SELECT document_type_id FROM driver_documents_required WHERE driver_id = :driver_id AND status = 'submitted'");
+            // 1. Get all current document IDs for the driver from the database.
+            $stmt = $this->db->prepare("SELECT document_type_id FROM driver_documents_required WHERE driver_id = :driver_id");
             $stmt->execute([':driver_id' => $driverId]);
-            $currentDocIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $currentDocIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0); // Fetch as a flat array of IDs.
 
-            // 2. Determine which documents to remove
+            // 2. Get all document IDs submitted from the frontend.
+            $submittedDocIds = array_map(function($doc) { return $doc['id']; }, $documentsData);
+
+            // 3. Determine which documents to DELETE.
+            // These are documents that exist in the DB but not in the submission.
             $docsToRemove = array_diff($currentDocIds, $submittedDocIds);
             if (!empty($docsToRemove)) {
                 $inClause = implode(',', array_fill(0, count($docsToRemove), '?'));
@@ -70,33 +98,34 @@ class Document
                 $removeStmt->execute(array_merge([$driverId], $docsToRemove));
             }
 
-            // 3. Determine which documents to add and which to update
-            $docsToAdd = array_diff($submittedDocIds, $currentDocIds);
-            $docsToUpdate = array_intersect($currentDocIds, $submittedDocIds);
+            // 4. Prepare statements for INSERT and UPDATE.
+            $upsertStmt = $this->db->prepare("
+                INSERT INTO driver_documents_required (driver_id, document_type_id, status, note, updated_by, updated_at)
+                VALUES (:driver_id, :doc_id, :status, :note, :user_id, NOW())
+                ON DUPLICATE KEY UPDATE
+                    status = VALUES(status),
+                    note = VALUES(note),
+                    updated_by = VALUES(updated_by),
+                    updated_at = NOW()
+            ");
 
-            // Add new documents
-            if (!empty($docsToAdd)) {
-                $addStmt = $this->db->prepare("INSERT INTO driver_documents_required (driver_id, document_type_id, status, note, updated_by) VALUES (?, ?, 'submitted', ?, ?)");
-                foreach ($docsToAdd as $docId) {
-                    $note = $notes[$docId] ?? '';
-                    $addStmt->execute([$driverId, $docId, $note, $_SESSION['user_id']]);
-                }
-            }
-            
-            // Update existing documents (specifically their notes)
-            if (!empty($docsToUpdate)) {
-                $updateStmt = $this->db->prepare("UPDATE driver_documents_required SET note = ?, updated_by = ?, updated_at = NOW() WHERE driver_id = ? AND document_type_id = ?");
-                foreach ($docsToUpdate as $docId) {
-                     if (isset($notes[$docId])) {
-                        $updateStmt->execute([$notes[$docId], $_SESSION['user_id'], $driverId, $docId]);
-                    }
-                }
+            // 5. Loop through submitted data and perform UPSERT (INSERT or UPDATE).
+            foreach ($documentsData as $doc) {
+                $upsertStmt->execute([
+                    ':driver_id' => $driverId,
+                    ':doc_id'    => $doc['id'],
+                    ':status'    => $doc['status'],
+                    ':note'      => $doc['note'] ?? '',
+                    ':user_id'   => $_SESSION['user_id']
+                ]);
             }
             
             $this->db->commit();
             return true;
         } catch (PDOException $e) {
-            $this->db->rollBack();
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error updating driver documents: " . $e->getMessage());
             throw $e; // Re-throw to be caught by controller
         }

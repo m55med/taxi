@@ -1,14 +1,13 @@
 /**
- * @file Manages the driver documents section with a more interactive UI.
- * @description This script handles rendering document cards, adding/removing documents,
- * and saving the state to the server. It's designed to be more user-friendly
- * than the previous checkbox-based system.
+ * @file Manages the driver documents section with an improved, unified UI.
+ * @description This script renders all required documents in a single list,
+ * showing their status (e.g., submitted, missing) and allowing users to
+ * add or remove them directly from the list.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+function initializeDocumentsModule() {
     // --- Helper Function Fallbacks ---
-    // Define dummy functions if they don't exist to prevent errors.
-    const showToast = window.showToast || ((message, type) => {
+    const showNotification = window.showToast || ((message, type) => {
         console.log(`Toast (${type}): ${message}`);
         alert(message);
     });
@@ -19,228 +18,199 @@ document.addEventListener('DOMContentLoaded', () => {
     const sectionContainer = document.getElementById('documents-section-container');
     if (!sectionContainer) return;
 
-    // Check if the required data from PHP is available
     if (typeof driverId === 'undefined' || typeof allDocumentTypes === 'undefined' || typeof driverDocuments === 'undefined') {
-        console.error('Documents script: Required data (driverId, allDocumentTypes, driverDocuments) is not available on the page.');
-        if (placeholder) {
-            placeholder.classList.remove('hidden');
-            placeholder.innerHTML = `<div class="text-red-500">حدث خطأ أثناء تحميل بيانات المستندات.</div>`;
-        }
+        console.error('Documents script: Required data is not available.');
+        sectionContainer.innerHTML = `<div class="text-center py-10"><p class="text-red-500">حدث خطأ فني أثناء تحميل بيانات المستندات.</p></div>`;
         return;
     }
 
     const listContainer = document.getElementById('documents-list');
     const saveButton = document.getElementById('save-documents-btn');
-    const addContainer = document.getElementById('add-document-container');
     const placeholder = document.getElementById('no-documents-placeholder');
 
     // --- State Management ---
-    // A central place to hold the current state of documents.
     let state = {
         driverId: driverId,
         allTypes: allDocumentTypes || [],
-        // The list of documents currently marked as 'submitted' for the driver.
-        // This will be populated by initializeState.
-        submitted: {},
-        // A flag to track if there are unsaved changes.
+        submitted: driverDocuments || [],
         isDirty: false
     };
 
     /**
-     * Initializes the state from data passed by PHP.
-     */
-    function initializeState() {
-        // The `driverDocuments` variable from PHP is already an object keyed by document_type_id,
-        // which is exactly the format we need for our `state.submitted`. 
-        // We can assign it directly. This is simpler and more robust.
-        state.submitted = driverDocuments || {};
-    }
-
-    // --- Core Rendering Functions ---
-
-    /**
-     * The main render function. It orchestrates the display of the entire section
-     * based on the current state.
-     */
-    function render() {
-        // Clear all dynamic content
-        listContainer.innerHTML = '';
-        addContainer.innerHTML = '';
-        
-        const submittedIds = Object.keys(state.submitted).map(id => parseInt(id));
-        const missingDocs = state.allTypes.filter(type => !submittedIds.includes(parseInt(type.id)));
-
-        // Render submitted documents
-        if (submittedIds.length > 0) {
-            placeholder.classList.add('hidden');
-            // Sort submitted documents alphabetically for consistent order
-            const sortedSubmitted = Object.values(state.submitted).sort((a, b) => {
-                // Add fallback to prevent crash if a name is missing
-                const nameA = a.name || '';
-                const nameB = b.name || '';
-                return nameA.localeCompare(nameB);
-            });
-            sortedSubmitted.forEach(docData => {
-                const docCard = createDocumentCard(docData);
-                listContainer.appendChild(docCard);
-            });
-        } else {
-            placeholder.classList.remove('hidden');
-        }
-
-        // Render 'Add Document' dropdown if there are documents to add
-        if (missingDocs.length > 0) {
-            const addDropdown = createAddDropdown(missingDocs);
-            addContainer.appendChild(addDropdown);
-        }
-        
-        // Enable/disable the save button based on the dirty state
-        saveButton.disabled = !state.isDirty;
-    }
-
-    /**
-     * Creates an HTML element for a single submitted document card.
-     * @param {object} docData - The data for the document.
+     * Creates a card for a single document, adapting its appearance based on
+     * whether it's been submitted or is currently missing.
+     * @param {object} docData - The unified data for the document.
      * @returns {HTMLElement} The card element.
      */
     function createDocumentCard(docData) {
-        // Ensure docData and its name property exist to prevent errors
-        if (!docData || !docData.name) {
-            console.warn('Attempted to create a card for an invalid document:', docData);
-            return document.createDocumentFragment(); // Return an empty, non-disruptive element
-        }
-
-        const docId = docData.document_type_id || docData.id;
+        const docId = docData.document_type_id;
         const card = document.createElement('div');
-        card.className = 'document-card bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all duration-300';
+        card.className = 'document-card bg-gray-50 border rounded-lg p-4 transition-all duration-300';
         card.dataset.docId = docId;
 
-        const lastUpdate = docData.updated_at ? 
-            new Date(docData.updated_at).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) : 'الآن';
-        const updatedBy = docData.updated_by_name ? `بواسطة ${docData.updated_by_name}` : '';
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start">
-                <div>
-                    <h4 class="font-semibold text-gray-800">${docData.name}</h4>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <i class="fas fa-clock fa-fw ml-1"></i> آخر تحديث: ${lastUpdate} ${updatedBy}
-                    </p>
+        if (!docData.isSubmitted) {
+            // --- RENDER CARD FOR A MISSING DOCUMENT ---
+            card.classList.add('border-dashed', 'border-gray-300');
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h4 class="font-semibold text-gray-600">${docData.name}</h4>
+                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-gray-200 text-gray-800">مفقود</span>
+                    </div>
+                    <button title="إضافة المستند" class="add-doc-btn bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-md text-sm transition-colors flex items-center">
+                        <i class="fas fa-plus mr-1"></i>
+                        <span>إضافة</span>
+                    </button>
                 </div>
-                <button title="إزالة المستند" class="remove-doc-btn text-gray-400 hover:text-red-500 transition-colors">
-                    <i class="fas fa-times-circle fa-lg"></i>
-                </button>
-            </div>
-            <div class="mt-3">
-                <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
-                    placeholder="أضف ملاحظة (اختياري)..." 
-                    rows="2">${docData.note || ''}</textarea>
-            </div>
-        `;
+            `;
+        } else {
+            // --- RENDER CARD FOR A SUBMITTED DOCUMENT ---
+            card.classList.add('border-gray-200');
+            const lastUpdate = docData.updated_at ?
+                new Date(docData.updated_at).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) : 'الآن';
+            const updatedBy = docData.updated_by_name ? `بواسطة ${docData.updated_by_name}` : '';
+
+            const statuses = { submitted: 'تم التسليم', approved: 'مقبول', rejected: 'مرفوض' };
+            let statusOptions = '';
+            for (const [key, value] of Object.entries(statuses)) {
+                const isSelected = docData.status === key;
+                statusOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${value}</option>`;
+            }
+            
+            const statusColorClass = {
+                submitted: 'bg-yellow-200 text-yellow-800',
+                approved: 'bg-green-200 text-green-800',
+                rejected: 'bg-red-200 text-red-800',
+            };
+            const currentStatusColor = statusColorClass[docData.status] || 'bg-gray-200';
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${docData.name}</h4>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-clock fa-fw mr-1"></i> آخر تحديث: ${lastUpdate} ${updatedBy}
+                        </p>
+                    </div>
+                    <button title="إزالة المستند" class="remove-doc-btn text-gray-400 hover:text-red-500 transition-colors">
+                        <i class="fas fa-times-circle fa-lg"></i>
+                    </button>
+                </div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label class="text-xs font-medium text-gray-600">الحالة</label>
+                        <select class="status-select w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm ${currentStatusColor}">
+                            ${statusOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-600">ملاحظات</label>
+                        <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+                            placeholder="أضف ملاحظة (اختياري)..." 
+                            rows="1">${docData.note || ''}</textarea>
+                    </div>
+                </div>
+            `;
+        }
         return card;
     }
 
     /**
-     * Creates the 'Add Document' dropdown button and its menu.
-     * @param {Array<object>} missingDocs - List of documents that can be added.
-     * @returns {HTMLElement} The dropdown container element.
+     * The main render function. It builds a unified list of all required
+     * documents and renders a card for each one based on its state.
      */
-    function createAddDropdown(missingDocs) {
-        const dropdownContainer = document.createElement('div');
-        
-        // Sort missing documents alphabetically and filter out any invalid ones
-        missingDocs
-            .filter(doc => doc && doc.name) // Ensure doc and doc.name exist
-            .sort((a,b) => a.name.localeCompare(b.name));
+    function render() {
+        listContainer.innerHTML = '';
 
-        const menuItems = missingDocs.map(doc => `
-            <a href="#" class="add-doc-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" data-doc-id="${doc.id}">
-                ${doc.name}
-            </a>
-        `).join('');
-
-        dropdownContainer.innerHTML = `
-            <button id="add-doc-btn" type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <i class="fas fa-plus ml-2"></i> إضافة مستند
-            </button>
-            <div id="add-doc-menu" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-10">
-                <div class="py-1" role="menu" aria-orientation="vertical">
-                    ${menuItems}
-                </div>
-            </div>
-        `;
-        return dropdownContainer;
-    }
-
-    // --- Event Handlers & State Changers ---
-
-    /**
-     * Handles removing a document from the submitted list.
-     * @param {number} docId - The ID of the document to remove.
-     */
-    function handleRemove(docId) {
-        if (state.submitted[docId]) {
-            delete state.submitted[docId];
-            state.isDirty = true;
-            render();
+        if (!state.allTypes || state.allTypes.length === 0) {
+            placeholder.classList.remove('hidden');
+            return;
         }
+
+        placeholder.classList.add('hidden');
+
+        const unifiedDocuments = state.allTypes.map(type => {
+            const submittedDoc = state.submitted.find(doc => doc.document_type_id == type.id);
+            if (submittedDoc) {
+                return { ...submittedDoc, isSubmitted: true };
+            } else {
+                return {
+                    document_type_id: type.id,
+                    name: type.name,
+                    status: 'missing',
+                    isSubmitted: false
+                };
+            }
+        }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        unifiedDocuments.forEach(docData => {
+            const docCard = createDocumentCard(docData);
+            listContainer.appendChild(docCard);
+        });
+
+        saveButton.disabled = !state.isDirty;
     }
 
     /**
-     * Handles adding a new document to the submitted list.
-     * @param {number} docId - The ID of the document to add.
+     * Handles adding a document to the 'submitted' state.
+     * @param {number} docId - The ID of the document type to add.
      */
     function handleAdd(docId) {
-        const docToAdd = state.allTypes.find(type => parseInt(type.id) === docId);
-        if (docToAdd && !state.submitted[docId]) {
-            // Add a temporary object to the state
-            state.submitted[docId] = {
+        const docToAdd = state.allTypes.find(type => type.id == docId);
+        const exists = state.submitted.find(doc => doc.document_type_id == docId);
+
+        if (docToAdd && !exists) {
+            state.submitted.push({
                 document_type_id: docId,
                 name: docToAdd.name,
                 note: '',
-                status: 'submitted',
-                updated_at: null,
-                updated_by_name: null
-            };
+                status: 'submitted', // Default status
+            });
             state.isDirty = true;
-            // Close the dropdown and re-render
-            const menu = document.getElementById('add-doc-menu');
-            if(menu) menu.classList.add('hidden');
             render();
         }
     }
 
     /**
-     * Handles saving all changes to the server.
+     * Handles removing a document from the 'submitted' state.
+     * @param {number} docId - The ID of the document type to remove.
+     */
+    function handleRemove(docId) {
+        const docIndex = state.submitted.findIndex(doc => doc.document_type_id == docId);
+        if (docIndex > -1) {
+            state.submitted.splice(docIndex, 1);
+            state.isDirty = true;
+            render();
+        }
+    }
+
+    /**
+     * Saves all changes to the server.
      */
     async function handleSave() {
-        // Collect data to send
-        const submittedDocIds = Object.keys(state.submitted);
-        const notes = {};
-        submittedDocIds.forEach(id => {
+        const documentsPayload = state.submitted.map(submittedDoc => {
+            const id = submittedDoc.document_type_id;
             const card = listContainer.querySelector(`.document-card[data-doc-id="${id}"]`);
             if (card) {
-                const noteText = card.querySelector('.note-textarea').value.trim();
-                if (noteText) {
-                    notes[id] = noteText;
-                }
+                 return {
+                    id: id,
+                    status: card.querySelector('.status-select').value,
+                    note: card.querySelector('.note-textarea').value.trim()
+                };
             }
-        });
-        
+            return null;
+        }).filter(Boolean);
+
         showLoading();
         saveButton.disabled = true;
 
         try {
-            const response = await fetch(`${BASE_PATH}/calls/documents/update`, {
+            const response = await fetch(`${BASE_PATH}/calls/updateDocuments`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 body: JSON.stringify({
                     driver_id: state.driverId,
-                    documents: submittedDocIds,
-                    notes: notes
+                    documents: documentsPayload
                 })
             });
 
@@ -249,72 +219,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.message || 'Server error');
             }
 
-            showToast(data.message || 'تم الحفظ بنجاح', 'success');
-            // Update state with fresh data from the server
-            state.submitted = {};
-            Object.values(data.documents).forEach(doc => {
-                 if (doc.status === 'submitted') {
-                    state.submitted[doc.document_type_id] = doc;
-                }
-            });
+            showNotification(data.message || 'تم الحفظ بنجاح', 'success');
+            
+            // The server returns an object, so we convert it to an array of values for our state.
+            state.submitted = Object.values(data.documents || {});
             state.isDirty = false;
         
         } catch (error) {
             console.error('Error saving documents:', error);
-            showToast(error.message || 'فشل حفظ التغييرات', 'error');
+            showNotification(error.message || 'فشل حفظ التغييرات', 'error');
         } finally {
             hideLoading();
-            render(); // Re-render to show fresh state and correct save button status
+            render(); // Re-render to show fresh state
         }
     }
 
     // --- Global Event Listeners ---
-
-    // Listener for the save button
     saveButton.addEventListener('click', handleSave);
 
-    // Use event delegation for dynamically created elements
     sectionContainer.addEventListener('click', (e) => {
-        // Handle removing a document
-        const removeBtn = e.target.closest('.remove-doc-btn');
-        if (removeBtn) {
-            const docId = parseInt(removeBtn.closest('.document-card').dataset.docId);
-            handleRemove(docId);
-            return;
-        }
-
-        // Handle adding a document from the dropdown
-        const addItem = e.target.closest('.add-doc-item');
-        if (addItem) {
+        const addBtn = e.target.closest('.add-doc-btn');
+        if (addBtn) {
             e.preventDefault();
-            const docId = parseInt(addItem.dataset.docId);
+            const docId = addBtn.closest('.document-card').dataset.docId;
             handleAdd(docId);
             return;
         }
 
-        // Handle toggling the add-document dropdown
-        const addBtn = e.target.closest('#add-doc-btn');
-        const menu = document.getElementById('add-doc-menu');
-        if (addBtn && menu) {
-            menu.classList.toggle('hidden');
+        const removeBtn = e.target.closest('.remove-doc-btn');
+        if (removeBtn) {
+            const docId = removeBtn.closest('.document-card').dataset.docId;
+            handleRemove(docId);
             return;
-        }
-
-        // Close dropdown if clicking outside
-        if (menu && !menu.classList.contains('hidden') && !e.target.closest('#add-document-container')) {
-            menu.classList.add('hidden');
         }
     });
     
-    // Listen for changes in textareas to set the dirty state
     sectionContainer.addEventListener('input', (e) => {
-        if(e.target.classList.contains('note-textarea')) {
+        if (e.target.classList.contains('note-textarea') || e.target.classList.contains('status-select')) {
             state.isDirty = true;
             saveButton.disabled = false;
         }
     });
 
     // --- Initial Load ---
-    initializeState();
     render();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // A short delay helps ensure all PHP-injected data is available.
+    setTimeout(() => {
+        if (typeof driverId !== 'undefined') {
+            initializeDocumentsModule();
+        } else {
+            console.log('Documents module not initialized because no driver is loaded.');
+        }
+    }, 100);
 });

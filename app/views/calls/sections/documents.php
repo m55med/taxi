@@ -15,10 +15,6 @@ $driver = $driver ?? null;
             <span>مستندات السائق</span>
         </h2>
         <div class="flex items-center gap-2">
-            <!-- Add Document Dropdown -->
-            <div id="add-document-container" class="relative inline-block text-left">
-                <!-- Dropdown will be rendered here by JS -->
-            </div>
             <button id="save-documents-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed">
                 <i class="fas fa-save ml-2"></i>
                 <span>حفظ التغييرات</span>
@@ -47,7 +43,9 @@ $driver = $driver ?? null;
 <script>
     // Make sure to only output valid JSON
     const allDocumentTypes = <?= json_encode(array_values($document_types), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    const driverDocuments = <?= json_encode($required_documents, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    // By passing the documents as a plain array of objects, we make the data structure more robust
+    // and easier to work with in JavaScript (e.g., using array.find()).
+    const driverDocuments = <?= json_encode(array_values($required_documents), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     const driverId = <?= json_encode($driver['id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 </script>
 
