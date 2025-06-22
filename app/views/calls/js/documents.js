@@ -66,51 +66,51 @@ function initializeDocumentsModule() {
         } else {
             // --- RENDER CARD FOR A SUBMITTED DOCUMENT ---
             card.classList.add('border-gray-200');
-            const lastUpdate = docData.updated_at ?
-                new Date(docData.updated_at).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) : 'الآن';
-            const updatedBy = docData.updated_by_name ? `بواسطة ${docData.updated_by_name}` : '';
+        const lastUpdate = docData.updated_at ? 
+            new Date(docData.updated_at).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) : 'الآن';
+        const updatedBy = docData.updated_by_name ? `بواسطة ${docData.updated_by_name}` : '';
 
             const statuses = { submitted: 'تم التسليم', approved: 'مقبول', rejected: 'مرفوض' };
-            let statusOptions = '';
-            for (const [key, value] of Object.entries(statuses)) {
-                const isSelected = docData.status === key;
-                statusOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${value}</option>`;
-            }
-            
-            const statusColorClass = {
-                submitted: 'bg-yellow-200 text-yellow-800',
-                approved: 'bg-green-200 text-green-800',
-                rejected: 'bg-red-200 text-red-800',
-            };
-            const currentStatusColor = statusColorClass[docData.status] || 'bg-gray-200';
+        let statusOptions = '';
+        for (const [key, value] of Object.entries(statuses)) {
+            const isSelected = docData.status === key;
+            statusOptions += `<option value="${key}" ${isSelected ? 'selected' : ''}>${value}</option>`;
+        }
 
-            card.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold text-gray-800">${docData.name}</h4>
-                        <p class="text-xs text-gray-500 mt-1">
+        const statusColorClass = {
+            submitted: 'bg-yellow-200 text-yellow-800',
+            approved: 'bg-green-200 text-green-800',
+            rejected: 'bg-red-200 text-red-800',
+        };
+        const currentStatusColor = statusColorClass[docData.status] || 'bg-gray-200';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="font-semibold text-gray-800">${docData.name}</h4>
+                    <p class="text-xs text-gray-500 mt-1">
                             <i class="fas fa-clock fa-fw mr-1"></i> آخر تحديث: ${lastUpdate} ${updatedBy}
-                        </p>
-                    </div>
-                    <button title="إزالة المستند" class="remove-doc-btn text-gray-400 hover:text-red-500 transition-colors">
-                        <i class="fas fa-times-circle fa-lg"></i>
-                    </button>
+                    </p>
                 </div>
-                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                    <div>
-                        <label class="text-xs font-medium text-gray-600">الحالة</label>
-                        <select class="status-select w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm ${currentStatusColor}">
-                            ${statusOptions}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-xs font-medium text-gray-600">ملاحظات</label>
-                        <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
-                            placeholder="أضف ملاحظة (اختياري)..." 
-                            rows="1">${docData.note || ''}</textarea>
-                    </div>
+                <button title="إزالة المستند" class="remove-doc-btn text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-times-circle fa-lg"></i>
+                </button>
+            </div>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                    <label class="text-xs font-medium text-gray-600">الحالة</label>
+                    <select class="status-select w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm ${currentStatusColor}">
+                        ${statusOptions}
+                    </select>
                 </div>
-            `;
+                <div>
+                    <label class="text-xs font-medium text-gray-600">ملاحظات</label>
+                    <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+                        placeholder="أضف ملاحظة (اختياري)..." 
+                        rows="1">${docData.note || ''}</textarea>
+                </div>
+            </div>
+        `;
         }
         return card;
     }
@@ -192,15 +192,15 @@ function initializeDocumentsModule() {
             const id = submittedDoc.document_type_id;
             const card = listContainer.querySelector(`.document-card[data-doc-id="${id}"]`);
             if (card) {
-                 return {
-                    id: id,
+            return {
+                id: id,
                     status: card.querySelector('.status-select').value,
                     note: card.querySelector('.note-textarea').value.trim()
-                };
+            };
             }
             return null;
         }).filter(Boolean);
-
+        
         showLoading();
         saveButton.disabled = true;
 

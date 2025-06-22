@@ -471,7 +471,12 @@ class User
 
     public function getAvailableForTeamLeadership()
     {
-        $stmt = $this->db->prepare("SELECT u.id, u.username FROM users u WHERE u.role_id NOT IN (1,2) AND u.id NOT IN (SELECT leader_id FROM teams)");
+        // Find users who are not currently leading a team
+        $sql = "SELECT u.id, u.username 
+                FROM users u 
+                LEFT JOIN teams t ON u.id = t.team_leader_id
+                WHERE t.id IS NULL AND u.status = 'active'";
+        $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

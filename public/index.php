@@ -25,6 +25,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Define application environment ('development' or 'production')
+define('ENVIRONMENT', 'development');
+
 // Load Helpers
 require_once '../app/helpers/url_helper.php';
 

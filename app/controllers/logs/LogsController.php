@@ -11,7 +11,7 @@ class LogsController extends Controller {
     public function __construct() {
         parent::__construct(); // It's good practice to call parent constructor
         // The login check is now handled by $this->authorize() in the methods.
-        $this->logModel = $this->model('logs/Log');
+        $this->logModel = $this->model('Logs/Log');
     }
 
     public function index() {

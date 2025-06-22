@@ -129,8 +129,8 @@ class App
                     case 'coupons':
                         $controllerName = 'Coupons/CouponsController';
                         break;
-                    case 'system-logs':
-                        $controllerName = 'SystemLogs/SystemLogsController';
+                    case 'logs':
+                        $controllerName = 'Logs/LogsController';
                         break;
                     case 'tickets':
                         $controllerName = 'Tickets/TicketsController';
@@ -164,6 +164,9 @@ class App
                         break;
                     case 'ticket-rework':
                         $controllerName = 'TicketRework/TicketReworkController';
+                        break;
+                    case 'system-logs':
+                        $controllerName = 'SystemLogs/SystemLogsController';
                         break;
                     case 'employee-activity-score':
                         $controllerName = 'EmployeeActivityScore/EmployeeActivityScoreController';
@@ -313,7 +316,7 @@ class App
                 }
             } elseif ($url[0] === 'discussions') { // Handle discussions route
                 $controllerName = 'DiscussionsController';
-                $controllerFile = '../app/controllers/' . $controllerName . '.php';
+                $controllerFile = '../app/controllers/discussions/' . $controllerName . '.php';
                 if (file_exists($controllerFile)) {
                     $this->controller = new \App\Controllers\Discussions\DiscussionsController();
                     $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
@@ -525,7 +528,7 @@ class App
             error_log("Method {$this->method} expects " . $reflection->getNumberOfRequiredParameters() . " parameters.");
             error_log("Passed params: " . print_r($this->params, true));
 
-            $this->triggerNotFound("Error processing request.");
+            $this->triggerNotFound("Error processing request: " . $e->getMessage());
         }
     }
 
@@ -534,7 +537,26 @@ class App
         http_response_code(404);
         // Log the detailed error message for debugging
         error_log("404 Not Found: " . $message);
-        // Show the user-friendly 404 page
+
+        $data = [];
+        // Prepare diagnostics for development environment
+        if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+            $data['debug_message'] = $message;
+            $data['diagnostics'] = [
+                'requested_url' => $_GET['url'] ?? 'Not set',
+                'parsed_url'    => $this->parseUrl(),
+                'controller'    => is_object($this->controller) ? get_class($this->controller) : $this->controller,
+                'method'        => $this->method,
+                'params'        => $this->params
+            ];
+        }
+        
+        // Extract data so it's available in the view
+        if (!empty($data)) {
+            extract($data);
+        }
+        
+        // Show the user-friendly 404 page (now with potential debug data)
         require_once '../app/views/errors/404.php';
         exit;
     }

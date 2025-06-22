@@ -25,6 +25,18 @@
             <i class="fas fa-home ml-2"></i>
             العودة إلى لوحة التحكم
         </a>
+
+        <?php if (isset($diagnostics)): ?>
+        <div class="mt-8 pt-6 border-t border-gray-300 text-left text-xs">
+            <h3 class="text-lg font-bold text-gray-700 mb-2">Developer Diagnostics</h3>
+            <div class="bg-gray-100 p-3 rounded-lg font-mono">
+                <p class="font-bold text-sm text-red-700 break-words mb-3 p-2 bg-red-100 rounded">
+                    <strong>Message:</strong> <?= htmlspecialchars($debug_message ?? 'No message') ?>
+                </p>
+                <pre class="whitespace-pre-wrap"><code><?php print_r($diagnostics); ?></code></pre>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </body>
 </html> 

@@ -82,17 +82,29 @@ class Controller
      * Checks if the current user has the required permission.
      * If not, it shows a 403 Forbidden page and stops execution.
      *
-     * @param string $requiredPermission The permission string to check for.
+     * @param string|array $requiredPermission The permission string or an array of permissions to check for.
      * @return void
      */
     public function authorize($requiredPermission)
     {
-        if (!Auth::hasPermission($requiredPermission)) {
+        $hasPermission = false;
+        if (is_array($requiredPermission)) {
+            foreach ($requiredPermission as $permission) {
+                if (Auth::hasPermission($permission)) {
+                    $hasPermission = true;
+                    break;
+                }
+            }
+        } else {
+            $hasPermission = Auth::hasPermission($requiredPermission);
+        }
+
+        if (!$hasPermission) {
             http_response_code(403);
             
             // Prepare debug information for the 403 page
             $debug_info = [
-                'required_permission' => $requiredPermission,
+                'required_permission' => is_array($requiredPermission) ? implode(', ', $requiredPermission) : $requiredPermission,
                 'user_role' => $_SESSION['role'] ?? 'Not Set',
                 'user_permissions' => $_SESSION['permissions'] ?? 'Not Set'
             ];

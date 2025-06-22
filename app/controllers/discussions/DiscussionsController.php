@@ -11,7 +11,7 @@ class DiscussionsController extends Controller {
     public function __construct() {
         parent::__construct();
         Auth::requireLogin(); // Ensure user is logged in
-        $this->discussionModel = $this->model('Discussion');
+        $this->discussionModel = $this->model('discussion/Discussion');
     }
 
     public function index() {

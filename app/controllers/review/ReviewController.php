@@ -13,7 +13,7 @@ class ReviewController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->reviewModel = $this->model('Review');
+        $this->reviewModel = $this->model('review/Review');
         $this->userModel = $this->model('user/User');
     }
 

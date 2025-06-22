@@ -23,7 +23,7 @@ class TicketReworkReport
         // This query assumes a `reopened_count` column exists on the `tickets` table.
         $sql = "SELECT 
                     t.id,
-                    t.subject,
+                    t.ticket_number,
                     agent.username as agent_name,
                     t.reopened_count,
                     t.closed_at

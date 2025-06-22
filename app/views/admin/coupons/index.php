@@ -349,7 +349,7 @@
                     }
                 });
                 if(codes.length > 0) {
-                    this.copyToClipboard(codes.join('\\n'));
+                    this.copyToClipboard(codes.join('\n'));
                 }
             },
             submitBulkDelete() {
