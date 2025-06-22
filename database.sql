@@ -529,3 +529,31 @@ CREATE TABLE driver_snoozes (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_snooze (user_id, snoozed_until)
 );
+
+
+
+CREATE TABLE agents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    is_online_only TINYINT(1) DEFAULT 1,
+    phone VARCHAR(20) NOT NULL,
+
+    latitude DECIMAL(10, 7) DEFAULT NULL,
+    longitude DECIMAL(10, 7) DEFAULT NULL,
+    map_url VARCHAR(500) DEFAULT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE working_hours (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    agent_id INT NOT NULL,
+    day_of_week ENUM('Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday') NOT NULL,
+    start_time TIME DEFAULT NULL,
+    end_time TIME DEFAULT NULL,
+    is_closed TINYINT(1) DEFAULT 0, -- 1 = إجازة في هذا اليوم
+
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    UNIQUE (agent_id, day_of_week) -- كل مندوب لا يمكن أن يُكرر نفس اليوم
+);

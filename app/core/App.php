@@ -10,33 +10,15 @@ class App
     protected $controller = 'AuthController';  // الكنترولر الافتراضي
     protected $method = 'login';                // الميثود الافتراضية
     protected $params = [];
+    protected $currentControllerName = 'Home'; // Default
+    protected $currentMethodName = 'index';   // Default
 
     public function __construct()
     {
         // Force logout check
         if (isset($_SESSION['user_id'])) {
-            $forceLogoutFile = APPROOT . '/database/force_logout/' . $_SESSION['user_id'];
-            if (file_exists($forceLogoutFile)) {
-                $userModel = new User();
-                $logoutMessage = trim(file_get_contents($forceLogoutFile));
-
-                // Unlink the file first to prevent loop issues
-                unlink($forceLogoutFile);
-
-                $userModel->logout($_SESSION['user_id']);
-
-                session_unset();
-                session_destroy();
-
-                session_start();
-                if (!empty($logoutMessage) && $logoutMessage !== '1') {
-                    $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول: ' . htmlspecialchars($logoutMessage);
-                } else {
-                    $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول.';
-                }
-                header('Location: ' . BASE_PATH . '/auth/login');
-                exit;
-            }
+            $this->checkAndHandleForceLogout($_SESSION['user_id']);
+            $this->checkAndRefreshPermissions($_SESSION['user_id']); // New permission refresh check
 
             // Update user's online status periodically
             $userModel = new User();
@@ -44,6 +26,15 @@ class App
         }
 
         $url = $this->parseUrl();
+
+        // New Permission Check Logic
+        if (!empty($url[0])) {
+            // Simplified logic - this needs to match your app's routing structure
+            $this->currentControllerName = ucwords($url[0]);
+            if (isset($url[1])) {
+                $this->currentMethodName = $url[1];
+            }
+        }
 
         // Handle Telegram Webhook - Check if the last part of the URL is 'telegram'
         if (!empty($url) && end($url) === 'telegram') {
@@ -74,15 +65,37 @@ class App
                 }
             } elseif ($url[0] === 'referral') {
                 $controllerName = 'ReferralController';
+                $methodName = 'index'; // Default method
+
+                if (isset($url[1])) {
+                    // Explicitly map URL segments to methods
+                    switch ($url[1]) {
+                        case 'dashboard':
+                            $methodName = 'dashboard';
+                            break;
+                        case 'saveAgentProfile':
+                            $methodName = 'saveAgentProfile';
+                            break;
+                        case 'register':
+                        default:
+                            $methodName = 'index';
+                            break;
+                    }
+                }
+
                 $controllerFile = '../app/controllers/referral/' . $controllerName . '.php';
 
                 if (file_exists($controllerFile)) {
                     $controllerClass = '\\App\\Controllers\\Referral\\' . $controllerName;
                     $this->controller = new $controllerClass();
-                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
-                    unset($url[0]);
-                    if (isset($url[1])) {
-                        unset($url[1]);
+
+                    if (method_exists($this->controller, $methodName)) {
+                        $this->method = $methodName;
+                        unset($url[0], $url[1]);
+                    } else {
+                        // Fallback to index if method doesn't exist
+                        $this->method = 'index';
+                        unset($url[0]);
                     }
                 } else {
                     $this->triggerNotFound();
@@ -444,92 +457,103 @@ class App
 
         $this->params = $url ? array_values($url) : [];
 
-        $publicRoutes = [
-            'App\\Controllers\\Auth\\AuthController/login',
-            'App\\Controllers\\Auth\\AuthController/register',
-            'App\\Controllers\\Referral\\ReferralController/index',
-            'App\\Controllers\\Telegram\\WebhookController/handle'
-        ];
-
-
-        $currentRoute = get_class($this->controller) . '/' . $this->method;
-
-        // التحقق من تسجيل الدخول للمسارات المحمية
-        if (!isset($_SESSION['user_id']) && !in_array($currentRoute, $publicRoutes)) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
-            header('Location: ' . BASE_PATH . '/auth/login');
-            exit;
-        }
-
-        // --- New Permission Enforcement Logic ---
-        if (isset($_SESSION['user_id'])) {
-            $userRole = $_SESSION['role'] ?? '';
-            $roleId = $_SESSION['role_id'] ?? null;
-
-            if (!in_array($userRole, ['admin', 'developer'])) {
-                $controllerClass = get_class($this->controller);
-
-                $alwaysAllowedPrefixes = [
-                    'App\\Controllers\\Dashboard',
-                    'App\\Controllers\\Auth',
-                ];
-
-                $isAllowed = false;
-                foreach($alwaysAllowedPrefixes as $prefix) {
-                    if (str_starts_with($controllerClass, $prefix)) {
-                        $isAllowed = true;
-                        break;
-                    }
-                }
-
-                if (!$isAllowed && $roleId) {
-                    require_once APPROOT . '/app/models/admin/Permission.php';
-                    $permissionModel = new \App\Models\Admin\Permission();
-                    $userPermissions = $permissionModel->getPermissionsByUser($_SESSION['user_id']);
-                    $_SESSION['user_permissions'] = $userPermissions; // Store in session
-
-                    $hasPermission = false;
-                    foreach ($userPermissions as $userPermissionPrefix) {
-                        if (str_starts_with($controllerClass, $userPermissionPrefix)) {
-                            $hasPermission = true;
-                            break;
-                        }
-                    }
-
-                    if (!$hasPermission) {
-                        http_response_code(403);
-                        $message = 'ليس لديك الصلاحية للوصول إلى هذا القسم.';
-                        require APPROOT . '/app/views/errors/403.php';
-                        exit;
-                    }
-                }
-            }
-        }
-        // --- End of New Permission Enforcement Logic ---
-
-        // إذا كان المستخدم مسجل دخوله ويحاول الوصول إلى صفحات تسجيل الدخول/التسجيل
+        // If the user is logged in and trying to access login/register pages
         if (
-            isset($_SESSION['user_id']) && in_array($currentRoute, [
-                'App\\Controllers\\Auth\\AuthController/login',
-                'App\\Controllers\\Auth\\AuthController/register'
+            isset($_SESSION['user_id']) && in_array($this->currentControllerName . '/' . $this->currentMethodName, [
+                'Auth/login',
+                'Auth/register'
             ])
         ) {
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
 
-        // استدعاء الميثود في المتحكم مع تمرير البارامترات
-        try {
-            call_user_func_array([$this->controller, $this->method], $this->params);
-        } catch (\TypeError $e) {
-            // Log the error for debugging
-            error_log("TypeError in App.php: " . $e->getMessage());
-            // You can also check the number of arguments expected vs. passed
-            $reflection = new \ReflectionMethod($this->controller, $this->method);
-            error_log("Method {$this->method} expects " . $reflection->getNumberOfRequiredParameters() . " parameters.");
-            error_log("Passed params: " . print_r($this->params, true));
+        // Centralized Permission Check at the end of the constructor
+        $this->checkPermissions();
 
-            $this->triggerNotFound("Error processing request: " . $e->getMessage());
+        // Call the method on the controller with parameters
+        call_user_func_array([$this->controller, $this->method], $this->params);
+    }
+
+    /**
+     * Centralized method to check user permissions.
+     */
+    protected function checkPermissions()
+    {
+        // Public pages that do not require a login or permission check
+        $publicRoutes = [
+            'Auth/login',
+            'Auth/register',
+            'Referral/register'
+            // Note: Telegram webhook has its own entry point and is handled before this
+        ];
+        
+        // Get the short name of the controller class (e.g., AuthController -> Auth)
+        $reflector = new \ReflectionClass($this->controller);
+        $controllerShortName = str_replace('Controller', '', $reflector->getShortName());
+        
+        $permissionKey = $controllerShortName . '/' . $this->method;
+
+        // If the route is public, skip the check
+        if (in_array($permissionKey, $publicRoutes)) {
+            return;
+        }
+
+        // If user is not logged in, redirect to login page
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ' . BASE_PATH . '/auth/login');
+            exit;
+        }
+
+        // Final check for the permission
+        if (!Auth::hasPermission($permissionKey)) {
+            http_response_code(403);
+            $debug_info = [
+                'required_permission' => $permissionKey,
+                'user_role' => $_SESSION['role'] ?? 'Not Set',
+                'user_permissions' => $_SESSION['permissions'] ?? []
+            ];
+            $data['debug_info'] = $debug_info;
+            require_once APPROOT . '/app/views/errors/403.php';
+                        exit;
+                    }
+                }
+
+    /**
+     * Checks for a force-logout signal and handles it.
+     * @param int $userId
+     */
+    private function checkAndHandleForceLogout(int $userId)
+    {
+        $forceLogoutFile = APPROOT . '/database/force_logout/' . $userId;
+        if (file_exists($forceLogoutFile)) {
+            $userModel = new User();
+            $logoutMessage = trim(file_get_contents($forceLogoutFile));
+            unlink($forceLogoutFile);
+            $userModel->logout($userId);
+            session_unset();
+            session_destroy();
+            session_start();
+            $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول' . (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
+            header('Location: ' . BASE_PATH . '/auth/login');
+            exit;
+        }
+    }
+
+    /**
+     * Checks for a permission-refresh signal and updates the session.
+     * @param int $userId
+     */
+    private function checkAndRefreshPermissions(int $userId)
+    {
+        $refreshFile = APPROOT . '/app/cache/refresh_permissions/' . $userId;
+        if (file_exists($refreshFile)) {
+            // Re-fetch permissions from the database
+            $permissionModel = new \App\Models\Admin\Permission();
+            $_SESSION['permissions'] = $permissionModel->getPermissionsByUser($userId);
+            
+            // Clean up the signal file
+            unlink($refreshFile);
         }
     }
 

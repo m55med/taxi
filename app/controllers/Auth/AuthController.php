@@ -91,7 +91,7 @@ class AuthController extends Controller
                 $_SESSION['is_online'] = true;
 
                 // Fetch and store permissions in the session
-                $permissions = $this->userModel->getRolePermissions($result['role_id']);
+                $permissions = $this->userModel->getUserPermissions($result['id']);
                 $permissions[] = 'calls.documents.update';
                 $_SESSION['permissions'] = array_unique($permissions);
 

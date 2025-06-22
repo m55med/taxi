@@ -27,61 +27,92 @@ class Permission
      */
     public function syncPermissions()
     {
-        $controllers = [];
-        $paths = [
-            APPROOT . '/app/controllers/admin',
-            APPROOT . '/app/controllers/reports',
-            APPROOT . '/app/controllers',
-        ];
+        $discoveredPermissions = $this->discoverPermissions();
 
-        foreach ($paths as $path) {
-            $this->recursivelyScanControllers($path, $controllers, $path);
-        }
+        // Start transaction
+        $this->db->beginTransaction();
+        try {
+            // Get all existing permissions from DB
+            $existingStmt = $this->db->query("SELECT permission_key FROM permissions");
+            $existingPermissions = $existingStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        // Insert new permissions into the database
-        $stmt = $this->db->prepare("INSERT IGNORE INTO permissions (permission_key, description) VALUES (?, ?)");
-        foreach ($controllers as $controller) {
-            $description = $this->createFriendlyPermissionName($controller);
-            $stmt->execute([$controller, $description]);
+            // Find permissions to add
+            $toAdd = array_diff($discoveredPermissions, $existingPermissions);
+            
+            // Find permissions to remove
+            $toRemove = array_diff($existingPermissions, $discoveredPermissions);
+
+            // Add new ones
+            if (!empty($toAdd)) {
+                $addStmt = $this->db->prepare("INSERT INTO permissions (permission_key, description) VALUES (?, ?)");
+                foreach ($toAdd as $key) {
+                    $description = $this->createFriendlyPermissionName($key);
+                    $addStmt->execute([$key, $description]);
+                }
+            }
+            
+            // Remove old ones
+            if (!empty($toRemove)) {
+                // Use a subquery to avoid deadlock issues and use permission_key
+                $removeStmt = $this->db->prepare("DELETE FROM permissions WHERE permission_key IN (" . implode(',', array_fill(0, count($toRemove), '?')) . ")");
+                $removeStmt->execute($toRemove);
+            }
+
+            $this->db->commit();
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log("Failed to sync permissions: " . $e->getMessage());
         }
     }
     
-    private function createFriendlyPermissionName($namespace) {
-        // Remove base 'App\Controllers\' and suffix 'Controller'
-        $name = preg_replace('/^App\\\\Controllers\\\\|Controller$/i', '', $namespace);
-        
-        // Split by backslash and capitalize each part
-        $parts = array_map('ucfirst', explode('\\', $name));
-        
-        // Handle cases like 'Admin\Users' -> 'Admin / Users'
-        // Handle 'Tickets' -> 'Tickets'
-        return implode(' / ', $parts);
-    }
-
-    private function recursivelyScanControllers($dir, &$results, $basePath)
+    private function discoverPermissions(): array
     {
-        $files = scandir($dir);
-        foreach ($files as $file) {
-            if ($file === '.' || $file === '..') continue;
-            
-            $path = $dir . '/' . $file;
-            if (is_dir($path)) {
-                $this->recursivelyScanControllers($path, $results, $basePath);
-            } else if (str_ends_with($file, 'Controller.php')) {
-                // Construct the FQCN (Fully Qualified Class Name)
-                $relativePath = str_replace(APPROOT . '/app/controllers/', '', $path);
-                $classPath = str_replace('.php', '', $relativePath);
-                $namespace = 'App\\Controllers\\' . str_replace('/', '\\', $classPath);
+        $permissions = [];
+        $basePath = realpath(APPROOT . '/app/controllers');
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($basePath));
 
-                if (in_array($namespace, self::$excludedClasses)) {
-                    continue;
+        foreach ($iterator as $file) {
+            if ($file->isDir() || !str_ends_with($file->getFilename(), 'Controller.php')) {
+                continue;
+            }
+
+            // Construct FQCN (Fully Qualified Class Name) in a robust way
+            $filePath = $file->getRealPath();
+            $classPath = str_replace([$basePath . DIRECTORY_SEPARATOR, '.php'], '', $filePath);
+            $namespace = 'App\\Controllers\\' . str_replace(DIRECTORY_SEPARATOR, '\\', $classPath);
+            
+            if (in_array($namespace, self::$excludedClasses) || !class_exists($namespace)) {
+                continue;
+            }
+
+            try {
+                $reflector = new ReflectionClass($namespace);
+                if ($reflector->isAbstract()) continue;
+
+                $methods = $reflector->getMethods(ReflectionMethod::IS_PUBLIC);
+                foreach ($methods as $method) {
+                    // Skip constructors, magic methods, and methods from the parent Controller class
+                    if ($method->isConstructor() || str_starts_with($method->getName(), '__') || $method->getDeclaringClass()->getName() !== $reflector->getName()) {
+                        continue;
+                    }
+
+                    // Format: ControllerName/methodName (e.g., "Users/index", "Calls/create")
+                    $controllerShortName = str_replace('Controller', '', $reflector->getShortName());
+                    $permissionKey = $controllerShortName . '/' . $method->getName();
+                    $permissions[] = $permissionKey;
                 }
-                
-                $results[] = $namespace;
+            } catch (\ReflectionException $e) {
+                error_log("Reflection error for $namespace: " . $e->getMessage());
             }
         }
+        return array_unique($permissions);
     }
-
+    
+    private function createFriendlyPermissionName($permissionKey) {
+        $parts = explode('/', $permissionKey);
+        // "Users/edit" -> "Users / Edit"
+        return ucfirst($parts[0]) . ' / ' . ucfirst($parts[1] ?? 'Action');
+    }
 
     /**
      * Gets all available permissions from the database.

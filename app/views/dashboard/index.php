@@ -188,7 +188,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- لوحة تحكم التسويق -->
                 <?php if (in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
-                <a href="<?= BASE_PATH ?>/referral/dashboard" 
+                <a href="<?= BASE_PATH ?>/referral" 
                    class="bg-white overflow-hidden shadow rounded-lg p-6 hover:bg-gray-50 transition-colors duration-200">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">

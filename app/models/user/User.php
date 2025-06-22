@@ -482,20 +482,20 @@ class User
     }
 
     /**
-     * Fetches all permission strings for a given role ID.
+     * Fetches all permission keys for a given user ID.
      *
-     * @param int $roleId The ID of the role.
-     * @return array An array of permission strings.
+     * @param int $userId The ID of the user.
+     * @return array An array of permission keys.
      */
-    public function getRolePermissions(int $roleId): array
+    public function getUserPermissions(int $userId): array
     {
         $stmt = $this->db->prepare("
             SELECT p.permission_key 
-            FROM role_permissions rp
-            JOIN permissions p ON rp.permission_id = p.id
-            WHERE rp.role_id = ?
+            FROM user_permissions up
+            JOIN permissions p ON up.permission_id = p.id
+            WHERE up.user_id = ?
         ");
-        $stmt->execute([$roleId]);
+        $stmt->execute([$userId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 

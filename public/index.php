@@ -19,6 +19,7 @@ $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? 'localhost
 $script_path = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 $base_dir = rtrim(str_replace('/public', '', $script_path), '/');
 define('BASE_PATH', $protocol . $host . $base_dir);
+define('URLROOT', BASE_PATH);
 
 // Start the session
 if (session_status() === PHP_SESSION_NONE) {

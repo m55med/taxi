@@ -69,7 +69,7 @@ class Auth
         }
 
         // Check against the user-specific permissions stored in the session.
-        $userPermissions = $_SESSION['user_permissions'] ?? [];
+        $userPermissions = $_SESSION['permissions'] ?? [];
         return in_array($permission, $userPermissions);
     }
 

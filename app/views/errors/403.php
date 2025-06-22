@@ -29,7 +29,8 @@
            <?php echo isset($_SESSION['user_id']) ? 'العودة إلى لوحة التحكم' : 'الذهاب إلى صفحة الدخول'; ?>
         </a>
     </div>
-
+    <?php
+    /*
     <?php if (isset($data['debug_info']) && !empty($data['debug_info'])) : ?>
         <div class="fixed bottom-0 left-0 right-0 p-4 bg-gray-800 text-white font-mono text-sm">
             <h3 class="text-lg font-bold mb-2 border-b border-gray-600 pb-2">معلومات تشخيص الصلاحيات (للمطورين)</h3>
@@ -50,6 +51,7 @@
             </div>
         </div>
     <?php endif; ?>
+    */ ?>
 
 </body>
 </html> 

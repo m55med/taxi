@@ -12,7 +12,6 @@ class CallsController extends Controller
         if (!Auth::isLoggedIn()) {
             redirect('auth/login');
         }
-        $this->authorize('App\Controllers\Calls');
 
         // Load models only when needed
         $callModel = $this->model('Calls/Call');
@@ -100,8 +99,6 @@ class CallsController extends Controller
             echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
-
-        $this->authorize('App\Controllers\Calls');
         
         $callModel = $this->model('Calls/Call');
         if (!$callModel) {
@@ -166,7 +163,6 @@ class CallsController extends Controller
         if (!Auth::isLoggedIn()) {
             redirect('auth/login');
         }
-        $this->authorize('App\Controllers\Calls');
 
         if ($driverId) {
             // Add driver to a skipped list in the session

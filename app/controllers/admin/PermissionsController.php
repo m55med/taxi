@@ -38,11 +38,26 @@ class PermissionsController extends Controller
             }
         }
         
+        // Group permissions by a key (e.g., controller name)
+        $allPermissions = $this->permissionModel->getAllPermissions();
+        $groupedPermissions = [];
+        foreach ($allPermissions as $permission) {
+            // Group by the Controller part of the key. "Users/index" -> "Users"
+            $key = $permission['permission_key'];
+            $parts = explode('/', $key);
+            $groupKey = $parts[0]; // The controller name is the group key
+            
+            if (!isset($groupedPermissions[$groupKey])) {
+                $groupedPermissions[$groupKey] = [];
+            }
+            $groupedPermissions[$groupKey][] = $permission;
+        }
+
         $data = [
             'page_main_title' => 'إدارة الصلاحيات',
             'roles' => $this->userModel->getRoles(),
             'users' => $users,
-            'permissions' => $this->permissionModel->getAllPermissions(),
+            'permissions' => $groupedPermissions, // Use grouped permissions
             'userPermissions' => $userPermissions,
             'selectedRoleId' => $selectedRoleId,
         ];
@@ -71,10 +86,26 @@ class PermissionsController extends Controller
         $result = $this->permissionModel->toggleUserPermission($userId, $permissionId, $isChecked);
         
         if ($result) {
+            // Signal the user's session to refresh its permissions on the next request.
+            $this->signalPermissionRefresh($userId);
+
             $message = $isChecked ? 'تم منح الصلاحية بنجاح' : 'تم إلغاء الصلاحية بنجاح';
             $this->sendJsonResponse(['success' => true, 'message' => $message]);
         } else {
             $this->sendJsonResponse(['success' => false, 'message' => 'فشل تحديث الصلاحية.'], 500);
         }
+    }
+
+    /**
+     * Creates a signal file to notify a user's session to refresh permissions.
+     * @param int $userId The ID of the user to notify.
+     */
+    private function signalPermissionRefresh(int $userId)
+    {
+        $dir = APPROOT . '/app/cache/refresh_permissions';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        touch($dir . '/' . $userId);
     }
 } 

@@ -191,19 +191,42 @@
                             <strong><?= htmlspecialchars($user['username']) ?> (<?= htmlspecialchars($user['email']) ?>)</strong>
                             <span><?= $isLocked ? '🔒 صلاحيات ثابتة' : 'اضغط لعرض/إخفاء الصلاحيات' ?></span>
                         </div>
-                        <div class="permissions-list">
-                            <?php foreach ($data['permissions'] as $permission) : ?>
-                                <div class="permission-item">
-                                    <span class="permission-description"><?= htmlspecialchars($permission['description']) ?></span>
-                                    <label class="switch">
-                                        <input type="checkbox"
-                                               class="permission-toggle"
-                                               data-user-id="<?= $user['id'] ?>" 
-                                               data-permission-id="<?= $permission['id'] ?>"
-                                               <?= in_array($permission['permission_key'], $data['userPermissions'][$user['id']] ?? []) ? 'checked' : '' ?>
-                                               <?= $isLocked ? 'disabled' : '' ?>>
-                                        <span class="slider"></span>
-                                    </label>
+                        <div class="permissions-list" data-user-id="<?= $user['id'] ?>">
+                            <!-- Master Toggle Switch -->
+                            <div class="permission-item master-toggle-item p-2 bg-gray-100 rounded mb-3">
+                                <span class="font-bold text-blue-600">تحديد الكل / إلغاء تحديد الكل</span>
+                                <label class="switch">
+                                    <input type="checkbox" class="master-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <?php foreach ($data['permissions'] as $groupName => $permissions) : ?>
+                                <div class="permission-group mb-4 border border-gray-200 p-3 rounded">
+                                    <div class="permission-item group-header-item">
+                                        <h5 class="font-bold text-lg cursor-pointer" onclick="this.closest('.permission-group').querySelector('.permission-group-items').classList.toggle('hidden')">
+                                            <?= htmlspecialchars($groupName) ?>
+                                        </h5>
+                                        <label class="switch">
+                                            <input type="checkbox" class="group-toggle">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="permission-group-items pt-2">
+                                        <?php foreach ($permissions as $permission) : ?>
+                                            <div class="permission-item">
+                                                <span class="permission-description"><?= htmlspecialchars($permission['description']) ?></span>
+                                                <label class="switch">
+                                                    <input type="checkbox"
+                                                        class="permission-toggle"
+                                                        data-permission-id="<?= $permission['id'] ?>"
+                                                        <?= in_array($permission['permission_key'], $data['userPermissions'][$user['id']] ?? []) ? 'checked' : '' ?>
+                                                        <?= $isLocked ? 'disabled' : '' ?>>
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -271,45 +294,139 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Search input not found.");
     }
 
-    // --- AJAX for Permissions ---
-    document.querySelectorAll('.permission-toggle').forEach(toggle => {
-        toggle.addEventListener('change', function() {
-            if (this.disabled) return;
+    // Initialize parent toggle states for each user card on load
+    document.querySelectorAll('.user-card').forEach(userCard => {
+        updateParentToggles(userCard);
+    });
 
-            const userId = this.dataset.userId;
-            const permissionId = this.dataset.permissionId;
-            const grant = this.checked;
+    // --- Master Toggle Logic ---
+    document.querySelectorAll('.master-toggle').forEach(masterToggle => {
+        masterToggle.addEventListener('change', function() {
+            const userCard = this.closest('.user-card');
+            const isChecked = this.checked;
+            this.indeterminate = false; // A manual click resolves indeterminate state
 
-            const formData = new FormData();
-            formData.append('user_id', userId);
-            formData.append('permission_id', permissionId);
-            formData.append('grant', grant ? '1' : '0');
-            
-            fetch('<?= URLROOT ?>/admin/permissions/save', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+            // Update all child group toggles
+            userCard.querySelectorAll('.group-toggle').forEach(groupToggle => {
+                groupToggle.checked = isChecked;
+                groupToggle.indeterminate = false;
+            });
+
+            // Update all individual permission toggles and send requests
+            userCard.querySelectorAll('.permission-toggle:not(:disabled)').forEach(toggle => {
+                if (toggle.checked !== isChecked) {
+                    toggle.checked = isChecked;
+                    updatePermission(userCard.querySelector('.permissions-list').dataset.userId, toggle.dataset.permissionId, isChecked);
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    showToast(data.message, 'success');
-                } else {
-                    showToast(data.message || 'An unexpected error occurred', 'error');
-                    this.checked = !grant; // Revert the toggle on failure
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Failed to connect to the server.', 'error');
-                this.checked = !grant; // Revert the toggle on failure
             });
         });
     });
+
+    // --- Group Toggle Logic ---
+    document.querySelectorAll('.group-toggle').forEach(groupToggle => {
+        groupToggle.addEventListener('change', function() {
+            const group = this.closest('.permission-group');
+            const userCard = this.closest('.user-card');
+            const isChecked = this.checked;
+            this.indeterminate = false; // A manual click resolves indeterminate state
+
+            // Update permissions within this group
+            group.querySelectorAll('.permission-toggle:not(:disabled)').forEach(toggle => {
+                if (toggle.checked !== isChecked) {
+                    toggle.checked = isChecked;
+                    updatePermission(userCard.querySelector('.permissions-list').dataset.userId, toggle.dataset.permissionId, isChecked);
+                }
+            });
+
+            // Re-evaluate the master toggle's state
+            updateParentToggles(userCard);
+        });
+    });
+
+    // --- Individual Permission Toggle Logic ---
+    document.querySelectorAll('.permission-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            if (this.disabled) return;
+            const userCard = this.closest('.user-card');
+            updatePermission(userCard.querySelector('.permissions-list').dataset.userId, this.dataset.permissionId, this.checked);
+            updateParentToggles(userCard); // Update parent states after a change
+        });
+    });
+
+    // --- State Update Function for Parent Toggles ---
+    function updateParentToggles(userCard) {
+        if (!userCard) return;
+
+        const masterToggle = userCard.querySelector('.master-toggle');
+        if (!masterToggle) return;
+
+        const allPermissions = userCard.querySelectorAll('.permission-toggle:not(:disabled)');
+        const totalChecked = userCard.querySelectorAll('.permission-toggle:checked:not(:disabled)').length;
+
+        // Update master toggle state
+        if (totalChecked === 0) {
+            masterToggle.checked = false;
+            masterToggle.indeterminate = false;
+        } else if (totalChecked === allPermissions.length) {
+            masterToggle.checked = true;
+            masterToggle.indeterminate = false;
+        } else {
+            masterToggle.checked = false; // Or true, doesn't matter when indeterminate
+            masterToggle.indeterminate = true;
+        }
+        
+        // Update each group toggle state
+        userCard.querySelectorAll('.permission-group').forEach(group => {
+            const groupToggle = group.querySelector('.group-toggle');
+            const groupPermissions = group.querySelectorAll('.permission-toggle:not(:disabled)');
+            const groupCheckedCount = group.querySelectorAll('.permission-toggle:checked:not(:disabled)').length;
+
+            if (groupCheckedCount === 0) {
+                groupToggle.checked = false;
+                groupToggle.indeterminate = false;
+            } else if (groupCheckedCount === groupPermissions.length) {
+                groupToggle.checked = true;
+                groupToggle.indeterminate = false;
+            } else {
+                groupToggle.checked = false;
+                groupToggle.indeterminate = true;
+            }
+        });
+    }
+
+    // --- Centralized function for AJAX update ---
+    function updatePermission(userId, permissionId, isChecked) {
+        const formData = new FormData();
+        formData.append('user_id', userId);
+        formData.append('permission_id', permissionId);
+        formData.append('checked', isChecked ? '1' : '0');
+        
+        fetch('<?= URLROOT ?>/admin/permissions/save', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+            } else {
+                showToast(data.message || 'An unexpected error occurred', 'error');
+                // Revert the toggle on failure - find the specific toggle and revert it
+                const failedToggle = document.querySelector(`.permission-toggle[data-user-id="${userId}"][data-permission-id="${permissionId}"]`);
+                if (failedToggle) {
+                    failedToggle.checked = !isChecked;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Failed to connect to the server.', 'error');
+            const failedToggle = document.querySelector(`.permission-toggle[data-user-id="${userId}"][data-permission-id="${permissionId}"]`);
+            if (failedToggle) {
+                failedToggle.checked = !isChecked;
+            }
+        });
+    }
 
     // --- Toast Notification ---
     window.showToast = function(message, type = 'success') {

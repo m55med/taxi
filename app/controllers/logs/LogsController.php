@@ -15,9 +15,6 @@ class LogsController extends Controller {
     }
 
     public function index() {
-        // Ensure user has permission to view this page
-        $this->authorize(['admin', 'developer', 'quality_manager', 'Team_leader', 'agent', 'employee']);
-
         $page_main_title = 'سجل الأنشطة';
         
         // Default filters from GET request
