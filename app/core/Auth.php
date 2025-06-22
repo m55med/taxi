@@ -55,23 +55,21 @@ class Auth
     }
 
     /**
-     * Checks if the current user has a specific permission.
-     * This is a more flexible system than role-checking alone.
+     * Checks if the currently logged-in user has a specific permission.
+     * The permissions are checked against the array stored in the session.
      *
-     * @param string $permission The permission to check.
-     * @return bool
+     * @param string $permission The permission key (controller class) to check for.
+     * @return bool True if the user has the permission, false otherwise.
      */
-    public static function hasPermission(string $permission): bool
+    public static function hasPermission($permission)
     {
-        self::startSession();
-
-        // Rule #1: Admin has all permissions.
-        if (self::getUserRole() === 'admin') {
+        // Admins and developers have all permissions implicitly.
+        if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'])) {
             return true;
         }
 
-        // Rule #2: Check if the permissions array exists in the session and if the permission is in it.
-        $userPermissions = $_SESSION['permissions'] ?? [];
+        // Check against the user-specific permissions stored in the session.
+        $userPermissions = $_SESSION['user_permissions'] ?? [];
         return in_array($permission, $userPermissions);
     }
 

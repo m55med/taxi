@@ -489,15 +489,30 @@ class User
      */
     public function getRolePermissions(int $roleId): array
     {
-        try {
-            $sql = "SELECT permission FROM role_permissions WHERE role_id = :role_id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':role_id' => $roleId]);
-            // Fetch all rows and return just the 'permission' column as a simple array
-            return $stmt->fetchAll(PDO::FETCH_COLUMN);
-        } catch (PDOException $e) {
-            error_log("Error fetching permissions for role ID {$roleId}: " . $e->getMessage());
-            return []; // Return empty array on error
-        }
+        $stmt = $this->db->prepare("
+            SELECT p.permission_key 
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE rp.role_id = ?
+        ");
+        $stmt->execute([$roleId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    public function getUsersByRole(int $roleId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT 
+                u.id, 
+                u.username, 
+                u.email, 
+                r.name as role_name 
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE u.role_id = ?
+            ORDER BY u.username ASC
+        ");
+        $stmt->execute([$roleId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

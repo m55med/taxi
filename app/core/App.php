@@ -485,7 +485,8 @@ class App
                 if (!$isAllowed && $roleId) {
                     require_once APPROOT . '/app/models/admin/Permission.php';
                     $permissionModel = new \App\Models\Admin\Permission();
-                    $userPermissions = $permissionModel->getPermissionsByRole($roleId);
+                    $userPermissions = $permissionModel->getPermissionsByUser($_SESSION['user_id']);
+                    $_SESSION['user_permissions'] = $userPermissions; // Store in session
 
                     $hasPermission = false;
                     foreach ($userPermissions as $userPermissionPrefix) {
