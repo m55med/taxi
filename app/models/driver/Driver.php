@@ -456,4 +456,22 @@ class Driver
             ':note' => $note
         ]);
     }
+    // الموديل المسؤل عن تحرير الهولد في النظام بعد 5 دقائق من اخر تحديث علي الصف في الصفوف المعلقة
+    public function releaseHeldDrivers()
+    {
+        try {
+            $sql = "
+                UPDATE drivers
+                SET hold = 0
+                WHERE hold = 1
+                  AND updated_at <= NOW() - INTERVAL 5 MINUTE
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return ['status' => true, 'affected_rows' => $stmt->rowCount()];
+        } catch (PDOException $e) {
+            error_log("Error in releaseHeldDrivers: " . $e->getMessage());
+            return ['status' => false, 'message' => 'Database error.'];
+        }
+    }
 } 

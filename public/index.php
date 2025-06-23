@@ -31,6 +31,7 @@ define('ENVIRONMENT', 'development');
 
 // Load Helpers
 require_once '../app/helpers/url_helper.php';
+require_once '../app/helpers/session_helper.php';
 
 // Initialize and run the application
 $app = new \App\Core\App();

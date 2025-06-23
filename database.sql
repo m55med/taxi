@@ -560,6 +560,14 @@ CREATE TABLE working_hours (
 
 
 --جدول الاشعارات
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+--جدول لتخزين بيانات الاشعارات
 CREATE TABLE user_notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -570,11 +578,42 @@ CREATE TABLE user_notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE
 );
---جدول لتخزين بيانات الاشعارات
-CREATE TABLE notifications (
+
+
+
+
+CREATE TABLE ticket_code_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    code_id INT NOT NULL,
+    is_vip BOOLEAN NOT NULL DEFAULT 0,
+    points INT NOT NULL,
+    valid_from DATE NOT NULL,
+    valid_to DATE DEFAULT NULL,
+    KEY (code_id, is_vip, valid_from, valid_to),
+    FOREIGN KEY (code_id) REFERENCES ticket_codes(id) ON DELETE CASCADE
+);
+
+
+
+CREATE TABLE call_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    points INT NOT NULL,
+    valid_from DATE NOT NULL,
+    valid_to DATE DEFAULT NULL,
+    KEY (valid_from, valid_to)
+);
+
+
+CREATE TABLE user_monthly_bonus (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    bonus_percent DECIMAL(5,2) NOT NULL,
+    bonus_year SMALLINT NOT NULL,
+    bonus_month TINYINT NOT NULL,
+    reason VARCHAR(255) DEFAULT NULL,
+    granted_by INT DEFAULT NULL,
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, bonus_year, bonus_month),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
 );

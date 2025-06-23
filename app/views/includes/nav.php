@@ -200,6 +200,16 @@
                                     </div>
                                 </div>
                                 <div class="border-b border-gray-200">
+                                    <button @click="openSubmenu = (openSubmenu === 'points' ? '' : 'points')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
+                                        <span>إدارة النقاط والمكافآت</span>
+                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'points'}"></i>
+                                    </button>
+                                    <div x-show="openSubmenu === 'points'" x-collapse class="bg-gray-50">
+                                        <a href="<?= BASE_PATH ?>/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">إدارة أوزان النقاط</a>
+                                        <a href="<?= BASE_PATH ?>/admin/bonus" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">منح بونص شهري</a>
+                                    </div>
+                                </div>
+                                <div class="border-b border-gray-200">
                                     <button @click="openSubmenu = (openSubmenu === 'team' ? '' : 'team')" class="w-full text-right flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
                                         <span>إدارة الفرق</span>
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'team'}"></i>

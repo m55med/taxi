@@ -25,7 +25,11 @@
         </div>
 
         <!-- Summary Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-5">
+                <h3 class="text-sm font-medium text-gray-500">إجمالي النقاط</h3>
+                <p class="mt-2 text-3xl font-bold text-indigo-600"><?= number_format($summary_stats['total_points'] ?? 0, 2) ?></p>
+            </div>
             <div class="bg-white rounded-lg shadow p-5">
                 <h3 class="text-sm font-medium text-gray-500">إجمالي المكالمات</h3>
                 <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($summary_stats['total_calls'] ?? 0) ?></p>
@@ -124,9 +128,17 @@
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التذاكر العادية</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تذاكر VIP</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التحويلات</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">النقاط النهائية</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
+                    <?php if (empty($users)): ?>
+                        <tr>
+                            <td colspan="10" class="px-6 py-4 text-center text-gray-500">
+                                لا توجد بيانات لعرضها تطابق معايير البحث.
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                     <?php foreach ($users as $user): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -174,12 +186,71 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?= number_format($user['assignments_count'] ?? 0) ?>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
+                            <div class="flex items-center">
+                                <span class="text-indigo-600"><?= number_format($user['points_details']['final_total_points'] ?? 0, 2) ?></span>
+                                <?php if (!empty($user['points_details']['bonus_reasons'])): ?>
+                                    <div x-data="{ tooltip: false }" class="relative z-10 ml-2">
+                                        <i @mouseenter="tooltip = true" @mouseleave="tooltip = false" class="fas fa-info-circle text-blue-500 cursor-pointer"></i>
+                                        <div x-show="tooltip" 
+                                             x-transition:enter="transition ease-out duration-200"
+                                             x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                             x-transition:enter-end="opacity-100 transform translate-y-0"
+                                             x-transition:leave="transition ease-in duration-150"
+                                             x-transition:leave-start="opacity-100 transform translate-y-0"
+                                             x-transition:leave-end="opacity-0 transform -translate-y-2"
+                                             class="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 w-max max-w-sm bg-gray-800 text-white text-sm rounded-lg shadow-xl"
+                                             style="display: none;">
+                                            <h4 class="font-bold border-b border-gray-600 pb-2 mb-2">أسباب البونص:</h4>
+                                            <ul class="list-disc list-inside space-y-1">
+                                                <?php foreach($user['points_details']['bonus_reasons'] as $reason): ?>
+                                                    <li><?= htmlspecialchars($reason) ?></li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                            <div class="mt-2 border-t border-gray-600 pt-2 text-xs">
+                                                <div class="flex justify-between">
+                                                    <span>النقاط الأساسية:</span>
+                                                    <span><?= number_format($user['points_details']['total_base_points'] ?? 0, 2) ?></span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span>نقاط البونص:</span>
+                                                    <span class="text-green-400">+<?= number_format($user['points_details']['total_bonus_amount'] ?? 0, 2) ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <th colspan="5" class="px-6 py-3 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">
+                            الإجمالي
+                        </th>
+                        <th class="px-6 py-3 text-right text-sm font-bold text-gray-700">
+                            <?= number_format($summary_stats['total_calls'] ?? 0) ?>
+                        </th>
+                        <th class="px-6 py-3 text-right text-sm font-bold text-gray-700">
+                            <?= number_format($summary_stats['normal_tickets'] ?? 0) ?>
+                        </th>
+                        <th class="px-6 py-3 text-right text-sm font-bold text-gray-700">
+                            <?= number_format($summary_stats['vip_tickets'] ?? 0) ?>
+                        </th>
+                        <th class="px-6 py-3 text-right text-sm font-bold text-gray-700">
+                             <?= number_format($summary_stats['assignments_count'] ?? 0) ?>
+                        </th>
+                        <th class="px-6 py-3 text-right text-sm font-bold text-indigo-700">
+                            <?= number_format($summary_stats['total_points'] ?? 0, 2) ?>
+                        </th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </body>
 
 </html> 

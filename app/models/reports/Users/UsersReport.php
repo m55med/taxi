@@ -245,4 +245,210 @@ class UsersReport
             'summary_stats' => $summaryStats
         ];
     }
-} 
+    
+    public function getUsersReportWithPoints($filters)
+    {
+        // Get base user data using the existing filtered query
+        $reportData = $this->getUsersReport($filters);
+        $users = $reportData['users'];
+        $summaryStats = $reportData['summary_stats'];
+    
+        if (empty($users)) {
+            return [
+                'users' => [],
+                'summary_stats' => $summaryStats,
+            ];
+        }
+    
+        $userIds = array_column($users, 'id');
+        $from = $filters['date_from'] ?? null;
+        $to = $filters['date_to'] ?? null;
+    
+        // 1. Get base points from tickets and calls, aggregated by user and month
+        $monthlyBasePoints = [];
+        $tickets = $this->getTicketsForUsers($userIds, $from, $to);
+        foreach ($tickets as $ticket) {
+            $userId = $ticket['created_by'];
+            $year = $ticket['year'];
+            $month = $ticket['month'];
+            $points = (float)($ticket['points'] ?? 0);
+            if (!isset($monthlyBasePoints[$userId][$year][$month])) {
+                $monthlyBasePoints[$userId][$year][$month] = 0;
+            }
+            $monthlyBasePoints[$userId][$year][$month] += $points;
+        }
+    
+        $calls = $this->getCallsForUsers($userIds, $from, $to);
+        foreach ($calls as $call) {
+            $userId = $call['call_by'];
+            $year = $call['year'];
+            $month = $call['month'];
+            $points = (float)($call['points'] ?? 0);
+            if (!isset($monthlyBasePoints[$userId][$year][$month])) {
+                $monthlyBasePoints[$userId][$year][$month] = 0;
+            }
+            $monthlyBasePoints[$userId][$year][$month] += $points;
+        }
+    
+        // 2. Get monthly bonuses
+        $monthlyBonuses = $this->getBonusesForUsers($userIds, $from, $to);
+    
+        // 3. Calculate final points for each user
+        $totalPoints = 0;
+        foreach ($users as &$user) {
+            $userId = $user['id'];
+            $userBasePoints = 0;
+            $userBonusAmount = 0;
+            $userBonusReasons = [];
+    
+            if (isset($monthlyBasePoints[$userId])) {
+                foreach ($monthlyBasePoints[$userId] as $year => $months) {
+                    foreach ($months as $month => $basePoints) {
+                        $userBasePoints += $basePoints;
+                        $bonusPercent = 0;
+                        if (isset($monthlyBonuses[$userId][$year][$month])) {
+                            $bonusInfo = $monthlyBonuses[$userId][$year][$month];
+                            $bonusPercent = (float)($bonusInfo['bonus_percent'] ?? 0);
+                            if (!empty($bonusInfo['reason'])) {
+                                $userBonusReasons[] = "{$bonusInfo['reason']} ({$bonusPercent}%)";
+                            }
+                        }
+                        $userBonusAmount += $basePoints * ($bonusPercent / 100);
+                    }
+                }
+            }
+    
+            $finalPoints = $userBasePoints + $userBonusAmount;
+            $user['points_details'] = [
+                'total_base_points' => $userBasePoints,
+                'total_bonus_amount' => $userBonusAmount,
+                'final_total_points' => $finalPoints,
+                'bonus_reasons' => $userBonusReasons
+            ];
+            $totalPoints += $finalPoints;
+        }
+        unset($user);
+    
+        $summaryStats['total_points'] = $totalPoints;
+
+        return [
+            'users' => $users,
+            'summary_stats' => $summaryStats
+        ];
+    }
+
+    private function getTicketsForUsers($userIds, $from, $to)
+    {
+        if (empty($userIds)) return [];
+
+        // Base query for tickets
+        $ticketsSql = "
+            SELECT 
+                t.created_by, 
+                YEAR(t.created_at) as year,
+                MONTH(t.created_at) as month,
+                COALESCE((
+                    SELECT tcp.points 
+                    FROM ticket_code_points tcp
+                    WHERE tcp.code_id = t.code_id 
+                      AND tcp.is_vip = t.is_vip
+                      AND DATE(t.created_at) >= tcp.valid_from 
+                      AND (tcp.valid_to IS NULL OR DATE(t.created_at) <= tcp.valid_to)
+                    ORDER BY tcp.valid_from DESC
+                    LIMIT 1
+                ), 0) as points
+            FROM tickets t
+        ";
+
+        // Conditions
+        $ticketsConditions = ["t.created_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")"];
+        $ticketsParams = $userIds;
+
+        if ($from) {
+            $ticketsConditions[] = "t.created_at >= ?";
+            $ticketsParams[] = $from . ' 00:00:00';
+        }
+        if ($to) {
+            $ticketsConditions[] = "t.created_at <= ?";
+            $ticketsParams[] = $to . ' 23:59:59';
+        }
+
+        $ticketsSql .= " WHERE " . implode(" AND ", $ticketsConditions);
+        
+        $stmt = $this->db->prepare($ticketsSql);
+        $stmt->execute($ticketsParams);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function getCallsForUsers($userIds, $from, $to)
+    {
+        if (empty($userIds)) return [];
+
+        $callsSql = "
+            SELECT 
+                dc.call_by, 
+                YEAR(dc.created_at) as year,
+                MONTH(dc.created_at) as month,
+                COALESCE((
+                    SELECT cp.points 
+                    FROM call_points cp
+                    WHERE DATE(dc.created_at) >= cp.valid_from 
+                      AND (cp.valid_to IS NULL OR DATE(dc.created_at) <= cp.valid_to)
+                    ORDER BY cp.valid_from DESC
+                    LIMIT 1
+                ), 0) as points
+            FROM driver_calls dc
+        ";
+
+        $callsConditions = ["dc.call_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")"];
+        $callsParams = $userIds;
+
+        if ($from) {
+            $callsConditions[] = "dc.created_at >= ?";
+            $callsParams[] = $from . ' 00:00:00';
+        }
+        if ($to) {
+            $callsConditions[] = "dc.created_at <= ?";
+            $callsParams[] = $to . ' 23:59:59';
+        }
+
+        $callsSql .= " WHERE " . implode(" AND ", $callsConditions);
+
+        $stmt = $this->db->prepare($callsSql);
+        $stmt->execute($callsParams);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function getBonusesForUsers($userIds, $from, $to)
+    {
+        if (empty($userIds)) return [];
+
+        $bonusSql = "SELECT user_id, bonus_percent, bonus_year, bonus_month, reason FROM user_monthly_bonus";
+        
+        $bonusConditions = ["user_id IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")"];
+        $bonusParams = $userIds;
+
+        if ($from) {
+            $bonusConditions[] = "LAST_DAY(STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d')) >= ?";
+            $bonusParams[] = $from;
+        }
+        if ($to) {
+            $bonusConditions[] = "STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d') <= ?";
+            $bonusParams[] = $to;
+        }
+
+        $bonusSql .= " WHERE " . implode(" AND ", $bonusConditions);
+        
+        $stmt = $this->db->prepare($bonusSql);
+        $stmt->execute($bonusParams);
+        $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Re-index the array for easy lookup
+        $indexedBonuses = [];
+        foreach ($bonuses as $bonus) {
+            $indexedBonuses[$bonus['user_id']][$bonus['bonus_year']][$bonus['bonus_month']] = $bonus;
+        }
+
+        return $indexedBonuses;
+    }
+}

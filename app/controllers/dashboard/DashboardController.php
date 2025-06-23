@@ -9,15 +9,20 @@ class DashboardController extends Controller
 {
     private $userModel;
     private $dashboardModel;
+    private $driverModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->userModel = $this->model('user/User');
+        $this->driverModel = $this->model('driver/Driver');
     }
 
     public function index()
     {
+        // Release any drivers that have been on hold for more than 5 minutes
+        $this->driverModel->releaseHeldDrivers();
+
         // التحقق من تسجيل الدخول
         if (!isset($_SESSION['user_id'])) {
             header('Location: ' . BASE_PATH . '/auth/login');

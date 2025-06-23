@@ -44,7 +44,7 @@ class UsersController extends Controller
             'user_id' => $_GET['user_id'] ?? ''
         ];
 
-        $usersData = $this->usersReportModel->getUsersReport($filters);
+        $usersData = $this->usersReportModel->getUsersReportWithPoints($filters);
 
         $data = [
             'users' => $usersData['users'],
@@ -69,7 +69,7 @@ class UsersController extends Controller
             'user_id' => $_GET['user_id'] ?? ''
         ];
 
-        $usersData = $this->usersReportModel->getUsersReport($filters);
+        $usersData = $this->usersReportModel->getUsersReportWithPoints($filters);
 
         $this->exportUsersToExcel($usersData['users'], 'users_report');
     }
