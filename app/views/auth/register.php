@@ -59,7 +59,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="/taxi/public/auth/register" method="POST" class="space-y-5" autocomplete="off" novalidate>
+            <form action="/taxi/register" method="POST" class="space-y-5" autocomplete="off" novalidate>
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
                     <div class="form-input-container mt-1">
@@ -101,7 +101,7 @@
 
         <p class="mt-8 text-center text-sm text-gray-500">
             لديك حساب بالفعل؟
-            <a href="/taxi/public/auth/login" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500 hover:underline">
+            <a href="/taxi/login" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500 hover:underline">
                 قم بتسجيل الدخول من هنا
             </a>
         </p>

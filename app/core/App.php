@@ -27,6 +27,21 @@ class App
 
         $url = $this->parseUrl();
 
+        // Custom short routes for auth
+        if (!empty($url[0])) {
+            $route = strtolower($url[0]);
+            if ($route === 'login' || $route === 'register') {
+                $this->controller = new \App\Controllers\Auth\AuthController();
+                $this->method = $route;
+                unset($url[0]);
+                $this->params = $url ? array_values($url) : [];
+                // Permission check
+                $this->checkPermissions();
+                call_user_func_array([$this->controller, $this->method], $this->params);
+                return; // Stop further processing
+            }
+        }
+
         // New Permission Check Logic
         if (!empty($url[0])) {
             // Simplified logic - this needs to match your app's routing structure

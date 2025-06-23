@@ -3,18 +3,21 @@
 namespace App\Controllers\Telegram;
 
 use App\Models\Telegram\TelegramBot;
+use App\Models\Notifications\Notification;
 
 class WebhookController
 {
     private $bot_token;
     private $input;
     private $model;
+    private $notificationModel;
 
     public function __construct()
     {
         $this->bot_token = $_ENV['TELEGRAM_BOT_TOKEN'] ?? null;
         $this->input = file_get_contents('php://input');
         $this->model = new TelegramBot();
+        $this->notificationModel = new Notification();
     }
 
     /**
@@ -53,6 +56,11 @@ class WebhookController
 
         if ($text === '/setup') {
             $this->handleSetupCommand($chat_id, $user_id, $message['from']);
+            return;
+        }
+        
+        if (str_starts_with($text, '/notifyall')) {
+            $this->handleNotifyAllCommand($chat_id, $user_id, $text);
             return;
         }
 
@@ -192,7 +200,38 @@ class WebhookController
         $this->sendMessage($chat_id, $reply);
     }
     
-    
+    /**
+     * Handles the /notifyall command to send a notification to all users.
+     */
+    private function handleNotifyAllCommand(int $chat_id, int $user_id, string $text): void
+    {
+        if (!$this->model->isAuthorized($user_id, $chat_id)) {
+            $this->sendMessage($chat_id, "❌ عفواً، ليس لديك صلاحية استخدام هذا الأمر.");
+            return;
+        }
+
+        $rawMessage = trim(substr($text, strlen('/notifyall')));
+
+        if (empty($rawMessage)) {
+            $this->sendMessage($chat_id, "🤔 يرجى كتابة نص الإشعار بعد الأمر. مثال:\n/notifyall اجتماع هام غداً");
+            return;
+        }
+
+        // Sanitize the message to prevent XSS attacks.
+        $sanitizedMessage = htmlspecialchars($rawMessage, ENT_QUOTES, 'UTF-8');
+        $title = 'إشعار من بوت تليجرام';
+        
+        $result = $this->notificationModel->createAndAssign($title, $sanitizedMessage);
+
+        if ($result !== false) {
+            $this->sendMessage($chat_id, "✅ تم إرسال الإشعار بنجاح لجميع المستخدمين في النظام.");
+        } else {
+            $this->sendMessage($chat_id, "❌في مشكلة برمجية يارب متظهرش الرسالة دي ابدا ");
+            error_log("Telegram Bot: Failed to create notification via /notifyall by user_id {$user_id}");
+        }
+    }
+
+
     // --- Helper Functions ---
     private function sendMessage(int $chat_id, string $text, array $reply_markup = null): void
     {

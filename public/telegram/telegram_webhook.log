@@ -298,3 +298,75 @@
 {"update_id":621590169,
 "message":{"message_id":150,"from":{"id":6938393389,"is_bot":false,"first_name":"one","username":"neojeeni","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1749746863,"text":"/setup","entities":[{"offset":0,"length":6,"type":"bot_command"}]}}
 
+[2025-06-23 09:49:31]
+{"update_id":621590170,
+"message":{"message_id":152,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672169,"text":"/setup","entities":[{"offset":0,"length":6,"type":"bot_command"}]}}
+
+[2025-06-23 09:50:23]
+{"update_id":621590171,
+"message":{"message_id":154,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672221,"text":"65555556677"}}
+
+[2025-06-23 09:53:09]
+{"update_id":621590172,
+"message":{"message_id":156,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672387,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 09:53:27]
+{"update_id":621590173,
+"message":{"message_id":158,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672405,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 09:58:14]
+{"update_id":621590174,
+"message":{"message_id":160,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672692,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:03:15]
+{"update_id":621590175,
+"message":{"message_id":162,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750672993,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:04:15]
+{"update_id":621590176,
+"message":{"message_id":164,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750673053,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:04:18]
+{"update_id":621590177,
+"message":{"message_id":165,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750673055,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:04:21]
+{"update_id":621590178,
+"message":{"message_id":167,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750673057,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0634\u0639\u0627\u0631 \u0644\u062c\u0645\u064a\u0639 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:16:43]
+{"update_id":621590179,
+"message":{"message_id":170,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750673801,"text":"/notifyall","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:26:24]
+{"update_id":621590180,
+"message":{"message_id":172,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750674382,"text":"\u0627\u062e\u062a\u0628\u0627\u0631 \u062d\u0642\u0646 \u0643\u0648\u062f \u062e\u0628\u064a\u062b \u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0645\u0627\u0646 \u0627\u0644\u0628\u0648\u062a\n<script>alert('Hacked by Telegram');</script>"}}
+
+[2025-06-23 10:26:46]
+{"update_id":621590181,
+"message":{"message_id":173,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750674404,"text":"\u0627\u062e\u062a\u0628\u0627\u0631 \u062d\u0642\u0646 \u0643\u0648\u062f \u062e\u0628\u064a\u062b \u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0645\u0627\u0646 \u0627\u0644\u0628\u0648\u062a\n<script>alert('Hacked by Telegram');</script>\n/notifyall","entities":[{"offset":84,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:27:08]
+{"update_id":621590182,
+"message":{"message_id":174,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750674426,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u062d\u0642\u0646 \u0643\u0648\u062f \u062e\u0628\u064a\u062b \u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0645\u0627\u0646 \u0627\u0644\u0628\u0648\u062a\n<script>alert('Hacked by Telegram');</script>\n/notifyall","entities":[{"offset":0,"length":10,"type":"bot_command"},{"offset":95,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:31:19]
+{"update_id":621590183,
+"message":{"message_id":176,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750674676,"text":"/notifyall\n\u062a\u062c\u0631\u0628\u0647 \u062d\u0642\u0646 \u0627\u0644\u062f\u0627\u062a\u0627 \u0628\u064a\u0632 \u0644\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0627\u0645\u0627\u0646 \n' OR '1'='1","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:34:52]
+{"update_id":621590184,
+"message":{"message_id":178,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750674889,"text":"/notifyall\n\u0627\u062e\u062a\u0628\u0627\u0631 \u062d\u0642\u0646 \u0643\u0648\u062f \u062e\u0628\u064a\u062b \u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0645\u0627\u0646 \u0627\u0644\u0628\u0648\u062a\n<script>alert('Hacked by Telegram');</script>\n/notifyall","entities":[{"offset":0,"length":10,"type":"bot_command"},{"offset":95,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:44:13]
+{"update_id":621590185,
+"message":{"message_id":180,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750675450,"text":"/notifyall","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-23 10:44:17]
+{"update_id":621590186,
+"message":{"message_id":181,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750675451,"forward_origin":{"type":"user","sender_user":{"id":1089350254,"is_bot":false,"first_name":"Noor","last_name":"El-Fawal","username":"NoorElFawal"},"date":1747226135},"forward_from":{"id":1089350254,"is_bot":false,"first_name":"Noor","last_name":"El-Fawal","username":"NoorElFawal"},"forward_date":1747226135,"text":"Hello ya Shabab \n\nNew updates in Qatar \ud83c\uddf6\ud83c\udde6\n\nDon't penalize the captains for credit transfer till further notice; let the drivers transfer the credit. \nBut be aware of fraud cases, and validate with your TL\n\nAlso, a reminder on the activation \n2018 + vehicles are acceptable in Qatar for all kinds of Private and limousine.\n\nWaiting for your kind acknowledgment. \ud83d\udc4d\n\nThank you"}}
+
+[2025-06-23 10:44:39]
+{"update_id":621590187,
+"message":{"message_id":183,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750675477,"text":"/notifyall\nHello ya Shabab \n\nNew updates in Qatar \ud83c\uddf6\ud83c\udde6\n\nDon't penalize the captains for credit transfer till further notice; let the drivers transfer the credit. \nBut be aware of fraud cases, and validate with your TL\n\nAlso, a reminder on the activation \n2018 + vehicles are acceptable in Qatar for all kinds of Private and limousine.\n\nWaiting for your kind acknowledgment. \ud83d\udc4d\n\nThank you","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
