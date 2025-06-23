@@ -53,6 +53,15 @@ class Controller
      */
     public function view($view, $data = [])
     {
+        // Automatically fetch mandatory notifications for any view that is loaded for a logged-in user.
+        if (isset($_SESSION['user_id'])) {
+            // We create a temporary model instance here to avoid loading it for every single controller.
+            $notificationModel = $this->model('notifications/Notification');
+            if ($notificationModel) {
+                $data['mandatory_notifications'] = $notificationModel->getMandatoryUnreadForUser($_SESSION['user_id']);
+            }
+        }
+
         // Check for view file
         if (file_exists('../app/views/' . $view . '.php')) {
             // Extract data so it can be used by variable names in the view

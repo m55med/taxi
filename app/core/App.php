@@ -193,6 +193,9 @@ class App
                     case 'trips':
                         $controllerName = 'TripsReport/TripsReportController';
                         break;
+                    case 'notifications':
+                        $controllerName = 'Notifications/NotificationsController';
+                        break;
                 }
 
                 if ($controllerName) {
@@ -336,6 +339,21 @@ class App
                     unset($url[0]);
                     if (isset($url[1]))
                         unset($url[1]);
+                } else {
+                    $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'notifications') { // Handle notifications
+                $controllerName = 'NotificationsController';
+                $controllerFile = '../app/controllers/notifications/' . $controllerName . '.php';
+            
+                if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Notifications\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
                 } else {
                     $this->triggerNotFound();
                 }

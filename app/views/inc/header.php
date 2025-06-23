@@ -12,13 +12,15 @@
     <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/css/style.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <style>
         body {
             font-family: 'Cairo', sans-serif;
+            [x-cloak] { display: none !important; }
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" dir="rtl">
     <?php 
     if (session_status() === PHP_SESSION_NONE) {
         session_start();

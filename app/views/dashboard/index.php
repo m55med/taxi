@@ -307,5 +307,5 @@
     }
     </style>
 </body>
-
+<?php require APPROOT . '/app/views/inc/footer.php'; ?> 
 </html>

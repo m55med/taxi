@@ -53,7 +53,7 @@ CREATE TABLE `user_permissions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
-
+--جدول لربط بيانات التي
 CREATE TABLE telegram_links (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -68,17 +68,17 @@ CREATE TABLE telegram_links (
 
 
 
-
+--جدول لتخزين بيانات أنواع السيارات
 CREATE TABLE car_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL
 );
-
+--جدول لتخزين بيانات الدول
 CREATE TABLE countries (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
-
+--جدول لتخزين بيانات السائقين
 CREATE TABLE drivers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -556,4 +556,25 @@ CREATE TABLE working_hours (
 
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
     UNIQUE (agent_id, day_of_week) -- كل مندوب لا يمكن أن يُكرر نفس اليوم
+);
+
+
+--جدول الاشعارات
+CREATE TABLE user_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    notification_id INT NOT NULL,
+    is_read TINYINT(1) DEFAULT 0, -- 0 = لم يتم الفتح، 1 = تم الفتح
+    read_at TIMESTAMP NULL DEFAULT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE
+);
+--جدول لتخزين بيانات الاشعارات
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

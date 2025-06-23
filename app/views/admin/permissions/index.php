@@ -170,7 +170,7 @@
                 </select>
             </div>
         </form>
-    </div>
+            </div>
 
     <?php if ($data['selectedRoleId']) : ?>
         <!-- Search Bar -->
@@ -217,19 +217,19 @@
                                             <div class="permission-item">
                                                 <span class="permission-description"><?= htmlspecialchars($permission['description']) ?></span>
                                                 <label class="switch">
-                                                    <input type="checkbox"
+                                            <input type="checkbox"
                                                         class="permission-toggle"
                                                         data-permission-id="<?= $permission['id'] ?>"
                                                         <?= in_array($permission['permission_key'], $data['userPermissions'][$user['id']] ?? []) ? 'checked' : '' ?>
                                                         <?= $isLocked ? 'disabled' : '' ?>>
                                                     <span class="slider"></span>
-                                                </label>
+                                        </label>
                                             </div>
-                                        <?php endforeach; ?>
-                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>

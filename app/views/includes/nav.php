@@ -57,6 +57,7 @@
                                     <div x-show="openSubmenu === 'general'" x-collapse class="bg-gray-50">
                                         <a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">التحليلات</a>
                                         <a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">سجلات النظام</a>
+                                        <a href="<?= BASE_PATH ?>/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">تقرير الإشعارات</a>
                                     </div>
                                 </div>
                                 <!-- ... (بقية قوائم التقارير تبقى كما هي) ... -->
@@ -229,6 +230,46 @@
             
             <!-- معلومات المستخدم للشاشات الكبيرة -->
             <div class="hidden sm:flex sm:items-center sm:ml-6">
+                <!-- Notification Bell (Desktop) -->
+                <div class="relative flex items-center mr-4" x-data="navNotifications()">
+                    <button @click="open = !open" class="text-gray-500 hover:text-gray-700 focus:outline-none relative">
+                        <i class="fas fa-bell"></i>
+                        <template x-if="unreadCount > 0">
+                            <span class="absolute -top-2 -right-2 flex h-5 w-5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs" x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
+                            </span>
+                        </template>
+                    </button>
+                    <div @click.away="open = false" x-show="open" 
+                         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                         class="absolute top-full right-0 mt-2 w-80 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                        <div class="p-2 flex justify-between items-center border-b">
+                            <span class="font-bold text-gray-700">Notifications</span>
+                            <a href="<?= BASE_PATH ?>/notifications/history" class="text-sm text-blue-600 hover:underline">View All</a>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            <template x-if="notifications.length === 0">
+                                <p class="text-gray-500 text-sm text-center p-4">You have no new notifications.</p>
+                            </template>
+                            <template x-for="notification in notifications" :key="notification.id">
+                                <a :href="`<?= BASE_PATH ?>/notifications/history#notification-${notification.id}`" class="block px-4 py-3 hover:bg-gray-100 border-b">
+                                    <div class="flex items-start">
+                                        <div class="w-8 text-center">
+                                            <i class="fas fa-info-circle" :class="!notification.is_read ? 'text-blue-500' : 'text-gray-400'"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-gray-800 text-sm" x-text="notification.title"></p>
+                                            <p class="text-xs text-gray-500 mt-1" x-text="new Date(notification.created_at).toLocaleString()"></p>
+                                        </div>
+                                    </div>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="ml-3 relative">
                     <div class="flex items-center space-x-3 space-x-reverse">
                         <span class="text-sm text-gray-500">مرحباً، <?= htmlspecialchars($_SESSION['username']) ?></span>
@@ -335,6 +376,33 @@
         </div>
     </div>
 
+    <script>
+    function navNotifications() {
+        return {
+            open: false,
+            unreadCount: 0,
+            notifications: [],
+            init() {
+                // Assign to window so modal can call it after marking as read
+                window.updateNavNotifications = this.fetchNotifications.bind(this);
+                this.fetchNotifications();
+                // Refresh notifications every 2 minutes
+                setInterval(() => this.fetchNotifications(), 120000);
+            },
+            fetchNotifications() {
+                fetch('<?= BASE_PATH ?>/notifications/getNavNotifications')
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data) {
+                            this.notifications = data.notifications;
+                            this.unreadCount = data.unread_count;
+                        }
+                    })
+                    .catch(err => console.error('Error fetching nav notifications:', err));
+            }
+        }
+    }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </nav>
