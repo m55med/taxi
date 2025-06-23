@@ -484,7 +484,7 @@ class App
         $publicRoutes = [
             'Auth/login',
             'Auth/register',
-            'Referral/register'
+            'Referral/index' // Corrected from 'Referral/register' as the router maps this URL to the 'index' method.
             // Note: Telegram webhook has its own entry point and is handled before this
         ];
         

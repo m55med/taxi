@@ -117,7 +117,7 @@ CREATE TABLE drivers (
 
 
 
-
+--جدول لتخزين مكالمات السائقين
 CREATE TABLE driver_calls (
     id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE driver_calls (
     FOREIGN KEY (call_by) REFERENCES users(id),
     INDEX idx_next_call_at (next_call_at) -- Index for filtering by call time
 );
-
+--جدول لتخزين تحويلات المكالمات بين الموظفين
 CREATE TABLE driver_assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE driver_assignments (
     FOREIGN KEY (from_user_id) REFERENCES users(id),
     FOREIGN KEY (to_user_id) REFERENCES users(id)
 );
-
+--جدول لتخزين بيانات المستندات المطلوبة للسائقين
 CREATE TABLE document_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -159,7 +159,7 @@ INSERT INTO document_types (name) VALUES
 ('Vehicle\'s pic'),
 ('Personal ID');
 
-
+--جدول لتخزين بيانات المستندات المطلوبة للسائقين
 CREATE TABLE driver_documents_required (
     id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
@@ -175,9 +175,6 @@ CREATE TABLE driver_documents_required (
     
     UNIQUE(driver_id, document_type_id) -- يمنع التكرار لنفس المستند لنفس السائق
 );
-
-
-
 
 -- جدول المنصات
 CREATE TABLE platforms (
@@ -336,7 +333,7 @@ CREATE TABLE ticket_coupons (
     
     UNIQUE(ticket_id, coupon_id) -- يمنع تكرار نفس الكوبون لتذكرة واحدة
 );
-
+--جدول لتخزين بيانات الزيارات المرجعية
 CREATE TABLE referral_visits (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
@@ -395,7 +392,8 @@ CREATE TABLE referral_visits (
     FOREIGN KEY (registered_driver_id) REFERENCES drivers(id) ON DELETE SET NULL ON UPDATE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+--
+--جدول لتخزين بيانات الرحلات
 CREATE TABLE trips (
     order_id CHAR(36) PRIMARY KEY COMMENT 'معرّف الطلب الفريد (UUID)',
 
@@ -517,7 +515,8 @@ CREATE TABLE trips (
 --   FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
 --   UNIQUE KEY unique_permission (role_id, permission)
 -- );
-
+--
+--جدول لتخزين إجازات السائقين
 CREATE TABLE driver_snoozes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     driver_id INT NOT NULL,
@@ -531,7 +530,7 @@ CREATE TABLE driver_snoozes (
 );
 
 
-
+--جدول لربط المندوبين بحسابتهم في الموقع
 CREATE TABLE agents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -546,6 +545,7 @@ CREATE TABLE agents (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+--جدول لتخزين ساعات العمل للمندوبين
 CREATE TABLE working_hours (
     id INT AUTO_INCREMENT PRIMARY KEY,
     agent_id INT NOT NULL,
