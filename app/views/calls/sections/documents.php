@@ -7,7 +7,7 @@ $driver = $driver ?? null;
 ?>
 
 <?php if ($driver): ?>
-<div class="bg-white rounded-lg shadow p-6" id="documents-section-container">
+<div class="bg-white rounded-lg shadow p-6" id="documents-section-container" data-driver-id="<?= htmlspecialchars($driver['id'] ?? '') ?>">
     <!-- Header: Title and Action Buttons -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h2 class="text-xl font-bold text-gray-800 flex items-center">
@@ -15,38 +15,82 @@ $driver = $driver ?? null;
             <span>مستندات السائق</span>
         </h2>
         <div class="flex items-center gap-2">
-            <button id="save-documents-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <button id="save-documents-btn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
                 <i class="fas fa-save ml-2"></i>
                 <span>حفظ التغييرات</span>
             </button>
         </div>
     </div>
 
-    <!-- Container for document cards -->
+    <!-- Container for document items -->
     <div id="documents-list" class="space-y-4">
-        <!-- Document cards will be rendered here by JS -->
-    </div>
-    
-    <!-- Placeholder for when no documents are added -->
-    <div id="no-documents-placeholder" class="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg hidden">
-        <div class="text-gray-400">
-            <svg class="mx-auto h-12 w-12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-800">لا توجد مستندات</h3>
-            <p class="mt-1 text-sm text-gray-500">ابدأ بإضافة أول مستند للسائق.</p>
-        </div>
+        <?php if (empty($document_types)): ?>
+            <p class="text-gray-500 text-center py-4">لا توجد أنواع مستندات معرفة في النظام.</p>
+        <?php else: ?>
+            <?php
+            // Create a lookup map for faster access to submitted document details.
+            $submitted_docs_map = [];
+            foreach ($required_documents as $doc) {
+                $submitted_docs_map[$doc['document_type_id']] = $doc;
+            }
+            ?>
+            <?php foreach ($document_types as $doc_type): ?>
+                <?php
+                $doc_id = $doc_type['id'];
+                $submitted_doc = $submitted_docs_map[$doc_id] ?? null;
+                $isChecked = $submitted_doc !== null;
+                ?>
+                <div class="document-item border rounded-lg overflow-hidden transition-all duration-300 <?= $isChecked ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' ?>" data-doc-id="<?= $doc_id ?>">
+                    <!-- Header with Checkbox and Name -->
+                    <label class="flex items-center p-3 cursor-pointer bg-gray-50 border-b hover:bg-gray-100">
+                        <input type="checkbox"
+                               class="document-checkbox form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                               value="<?= $doc_id ?>"
+                               <?= $isChecked ? 'checked' : '' ?>>
+                        <span class="ml-3 text-gray-800 font-semibold" dir="ltr"><?= htmlspecialchars($doc_type['name']) ?></span>
+                    </label>
+                    
+                    <!-- Details Section (Status, Note, etc.) -->
+                    <div class="document-details p-4 space-y-4 <?= !$isChecked ? 'hidden' : '' ?>">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-medium text-gray-600 block mb-1">الحالة</label>
+                                <select class="status-select w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                    <?php
+                                    $statuses = ['submitted' => 'تم التسليم', 'approved' => 'مقبول', 'rejected' => 'مرفوض'];
+                                    // Make sure status is one of the valid keys, default to 'submitted'
+                                    $current_status = $submitted_doc['status'] ?? 'submitted';
+                                    if (!array_key_exists($current_status, $statuses)) {
+                                        $current_status = 'submitted';
+                                    }
+                                    foreach ($statuses as $key => $value) {
+                                        $selected = ($key === $current_status) ? 'selected' : '';
+                                        echo "<option value='{$key}' {$selected}>{$value}</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-gray-600 block mb-1">ملاحظات</label>
+                                <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                          placeholder="أضف ملاحظة (اختياري)..."
+                                          rows="1"><?= htmlspecialchars($submitted_doc['note'] ?? '') ?></textarea>
+                            </div>
+                        </div>
+                        <?php if ($submitted_doc && !empty($submitted_doc['updated_at'])): ?>
+                            <div class="text-xs text-gray-500 text-right">
+                                <i class="fas fa-clock fa-fw"></i>
+                                آخر تحديث: <?= (new DateTime($submitted_doc['updated_at']))->format('Y-m-d H:i') ?>
+                                <?php if (!empty($submitted_doc['updated_by_name'])): ?>
+                                    بواسطة: <?= htmlspecialchars($submitted_doc['updated_by_name']) ?>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </div>
-
-<!-- Pass initial data to JavaScript -->
-<script>
-    // Make sure to only output valid JSON
-    const allDocumentTypes = <?= json_encode(array_values($document_types), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    // By passing the documents as a plain array of objects, we make the data structure more robust
-    // and easier to work with in JavaScript (e.g., using array.find()).
-    const driverDocuments = <?= json_encode(array_values($required_documents), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-    const driverId = <?= json_encode($driver['id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-</script>
 
 <?php endif; ?>

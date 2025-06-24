@@ -18,57 +18,42 @@ class Document
     public function getDriverDocuments($driverId, $keyedById = false)
     {
         try {
-            // Step 1: Fetch all document types and create a name lookup map for efficiency.
-            $allTypesStmt = $this->db->prepare("SELECT id, name FROM document_types");
-            $allTypesStmt->execute();
-            $docTypeMap = $allTypesStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-            // Step 2: Fetch all users and create a name lookup map.
-            $allUsersStmt = $this->db->prepare("SELECT id, name FROM users");
-            $allUsersStmt->execute();
-            $userMap = $allUsersStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-            
-            // Step 3: Fetch the raw required document data for the specified driver.
             $sql = "
                 SELECT 
-                    id,
-                    driver_id,
-                    document_type_id,
-                    status,
-                    note,
-                    updated_at,
-                    updated_by
-                FROM driver_documents_required
-                WHERE driver_id = :driver_id
+                    ddr.id,
+                    ddr.driver_id,
+                    ddr.document_type_id,
+                    ddr.status,
+                    ddr.note,
+                    ddr.updated_at,
+                    ddr.updated_by,
+                    dt.name AS name, -- Alias document type name as 'name' for consistency
+                    u.username AS updated_by_name
+                FROM 
+                    driver_documents_required ddr
+                JOIN 
+                    document_types dt ON ddr.document_type_id = dt.id
+                LEFT JOIN 
+                    users u ON ddr.updated_by = u.id
+                WHERE 
+                    ddr.driver_id = :driver_id
+                ORDER BY 
+                    dt.name ASC
             ";
+            
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['driver_id' => $driverId]);
             $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Step 4: Manually enrich the documents with names from the maps.
-            $enrichedDocuments = [];
-            foreach ($documents as $doc) {
-                // Add the document type name.
-                $doc['name'] = $docTypeMap[$doc['document_type_id']] ?? 'مستند غير معروف';
-                // Add the updater's name.
-                $doc['updated_by_name'] = $userMap[$doc['updated_by']] ?? 'غير معروف';
-                $enrichedDocuments[] = $doc;
-            }
-
-            // Sort by the newly added name field.
-            usort($enrichedDocuments, function($a, $b) {
-                return strcmp($a['name'], $b['name']);
-            });
-
             if ($keyedById) {
                 $keyedDocuments = [];
-                foreach ($enrichedDocuments as $doc) {
+                foreach ($documents as $doc) {
                     $keyedDocuments[$doc['document_type_id']] = $doc;
                 }
                 return $keyedDocuments;
             }
 
-            return $enrichedDocuments;
+            return $documents;
 
         } catch (PDOException $e) {
             error_log("Error in getDriverDocuments: " . $e->getMessage());

@@ -51,33 +51,7 @@
             </div>
         </div>
 
-        <?php if (isset($debug_info) && !empty($debug_info)) : ?>
-            <div class="mb-6 p-4 bg-gray-800 text-white rounded-lg shadow-md font-mono text-sm">
-                <h3 class="text-lg font-bold mb-2 border-b border-gray-600 pb-2">معلومات التشخيص (للمطورين)</h3>
-                
-                <?php if (!empty($debug_info['error'])) : ?>
-                    <div class="mb-4">
-                        <strong class="text-red-400">خطأ في الاستعلام:</strong>
-                        <pre class="bg-red-900 text-white p-2 rounded mt-1"><?= htmlspecialchars($debug_info['error']) ?></pre>
-                    </div>
-                <?php endif; ?>
 
-                 <div class="mb-4">
-                    <strong class="text-yellow-400">ID السائق الذي تم اختياره (قبل القفل):</strong>
-                    <span class="text-xl font-bold ml-2"><?= $debug_info['driver_id'] ?? 'None' ?></span>
-                </div>
-
-                <div class="mb-4">
-                    <strong class="text-cyan-400">الاستعلام الذي تم تنفيذه:</strong>
-                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars($debug_info['query'] ?? '') ?></pre>
-                </div>
-
-                <div>
-                    <strong class="text-green-400">المُدخلات:</strong>
-                    <pre class="bg-gray-900 p-2 rounded mt-1"><?= htmlspecialchars(print_r($debug_info['params'] ?? [], true)) ?></pre>
-                </div>
-            </div>
-        <?php endif; ?>
 
         <!-- Conditional Content: Rate Limit / No Driver / Main Content -->
         <?php if (isset($rate_limit_exceeded) && $rate_limit_exceeded === true): ?>
@@ -146,7 +120,7 @@
     <script src="<?= BASE_PATH ?>/app/views/calls/js/shared.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/calls/js/driver-profile.js?v=1.1"></script>
     <script src="<?= BASE_PATH ?>/app/views/calls/js/driver-info.js?v=1.3"></script>
-    <script src="<?= BASE_PATH ?>/app/views/calls/js/documents.js"></script>
+    <script src="<?= BASE_PATH ?>/app/views/calls/js/documents.js?v=1.0"></script>
     <script src="<?= BASE_PATH ?>/app/views/calls/js/transfer.js"></script>
     <script src="<?= BASE_PATH ?>/app/views/calls/js/call-form.js"></script>
     <script>

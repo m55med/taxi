@@ -66,8 +66,8 @@ class CallsController extends Controller
             'countries'            => $countryModel ? $countryModel->getAll() : [],
             'car_types'            => $carTypeModel ? $carTypeModel->getAll() : [],
             'document_types'       => $documentModel ? $documentModel->getAllTypes() : [],
-            'required_documents'   => [],
-            'call_history'         => [],
+            'required_documents'   => $driver && $documentModel ? $documentModel->getDriverDocuments($driver['id'], true) : [],
+            'call_history'         => $driver ? $callModel->getCallHistory($driver['id']) : [],
             'today_calls_count'    => $callModel->getTodayCallsCount(),
             'total_pending_calls'  => $callModel->getTotalPendingCalls(),
             'call_status_text'     => [
@@ -80,13 +80,8 @@ class CallsController extends Controller
             ]
         ];
 
-        if ($driver && $documentModel) {
+        if ($driver) {
             $_SESSION['locked_driver_id'] = $driver['id'];
-
-            // The getDriverDocuments function is now responsible for enriching the data.
-            // No need for manual merging here anymore.
-            $data['required_documents'] = $documentModel->getDriverDocuments($driver['id'], true);
-            $data['call_history'] = $callModel->getCallHistory($driver['id']);
         }
         
         $this->view('calls/index', $data);

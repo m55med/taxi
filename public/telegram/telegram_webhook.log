@@ -370,3 +370,31 @@
 {"update_id":621590187,
 "message":{"message_id":183,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"ar"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750675477,"text":"/notifyall\nHello ya Shabab \n\nNew updates in Qatar \ud83c\uddf6\ud83c\udde6\n\nDon't penalize the captains for credit transfer till further notice; let the drivers transfer the credit. \nBut be aware of fraud cases, and validate with your TL\n\nAlso, a reminder on the activation \n2018 + vehicles are acceptable in Qatar for all kinds of Private and limousine.\n\nWaiting for your kind acknowledgment. \ud83d\udc4d\n\nThank you","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
 
+[2025-06-24 15:29:15]
+{"update_id":621590193,
+"message":{"message_id":195,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750778971,"text":"ddd"}}
+
+[2025-06-24 15:29:30]
+{"update_id":621590194,
+"message":{"message_id":196,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750778986,"text":"/setup","entities":[{"offset":0,"length":6,"type":"bot_command"}]}}
+
+[2025-06-24 15:31:23]
+{"update_id":621590195,
+"message":{"message_id":198,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750779099,"text":"fsdfsd"}}
+
+[2025-06-24 15:31:30]
+{"update_id":621590196,
+"message":{"message_id":199,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750779106,"text":"/setup","entities":[{"offset":0,"length":6,"type":"bot_command"}]}}
+
+[2025-06-24 15:31:53]
+{"update_id":621590197,
+"message":{"message_id":201,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750779129,"text":"231212321311"}}
+
+[2025-06-24 15:32:32]
+{"update_id":621590198,
+"message":{"message_id":203,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750779167,"text":"/notifyall\nHello ya Shabab \n\nNew updates in Qatar \ud83c\uddf6\ud83c\udde6\n\nDon't penalize the captains for credit transfer till further notice; let the drivers transfer the credit. \nBut be aware of fraud cases, and validate with your TL\n\nAlso, a reminder on the activation \n2018 + vehicles are acceptable in Qatar for all kinds of Private and limousine.\n\nWaiting for your kind acknowledgment. \ud83d\udc4d\n\nThank you","entities":[{"offset":0,"length":10,"type":"bot_command"}]}}
+
+[2025-06-24 15:41:45]
+{"update_id":621590199,
+"message":{"message_id":205,"from":{"id":1566824321,"is_bot":false,"first_name":"Mohamed","last_name":"Ahmed","username":"M55med","language_code":"en"},"chat":{"id":-1002894056638,"title":"testing","type":"supergroup"},"date":1750779721,"text":"/setup","entities":[{"offset":0,"length":6,"type":"bot_command"}]}}
+
