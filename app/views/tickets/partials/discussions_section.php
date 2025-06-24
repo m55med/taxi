@@ -12,14 +12,15 @@
 
 <!-- Add Discussion Form -->
 <div x-show="openDiscussionForm" x-collapse x-cloak class="mb-4 border-t pt-4">
-    <form action="<?= BASE_PATH ?>/tickets/addDiscussion/<?= $ticket['id'] ?>" method="POST">
+    <form id="discussionForm" action="<?= BASE_PATH ?>/tickets/addDiscussion/<?= $ticket['id'] ?>" method="POST">
         <div class="mb-3">
             <label for="reason_sidebar" class="block text-xs font-medium text-gray-700 mb-1">السبب</label>
             <input type="text" id="reason_sidebar" name="reason" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" >
         </div>
         <div class="mb-3">
-            <label for="notes_sidebar" class="block text-xs font-medium text-gray-700 mb-1">الملاحظات</label>
-            <textarea id="notes_sidebar" name="notes" rows="2" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></textarea>
+            <label class="block text-xs font-medium text-gray-700 mb-1">الملاحظات</label>
+            <input name="notes" type="hidden">
+            <div id="discussionEditor" style="height: 150px;"></div>
         </div>
         <button type="submit" class="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
             بدء المناقشة
@@ -52,7 +53,7 @@
                 <div x-show="open" x-collapse class="mt-2 pt-2 border-t border-gray-200">
                     <!-- Discussion Body -->
                     <div class="text-xs text-gray-700 bg-white p-2 rounded-md mb-3">
-                        <?= nl2br(htmlspecialchars($discussion['notes'])) ?>
+                        <?= $discussion['notes'] ?>
                          <p class="text-gray-400 text-left mt-1" dir="ltr"><?= date('Y-m-d H:i', strtotime($discussion['created_at'])) ?></p>
                     </div>
 

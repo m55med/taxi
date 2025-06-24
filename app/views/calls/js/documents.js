@@ -10,7 +10,7 @@ const documentsModule = {
         const container = document.getElementById('toast-container');
         if (!container) {
             alert(message); // Fallback
-            return;
+        return;
         }
 
         const toast = document.createElement('div');
