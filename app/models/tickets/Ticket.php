@@ -13,159 +13,89 @@ class Ticket extends Model
         parent::__construct();
     }
 
-    public function create(array $data)
+    public function createTicket(array $data, $userId)
     {
         $this->db->beginTransaction();
 
         try {
-            // 1. Insert the main ticket
-            $ticketSql = "INSERT INTO tickets (ticket_number, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, created_by, assigned_team_leader_id) 
-                          VALUES (:ticket_number, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :created_by, :assigned_team_leader_id)";
-            
+            // Step 1: Create the main ticket record
+            $ticketSql = "INSERT INTO tickets (ticket_number, created_by) VALUES (:ticket_number, :created_by)";
             $stmt = $this->db->prepare($ticketSql);
-
-            $params = [
-                ':ticket_number'            => $data['ticket_number'],
-                ':is_vip'                   => $data['is_vip'] ?? 0,
-                ':platform_id'              => $data['platform_id'],
-                ':phone'                    => !empty($data['phone']) ? $data['phone'] : null,
-                ':category_id'              => $data['category_id'],
-                ':subcategory_id'           => $data['subcategory_id'],
-                ':code_id'                  => $data['code_id'],
-                ':notes'                    => !empty($data['notes']) ? $data['notes'] : null,
-                ':country_id'               => !empty($data['country_id']) ? $data['country_id'] : null,
-                ':created_by'               => $_SESSION['user_id'], // Assuming user ID is in session
-                ':assigned_team_leader_id'  => $data['assigned_team_leader_id'] // Assuming this comes from the form
-            ];
-            
-            $stmt->execute($params);
+            $stmt->execute([':ticket_number' => $data['ticket_number'], ':created_by' => $userId]);
             $ticketId = $this->db->lastInsertId();
 
-            // 2. Handle coupons if they exist
-            if (!empty($data['coupons']) && is_array($data['coupons'])) {
-                $couponSql = "INSERT INTO ticket_coupons (ticket_id, coupon_id) VALUES (:ticket_id, :coupon_id)";
-                $couponStmt = $this->db->prepare($couponSql);
-                
-                $updateUsedCouponSql = "UPDATE coupons SET is_used = 1, used_by = :user_id, used_in_ticket = :ticket_id, used_at = NOW(), used_for_phone = :used_for_phone WHERE id = :coupon_id";
-                $updateStmt = $this->db->prepare($updateUsedCouponSql);
-
-                foreach ($data['coupons'] as $couponId) {
-                    if (empty($couponId)) continue;
-                    
-                    // Link coupon to ticket
-                    $couponStmt->execute([':ticket_id' => $ticketId, ':coupon_id' => $couponId]);
-                    
-                    // Mark coupon as used
-                    $updateStmt->execute([
-                        ':user_id' => $_SESSION['user_id'],
-                        ':ticket_id' => $ticketId,
-                        ':coupon_id' => $couponId,
-                        ':used_for_phone' => !empty($data['phone']) ? $data['phone'] : null
-                    ]);
-                }
-            }
+            // Step 2: Add the first detail record, which also handles coupons
+            $this->addTicketDetail($ticketId, $data, $userId);
 
             $this->db->commit();
             return $ticketId;
 
         } catch (\Exception $e) {
             $this->db->rollBack();
-            // Log error for debugging
-            error_log("Ticket creation failed: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
-    public function update(array $data)
+    public function addTicketDetail($ticketId, array $data, $userId)
     {
-        $this->db->beginTransaction();
-
+        // This function now assumes it is called within a transaction (from store() in controller)
         try {
-            // 1. Update the main ticket details
-            $ticketSql = "UPDATE tickets SET
-                            is_vip = :is_vip,
-                            platform_id = :platform_id,
-                            phone = :phone,
-                            category_id = :category_id,
-                            subcategory_id = :subcategory_id,
-                            code_id = :code_id,
-                            notes = :notes,
-                            country_id = :country_id
-                          WHERE ticket_number = :ticket_number";
+            $detailSql = "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by)
+                          VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by)";
             
-            $stmt = $this->db->prepare($ticketSql);
-
+            $stmt = $this->db->prepare($detailSql);
+            $teamLeaderId = $this->getTeamLeaderForUser($userId);
             $params = [
-                ':ticket_number'    => $data['ticket_number'],
-                ':is_vip'           => $data['is_vip'] ?? 0,
-                ':platform_id'      => $data['platform_id'],
-                ':phone'            => !empty($data['phone']) ? $data['phone'] : null,
-                ':category_id'      => $data['category_id'],
-                ':subcategory_id'   => $data['subcategory_id'],
-                ':code_id'          => $data['code_id'],
-                ':notes'            => !empty($data['notes']) ? $data['notes'] : null,
-                ':country_id'       => !empty($data['country_id']) ? $data['country_id'] : null,
+                ':ticket_id' => $ticketId,
+                ':is_vip' => $data['is_vip'] ?? 0,
+                ':platform_id' => $data['platform_id'],
+                ':phone' => !empty($data['phone']) ? $data['phone'] : null,
+                ':category_id' => $data['category_id'],
+                ':subcategory_id' => $data['subcategory_id'],
+                ':code_id' => $data['code_id'],
+                ':notes' => !empty($data['notes']) ? $data['notes'] : null,
+                ':country_id' => !empty($data['country_id']) ? $data['country_id'] : null,
+                ':assigned_team_leader_id' => $teamLeaderId,
+                ':edited_by' => $userId
             ];
-            
             $stmt->execute($params);
+            $detailId = $this->db->lastInsertId();
 
-            // Fetch ticket details to get ID and existing coupons
-            $ticket = $this->findByTicketNumber($data['ticket_number']);
-            if (!$ticket) {
-                // Should not happen in update flow, but as a safeguard
-                $this->db->rollBack();
-                return false;
-            }
-            $ticketId = $ticket['id'];
-
-            // 2. Handle newly added coupons
-            $existingCouponIdsOnTicket = array_column($ticket['coupons'], 'id');
-            $submittedCouponIds = !empty($data['coupons']) ? array_map('intval', array_filter($data['coupons'])) : [];
-            
-            $couponsToAdd = array_diff($submittedCouponIds, $existingCouponIdsOnTicket);
-            
-            if (!empty($couponsToAdd)) {
-                $couponSql = "INSERT INTO ticket_coupons (ticket_id, coupon_id) VALUES (:ticket_id, :coupon_id)";
-                $couponStmt = $this->db->prepare($couponSql);
-                
-                $updateUsedCouponSql = "UPDATE coupons SET is_used = 1, used_by = :user_id, used_in_ticket = :ticket_id, used_at = NOW(), used_for_phone = :used_for_phone WHERE id = :coupon_id";
-                $updateStmt = $this->db->prepare($updateUsedCouponSql);
-
-                foreach ($couponsToAdd as $couponId) {
-                    // Link coupon to ticket
-                    $couponStmt->execute([':ticket_id' => $ticketId, ':coupon_id' => $couponId]);
-                    
-                    // Mark coupon as used
-                    $updateStmt->execute([
-                        ':user_id' => $_SESSION['user_id'],
-                        ':ticket_id' => $ticketId,
-                        ':coupon_id' => $couponId,
-                        ':used_for_phone' => !empty($data['phone']) ? $data['phone'] : null
-                    ]);
-                }
+            // Sync coupons to this new detail ID
+            if (isset($data['coupons'])) {
+                $this->syncCoupons($ticketId, $detailId, $data['coupons']);
             }
 
-            $this->db->commit();
-            return true;
-
+            return $detailId;
         } catch (\Exception $e) {
-            $this->db->rollBack();
-            // Log error for debugging
-            error_log("Ticket update failed: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 
-    public function findByTicketNumber(string $ticketNumber)
+    public function findTicketByNumber(string $ticketNumber)
     {
-        $sql = "SELECT t.*, p.name as platform_name, c.name as category_name, sc.name as subcategory_name, co.name as code_name, u_creator.username as creator_name, u_leader.username as leader_name
+        $sql = "SELECT 
+                    t.id, t.ticket_number, t.created_by, t.created_at,
+                    td.*, -- Select all from ticket_details
+                    p.name as platform_name, 
+                    c.name as category_name, 
+                    sc.name as subcategory_name, 
+                    co.name as code_name, 
+                    u_creator.username as creator_name, 
+                    u_editor.username as editor_name, -- Changed from leader to editor
+                    u_leader.username as leader_name
                 FROM tickets t
-                LEFT JOIN platforms p ON t.platform_id = p.id
-                LEFT JOIN ticket_categories c ON t.category_id = c.id
-                LEFT JOIN ticket_subcategories sc ON t.subcategory_id = sc.id
-                LEFT JOIN ticket_codes co ON t.code_id = co.id
+                -- Join with the latest detail record
+                JOIN ticket_details td ON t.id = td.ticket_id AND td.id = (
+                    SELECT MAX(id) FROM ticket_details WHERE ticket_id = t.id
+                )
+                LEFT JOIN platforms p ON td.platform_id = p.id
+                LEFT JOIN ticket_categories c ON td.category_id = c.id
+                LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
+                LEFT JOIN ticket_codes co ON td.code_id = co.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
-                LEFT JOIN users u_leader ON t.assigned_team_leader_id = u_leader.id
+                LEFT JOIN users u_editor ON td.edited_by = u_editor.id -- The user who made the last change
+                LEFT JOIN users u_leader ON td.assigned_team_leader_id = u_leader.id
                 WHERE t.ticket_number = :ticket_number";
         
         $stmt = $this->db->prepare($sql);
@@ -173,38 +103,126 @@ class Ticket extends Model
         $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($ticket) {
-            // Fetch associated coupons for the ticket
-            $couponSql = "SELECT c.id, c.code, c.value 
-                          FROM coupons c
-                          JOIN ticket_coupons tc ON c.id = tc.coupon_id
-                          WHERE tc.ticket_id = ?";
-            
-            $couponStmt = $this->db->prepare($couponSql);
-            $couponStmt->execute([$ticket['id']]);
-            $ticket['coupons'] = $couponStmt->fetchAll(PDO::FETCH_ASSOC);
+            $ticket['coupons'] = $this->getTicketCoupons($ticket['id']);
         }
 
         return $ticket ?: null;
     }
 
+    public function findTicketByNumberOrPhone(string $searchTerm)
+    {
+        // First, try to find by ticket number, as it's unique and faster.
+        $ticket = $this->findTicketByNumber($searchTerm);
+        if ($ticket) {
+            return $ticket;
+        }
+
+        // If not found, search by phone number in all ticket_details.
+        // We want the ticket that had this phone number most recently.
+        $sql = "SELECT t.id
+                FROM tickets t
+                JOIN ticket_details td ON t.id = td.ticket_id
+                WHERE td.phone = :phone
+                ORDER BY td.created_at DESC
+                LIMIT 1";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':phone' => $searchTerm]);
+        $ticketId = $stmt->fetchColumn();
+
+        // If we found a ticket ID, use findById to get all its details.
+        if ($ticketId) {
+            return $this->findById($ticketId);
+        }
+
+        return null; // Return null if nothing is found.
+    }
+
+    public function getTeamLeaderForUser($userId)
+    {
+        $sql = "SELECT t.team_leader_id 
+                FROM teams t
+                JOIN team_members tm ON t.id = tm.team_id
+                WHERE tm.user_id = :user_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchColumn();
+    }
+    
+    public function syncCoupons($ticketId, $detailId, array $couponIds) {
+        try {
+            // Unmark coupons that are associated with the ticket but are not in the new list
+            $currentCouponsSql = "SELECT coupon_id FROM ticket_coupons WHERE ticket_id = ?";
+            $stmt = $this->db->prepare($currentCouponsSql);
+            $stmt->execute([$ticketId]);
+            $allTicketCouponIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $couponsToUnmark = array_diff($allTicketCouponIds, $couponIds);
+
+            if (!empty($couponsToUnmark)) {
+                $unmarkPlaceholders = implode(',', array_fill(0, count($couponsToUnmark), '?'));
+                $unmarkSql = "UPDATE coupons SET is_used = 0, used_by = NULL, used_in_ticket = NULL, used_at = NULL, used_for_phone = NULL WHERE id IN ($unmarkPlaceholders)";
+                $stmt = $this->db->prepare($unmarkSql);
+                $stmt->execute(array_values($couponsToUnmark));
+            }
+            
+            // Delete all of the ticket's existing coupon associations
+            $deleteSql = "DELETE FROM ticket_coupons WHERE ticket_id = ?";
+            $stmt = $this->db->prepare($deleteSql);
+            $stmt->execute([$ticketId]);
+
+            // Re-insert associations for all coupons in the current submission
+            if (!empty($couponIds)) {
+                $phoneSql = "SELECT phone FROM ticket_details WHERE id = ?";
+                $phoneStmt = $this->db->prepare($phoneSql);
+                $phoneStmt->execute([$detailId]);
+                $phone = $phoneStmt->fetchColumn();
+                $userId = $_SESSION['user_id'];
+                
+                $couponSql = "INSERT INTO ticket_coupons (ticket_id, ticket_detail_id, coupon_id) VALUES (?, ?, ?)";
+                $couponStmt = $this->db->prepare($couponSql);
+                
+                $updateUsedCouponSql = "UPDATE coupons SET is_used = 1, used_by = ?, used_in_ticket = ?, used_at = NOW(), used_for_phone = ? WHERE id = ?";
+                $updateStmt = $this->db->prepare($updateUsedCouponSql);
+
+                foreach ($couponIds as $couponId) {
+                    if (empty($couponId)) continue;
+                    $couponStmt->execute([$ticketId, $detailId, $couponId]);
+                    $updateStmt->execute([$userId, $ticketId, $phone, $couponId]);
+                }
+            }
+            return true;
+        } catch (\Exception $e) {
+            throw $e;
+        }
+    }
+
     public function findById(int $id)
     {
-        $sql = "SELECT t.*, 
-                       p.name as platform_name, 
-                       cat.name as category_name, 
-                       sc.name as subcategory_name, 
-                       cod.name as code_name, 
-                       u_creator.username as creator_username, 
-                       u_leader.username as leader_username,
-                       cnt.name as country_name
+        // This function now gets the latest version of the ticket
+        $sql = "SELECT 
+                    t.id, t.ticket_number, t.created_by, t.created_at,
+                    td.*,
+                    p.name as platform_name, 
+                    cat.name as category_name, 
+                    sc.name as subcategory_name, 
+                    cod.name as code_name, 
+                    u_creator.username as creator_username,
+                    u_editor.username as editor_username, 
+                    u_leader.username as leader_username,
+                    cnt.name as country_name
                 FROM tickets t
-                LEFT JOIN platforms p ON t.platform_id = p.id
-                LEFT JOIN ticket_categories cat ON t.category_id = cat.id
-                LEFT JOIN ticket_subcategories sc ON t.subcategory_id = sc.id
-                LEFT JOIN ticket_codes cod ON t.code_id = cod.id
+                JOIN ticket_details td ON t.id = td.ticket_id AND td.id = (
+                    SELECT MAX(id) FROM ticket_details WHERE ticket_id = t.id
+                )
+                LEFT JOIN platforms p ON td.platform_id = p.id
+                LEFT JOIN ticket_categories cat ON td.category_id = cat.id
+                LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
+                LEFT JOIN ticket_codes cod ON td.code_id = cod.id
                 LEFT JOIN users u_creator ON t.created_by = u_creator.id
-                LEFT JOIN users u_leader ON t.assigned_team_leader_id = u_leader.id
-                LEFT JOIN countries cnt ON t.country_id = cnt.id
+                LEFT JOIN users u_editor ON td.edited_by = u_editor.id
+                LEFT JOIN users u_leader ON td.assigned_team_leader_id = u_leader.id
+                LEFT JOIN countries cnt ON td.country_id = cnt.id
                 WHERE t.id = :id";
         
         $stmt = $this->db->prepare($sql);
@@ -212,15 +230,8 @@ class Ticket extends Model
         $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($ticket) {
-            // Fetch associated coupons for the ticket
-            $couponSql = "SELECT c.id, c.code, c.value 
-                          FROM coupons c
-                          JOIN ticket_coupons tc ON c.id = tc.coupon_id
-                          WHERE tc.ticket_id = ?";
-            
-            $couponStmt = $this->db->prepare($couponSql);
-            $couponStmt->execute([$ticket['id']]);
-            $ticket['coupons'] = $couponStmt->fetchAll(PDO::FETCH_ASSOC);
+            // Fetch all coupons ever associated with the ticket for the top-level display
+            $ticket['coupons'] = $this->getTicketCoupons($ticket['id']);
         }
 
         return $ticket ?: null;
@@ -235,10 +246,13 @@ class Ticket extends Model
             return [];
         }
 
-        $sql = "SELECT id, ticket_number, created_at 
-                FROM tickets 
-                WHERE phone = :phone AND id != :exclude_id
-                ORDER BY created_at DESC";
+        // This query now needs to check the ticket_details table.
+        // We find the ticket_ids that have the given phone number in any of their details.
+        $sql = "SELECT DISTINCT t.id, t.ticket_number, t.created_at
+                FROM tickets t
+                JOIN ticket_details td ON t.id = td.ticket_id
+                WHERE td.phone = :phone AND t.id != :exclude_id
+                ORDER BY t.created_at DESC";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
@@ -249,50 +263,64 @@ class Ticket extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getTicketDetails($id)
+    public function getTicketHistory($ticketId)
     {
-        try {
-            $sql = "SELECT t.*, p.name as platform_name, c.name as country_name, 
-                           u_creator.username as creator_username, 
-                           u_leader.username as leader_username,
-                           tc.name as category_name, ts.name as subcategory_name, tco.name as code_name
-                    FROM tickets t
-                    LEFT JOIN platforms p ON t.platform_id = p.id
-                    LEFT JOIN countries c ON t.country_id = c.id
-                    LEFT JOIN users u_creator ON t.created_by = u_creator.id
-                    LEFT JOIN users u_leader ON t.assigned_team_leader_id = u_leader.id
-                    LEFT JOIN ticket_categories tc ON t.category_id = tc.id
-                    LEFT JOIN ticket_subcategories ts ON t.subcategory_id = ts.id
-                    LEFT JOIN ticket_codes tco ON t.code_id = tco.id
-                    WHERE t.id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id' => $id]);
-            return $stmt->fetch(\PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error getting ticket details: " . $e->getMessage());
-            return null;
-        }
+        $sql = "SELECT 
+                    td.*,
+                    p.name as platform_name, 
+                    c.name as category_name, 
+                    sc.name as subcategory_name, 
+                    co.name as code_name,
+                    u_editor.username as editor_name,
+                    u_leader.username as leader_name
+                FROM ticket_details td
+                LEFT JOIN platforms p ON td.platform_id = p.id
+                LEFT JOIN ticket_categories c ON td.category_id = c.id
+                LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
+                LEFT JOIN ticket_codes co ON td.code_id = co.id
+                LEFT JOIN users u_editor ON td.edited_by = u_editor.id
+                LEFT JOIN users u_leader ON td.assigned_team_leader_id = u_leader.id
+                WHERE td.ticket_id = :ticket_id
+                ORDER BY td.created_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':ticket_id' => $ticketId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getTicketCoupons($ticketId)
     {
-        try {
-            $sql = "SELECT c.code, c.value 
-                    FROM ticket_coupons tc
-                    JOIN coupons c ON tc.coupon_id = c.id
-                    WHERE tc.ticket_id = :ticket_id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':ticket_id' => $ticketId]);
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error getting ticket coupons: " . $e->getMessage());
-            return [];
-        }
+        // This now gets ALL coupons ever associated with the ticket.
+        // It's used for the main display area.
+        $sql = "SELECT c.id, c.code, c.value, c.is_used, c.used_at, tc.ticket_detail_id
+                FROM ticket_coupons tc
+                JOIN coupons c ON tc.coupon_id = c.id
+                WHERE tc.ticket_id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$ticketId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getCouponsForTicketDetail($detailId)
+    {
+        // This gets only the coupons for a SPECIFIC version of the ticket.
+        $sql = "SELECT c.id, c.code, c.value
+                FROM ticket_coupons tc
+                JOIN coupons c ON tc.coupon_id = c.id
+                WHERE tc.ticket_detail_id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$detailId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getRelatedTickets($phone, $currentTicketId)
     {
-        if (empty($phone)) return [];
+        if (empty($phone) || $currentTicketId === null) {
+            return [];
+        }
+
         try {
             $stmt = $this->db->prepare("SELECT id, ticket_number, created_at FROM tickets WHERE phone = :phone AND id != :current_id ORDER BY created_at DESC");
             $stmt->execute([':phone' => $phone, ':current_id' => $currentTicketId]);

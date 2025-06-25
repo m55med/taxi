@@ -68,8 +68,12 @@ class Permission
     private function discoverPermissions(): array
     {
         $permissions = [];
-        $basePath = realpath(APPROOT . '/app/controllers');
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($basePath));
+        $basePath = realpath(__DIR__ . '/../../controllers');
+        if (!$basePath) {
+            error_log("Could not resolve the base path for controllers in Permission model.");
+            return [];
+        }
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($basePath, RecursiveDirectoryIterator::SKIP_DOTS));
 
         foreach ($iterator as $file) {
             if ($file->isDir() || !str_ends_with($file->getFilename(), 'Controller.php')) {

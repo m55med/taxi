@@ -21,14 +21,9 @@ class TeamsController extends Controller {
         
         $data = [
             'teams' => $teams,
-            'users' => $users,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
+            'users' => $users
         ];
 
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
-        
         $this->view('admin/teams/index', $data);
     }
 
@@ -40,12 +35,15 @@ class TeamsController extends Controller {
             if (!empty($name) && $team_leader_id) {
                 $teamModel = new Team();
                 if ($teamModel->create($name, $team_leader_id)) {
-                    $_SESSION['message'] = 'تمت إضافة الفريق بنجاح.';
+                    $_SESSION['team_message'] = 'Team added successfully.';
+                    $_SESSION['team_message_type'] = 'success';
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن الفريق موجود بالفعل.';
+                    $_SESSION['team_message'] = 'Error: Team could not be added or already exists.';
+                    $_SESSION['team_message_type'] = 'error';
                 }
             } else {
-                $_SESSION['error'] = 'اسم الفريق وقائد الفريق حقول إلزامية.';
+                $_SESSION['team_message'] = 'Team name and team leader are required.';
+                $_SESSION['team_message_type'] = 'error';
             }
         }
         header('Location: ' . BASE_PATH . '/admin/teams');
@@ -56,9 +54,11 @@ class TeamsController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $teamModel = new Team();
             if ($teamModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف الفريق بنجاح.';
+                $_SESSION['team_message'] = 'Team deleted successfully.';
+                $_SESSION['team_message_type'] = 'success';
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف الفريق.';
+                $_SESSION['team_message'] = 'Error deleting the team.';
+                $_SESSION['team_message_type'] = 'error';
             }
         }
         header('Location: ' . BASE_PATH . '/admin/teams');
@@ -75,13 +75,8 @@ class TeamsController extends Controller {
         $data = [
             'teams' => $teamModel->getAll(),
             'users' => $members,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
         ];
 
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
-        
         $this->view('admin/teams/create', $data);
     }
 
@@ -95,33 +90,30 @@ class TeamsController extends Controller {
         $data = [
             'team' => $team,
             'users' => $members,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
         ];
 
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
-        
         $this->view('admin/teams/edit', $data);
     }
 
-    public function update($id)
+    public function update()
     {
-        $teamModel = $this->model('Admin/Team');
-        $userModel = $this->model('user/User');
-
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $name = trim(htmlspecialchars($_POST['name']));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'];
+            $name = trim($_POST['name'] ?? '');
             $team_leader_id = filter_input(INPUT_POST, 'team_leader_id', FILTER_VALIDATE_INT);
             
             if (!empty($name) && $team_leader_id) {
+                $teamModel = new Team();
                 if ($teamModel->update($id, $name, $team_leader_id)) {
-                    $_SESSION['message'] = 'تم تحديث الفريق بنجاح.';
+                    $_SESSION['team_message'] = 'Team updated successfully.';
+                    $_SESSION['team_message_type'] = 'success';
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أثناء تحديث الفريق.';
+                    $_SESSION['team_message'] = 'Error updating the team.';
+                    $_SESSION['team_message_type'] = 'error';
                 }
             } else {
-                $_SESSION['error'] = 'اسم الفريق وقائد الفريق حقول إلزامية.';
+                $_SESSION['team_message'] = 'Team name and team leader are required.';
+                $_SESSION['team_message_type'] = 'error';
             }
         }
         header('Location: ' . BASE_PATH . '/admin/teams');
@@ -136,9 +128,11 @@ class TeamsController extends Controller {
             $teamId = $_POST['team_id'];
             $userId = $_POST['user_id'];
             if ($teamModel->addMember($teamId, $userId)) {
-                $_SESSION['message'] = 'تمت إضافة عضو جديد إلى الفريق بنجاح.';
+                $_SESSION['team_message'] = 'Member added to the team successfully.';
+                $_SESSION['team_message_type'] = 'success';
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء إضافة عضو جديد إلى الفريق.';
+                $_SESSION['team_message'] = 'Error adding member to the team.';
+                $_SESSION['team_message_type'] = 'error';
             }
         }
         header('Location: ' . BASE_PATH . '/admin/teams/edit/' . $teamId);
@@ -150,7 +144,8 @@ class TeamsController extends Controller {
         $teamModel = $this->model('Admin/Team');
         $userModel = $this->model('user/User');
         $teamModel->removeMember($teamId, $userId);
-        $_SESSION['message'] = 'تم إزالة عضو من الفريق بنجاح.';
+        $_SESSION['team_message'] = 'Member removed from the team successfully.';
+        $_SESSION['team_message_type'] = 'success';
         header('Location: ' . BASE_PATH . '/admin/teams/edit/' . $teamId);
         exit;
     }

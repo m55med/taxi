@@ -222,4 +222,4 @@
     </div>
 </div>
 
-<?php require_once APPROOT . '/app/views/inc/footer.php'; ?>
+<?php require_once __DIR__ . '/../../../includes/footer.php'; ?>

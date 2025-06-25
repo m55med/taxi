@@ -48,4 +48,29 @@ class Platform
             return false;
         }
     }
+
+    public function findByName($name)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM platforms WHERE name = :name");
+            $stmt->bindParam(':name', $name);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    public function update($id, $name)
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE platforms SET name = :name WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':name', $name);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 } 

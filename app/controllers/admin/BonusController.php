@@ -27,35 +27,52 @@ class BonusController extends Controller {
 
     public function grant() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
-
-            $month_year = explode('-', $_POST['bonus_month']);
-            $bonus_year = $month_year[0];
-            $bonus_month = $month_year[1];
+            // Sanitize POST data
+            $bonus_month_raw = filter_input(INPUT_POST, 'bonus_month', FILTER_UNSAFE_RAW);
+            $month_year = explode('-', $bonus_month_raw);
 
             $data = [
-                'user_id' => trim($_POST['user_id']),
-                'bonus_percent' => trim($_POST['bonus_percent']),
-                'bonus_year' => $bonus_year,
-                'bonus_month' => $bonus_month,
-                'reason' => trim($_POST['reason']),
+                'user_id' => filter_input(INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT),
+                'bonus_percent' => filter_input(INPUT_POST, 'bonus_percent', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
+                'bonus_year' => $month_year[0] ?? null,
+                'bonus_month' => $month_year[1] ?? null,
+                'reason' => htmlspecialchars($_POST['reason'] ?? '', ENT_QUOTES, 'UTF-8'),
                 'granted_by' => $_SESSION['user_id']
             ];
 
             if (empty($data['user_id']) || empty($data['bonus_percent']) || empty($data['bonus_year'])) {
-                flash('bonus_message', 'يرجى ملء جميع الحقول المطلوبة.', 'bg-red-500');
+                flash('bonus_message', 'Please fill out all required fields.', 'error');
+                redirect('/admin/bonus');
+            }
+            
+            // Check if bonus already exists for that month
+            if ($this->bonusModel->bonusExists($data['user_id'], $data['bonus_year'], $data['bonus_month'])) {
+                flash('bonus_message', 'Failed to grant bonus. The employee has already received a bonus for this month.', 'error');
                 redirect('/admin/bonus');
             }
             
             if ($this->bonusModel->addBonus($data)) {
-                flash('bonus_message', 'تم منح البونص بنجاح.');
+                flash('bonus_message', 'Bonus granted successfully.');
                 redirect('/admin/bonus');
             } else {
-                // This could be because of the UNIQUE constraint (bonus already exists)
-                flash('bonus_message', 'فشل منح البونص. قد يكون الموظف حصل على بونص لهذا الشهر بالفعل.', 'bg-red-500');
+                flash('bonus_message', 'Failed to grant bonus due to a database error.', 'error');
                 redirect('/admin/bonus');
             }
         } else {
+            redirect('/admin/bonus');
+        }
+    }
+
+    public function delete($id = null) {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($id)) {
+            if ($this->bonusModel->deleteBonus($id)) {
+                flash('bonus_message', 'Bonus entry deleted successfully.', 'success');
+            } else {
+                flash('bonus_message', 'Failed to delete bonus entry.', 'error');
+            }
+            redirect('/admin/bonus');
+        } else {
+            // Prevent direct access to delete URL
             redirect('/admin/bonus');
         }
     }

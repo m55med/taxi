@@ -8,7 +8,7 @@ use App\Models\Tickets\Subcategory;
 use App\Models\Tickets\Code;
 use App\Models\Tickets\Platform;
 use App\Models\Tickets\Team;
-use App\Models\Tickets\Coupon;
+use App\Models\Admin\Coupon;
 use App\Models\Tickets\Ticket;
 
 class DataController extends Controller

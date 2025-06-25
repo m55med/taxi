@@ -12,7 +12,7 @@ class CouponsController extends Controller {
         parent::__construct();
         // Ensure user is logged in and is an admin
         Auth::checkAdmin();
-        $this->couponModel = new Coupon();
+        $this->couponModel = $this->model('Admin\Coupon');
     }
 
     public function index() {
@@ -37,9 +37,9 @@ class CouponsController extends Controller {
         }
         
         $filters = [
-            'search' => $_GET['search'] ?? '',
-            'is_used' => $_GET['is_used'] ?? '',
-            'country_id' => $_GET['country_id'] ?? ''
+            'search' => filter_input(INPUT_GET, 'search', FILTER_SANITIZE_SPECIAL_CHARS) ?? '',
+            'is_used' => filter_input(INPUT_GET, 'is_used', FILTER_SANITIZE_SPECIAL_CHARS) ?? '',
+            'country_id' => filter_input(INPUT_GET, 'country_id', FILTER_SANITIZE_NUMBER_INT) ?? ''
         ];
 
         // Handle export requests
@@ -52,7 +52,7 @@ class CouponsController extends Controller {
         $coupon_stats = $this->couponModel->getCouponStats($filters);
 
         $data = [
-            'page_main_title' => 'إدارة الكوبونات',
+            'page_main_title' => 'Manage Coupons',
             'coupons' => $coupons_data['data'],
             'pagination' => $coupons_data,
             'stats' => $coupon_stats,
@@ -78,33 +78,31 @@ class CouponsController extends Controller {
         $codes = array_filter(array_map('trim', $codes));
 
         if (empty($codes) || !is_numeric($value) || $value <= 0) {
-            $_SESSION['error'] = 'الرجاء إدخال أكواد وقيمة صالحة.';
-            header('Location: ' . BASE_PATH . '/admin/coupons');
-            exit;
+            flash('coupon_message', 'Please enter valid codes and a value.', 'error');
+            redirect('/admin/coupons');
         }
 
         $result = $this->couponModel->addBulkCoupons($codes, $value, $country_id);
 
         if ($result) {
-            $message = "تمت الإضافة بنجاح. العدد المضاف: {$result['added']}.";
+            $message = "Successfully added {$result['added']} coupons.";
             if ($result['skipped'] > 0) {
-                $message .= " العدد المستثنى (مكرر): {$result['skipped']}.";
+                $message .= " Skipped {$result['skipped']} duplicate coupons.";
             }
-            $_SESSION['message'] = $message;
+            flash('coupon_message', $message, 'success');
         } else {
-            $_SESSION['error'] = 'حدث خطأ أثناء إضافة الكوبونات.';
+            flash('coupon_message', 'An error occurred while adding coupons.', 'error');
         }
-        header('Location: ' . BASE_PATH . '/admin/coupons');
-        exit;
+        redirect('/admin/coupons');
     }
     
     private function update() {
+        header('Content-Type: application/json');
         $id = $_POST['id'];
         $coupon = $this->couponModel->findCouponById($id);
 
         if (!$coupon || $coupon['is_used']) {
-             $_SESSION['error'] = 'لا يمكن تعديل كوبون مستخدم أو غير موجود.';
-             header('Location: ' . BASE_PATH . '/admin/coupons');
+             echo json_encode(['success' => false, 'message' => 'Cannot edit a used or non-existent coupon.']);
              exit;
         }
 
@@ -115,12 +113,18 @@ class CouponsController extends Controller {
             'country_id' => !empty($_POST['country_id']) ? $_POST['country_id'] : null
         ];
         
-        if ($this->couponModel->updateCoupon($id, $data)) {
-            $_SESSION['message'] = 'تم تحديث الكوبون بنجاح.';
-        } else {
-            $_SESSION['error'] = 'فشل تحديث الكوبون. قد يكون الكود موجوداً مسبقاً أو أن الكوبون مستخدم.';
+        // Basic validation
+        if (empty($data['code']) || !is_numeric($data['value']) || $data['value'] <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid code or value provided.']);
+            exit;
         }
-        header('Location: ' . BASE_PATH . '/admin/coupons');
+        
+        if ($this->couponModel->updateCoupon($id, $data)) {
+            flash('coupon_message', 'Coupon updated successfully.', 'success');
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update coupon. The code might already exist.']);
+        }
         exit;
     }
 
@@ -129,37 +133,33 @@ class CouponsController extends Controller {
          $coupon = $this->couponModel->findCouponById($id);
 
         if (!$coupon || $coupon['is_used']) {
-             $_SESSION['error'] = 'لا يمكن حذف كوبون مستخدم أو غير موجود.';
-             header('Location: ' . BASE_PATH . '/admin/coupons');
-             exit;
+            flash('coupon_message', 'Cannot delete a used or non-existent coupon.', 'error');
+            redirect('/admin/coupons');
         }
 
         if ($this->couponModel->deleteCoupon($id)) {
-            $_SESSION['message'] = 'تم حذف الكوبون بنجاح.';
+            flash('coupon_message', 'Coupon deleted successfully.', 'success');
         } else {
-            $_SESSION['error'] = 'فشل حذف الكوبون. قد يكون تم استخدامه.';
+            flash('coupon_message', 'Failed to delete coupon.', 'error');
         }
-        header('Location: ' . BASE_PATH . '/admin/coupons');
-        exit;
+        redirect('/admin/coupons');
     }
 
     private function bulkDelete() {
         $ids = $_POST['coupon_ids'] ?? [];
         if (empty($ids)) {
-            $_SESSION['error'] = 'لم يتم تحديد أي كوبونات.';
-            header('Location: ' . BASE_PATH . '/admin/coupons');
-            exit;
+            flash('coupon_message', 'No coupons selected.', 'error');
+            redirect('/admin/coupons');
         }
 
         $deleted_count = $this->couponModel->deleteBulkCoupons($ids);
 
         if ($deleted_count > 0) {
-            $_SESSION['message'] = "تم حذف {$deleted_count} كوبون بنجاح.";
+            flash('coupon_message', "Successfully deleted {$deleted_count} coupons.", 'success');
         } else {
-            $_SESSION['error'] = 'فشل حذف الكوبونات المحددة. قد تكون مستخدمة أو غير موجودة.';
+            flash('coupon_message', 'Failed to delete selected coupons. They may already be used or do not exist.', 'error');
         }
-        header('Location: ' . BASE_PATH . '/admin/coupons');
-        exit;
+        redirect('/admin/coupons');
     }
     
     private function handleExport($type, $filters) {
@@ -190,8 +190,8 @@ class CouponsController extends Controller {
 
         // Add headers
         fputcsv($output, [
-            'الكود', 'القيمة', 'الدولة', 'الحالة', 'تاريخ الإنشاء', 
-            'استخدم في تذكرة', 'استخدم بواسطة'
+            'Code', 'Value', 'Country', 'Status', 'Created At', 
+            'Used in Ticket', 'Used By'
         ]);
 
         foreach ($coupons as $coupon) {
@@ -199,7 +199,7 @@ class CouponsController extends Controller {
                 $coupon['code'],
                 $coupon['value'],
                 $coupon['country_name'] ?? 'N/A',
-                $coupon['is_used'] ? 'مستخدم' : 'غير مستخدم',
+                $coupon['is_used'] ? 'Used' : 'Unused',
                 $coupon['created_at'],
                 $coupon['ticket_number'] ?? 'N/A',
                 $coupon['used_by_username'] ?? 'N/A'

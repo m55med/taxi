@@ -284,4 +284,65 @@ class Coupon {
             'unused' => (int)($stats['unused'] ?? 0),
         ];
     }
+
+    /**
+     * Gets available coupons for a country, excluding those recently held by others.
+     * Limits the result to 3 coupons per distinct value.
+     */
+    public function getAvailableByCountry(int $countryId, int $currentUserId, array $excludeIds = [])
+    {
+        // This is a compatible version for older MySQL/MariaDB that don't support window functions.
+        // It fetches all available coupons and then filters them in PHP.
+        $sql = "
+            SELECT id, code, `value`
+            FROM coupons
+            WHERE country_id = ? AND is_used = 0
+            AND (held_by IS NULL OR held_by = ? OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)
+        ";
+
+        $params = [$countryId, $currentUserId];
+        
+        if (!empty($excludeIds)) {
+            $excludePlaceholders = implode(',', array_fill(0, count($excludeIds), '?'));
+            $sql .= " AND id NOT IN ($excludePlaceholders)";
+            $params = array_merge($params, $excludeIds);
+        }
+        
+        $sql .= " ORDER BY `value` ASC, RAND()";
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $allCoupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Group by value and limit to 3 per group in PHP
+            $groupedCoupons = [];
+            foreach ($allCoupons as $coupon) {
+                $value = $coupon['value'];
+                if (!isset($groupedCoupons[$value])) {
+                    $groupedCoupons[$value] = [];
+                }
+                if (count($groupedCoupons[$value]) < 3) {
+                    $groupedCoupons[$value][] = $coupon;
+                }
+            }
+
+            // Flatten the array back to a simple list
+            $finalCoupons = [];
+            foreach ($groupedCoupons as $group) {
+                $finalCoupons = array_merge($finalCoupons, $group);
+            }
+
+            return $finalCoupons;
+
+        } catch (\PDOException $e) {
+            error_log("Coupon Fetch Error in getAvailableByCountry: " . $e->getMessage());
+            return []; // Return empty array on error
+        }
+    }
+
+    /**
+     * Attempts to place a hold on a specific coupon for a user.
+     */
+    // ... existing code ...
 } 

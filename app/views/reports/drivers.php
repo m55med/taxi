@@ -1,4 +1,4 @@
-<?php require_once APPROOT . '/app/views/inc/header.php'; ?>
+<?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-sm p-6">
@@ -335,4 +335,4 @@
     </div>
 </div>
 
-<?php require_once APPROOT . '/app/views/inc/footer.php'; ?> 
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?> 

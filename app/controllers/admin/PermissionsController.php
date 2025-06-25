@@ -14,9 +14,10 @@ class PermissionsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->authorize(['admin', 'developer']);
-        $this->permissionModel = $this->model('admin/Permission');
-        $this->userModel = $this->model('user/User');
+        // Use the new simplified authorization check
+        \App\Core\Auth::checkAdmin();
+        $this->permissionModel = $this->model('Admin\Permission');
+        $this->userModel = $this->model('User\User');
     }
 
     public function index()
@@ -52,9 +53,10 @@ class PermissionsController extends Controller
             }
             $groupedPermissions[$groupKey][] = $permission;
         }
+        ksort($groupedPermissions);
 
         $data = [
-            'page_main_title' => 'إدارة الصلاحيات',
+            'page_main_title' => 'Manage Permissions',
             'roles' => $this->userModel->getRoles(),
             'users' => $users,
             'permissions' => $groupedPermissions, // Use grouped permissions
@@ -65,34 +67,37 @@ class PermissionsController extends Controller
         $this->view('admin/permissions/index', $data);
     }
     
-    public function save()
+    public function toggle()
     {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
 
-        $userId = $_POST['user_id'] ?? null;
-        $permissionId = $_POST['permission_id'] ?? null;
-        $isChecked = filter_var($_POST['checked'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $userId = filter_input(INPUT_POST, 'user_id', FILTER_SANITIZE_NUMBER_INT);
+        $permissionId = filter_input(INPUT_POST, 'permission_id', FILTER_SANITIZE_NUMBER_INT);
+        $isGranted = filter_var($_POST['grant'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         if (!$userId || !$permissionId) {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Missing user ID or permission ID.'], 400);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Missing user ID or permission ID.']);
             return;
         }
         
-        $result = $this->permissionModel->toggleUserPermission($userId, $permissionId, $isChecked);
+        $result = $this->permissionModel->toggleUserPermission($userId, $permissionId, $isGranted);
         
         if ($result) {
             // Signal the user's session to refresh its permissions on the next request.
             $this->signalPermissionRefresh($userId);
 
-            $message = $isChecked ? 'تم منح الصلاحية بنجاح' : 'تم إلغاء الصلاحية بنجاح';
-            $this->sendJsonResponse(['success' => true, 'message' => $message]);
+            $message = $isGranted ? 'Permission granted successfully.' : 'Permission revoked successfully.';
+            echo json_encode(['success' => true, 'message' => $message]);
         } else {
-            $this->sendJsonResponse(['success' => false, 'message' => 'فشل تحديث الصلاحية.'], 500);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to update permission.']);
         }
     }
 
@@ -102,7 +107,7 @@ class PermissionsController extends Controller
      */
     private function signalPermissionRefresh(int $userId)
     {
-        $dir = APPROOT . '/app/cache/refresh_permissions';
+        $dir = APPROOT . '/cache/refresh_permissions';
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }

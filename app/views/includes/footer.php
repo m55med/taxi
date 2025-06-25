@@ -3,7 +3,8 @@
     <footer class="bg-white shadow-lg mt-8">
         <div class="max-w-7xl mx-auto py-4 px-4">
             <div class="text-center text-gray-600">
-                جميع الحقوق محفوظة &copy; <?php echo date('Y'); ?> نظام تاكسي
+                <a href="<?php echo BASE_PATH; ?>/documentation/index" class="text-blue-600 hover:text-blue-800 hover:underline px-2">Documentation</a> |
+                All rights reserved &copy; <?php echo date('Y'); ?> Taxi System
             </div>
         </div>
     </footer>
@@ -74,6 +75,5 @@
     <?php endif; ?>
 
     <!-- Custom JavaScript -->
-    <script src="<?php echo BASE_PATH; ?>/js/main.js"></script>
 </body>
 </html> 

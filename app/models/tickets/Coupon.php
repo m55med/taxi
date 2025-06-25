@@ -20,45 +20,49 @@ class Coupon extends Model
      */
     public function getAvailableByCountry(int $countryId, int $currentUserId, array $excludeIds = [])
     {
-        // This query uses a window function (ROW_NUMBER) to rank coupons within each value group.
-        // It's efficient for "get N items per group" tasks. Requires MySQL 8.0+ or MariaDB 10.2+.
-        // We partition by `value` and order by RAND() to get a random selection of 3 coupons per value.
+        // This is a compatible version for older MySQL/MariaDB that don't support window functions.
+        // It's less efficient than the ROW_NUMBER() approach but more compatible.
+        // It fetches all available coupons and then filters them in PHP.
         $sql = "
-            SELECT id, code, value
-            FROM (
-                SELECT 
-                    id, code, value,
-                    ROW_NUMBER() OVER(PARTITION BY `value` ORDER BY RAND()) as rn
-                FROM coupons
-                WHERE country_id = :countryId AND is_used = 0
-                AND (held_by IS NULL OR held_by = :currentUserId OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)
+            SELECT id, code, `value`
+            FROM coupons
+            WHERE country_id = ? AND is_used = 0
+            AND (held_by IS NULL OR held_by = ? OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)
         ";
 
-        $params = [
-            ':countryId' => $countryId,
-            ':currentUserId' => $currentUserId
-        ];
+        $params = [$countryId, $currentUserId];
         
-        // Exclude coupon IDs that are already selected in the current form.
         if (!empty($excludeIds)) {
-            // Create placeholders for the IN clause
-            $excludePlaceholders = implode(',', array_map(fn($i) => ":exclude_id_$i", array_keys($excludeIds)));
+            $excludePlaceholders = implode(',', array_fill(0, count($excludeIds), '?'));
             $sql .= " AND id NOT IN ($excludePlaceholders)";
-            // Add the excluded IDs to the parameters array
-            foreach ($excludeIds as $key => $id) {
-                $params[":exclude_id_$key"] = $id;
-            }
+            $params = array_merge($params, $excludeIds);
         }
         
-        $sql .= "
-            ) AS ranked_coupons
-            WHERE rn <= 3
-            ORDER BY `value` ASC, code ASC
-        ";
+        $sql .= " ORDER BY `value` ASC, RAND()";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $allCoupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group by value and limit to 3 per group in PHP
+        $groupedCoupons = [];
+        foreach ($allCoupons as $coupon) {
+            $value = $coupon['value'];
+            if (!isset($groupedCoupons[$value])) {
+                $groupedCoupons[$value] = [];
+            }
+            if (count($groupedCoupons[$value]) < 3) {
+                $groupedCoupons[$value][] = $coupon;
+            }
+        }
+
+        // Flatten the array back to a simple list
+        $finalCoupons = [];
+        foreach ($groupedCoupons as $group) {
+            $finalCoupons = array_merge($finalCoupons, $group);
+        }
+
+        return $finalCoupons;
     }
 
     /**

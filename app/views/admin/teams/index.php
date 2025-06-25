@@ -1,91 +1,88 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الفرق</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Cairo', sans-serif; }
-        .toast {
-            transition: opacity 0.5s, transform 0.5s;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-    <?php include __DIR__ . '/../../includes/nav.php'; ?>
+<?php
+// Prepare flash message
+$flashMessage = null;
+if (isset($_SESSION['team_message'])) {
+    $flashMessage = [
+        'message' => $_SESSION['team_message'],
+        'type' => $_SESSION['team_message_type'] ?? 'success'
+    ];
+    unset($_SESSION['team_message'], $_SESSION['team_message_type']);
+}
+?>
+<?php include_once __DIR__ . '/../../includes/header.php'; ?>
+<div x-data="teamsPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()">
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast fixed top-5 right-5 bg-green-500 text-white px-6 py-3 rounded-lg shadow-md hidden opacity-0 transform -translate-y-10">
-        <p id="toast-message"></p>
+    <div x-show="toast.show" x-transition.opacity.duration.500ms class="fixed top-5 right-5 z-50">
+        <div class="px-6 py-3 rounded-lg shadow-md flex items-center text-white" :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'">
+            <i class="mr-3" :class="toast.type === 'success' ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
+            <span x-text="toast.message"></span>
+            <button @click="toast.show = false" class="ml-4 text-white hover:text-gray-200"><i class="fas fa-times"></i></button>
+        </div>
     </div>
 
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">إدارة الفرق</h1>
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Manage Teams</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Add/Edit Form Card -->
             <div class="md:col-span-1">
-                <div class="bg-white rounded-lg shadow-sm p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">إضافة فريق جديد</h2>
-                    <form action="<?= BASE_PATH ?>/admin/teams/store" method="POST">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4" x-text="form.id ? 'Edit Team' : 'Add New Team'"></h2>
+                    <form @submit.prevent="submitForm">
                         <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700">اسم الفريق</label>
-                            <input type="text" name="name" id="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <label for="name" class="block text-sm font-medium text-gray-700">Team Name</label>
+                            <input type="text" id="name" x-model="form.name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div class="mt-4">
-                            <label for="team_leader_id" class="block text-sm font-medium text-gray-700">قائد الفريق</label>
-                            <select name="team_leader_id" id="team_leader_id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                <option value="">اختر قائد للفريق</option>
+                            <label for="team_leader_id" class="block text-sm font-medium text-gray-700">Team Leader</label>
+                            <select id="team_leader_id" x-model="form.team_leader_id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Select a leader</option>
                                 <?php foreach ($data['users'] as $user): ?>
                                     <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" class="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <i class="fas fa-plus ml-2"></i>
-                            إضافة
-                        </button>
+                        <div class="flex items-center mt-4 space-x-2">
+                            <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium flex items-center justify-center">
+                                <i class="fas" :class="form.id ? 'fa-save' : 'fa-plus'"></i>
+                                <span class="ml-2" x-text="form.id ? 'Save Changes' : 'Add Team'"></span>
+                            </button>
+                            <button type="button" x-show="form.id" @click="resetForm()" class="w-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 font-medium">Cancel</button>
+                        </div>
                     </form>
                 </div>
             </div>
 
+            <!-- Teams List -->
             <div class="md:col-span-2">
-                <div class="bg-white rounded-lg shadow-sm">
+                <div class="bg-white rounded-lg shadow-md">
                     <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-xl font-semibold text-gray-800">الفرق الحالية</h2>
+                        <h2 class="text-xl font-semibold text-gray-800">Existing Teams</h2>
                     </div>
                     <div class="p-0">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم الفريق</th>
-                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">قائد الفريق</th>
-                                        <th scope="col" class="relative px-6 py-3">
-                                            <span class="sr-only">أجراءات</span>
-                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team Name</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team Leader</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php if (empty($data['teams'])): ?>
-                                        <tr>
-                                            <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                لا توجد فرق حاليًا.
-                                            </td>
-                                        </tr>
+                                        <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No teams found.</td></tr>
                                     <?php else: ?>
                                         <?php foreach ($data['teams'] as $index => $team): ?>
                                             <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($team['name']) ?></td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($team['team_leader_name']) ?></td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                                                    <button onclick="openDeleteModal(<?= $team['id'] ?>)" class="text-red-600 hover:text-red-900">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </button>
+                                                <td class="px-6 py-4 text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
+                                                <td class="px-6 py-4 text-sm text-gray-500"><?= htmlspecialchars($team['name']) ?></td>
+                                                <td class="px-6 py-4 text-sm text-gray-500"><?= htmlspecialchars($team['team_leader_name']) ?></td>
+                                                <td class="px-6 py-4 text-left text-sm font-medium">
+                                                    <button @click="editTeam(<?= htmlspecialchars(json_encode($team)) ?>)" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Edit"><i class="fas fa-edit"></i></button>
+                                                    <button @click="confirmDelete(<?= $team['id'] ?>, '<?= htmlspecialchars(addslashes($team['name'])) ?>')" class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash-alt"></i></button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -100,83 +97,68 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                            <i class="fas fa-exclamation-triangle text-red-600"></i>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-right">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                حذف الفريق
-                            </h3>
-                            <div class="mt-2">
-                                <p class="text-sm text-gray-500">
-                                    هل أنت متأكد من رغبتك في حذف هذا الفريق؟ لا يمكن التراجع عن هذا الإجراء.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <form id="deleteForm" action="" method="POST">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                            حذف
-                        </button>
-                    </form>
-                    <button type="button" onclick="closeDeleteModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        إلغاء
-                    </button>
-                </div>
+    <div x-show="deleteModal.open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @keydown.escape.window="deleteModal.open = false">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.away="deleteModal.open = false">
+            <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
+            <p class="mb-6" x-html="deleteModal.message"></p>
+            <div class="flex justify-end space-x-4">
+                <button @click="deleteModal.open = false" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+                <form :action="deleteModal.actionUrl" method="POST" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Yes, Delete</button>
+                </form>
             </div>
         </div>
     </div>
+    
+    <!-- Hidden Form for Add/Edit -->
+    <form x-ref="form" action="" method="POST" class="hidden">
+        <input type="hidden" name="id" x-model="form.id">
+        <input type="hidden" name="name" x-model="form.name">
+        <input type="hidden" name="team_leader_id" x-model="form.team_leader_id">
+    </form>
 
-    <script>
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            
-            toastMessage.innerText = message;
-            toast.classList.remove('hidden', 'opacity-0', 'bg-green-500', 'bg-red-500', '-translate-y-10');
-            toast.classList.add(isError ? 'bg-red-500' : 'bg-green-500');
+</div>
 
-            setTimeout(() => {
-                toast.classList.add('opacity-100', 'translate-y-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.remove('opacity-100', 'translate-y-0');
-                toast.classList.add('opacity-0', '-translate-y-10');
-                setTimeout(() => toast.classList.add('hidden'), 500);
-            }, 3000);
+<script>
+function teamsPage(flashMessage) {
+    return {
+        toast: { show: false, message: '', type: 'success' },
+        deleteModal: { open: false, message: '', actionUrl: '' },
+        form: { id: null, name: '', team_leader_id: '' },
+        init() {
+            if (flashMessage) {
+                this.showToast(flashMessage.message, flashMessage.type);
+            }
+        },
+        showToast(message, type = 'success') {
+            this.toast = { show: true, message, type };
+            setTimeout(() => this.toast.show = false, 4000);
+        },
+        editTeam(team) {
+            this.form.id = team.id;
+            this.form.name = team.name;
+            this.form.team_leader_id = team.team_leader_id;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        resetForm() {
+            this.form.id = null;
+            this.form.name = '';
+            this.form.team_leader_id = '';
+        },
+        submitForm() {
+            const formRef = this.$refs.form;
+            formRef.action = this.form.id ? `<?= BASE_PATH ?>/admin/teams/update` : `<?= BASE_PATH ?>/admin/teams/store`;
+            formRef.submit();
+        },
+        confirmDelete(id, name) {
+            this.deleteModal.message = `Are you sure you want to delete the team "<strong>${name}</strong>"? This may not be possible if it has members.`;
+            this.deleteModal.actionUrl = `<?= BASE_PATH ?>/admin/teams/delete/${id}`;
+            this.deleteModal.open = true;
         }
+    }
+}
+</script>
 
-        function openDeleteModal(id) {
-            const modal = document.getElementById('deleteModal');
-            const form = document.getElementById('deleteForm');
-            form.action = `<?= BASE_PATH ?>/admin/teams/delete/${id}`;
-            modal.classList.remove('hidden');
-        }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            modal.classList.add('hidden');
-        }
-
-        window.onload = function() {
-            <?php if (isset($data['message'])): ?>
-                showToast('<?= addslashes(htmlspecialchars($data['message'])) ?>');
-            <?php endif; ?>
-            <?php if (isset($data['error'])): ?>
-                showToast('<?= addslashes(htmlspecialchars($data['error'])) ?>', true);
-            <?php endif; ?>
-        };
-    </script>
-
+<?php include_once __DIR__ . '/../../includes/footer.php'; ?>
 </body>
 </html> 

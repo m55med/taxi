@@ -34,35 +34,40 @@ class TicketCodesController extends Controller {
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name']) && isset($_POST['subcategory_id'])) {
-            $name = trim(htmlspecialchars($_POST['name']));
-            $subcategory_id = filter_input(INPUT_POST, 'subcategory_id', FILTER_VALIDATE_INT);
-            
-            if (!empty($name) && $subcategory_id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name']);
+            $subcategoryId = filter_input(INPUT_POST, 'subcategory_id', FILTER_VALIDATE_INT);
+
+            if (!empty($name) && $subcategoryId) {
                 $ticketCodeModel = new TicketCode();
-                if ($ticketCodeModel->create($name, $subcategory_id)) {
-                    $_SESSION['message'] = 'تمت إضافة الكود بنجاح.';
+                if ($ticketCodeModel->create($name, $subcategoryId)) {
+                    $_SESSION['ticket_code_message'] = 'Code created successfully.';
+                    $_SESSION['ticket_code_message_type'] = 'success';
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن الكود موجود بالفعل لهذا التصنيف الفرعي.';
+                    $_SESSION['ticket_code_message'] = 'Error creating code.';
+                    $_SESSION['ticket_code_message_type'] = 'error';
                 }
             } else {
-                $_SESSION['error'] = 'البيانات المدخلة غير صالحة.';
+                $_SESSION['ticket_code_message'] = 'Code name and subcategory are required.';
+                $_SESSION['ticket_code_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/ticket_codes');
-        exit;
+        header("Location: " . BASE_PATH . "/admin/ticket_codes");
+        exit();
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ticketCodeModel = new TicketCode();
             if ($ticketCodeModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف الكود بنجاح.';
+                $_SESSION['ticket_code_message'] = 'Code deleted successfully.';
+                $_SESSION['ticket_code_message_type'] = 'success';
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف الكود.';
+                $_SESSION['ticket_code_message'] = 'Error deleting code.';
+                $_SESSION['ticket_code_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/ticket_codes');
-        exit;
+        header("Location: " . BASE_PATH . "/admin/ticket_codes");
+        exit();
     }
 } 

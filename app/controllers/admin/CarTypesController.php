@@ -13,50 +13,41 @@ class CarTypesController extends Controller {
     }
 
     public function index() {
-        $carTypeModel = new CarType();
-        $car_types = $carTypeModel->getAll();
-        
+        $carTypeModel = $this->model('admin/CarType');
         $data = [
-            'car_types' => $car_types,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
+            'car_types' => $carTypeModel->getAll()
         ];
-
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
         
         $this->view('admin/car_types/index', $data);
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
-            $name = trim(htmlspecialchars($_POST['name']));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
             
             if (!empty($name)) {
-                $carTypeModel = new CarType();
+                $carTypeModel = $this->model('admin/CarType');
                 if ($carTypeModel->create($name)) {
-                    $_SESSION['message'] = 'تمت إضافة نوع السيارة بنجاح.';
+                    flash('car_type_message', 'Car type added successfully.', 'success');
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن نوع السيارة موجود بالفعل.';
+                    flash('car_type_message', 'Failed to add car type. It may already exist.', 'error');
                 }
             } else {
-                $_SESSION['error'] = 'اسم نوع السيارة لا يمكن أن يكون فارغًا.';
+                flash('car_type_message', 'Car type name cannot be empty.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/car_types');
-        exit;
+        redirect('/admin/car_types');
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $carTypeModel = new CarType();
+            $carTypeModel = $this->model('admin/CarType');
             if ($carTypeModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف نوع السيارة بنجاح.';
+                flash('car_type_message', 'Car type deleted successfully.', 'success');
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف نوع السيارة.';
+                flash('car_type_message', 'Failed to delete car type.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/car_types');
-        exit;
+        redirect('/admin/car_types');
     }
 } 

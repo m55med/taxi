@@ -44,14 +44,18 @@ class TelegramSettingsController extends Controller
         $telegramChatId = filter_input(INPUT_POST, 'telegram_chat_id', FILTER_VALIDATE_INT);
 
         if (!$userId || !$telegramUserId || !$telegramChatId) {
-            $_SESSION['error'] = 'البيانات المدخلة غير صالحة. يرجى إدخال أرقام صحيحة.';
+            $_SESSION['telegram_message'] = 'Invalid data provided. Please enter valid numbers.';
+            $_SESSION['telegram_message_type'] = 'error';
         } elseif ($this->telegramSettingModel->isLinkExist($userId, $telegramUserId)) {
-            $_SESSION['error'] = 'فشل الإضافة. المستخدم أو حساب تليجرام مرتبط بالفعل.';
+            $_SESSION['telegram_message'] = 'Failed to add. The user or Telegram account is already linked.';
+            $_SESSION['telegram_message_type'] = 'error';
         } else {
             if ($this->telegramSettingModel->addSetting($userId, $telegramUserId, $telegramChatId)) {
-                $_SESSION['success'] = 'تمت إضافة الربط بنجاح.';
+                $_SESSION['telegram_message'] = 'Link added successfully.';
+                $_SESSION['telegram_message_type'] = 'success';
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء إضافة الربط.';
+                $_SESSION['telegram_message'] = 'An error occurred while adding the link.';
+                $_SESSION['telegram_message_type'] = 'error';
             }
         }
         
@@ -68,9 +72,11 @@ class TelegramSettingsController extends Controller
 
         $settingId = filter_var($id, FILTER_VALIDATE_INT);
         if ($settingId && $this->telegramSettingModel->deleteSetting($settingId)) {
-            $_SESSION['success'] = 'تم حذف الربط بنجاح.';
+            $_SESSION['telegram_message'] = 'Link deleted successfully.';
+            $_SESSION['telegram_message_type'] = 'success';
         } else {
-            $_SESSION['error'] = 'حدث خطأ أثناء حذف الربط أو أن المعرف غير صالح.';
+            $_SESSION['telegram_message'] = 'An error occurred during deletion or the ID is invalid.';
+            $_SESSION['telegram_message_type'] = 'error';
         }
 
         header('Location: ' . BASE_PATH . '/admin/telegram_settings');

@@ -92,8 +92,7 @@ class AuthController extends Controller
 
                 // Fetch and store permissions in the session
                 $permissions = $this->userModel->getUserPermissions($result['id']);
-                $permissions[] = 'calls.documents.update';
-                $_SESSION['permissions'] = array_unique($permissions);
+                $_SESSION['permissions'] = $permissions;
 
                 header('Location: ' . BASE_PATH . '/dashboard');
                 exit();

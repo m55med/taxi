@@ -24,33 +24,33 @@ document.addEventListener('DOMContentLoaded', () => {
         viewTicketContainer: document.getElementById('view-ticket-container'),
         viewTicketBtn: document.getElementById('view-ticket-btn'),
 
-    // --- State Management ---
-        heldCoupons: new Map(), // Tracks coupons held by the current user {selectorId: couponId}
+        // --- State Management ---
+        heldCoupons: new Map(),
         isUpdateMode: false,
 
-    // --- API Helper ---
+        // --- API Helper ---
         api: {
-        get: async (endpoint, params = {}) => {
-            const url = new URL(`${BASE_PATH}/${endpoint}`);
-            if (params) {
-                Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
-            }
-            try {
+            get: async (endpoint, params = {}) => {
+                const url = new URL(`${BASE_PATH}/${endpoint}`);
+                if (params) {
+                    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+                }
+                try {
                     const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
                     return await App.handleResponse(response);
-            } catch (error) {
+                } catch (error) {
                     return App.handleError(error);
-            }
-        },
-        post: async (endpoint, body = {}) => {
-            try {
-                const response = await fetch(`${BASE_PATH}/${endpoint}`, {
-                    method: 'POST',
+                }
+            },
+            post: async (endpoint, body = {}) => {
+                try {
+                    const response = await fetch(`${BASE_PATH}/${endpoint}`, {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(body)
-                });
+                        body: JSON.stringify(body)
+                    });
                     return await App.handleResponse(response);
-            } catch (error) {
+                } catch (error) {
                     return App.handleError(error);
                 }
             }
@@ -59,30 +59,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Response Handlers ---
         handleResponse: async (response) => {
             const data = await response.json().catch(() => ({}));
-        return { ok: response.ok, status: response.status, data };
+            return { ok: response.ok, status: response.status, data };
         },
         handleError: (error) => {
-        console.error('API Error:', error);
-            App.showToast('حدث خطأ في الشبكة. يرجى المحاولة مرة أخرى.', 'error');
-        return { ok: false, data: { message: error.message } };
+            console.error('API Error:', error);
+            App.showToast('Network error. Please try again.', 'error');
+            return { ok: false, data: { message: error.message } };
         },
 
-    // --- Toast Notifications ---
+        // --- Toast Notifications ---
         showToast: (message, type = 'success') => {
-        const container = document.getElementById('toast-container');
-        const toast = document.createElement('div');
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
             const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-        const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
 
-        toast.className = `p-4 rounded-lg shadow-lg text-white ${bgColor} flex items-center transition-transform transform translate-x-full`;
-        toast.innerHTML = `<i class="fas ${icon} ml-3"></i> <p>${message}</p>`;
-        container.appendChild(toast);
+            toast.className = `p-4 rounded-lg shadow-lg text-white ${bgColor} flex items-center transition-transform transform translate-x-full`;
+            toast.innerHTML = `<i class="fas ${icon} mr-3"></i> <p>${message}</p>`;
+            container.appendChild(toast);
 
-        setTimeout(() => toast.classList.remove('translate-x-full'), 100);
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            toast.addEventListener('transitionend', () => toast.remove());
-        }, 5000);
+            setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 5000);
         },
         
         // --- Clipboard Helper ---
@@ -92,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 inputElement.value = text;
                 inputElement.dispatchEvent(new Event('change', { bubbles: true }));
             } catch (err) {
-                App.showToast('فشل اللصق من الحافظة.', 'error');
+                App.showToast('Failed to paste from clipboard.', 'error');
             }
         }
     };
@@ -100,16 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Classification Logic (section_classification.php) ---
     const ClassificationHandler = {
         init: () => {
+            if (!App.categorySelect) return;
             App.categorySelect.addEventListener('change', ClassificationHandler.handleCategoryChange);
             App.subcategorySelect.addEventListener('change', ClassificationHandler.handleSubcategoryChange);
         },
         updateDropdown: async (selectElement, endpoint, params, defaultOptionText) => {
-        selectElement.disabled = true;
-        selectElement.innerHTML = `<option value="">جاري التحميل...</option>`;
+            selectElement.disabled = true;
+            selectElement.innerHTML = `<option value="">Loading...</option>`;
 
             const result = await App.api.get(endpoint, params);
-        selectElement.innerHTML = `<option value="" disabled selected>${defaultOptionText}</option>`;
-        
+            selectElement.innerHTML = `<option value="" disabled selected>${defaultOptionText}</option>`;
+            
             let items = [];
             if (result.ok && result.data.success) {
                 const dataKey = Object.keys(result.data).find(key => Array.isArray(result.data[key]));
@@ -118,29 +120,30 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (items.length > 0) {
                 items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.id;
-                option.textContent = item.name;
-                selectElement.appendChild(option);
-            });
-            selectElement.disabled = false;
-        } else {
-            selectElement.innerHTML = `<option value="">${result.data.message || 'لا توجد بيانات'}</option>`;
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    selectElement.appendChild(option);
+                });
+                selectElement.disabled = false;
+            } else {
+                selectElement.innerHTML = `<option value="">${result.data.message || 'No data available'}</option>`;
             }
         },
         handleCategoryChange: () => {
-            ClassificationHandler.updateDropdown(App.subcategorySelect, 'tickets/data/getSubcategories', { category_id: App.categorySelect.value }, 'اختر التصنيف الفرعي');
+            ClassificationHandler.updateDropdown(App.subcategorySelect, 'tickets/data/getSubcategories', { category_id: App.categorySelect.value }, 'Select Sub-Category');
             App.codeSelect.disabled = true;
-            App.codeSelect.innerHTML = '<option value="">اختر التصنيف الفرعي أولاً</option>';
+            App.codeSelect.innerHTML = '<option value="">Select Sub-Category first</option>';
         },
         handleSubcategoryChange: () => {
-            ClassificationHandler.updateDropdown(App.codeSelect, 'tickets/data/getCodes', { subcategory_id: App.subcategorySelect.value }, 'اختر الكود');
+            ClassificationHandler.updateDropdown(App.codeSelect, 'tickets/data/getCodes', { subcategory_id: App.subcategorySelect.value }, 'Select Code');
         }
     };
 
     // --- Details Logic (section_details.php) ---
     const DetailsHandler = {
         init: () => {
+            if (!App.ticketNumberInput) return;
             App.ticketNumberInput.addEventListener('paste', () => setTimeout(DetailsHandler.findTicketByNumber, 50));
             App.ticketNumberInput.addEventListener('change', DetailsHandler.findTicketByNumber);
             App.countrySelect.addEventListener('change', DetailsHandler.updateCouponSectionVisibility);
@@ -161,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 App.viewTicketBtn.href = `${BASE_PATH}/tickets/details/${ticket.id}`;
                 App.viewTicketContainer.classList.remove('hidden-transition');
 
-                App.submitBtn.innerHTML = '<i class="fas fa-sync-alt ml-2"></i> تحديث التذكرة';
+                App.submitBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Update Ticket';
                 App.isUpdateMode = true;
             }
         },
@@ -195,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Coupon Management
         updateCouponSectionVisibility: () => {
+            if (!App.couponsSection || !App.countrySelect) return;
             App.couponsSection.classList.toggle('hidden', !App.countrySelect.value);
         },
         getExistingCouponIds: () => {
@@ -203,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleAddCouponClick: async () => {
             const countryId = App.countrySelect.value;
             if (!countryId) {
-                App.showToast('الرجاء اختيار الدولة أولاً.', 'error');
+                App.showToast('Please select a country first.', 'error');
                 return;
             }
             const result = await App.api.get('tickets/data/getCouponsByCountry', {
@@ -213,176 +217,170 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.ok && result.data.coupons.length > 0) {
                 DetailsHandler.addCouponSelector(result.data.coupons);
             } else {
-                App.showToast('لا توجد كوبونات متاحة لهذه الدولة.', 'info');
+                App.showToast('No more coupons available for this country.', 'info');
             }
         },
         addCouponSelector: (coupons, selectedCouponId = null) => {
-        const selectorId = `coupon-${Date.now()}`;
-        const couponDiv = document.createElement('div');
-        couponDiv.className = 'flex items-center space-x-2 space-x-reverse';
-        
-        const select = document.createElement('select');
-        select.id = selectorId;
-        select.name = 'coupons[]';
-        select.className = 'form-select block w-full coupon-select';
-        select.innerHTML = `<option value="" selected>اختر كوبون</option>`;
-        coupons.forEach(coupon => {
-            const option = document.createElement('option');
-            option.value = coupon.id;
-            option.textContent = `${coupon.code} (${coupon.value})`;
-            select.appendChild(option);
-        });
+            const selectorId = `coupon-${Date.now()}`;
+            const couponDiv = document.createElement('div');
+            couponDiv.className = 'flex items-center space-x-2';
+            
+            const select = document.createElement('select');
+            select.id = selectorId;
+            select.name = 'coupons[]';
+            select.className = 'form-select block w-full coupon-select';
+            select.innerHTML = `<option value="" selected>Select Coupon</option>`;
+            coupons.forEach(coupon => {
+                const option = document.createElement('option');
+                option.value = coupon.id;
+                option.textContent = `${coupon.code} (${coupon.value})`;
+                select.appendChild(option);
+            });
             if (selectedCouponId) select.value = selectedCouponId;
 
-        const copyBtn = document.createElement('button');
-        copyBtn.type = 'button';
-        copyBtn.className = 'btn btn-secondary p-2 copy-coupon-btn';
-        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-        copyBtn.disabled = !selectedCouponId;
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'btn btn-secondary p-2 copy-coupon-btn';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.disabled = !selectedCouponId;
 
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn bg-red-500 hover:bg-red-600 text-white p-2 remove-coupon-btn';
-        removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn bg-red-500 hover:bg-red-600 text-white p-2 remove-coupon-btn';
+            removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
 
-        couponDiv.appendChild(select);
-        couponDiv.appendChild(copyBtn);
-        couponDiv.appendChild(removeBtn);
+            couponDiv.appendChild(select);
+            couponDiv.appendChild(copyBtn);
+            couponDiv.appendChild(removeBtn);
+
             App.couponsContainer.appendChild(couponDiv);
 
-            select.addEventListener('change', () => DetailsHandler.handleCouponChange(select, copyBtn));
-            removeBtn.addEventListener('click', () => DetailsHandler.handleCouponRemove(couponDiv, select.id));
-            copyBtn.addEventListener('click', () => DetailsHandler.handleCouponCopy(select));
-            
-        if (selectedCouponId) {
-            select.disabled = true;
-            copyBtn.disabled = false;
-                removeBtn.classList.add('hidden');
-        }
-        },
-        handleCouponChange: async (select, copyBtn) => {
-            const newCouponId = select.value;
-            const oldCouponId = App.heldCoupons.get(select.id);
-    
-            if (newCouponId === oldCouponId) return;
-
-        if (oldCouponId) {
-                await App.api.post('tickets/data/releaseCoupon', { coupon_id: oldCouponId });
-                App.heldCoupons.delete(select.id);
-        }
-        copyBtn.disabled = true;
-
-        if (newCouponId) {
-                const result = await App.api.post('tickets/data/holdCoupon', { coupon_id: newCouponId });
-            if (result.ok && result.data.success) {
-                    App.heldCoupons.set(select.id, newCouponId);
-                copyBtn.disabled = false;
-                    App.showToast('تم حجز الكوبون بنجاح.', 'success');
-            } else {
-                    App.showToast(result.data.message || 'فشل حجز الكوبون، قد يكون مستخدماً.', 'error');
-                select.querySelector(`option[value="${newCouponId}"]`)?.remove();
-                    select.value = '';
-                    App.heldCoupons.delete(select.id);
+            select.addEventListener('change', () => {
+                copyBtn.disabled = !select.value;
+                if (select.value) {
+                    DetailsHandler.handleCouponHold(selectorId, select.value);
                 }
+            });
+            copyBtn.addEventListener('click', () => {
+                const selectedText = select.options[select.selectedIndex].text;
+                navigator.clipboard.writeText(selectedText.split(' ')[0]);
+                App.showToast('Coupon code copied!', 'success');
+            });
+            removeBtn.addEventListener('click', () => {
+                DetailsHandler.handleCouponRelease(selectorId);
+                couponDiv.remove();
+            });
+
+            if (selectedCouponId) {
+                DetailsHandler.handleCouponHold(selectorId, selectedCouponId);
             }
         },
-        handleCouponRemove: async (couponDiv, selectorId) => {
-            const couponId = App.heldCoupons.get(selectorId);
-        if (couponId) {
+        handleCouponHold: async (selectorId, couponId) => {
+            if (App.heldCoupons.has(selectorId)) {
+                await DetailsHandler.handleCouponRelease(selectorId);
+            }
+            const result = await App.api.post('tickets/data/holdCoupon', { coupon_id: couponId });
+            if (result.ok && result.data.success) {
+                App.heldCoupons.set(selectorId, couponId);
+            } else {
+                App.showToast(result.data.message || 'Failed to hold coupon.', 'error');
+                const select = document.getElementById(selectorId);
+                if (select) select.value = '';
+            }
+        },
+        handleCouponRelease: async (selectorId) => {
+            if (App.heldCoupons.has(selectorId)) {
+                const couponId = App.heldCoupons.get(selectorId);
                 await App.api.post('tickets/data/releaseCoupon', { coupon_id: couponId });
                 App.heldCoupons.delete(selectorId);
-        }
-        couponDiv.remove();
-            App.showToast('تم حذف الكوبون.', 'info');
+            }
         },
-        handleCouponCopy: (select) => {
-        const selectedOption = select.options[select.selectedIndex];
-        if (!selectedOption || !selectedOption.value) return;
-        const couponCode = selectedOption.textContent.split(' ')[0];
-        navigator.clipboard.writeText(couponCode)
-                .then(() => App.showToast(`تم نسخ الكود: ${couponCode}`, 'success'))
-                .catch(() => App.showToast('فشل نسخ الكود.', 'error'));
+        releaseAllHeldCoupons: async () => {
+            const promises = Array.from(App.heldCoupons.values()).map(couponId =>
+                App.api.post('tickets/data/releaseCoupon', { coupon_id: couponId })
+            );
+            await Promise.all(promises);
+            App.heldCoupons.clear();
         }
     };
-    
+
     // --- Main Form Logic ---
     const FormHandler = {
         init: () => {
+            if (!App.form) return;
             App.form.addEventListener('submit', FormHandler.handleSubmit);
             App.resetBtn.addEventListener('click', () => FormHandler.resetForm(true, true));
             App.pasteTicketBtn.addEventListener('click', () => App.pasteFromClipboard(App.ticketNumberInput));
             App.pastePhoneBtn.addEventListener('click', () => App.pasteFromClipboard(App.phoneInput));
-            window.addEventListener('beforeunload', FormHandler.handlePageUnload);
-            DetailsHandler.updateCouponSectionVisibility();
+            window.addEventListener('beforeunload', DetailsHandler.releaseAllHeldCoupons);
         },
-        resetForm: (fullReset = true, showToast = true) => {
-            // Hide feedback elements
+        resetForm: (clearTicketNumber = true, showToast = false) => {
+            App.isUpdateMode = false;
+            if (clearTicketNumber) App.ticketNumberInput.value = '';
+            App.platformSelect.selectedIndex = 0;
+            App.phoneInput.value = '';
+            App.countrySelect.selectedIndex = 0;
+            App.isVipCheckbox.checked = false;
+            App.notesTextarea.value = '';
+            App.categorySelect.selectedIndex = 0;
+            App.subcategorySelect.innerHTML = '<option value="">Select Main Category First</option>';
+            App.subcategorySelect.disabled = true;
+            App.codeSelect.innerHTML = '<option value="">Select Sub-Category First</option>';
+            App.codeSelect.disabled = true;
+            
             App.ticketExistsError.classList.add('hidden');
             App.viewTicketContainer.classList.add('hidden-transition');
+            App.viewTicketBtn.href = '#';
 
-            // Reset update mode
-            App.isUpdateMode = false;
-            App.submitBtn.innerHTML = '<i class="fas fa-plus ml-2"></i> إنشاء تذكرة';
+            DetailsHandler.releaseAllHeldCoupons();
+            App.couponsContainer.innerHTML = '';
+            DetailsHandler.updateCouponSectionVisibility();
 
-            if (fullReset) {
-                // Clear all form fields
-                App.form.reset();
+            App.submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i> Create Ticket';
 
-                // Manually trigger change events for selects to reset dependent dropdowns
-                App.categorySelect.dispatchEvent(new Event('change'));
-                App.countrySelect.dispatchEvent(new Event('change'));
-
-                // Clear dynamic elements
-                App.couponsContainer.innerHTML = '';
-                App.heldCoupons.clear();
-
-                if (showToast) {
-                    App.showToast('تم مسح جميع الحقول.', 'info');
-                }
-            } else {
-                // On partial reset (ticket search), only reset fields that are filled by search
-                const fieldsToReset = [
-                    App.platformSelect, App.phoneInput, App.isVipCheckbox, App.notesTextarea,
-                    App.teamLeaderSelect, App.countrySelect, App.categorySelect, App.subcategorySelect, App.codeSelect
-                ];
-                fieldsToReset.forEach(field => {
-                    if (field.type === 'checkbox') field.checked = false;
-                    else field.value = '';
-                });
-
-                App.couponsContainer.innerHTML = '';
-                App.heldCoupons.clear();
-                DetailsHandler.updateCouponSectionVisibility();
-                ClassificationHandler.handleCategoryChange();
-            }
+            if (showToast) App.showToast('Form has been cleared.', 'info');
         },
         handleSubmit: async (e) => {
             e.preventDefault();
+            const requiredFields = [App.ticketNumberInput, App.platformSelect, App.categorySelect, App.subcategorySelect, App.codeSelect];
+            if (requiredFields.some(field => !field.value)) {
+                App.showToast('Please fill all required fields.', 'error');
+                return;
+            }
+
+            App.submitBtn.disabled = true;
+            App.submitBtn.innerHTML = App.isUpdateMode ? 'Updating...' : 'Creating...';
+            
             const formData = new FormData(App.form);
             const data = Object.fromEntries(formData.entries());
-            data.coupons = DetailsHandler.getExistingCouponIds();
+            data.is_vip = App.isVipCheckbox.checked ? '1' : '0';
+            data.coupons = Array.from(App.couponsContainer.querySelectorAll('.coupon-select')).map(s => s.value).filter(Boolean);
 
-            const endpoint = App.isUpdateMode ? 'tickets/update' : 'tickets/store';
+            const endpoint = 'tickets/store';
             const result = await App.api.post(endpoint, data);
 
             if (result.ok && result.data.success) {
                 App.showToast(result.data.message, 'success');
-                App.heldCoupons.clear();
-                FormHandler.resetForm();
+                setTimeout(() => {
+                    if (result.data.ticket_id) {
+                        window.location.href = `${BASE_PATH}/tickets/details/${result.data.ticket_id}`;
+                    } else {
+                        FormHandler.resetForm(true);
+                    }
+                }, 1500);
             } else {
-                const actionText = App.isUpdateMode ? 'تحديث' : 'حفظ';
-                App.showToast(result.data.message || `حدث خطأ أثناء ${actionText} التذكرة.`, 'error');
+                App.showToast(result.data.message || 'An unknown error occurred.', 'error');
             }
-        },
-        handlePageUnload: () => {
-            if (App.heldCoupons.size > 0) {
-                 navigator.sendBeacon(`${BASE_PATH}/tickets/data/releaseAllCoupons`);
-            }
+            
+            App.submitBtn.disabled = false;
+            App.submitBtn.innerHTML = App.isUpdateMode ? '<i class="fas fa-sync-alt mr-2"></i> Update Ticket' : '<i class="fas fa-plus mr-2"></i> Create Ticket';
         }
     };
 
-    // --- Initialize Handlers ---
-    ClassificationHandler.init();
-    DetailsHandler.init();
-    FormHandler.init();
+    // --- Initialize all modules ---
+    if (document.getElementById('ticket-form')) {
+        ClassificationHandler.init();
+        DetailsHandler.init();
+        FormHandler.init();
+    }
 });

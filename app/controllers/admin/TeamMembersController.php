@@ -43,32 +43,29 @@ class TeamMembersController extends Controller {
             if ($user_id && $team_id) {
                 $teamMemberModel = new TeamMember();
                 
-                // Check if user is already in any team
                 if ($teamMemberModel->isUserInAnyTeam($user_id)) {
-                    $_SESSION['error'] = 'هذا المستخدم عضو بالفعل في فريق آخر ولا يمكن إضافته مرة أخرى.';
+                    flash('team_member_message', 'This user is already a member of another team.', 'error');
                 } elseif ($teamMemberModel->create($user_id, $team_id)) {
-                    $_SESSION['message'] = 'تمت إضافة عضو الفريق بنجاح.';
+                    flash('team_member_message', 'Team member added successfully.');
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أثناء إضافة العضو. قد يكون موجود بالفعل في هذا الفريق.';
+                    flash('team_member_message', 'Failed to add team member. They might already be in this team.', 'error');
                 }
             } else {
-                $_SESSION['error'] = 'البيانات المدخلة غير صالحة. يرجى اختيار مستخدم وفريق.';
+                flash('team_member_message', 'Invalid data provided. Please select a user and a team.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/team_members');
-        exit;
+        redirect('/admin/team_members');
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $teamMemberModel = new TeamMember();
             if ($teamMemberModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف عضو الفريق بنجاح.';
+                flash('team_member_message', 'Team member removed successfully.');
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف عضو الفريق.';
+                flash('team_member_message', 'Failed to remove team member.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/team_members');
-        exit;
+        redirect('/admin/team_members');
     }
 } 

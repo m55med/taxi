@@ -29,34 +29,38 @@ class TicketCategoriesController extends Controller {
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim(htmlspecialchars($_POST['name']));
-            
             if (!empty($name)) {
                 $ticketCategoryModel = new TicketCategory();
                 if ($ticketCategoryModel->create($name)) {
-                    $_SESSION['message'] = 'تمت إضافة التصنيف بنجاح.';
+                    $_SESSION['ticket_category_message'] = 'Category created successfully.';
+                    $_SESSION['ticket_category_message_type'] = 'success';
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن التصنيف موجود بالفعل.';
+                    $_SESSION['ticket_category_message'] = 'Error creating category.';
+                    $_SESSION['ticket_category_message_type'] = 'error';
                 }
             } else {
-                $_SESSION['error'] = 'اسم التصنيف لا يمكن أن يكون فارغًا.';
+                $_SESSION['ticket_category_message'] = 'Category name cannot be empty.';
+                $_SESSION['ticket_category_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/ticket_categories');
-        exit;
+        header("Location: " . BASE_PATH . "/admin/ticket_categories");
+        exit();
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ticketCategoryModel = new TicketCategory();
             if ($ticketCategoryModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف التصنيف بنجاح.';
+                $_SESSION['ticket_category_message'] = 'Category deleted successfully.';
+                $_SESSION['ticket_category_message_type'] = 'success';
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف التصنيف.';
+                $_SESSION['ticket_category_message'] = 'Error deleting category. It might be in use.';
+                $_SESSION['ticket_category_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/ticket_categories');
-        exit;
+        header("Location: " . BASE_PATH . "/admin/ticket_categories");
+        exit();
     }
 } 

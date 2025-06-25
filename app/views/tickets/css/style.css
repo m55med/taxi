@@ -1,5 +1,4 @@
-body { 
-    font-family: 'Cairo', sans-serif;
+body {
     background-color: #f8f9fa;
 }
 .form-input, .form-select, .form-textarea {
@@ -42,13 +41,10 @@ body {
     color: #1f2937;
     margin-bottom: 1.5rem;
 }
-#paste-phone-number{
-    right: 0.5rem;
-    left: auto;
-}
+
 #paste-ticket-number {
+    left: 0.5rem; /* Ensure paste button is on the left */
     right: auto;
-    left: 0.5rem;
 }
 
 #view-ticket-container.hidden-transition {
@@ -59,9 +55,4 @@ body {
 
 #view-ticket-container {
     transition: opacity 300ms, transform 300ms;
-}
-
-/* RTL Specific Styles */
-[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-    --tw-space-x-reverse: 1;
 }

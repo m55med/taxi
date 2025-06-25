@@ -4,13 +4,13 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Define application root directory
-define('APPROOT', dirname(__DIR__));
+define('APPROOT', dirname(__DIR__) . '/app');
 
 // Autoload vendor libraries
-require_once APPROOT . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 // Load environment variables from .env file
-$dotenv = Dotenv\Dotenv::createImmutable(APPROOT);
+$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
 $dotenv->load();
 
 // Define Base Path for URLs dynamically to support proxies like ngrok
@@ -30,8 +30,8 @@ if (session_status() === PHP_SESSION_NONE) {
 define('ENVIRONMENT', 'development');
 
 // Load Helpers
-require_once '../app/helpers/url_helper.php';
-require_once '../app/helpers/session_helper.php';
+require_once APPROOT . '/helpers/url_helper.php';
+require_once APPROOT . '/helpers/session_helper.php';
 
 // Initialize and run the application
 $app = new \App\Core\App();

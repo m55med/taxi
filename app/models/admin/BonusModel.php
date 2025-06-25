@@ -46,4 +46,19 @@ class BonusModel {
             ':granted_by' => $data['granted_by']
         ]);
     }
+
+    public function bonusExists($userId, $year, $month) {
+        $stmt = $this->db->prepare("SELECT id FROM user_monthly_bonus WHERE user_id = :user_id AND bonus_year = :year AND bonus_month = :month");
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':year' => $year,
+            ':month' => $month
+        ]);
+        return $stmt->fetch() !== false;
+    }
+
+    public function deleteBonus($id) {
+        $stmt = $this->db->prepare("DELETE FROM user_monthly_bonus WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
+    }
 } 

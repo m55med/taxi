@@ -1,4 +1,4 @@
-<?php require_once APPROOT . '/app/views/inc/header.php'; ?>
+<?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="{ activeTab: 'reports' }">
     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($page_main_title); ?></h1>
@@ -56,4 +56,4 @@
     </div>
 </div>
 
-<?php require_once APPROOT . '/app/views/inc/footer.php'; ?>
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?>

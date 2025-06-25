@@ -293,42 +293,26 @@ class App
                     $this->triggerNotFound();
                 }
             } elseif ($url[0] === 'ticket' || $url[0] === 'tickets') {
-                $controllerName = 'Ticket'; // Default controller
-                $methodName = 'index';     // Default method
-
-                if (isset($url[1])) {
-                    // Route to the new TicketsController for details, reviews, discussions, etc.
-                    if (in_array($url[1], ['details', 'addReview', 'addDiscussion', 'addObjection', 'closeDiscussion'])) {
-                        $controllerName = 'Tickets'; // The new controller with the 's'
-                        $methodName = $url[1];
-                        unset($url[0], $url[1]);
-                    } elseif ($url[1] === 'data' && isset($url[2])) {
-                        // Handle existing data routes
-                        $controllerName = 'Data';
-                        $methodName = $url[2];
-                        unset($url[0], $url[1], $url[2]);
-                    } else {
-                        // Fallback to the old TicketController for other methods like 'create', 'index' etc.
-                        $methodName = $url[1];
-                        unset($url[0], $url[1]);
-                    }
-                } else {
-                    // Just /tickets -> goes to old TicketController@index
-                    unset($url[0]);
-                }
-
-                $controllerClass = '\\App\\Controllers\\Tickets\\' . ucfirst($controllerName) . 'Controller';
-                $controllerFile = '../app/controllers/tickets/' . ucfirst($controllerName) . 'Controller.php';
+                $controllerSegment = $url[0];
+                // if the URL is /tickets/search, use TicketsController, otherwise use TicketController
+                $controllerName = ($controllerSegment === 'tickets' && isset($url[1])) ? 'TicketsController' : 'TicketController';
+                $controllerFile = '../app/controllers/tickets/' . $controllerName . '.php';
 
                 if (file_exists($controllerFile)) {
+                    $controllerClass = '\\App\\Controllers\\Tickets\\' . $controllerName;
                     $this->controller = new $controllerClass();
-                    if (method_exists($this->controller, $methodName)) {
-                        $this->method = $methodName;
-                    } else {
-                        $this->triggerNotFound();
+                    
+                    $methodName = 'index'; // Default method
+                    if(isset($url[1]) && method_exists($this->controller, $url[1])) {
+                        $methodName = $url[1];
+                        unset($url[1]);
                     }
+                    
+                    $this->method = $methodName;
+                    unset($url[0]);
+
                 } else {
-                    $this->triggerNotFound();
+                    $this->triggerNotFound("Controller not found: " . $controllerFile);
                 }
             } elseif ($url[0] === 'logs') { // Handle logs route
                 $controllerName = 'LogsController';
@@ -451,6 +435,17 @@ class App
                 } else {
                     $this->triggerNotFound("Controller {$controllerClass} not found at {$controllerFile}.");
                 }
+            } elseif ($url[0] === 'documentation' && isset($url[1])) {
+                $controllerName = 'DocumentationController';
+                $controllerFile = '../app/controllers/documentation/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\Documentation\DocumentationController();
+                    $this->method = 'index'; // Method is always index for documentation
+                    unset($url[0], $url[1]);
+                } else {
+                    $this->triggerNotFound();
+                }
             } else {
                 // التعامل مع باقي المسارات
                 $controllerName = ucfirst($url[0]) . 'Controller';
@@ -547,7 +542,7 @@ class App
                 'user_permissions' => $_SESSION['permissions'] ?? []
             ];
             $data['debug_info'] = $debug_info;
-            require_once APPROOT . '/app/views/errors/403.php';
+            require_once APPROOT . '/views/errors/403.php';
                         exit;
                     }
                 }
@@ -575,15 +570,15 @@ class App
 
     /**
      * Checks for a permission-refresh signal and updates the session.
-     * @param int $userId
+     * @param int $userId The ID of the user to notify.
      */
     private function checkAndRefreshPermissions(int $userId)
     {
-        $refreshFile = APPROOT . '/app/cache/refresh_permissions/' . $userId;
+        $refreshFile = APPROOT . '/cache/refresh_permissions/' . $userId;
         if (file_exists($refreshFile)) {
-            // Re-fetch permissions from the database
-            $permissionModel = new \App\Models\Admin\Permission();
-            $_SESSION['permissions'] = $permissionModel->getPermissionsByUser($userId);
+            // Re-fetch permissions from the database using the correct model
+            $userModel = new \App\Models\User\User();
+            $_SESSION['permissions'] = $userModel->getUserPermissions($userId);
             
             // Clean up the signal file
             unlink($refreshFile);

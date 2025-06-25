@@ -38,13 +38,11 @@ class PointsController extends Controller {
                 'valid_from' => trim($_POST['valid_from'])
             ];
 
-            // Basic validation
             if (empty($data['code_id']) || empty($data['points']) || empty($data['valid_from'])) {
-                flash('points_message', 'يرجى ملء جميع الحقول المطلوبة.', 'bg-red-500');
+                flash('points_message', 'Please fill in all required fields.', 'error');
                 redirect('/admin/points');
             }
             
-            // End the previous rule for the same code and vip status
             $this->pointsModel->endPreviousPointRule('ticket_code_points', [
                 'code_id' => $data['code_id'], 
                 'is_vip' => $data['is_vip']
@@ -52,10 +50,10 @@ class PointsController extends Controller {
 
 
             if ($this->pointsModel->addTicketCodePoint($data)) {
-                flash('points_message', 'تم تحديد نقاط الكود بنجاح.');
+                flash('points_message', 'Ticket code points set successfully.');
                 redirect('/admin/points');
             } else {
-                flash('points_message', 'حدث خطأ ما، يرجى المحاولة مرة أخرى.', 'bg-red-500');
+                flash('points_message', 'Something went wrong, please try again.', 'error');
                 redirect('/admin/points');
             }
         } else {
@@ -72,20 +70,18 @@ class PointsController extends Controller {
                 'valid_from' => trim($_POST['valid_from'])
             ];
             
-            // Basic validation
             if (empty($data['points']) || empty($data['valid_from'])) {
-                flash('points_message', 'يرجى ملء جميع الحقول المطلوبة.', 'bg-red-500');
+                flash('points_message', 'Please fill in all required fields.', 'error');
                 redirect('/admin/points');
             }
 
-            // End previous call point rule
             $this->pointsModel->endPreviousPointRule('call_points', [], $data['valid_from']);
             
             if ($this->pointsModel->addCallPoint($data)) {
-                flash('points_message', 'تم تحديد نقاط المكالمات بنجاح.');
+                flash('points_message', 'Call points set successfully.');
                 redirect('/admin/points');
             } else {
-                flash('points_message', 'حدث خطأ ما، يرجى المحاولة مرة أخرى.', 'bg-red-500');
+                flash('points_message', 'Something went wrong, please try again.', 'error');
                 redirect('/admin/points');
             }
         } else {

@@ -1,4 +1,4 @@
-<?php require APPROOT . '/app/views/inc/header.php'; ?>
+<?php include_once __DIR__ . '/../includes/header.php'; ?>
 
 <body class="bg-gray-100">
 <div class="container mx-auto p-4 sm:p-6">
@@ -36,4 +36,4 @@
         <?php endif; ?>
     </div>
 </div>
-<?php require APPROOT . '/app/views/inc/footer.php'; ?> 
+<?php include_once __DIR__ . '/../includes/footer.php'; ?> 

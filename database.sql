@@ -226,35 +226,42 @@ CREATE TABLE ticket_codes (
 --جدول التيكتات
 CREATE TABLE tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    
     ticket_number VARCHAR(50) NOT NULL UNIQUE, -- رقم التذكرة
-    is_vip BOOLEAN DEFAULT 0,                  -- هل VIP أم لا
-    platform_id INT NOT NULL,                  -- المنصة القادمة منها التذكرة
-    phone VARCHAR(20),                         -- رقم الهاتف (اختياري)
-    
-    category_id INT NOT NULL,                  -- التصنيف الرئيسي
-    subcategory_id INT NOT NULL,               -- التصنيف الفرعي
-    code_id INT NOT NULL,                      -- الكود المختار بناء على التصنيف
-
-    notes TEXT,                                -- ملاحظات (اختياري)
-    
-    country_id INT DEFAULT NULL,               -- الدولة (اختياري)
-
     created_by INT NOT NULL,                   -- الموظف الذي أنشأ التذكرة
-    assigned_team_leader_id INT NOT NULL,      -- التيم ليدر المسؤول عن الموظف
-    
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     -- العلاقات (Foreign Keys)
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- جدول تفاصيل التذاكر (للسجل والتغييرات)
+CREATE TABLE ticket_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    
+    is_vip BOOLEAN DEFAULT 0,
+    platform_id INT NOT NULL,
+    phone VARCHAR(20),
+    category_id INT NOT NULL,
+    subcategory_id INT NOT NULL,
+    code_id INT NOT NULL,
+    notes TEXT,
+    country_id INT DEFAULT NULL,
+    
+    assigned_team_leader_id INT NOT NULL,
+    edited_by INT NOT NULL, -- الموظف الذي أجرى هذا التعديل (أو أنشأ الإصدار الأول)
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     FOREIGN KEY (platform_id) REFERENCES platforms(id),
     FOREIGN KEY (category_id) REFERENCES ticket_categories(id),
     FOREIGN KEY (subcategory_id) REFERENCES ticket_subcategories(id),
     FOREIGN KEY (code_id) REFERENCES ticket_codes(id),
-    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (country_id) REFERENCES countries(id),
     FOREIGN KEY (assigned_team_leader_id) REFERENCES users(id),
-    FOREIGN KEY (country_id) REFERENCES countries(id)
+    FOREIGN KEY (edited_by) REFERENCES users(id)
 );
-
 
 --جدول مراجعات التذاكر
 CREATE TABLE ticket_reviews (
@@ -325,14 +332,17 @@ CREATE TABLE `coupons` (
 CREATE TABLE ticket_coupons (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ticket_id INT NOT NULL,
+    ticket_detail_id INT NULL DEFAULT NULL,
     coupon_id INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (ticket_detail_id) REFERENCES ticket_details(id) ON DELETE SET NULL,
     FOREIGN KEY (coupon_id) REFERENCES coupons(id),
     
-    UNIQUE(ticket_id, coupon_id) -- يمنع تكرار نفس الكوبون لتذكرة واحدة
+    UNIQUE(ticket_id, coupon_id)
 );
+
 --جدول لتخزين بيانات الزيارات المرجعية
 CREATE TABLE referral_visits (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -617,3 +627,8 @@ CREATE TABLE user_monthly_bonus (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, created_at)
+SELECT 
+    id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, created_at
+FROM tickets;

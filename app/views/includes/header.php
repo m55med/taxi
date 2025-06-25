@@ -1,34 +1,45 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تاكسي</title>
+    <title>Taxi</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/css/style.css">
+    
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <!-- Quill editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <style>
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: 'Roboto', sans-serif;
             [x-cloak] { display: none !important; }
+        }
+        .online-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #9ca3af; /* gray-400 for offline */
+            margin-right: 8px;
+        }
+        .online-badge.active {
+            background-color: #22c55e; /* green-500 for online */
         }
     </style>
 </head>
-<body class="bg-gray-100" dir="rtl">
+<body class="bg-gray-100" dir="ltr">
     <?php 
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
-    include __DIR__ . '/../includes/nav.php'; 
+    include __DIR__ . '/nav.php'; 
     ?>
     <!-- Main Content Container -->
     <main class="min-h-screen"> 

@@ -8,62 +8,76 @@ use App\Core\Controller;
 
 class RolesController extends Controller {
 
+    private $roleModel;
+
     public function __construct() {
         Auth::checkAdmin();
+        $this->roleModel = new Role();
     }
 
     public function index() {
-        $roleModel = new Role();
-        $roles = $roleModel->getAll();
-        
         $data = [
-            'roles' => $roles,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
+            'roles' => $this->roleModel->getAll()
         ];
-
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
-        
         $this->view('admin/roles/index', $data);
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
-            $name = trim(htmlspecialchars($_POST['name']));
-            
-            if (!empty($name)) {
-                $roleModel = new Role();
-                if ($roleModel->create($name)) {
-                    $_SESSION['message'] = 'تمت إضافة الدور بنجاح.';
-                } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن الدور موجود بالفعل.';
-                }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name'] ?? '');
+
+            if (empty($name)) {
+                flash('role_message', 'Role name cannot be empty.', 'error');
+            } elseif ($this->roleModel->findByName($name)) {
+                flash('role_message', 'Role name already exists.', 'error');
             } else {
-                $_SESSION['error'] = 'اسم الدور لا يمكن أن يكون فارغًا.';
+                if ($this->roleModel->create($name)) {
+                    flash('role_message', 'Role added successfully.');
+                } else {
+                    flash('role_message', 'Failed to add role.', 'error');
+                }
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/roles');
-        exit;
+        redirect('/admin/roles');
+    }
+
+    public function update() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id'];
+            $name = trim($_POST['name'] ?? '');
+
+            if (empty($name)) {
+                flash('role_message', 'Role name cannot be empty.', 'error');
+                redirect('/admin/roles');
+            }
+
+            $existingRole = $this->roleModel->findByName($name);
+            if ($existingRole && $existingRole['id'] != $id) {
+                flash('role_message', 'Another role with this name already exists.', 'error');
+            } else {
+                if ($this->roleModel->update($id, $name)) {
+                    flash('role_message', 'Role updated successfully.');
+                } else {
+                    flash('role_message', 'Failed to update role.', 'error');
+                }
+            }
+        }
+        redirect('/admin/roles');
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Avoid deleting essential roles, e.g., admin (id=1)
             if ($id == 1) {
-                $_SESSION['error'] = 'لا يمكن حذف دور المدير الأساسي.';
-                header('Location: ' . BASE_PATH . '/admin/roles');
-                exit;
+                flash('role_message', 'The Administrator role cannot be deleted.', 'error');
+                redirect('/admin/roles');
             }
 
-            $roleModel = new Role();
-            if ($roleModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف الدور بنجاح.';
+            if ($this->roleModel->delete($id)) {
+                flash('role_message', 'Role deleted successfully.');
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف الدور. قد يكون الدور مستخدمًا حاليًا.';
+                flash('role_message', 'Failed to delete role. It may be in use.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/roles');
-        exit;
+        redirect('/admin/roles');
     }
 } 

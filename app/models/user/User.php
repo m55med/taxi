@@ -266,253 +266,202 @@ class User
         }
     }
 
-    // تسجيل الخروج
     public function logout($userId)
     {
-        $this->updateOnlineStatus($userId, 0);
+        $this->setOffline($userId);
     }
 
     public function updateOnlineStatus($userId, $status)
     {
         try {
-            $stmt = $this->db->prepare("UPDATE users SET is_online = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
-            $stmt->execute([':status' => $status, ':id' => $userId]);
-            return true;
+            // تحديث وقت النشاط
+            $sql = "UPDATE users SET is_online = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$status, $userId]);
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("Error updating online status: " . $e->getMessage());
             return false;
         }
     }
 
-    // تحديث دور المستخدم
     public function updateUserRole($userId, $roleId)
     {
         try {
             $sql = "UPDATE users SET role_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute([$roleId, $userId]);
-            return ['status' => $result, 'message' => $result ? 'تم تحديث الدور بنجاح' : 'فشل تحديث الدور'];
+            return $stmt->execute([$roleId, $userId]);
         } catch (PDOException $e) {
             error_log("Error updating user role: " . $e->getMessage());
-            return ['status' => false, 'message' => 'حدث خطأ أثناء تحديث الدور'];
+            return false;
         }
     }
 
-    // الحصول على معلومات مستخدم محدد
     public function getUserById($id)
     {
         try {
             $sql = "SELECT 
-                        u.id,
-                        u.username,
-                        u.email,
-                        u.status,
-                        u.is_online,
-                        u.role_id,
-                        u.updated_at,
-                        r.name as role_name
+                        u.*, 
+                        r.name as role_name 
                     FROM users u 
-                    LEFT JOIN roles r ON u.role_id = r.id
+                    LEFT JOIN roles r ON u.role_id = r.id 
                     WHERE u.id = ?";
-
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                // التأكد من وجود جميع الحقول المطلوبة
+                // التأكد من أن جميع الحقول المطلوبة موجودة
                 $user['role_name'] = $user['role_name'] ?? 'مستخدم';
-                $user['role_id'] = $user['role_id'] ?? 3;
                 $user['status'] = $user['status'] ?? 'pending';
-                $user['is_online'] = $user['is_online'] ?? 0;
-                $user['updated_at'] = $user['updated_at'] ?? date('Y-m-d H:i:s');
-                return $user;
             }
 
-            return null;
+            return $user;
         } catch (PDOException $e) {
             error_log("Error fetching user by ID: " . $e->getMessage());
             return null;
         }
     }
 
-    // تحديث معلومات المستخدم
     public function updateUser($id, $data)
     {
         try {
-            $updates = [];
+            $fields = [];
             $params = [];
-
-            // تحديث اسم المستخدم إذا تم تغييره
-            if (!empty($data['username'])) {
-                // التحقق من وجود اسم المستخدم لمستخدم آخر
-                $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ? AND id != ?");
-                $stmt->execute([$data['username'], $id]);
-                if ($stmt->fetch()) {
-                    return ['status' => false, 'message' => 'اسم المستخدم مستخدم بالفعل'];
-                }
-                $updates[] = "username = ?";
-                $params[] = $data['username'];
+            
+            if (isset($data['username'])) {
+                $fields[] = 'username = :username';
+                $params[':username'] = $data['username'];
             }
-
-            // تحديث البريد الإلكتروني إذا تم تغييره
-            if (!empty($data['email'])) {
-                // التحقق من وجود البريد الإلكتروني لمستخدم آخر
-                $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-                $stmt->execute([$data['email'], $id]);
-                if ($stmt->fetch()) {
-                    return ['status' => false, 'message' => 'البريد الإلكتروني مستخدم بالفعل'];
-                }
-                $updates[] = "email = ?";
-                $params[] = $data['email'];
+            if (isset($data['email'])) {
+                $fields[] = 'email = :email';
+                $params[':email'] = $data['email'];
             }
-
-            // تحديث كلمة المرور إذا تم تغييرها
-            if (!empty($data['password'])) {
-                $updates[] = "password = ?";
-                $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
+            if (isset($data['password'])) {
+                $fields[] = 'password = :password';
+                $params[':password'] = $data['password'];
             }
-
-            // تحديث الدور إذا تم تغييره
             if (isset($data['role_id'])) {
-                $updates[] = "role_id = ?";
-                $params[] = $data['role_id'];
+                $fields[] = 'role_id = :role_id';
+                $params[':role_id'] = $data['role_id'];
             }
-
-            // تحديث الحالة إذا تم تغييرها
             if (isset($data['status'])) {
-                $updates[] = "status = ?";
-                $params[] = $data['status'];
+                $fields[] = 'status = :status';
+                $params[':status'] = $data['status'];
+            }
+            if (isset($data['force_logout'])) {
+                $fields[] = 'force_logout = :force_logout';
+                $params[':force_logout'] = $data['force_logout'];
             }
 
-            if (empty($updates)) {
-                return ['status' => false, 'message' => 'لم يتم إجراء أي تغييرات'];
+            if (empty($fields)) {
+                return false; // لا يوجد شيء لتحديثه
             }
 
-            // إضافة معرف المستخدم للمعلمات
-            $params[] = $id;
+            // إضافة وقت التحديث
+            $fields[] = 'updated_at = CURRENT_TIMESTAMP';
+            $params[':id'] = $id;
 
-            $sql = "UPDATE users SET " . implode(", ", $updates) . ", updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+            $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
+            
             $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute($params);
-
-            return [
-                'status' => $result,
-                'message' => $result ? 'تم تحديث المستخدم بنجاح' : 'فشل تحديث المستخدم'
-            ];
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Error updating user: " . $e->getMessage());
-            return ['status' => false, 'message' => 'حدث خطأ أثناء تحديث المستخدم'];
+            return false;
         }
     }
 
     public function changePassword($userId, $currentPassword, $newPassword)
     {
         try {
-            // التحقق من كلمة المرور الحالية
-            $sql = "SELECT password FROM users WHERE id = ?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$userId]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $user = $this->getById($userId);
+            if (!$user) {
+                return ['success' => false, 'message' => 'المستخدم غير موجود'];
+            }
 
-            if (!$user || !password_verify($currentPassword, $user['password'])) {
-                return ['status' => false, 'message' => 'كلمة المرور الحالية غير صحيحة'];
+            // التحقق من كلمة المرور الحالية
+            if (!password_verify($currentPassword, $user['password'])) {
+                return ['success' => false, 'message' => 'كلمة المرور الحالية غير صحيحة'];
             }
 
             // تحديث كلمة المرور
+            $newHashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
             $sql = "UPDATE users SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute([
-                password_hash($newPassword, PASSWORD_DEFAULT),
-                $userId
-            ]);
+            $stmt->execute([$newHashedPassword, $userId]);
 
-            return [
-                'status' => $result,
-                'message' => $result ? 'تم تغيير كلمة المرور بنجاح' : 'فشل تغيير كلمة المرور'
-            ];
+            return ['success' => true, 'message' => 'تم تغيير كلمة المرور بنجاح'];
         } catch (PDOException $e) {
             error_log("Error changing password: " . $e->getMessage());
-            return ['status' => false, 'message' => 'حدث خطأ أثناء تغيير كلمة المرور'];
+            return ['success' => false, 'message' => 'حدث خطأ أثناء تغيير كلمة المرور'];
         }
     }
 
     public function getById($id)
     {
-        try {
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ? AND active = 1");
-            $stmt->execute([$id]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error in User::getById: " . $e->getMessage());
-            return false;
-        }
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getActiveStaff()
     {
-        try {
-            $sql = "SELECT id, username FROM users WHERE status = 'active' AND role_id IN (1, 2)";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error getting active staff: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    public function getActiveUsers()
-    {
-        $stmt = $this->db->prepare("SELECT id, username FROM users WHERE status = 'active'");
-        $stmt->execute();
+        // Adjust the role IDs (e.g., 1 for admin, 2 for staff) as per your `roles` table
+        $stmt = $this->db->query("SELECT id, username FROM users WHERE status = 'active' AND role_id IN (1, 2, 4, 5, 6, 7)");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
+    
+    public function getActiveUsers() {
+        $stmt = $this->db->query("SELECT * FROM users WHERE status = 'active' ORDER BY username ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
     public function getAvailableForTeamLeadership()
     {
-        // Find users who are not currently leading a team
+        // Get users who are active and not already leading a team
         $sql = "SELECT u.id, u.username 
-                FROM users u 
+                FROM users u
                 LEFT JOIN teams t ON u.id = t.team_leader_id
-                WHERE t.id IS NULL AND u.status = 'active'";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+                WHERE u.status = 'active' AND t.id IS NULL
+                ORDER BY u.username ASC";
+        
+        $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
-     * Fetches all permission keys for a given user ID.
-     *
-     * @param int $userId The ID of the user.
-     * @return array An array of permission keys.
+     * Get all permissions for a specific user based on their role.
+     * @param int $userId
+     * @return array
      */
     public function getUserPermissions(int $userId): array
     {
-        $stmt = $this->db->prepare("
-            SELECT p.permission_key 
-            FROM user_permissions up
-            JOIN permissions p ON up.permission_id = p.id
-            WHERE up.user_id = ?
-        ");
-        $stmt->execute([$userId]);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $sql = "SELECT p.permission_key 
+                FROM user_permissions up
+                JOIN permissions p ON up.permission_id = p.id
+                WHERE up.user_id = :user_id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     }
 
     public function getUsersByRole(int $roleId)
     {
-        $stmt = $this->db->prepare("
-            SELECT 
-                u.id, 
-                u.username, 
-                u.email, 
-                r.name as role_name 
-            FROM users u
-            JOIN roles r ON u.role_id = r.id
-            WHERE u.role_id = ?
-            ORDER BY u.username ASC
-        ");
-        $stmt->execute([$roleId]);
+        $stmt = $this->db->prepare("SELECT id, username, email FROM users WHERE role_id = :role_id");
+        $stmt->execute([':role_id' => $roleId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function setForceLogout(int $userId, bool $status): bool
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET force_logout = :status WHERE id = :id");
+            return $stmt->execute([':status' => $status ? 1 : 0, ':id' => $userId]);
+        } catch (PDOException $e) {
+            error_log("Error in setForceLogout: " . $e->getMessage());
+            return false;
+        }
     }
 }

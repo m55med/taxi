@@ -1,38 +1,19 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($page_main_title ?? 'تفاصيل التذكرة') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Quill editor -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    <style>
-        body { font-family: 'Cairo', sans-serif; }
-        [x-cloak] { display: none !important; }
-    </style>
-</head>
-<body class="bg-gray-100">
-    
-<?php include_once APPROOT . '/app/views/includes/nav.php'; ?>
+<?php include_once __DIR__ . '/../includes/header.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="ticketDetails()">
     <!-- Flash Messages -->
-    <?php include_once APPROOT . '/app/views/includes/flash_messages.php'; ?>
+    <?php include_once __DIR__ . '/../includes/flash_messages.php'; ?>
 
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($page_main_title); ?> #<?= htmlspecialchars($ticket['ticket_number']) ?></h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($data['page_main_title']); ?> #<?= htmlspecialchars($data['ticket']['ticket_number']) ?></h1>
         <a href="javascript:history.back()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center">
-            <i class="fas fa-arrow-right ml-2"></i>
-            عودة
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back
         </a>
     </div>
+
+    <?php include_once __DIR__ . '/partials/page_actions.php'; ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content -->
@@ -56,6 +37,11 @@
         </div>
     </div>
 
+    <!-- Ticket History Section -->
+    <div class="mt-6">
+        <?php include_once __DIR__ . '/partials/history_section.php'; ?>
+    </div>
+
     <!-- Image URL Modal for Discussions -->
     <div id="discussionImageModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center" style="display: none; z-index: 1000;">
         <div class="relative p-8 bg-white w-full max-w-md m-auto flex-col flex rounded-lg shadow-lg">
@@ -68,7 +54,7 @@
                 <input type="text" id="discussionImageUrlInput" placeholder="https://example.com/image.png" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-200">
                 <p id="discussionImageUrlError" class="text-red-500 text-xs italic mt-2" style="display: none;"></p>
             </div>
-            <div class="flex justify-end space-x-4 mt-6 space-x-reverse">
+            <div class="flex justify-end space-x-4 mt-6">
                 <button id="cancelDiscussionImage" type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Cancel</button>
                 <button id="addDiscussionImage" type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Add Image</button>
             </div>
@@ -136,14 +122,15 @@
             // --- End of New Logic ---
 
             var form = document.getElementById('discussionForm');
-            form.onsubmit = function() {
-                var messageInput = document.querySelector('input[name=notes]');
-                messageInput.value = quill.root.innerHTML;
-                return true;
-            };
+            if(form) {
+                form.onsubmit = function() {
+                    var messageInput = document.querySelector('input[name=notes]');
+                    messageInput.value = quill.root.innerHTML;
+                    return true;
+                };
+            }
         }
     });
 </script>
 
-</body>
-</html> 
+<?php include_once __DIR__ . '/../includes/footer.php'; ?> 

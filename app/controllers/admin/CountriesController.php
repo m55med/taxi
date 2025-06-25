@@ -13,50 +13,41 @@ class CountriesController extends Controller {
     }
 
     public function index() {
-        $countryModel = new Country();
-        $countries = $countryModel->getAll();
-        
+        $countryModel = $this->model('admin/Country');
         $data = [
-            'countries' => $countries,
-            'message' => $_SESSION['message'] ?? null,
-            'error' => $_SESSION['error'] ?? null
+            'countries' => $countryModel->getAll()
         ];
-
-        unset($_SESSION['message']);
-        unset($_SESSION['error']);
         
         $this->view('admin/countries/index', $data);
     }
 
     public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['name'])) {
-            $name = trim(htmlspecialchars($_POST['name']));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
             
             if (!empty($name)) {
-                $countryModel = new Country();
+                $countryModel = $this->model('admin/Country');
                 if ($countryModel->create($name)) {
-                    $_SESSION['message'] = 'تمت إضافة الدولة بنجاح.';
+                    flash('country_message', 'Country added successfully.', 'success');
                 } else {
-                    $_SESSION['error'] = 'حدث خطأ أو أن الدولة موجودة بالفعل.';
+                    flash('country_message', 'Failed to add country. It may already exist.', 'error');
                 }
             } else {
-                $_SESSION['error'] = 'اسم الدولة لا يمكن أن يكون فارغًا.';
+                flash('country_message', 'Country name cannot be empty.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/countries');
-        exit;
+        redirect('/admin/countries');
     }
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $countryModel = new Country();
+            $countryModel = $this->model('admin/Country');
             if ($countryModel->delete($id)) {
-                $_SESSION['message'] = 'تم حذف الدولة بنجاح.';
+                flash('country_message', 'Country deleted successfully.', 'success');
             } else {
-                $_SESSION['error'] = 'حدث خطأ أثناء حذف الدولة.';
+                flash('country_message', 'Failed to delete country.', 'error');
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/countries');
-        exit;
+        redirect('/admin/countries');
     }
 }
