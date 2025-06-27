@@ -4,6 +4,7 @@ namespace App\Models\Review;
 
 use App\Core\Database;
 use PDO;
+use PDOException;
 
 class Review {
     private $db;
@@ -211,6 +212,173 @@ class Review {
             $this->db->rollBack();
             error_log("Error in transferDriver: " . $e->getMessage());
             return false;
+        }
+    }
+
+    public function getReviews($type, $reviewable_id)
+    {
+        // Map simple type to fully qualified class name
+        $typeMap = [
+            'ticket_detail' => 'App\\Models\\Tickets\\TicketDetail',
+            'driver_call' => 'App\\Models\\Call\\DriverCall'
+            // Add other reviewable types here
+        ];
+
+        if (!array_key_exists($type, $typeMap)) {
+            error_log("Invalid reviewable type provided: " . $type);
+            return [];
+        }
+        $reviewable_type_fqcn = $typeMap[$type];
+
+        $sql = "SELECT r.*, u.username as reviewer_name 
+                FROM reviews r
+                JOIN users u ON r.reviewed_by = u.id
+                WHERE (r.reviewable_type = :reviewable_type_fqcn OR r.reviewable_type = :reviewable_type_simple)
+                AND r.reviewable_id = :reviewable_id
+                ORDER BY r.reviewed_at DESC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':reviewable_type_fqcn' => $reviewable_type_fqcn,
+                ':reviewable_type_simple' => $type,
+                ':reviewable_id' => $reviewable_id
+            ]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getReviews: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function addReview($type, $reviewable_id, $userId, $data)
+    {
+        // Map simple type to fully qualified class name
+        $typeMap = [
+            'ticket_detail' => 'App\\Models\\Tickets\\TicketDetail',
+            'driver_call' => 'App\\Models\\Call\\DriverCall'
+            // Add other reviewable types here
+        ];
+
+        if (!array_key_exists($type, $typeMap)) {
+            error_log("Invalid reviewable type for addReview: " . $type);
+            return false;
+        }
+        $reviewable_type = $typeMap[$type];
+
+        $sql = "INSERT INTO reviews (reviewable_type, reviewable_id, reviewed_by, review_result, review_notes) 
+                VALUES (:reviewable_type, :reviewable_id, :reviewed_by, :review_result, :review_notes)";
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':reviewable_type' => $reviewable_type,
+                ':reviewable_id' => $reviewable_id,
+                ':reviewed_by' => $userId,
+                ':review_result' => $data['review_result'],
+                ':review_notes' => $data['review_notes']
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error in addReview: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getEntityIdForRedirect($reviewable_type, $reviewable_id)
+    {
+        if ($reviewable_type === 'ticket_detail') {
+            $sql = "SELECT ticket_id FROM ticket_details WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $reviewable_id]);
+            $ticket_id = $stmt->fetchColumn();
+            return ['type' => 'ticket', 'id' => $ticket_id];
+        }
+        
+        if ($reviewable_type === 'driver_call') {
+            $sql = "SELECT driver_id FROM driver_calls WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $reviewable_id]);
+            $driver_id = $stmt->fetchColumn();
+            return ['type' => 'driver', 'id' => $driver_id];
+        }
+
+        if ($reviewable_type === 'ticket') {
+            return ['type' => 'ticket', 'id' => $reviewable_id];
+        }
+
+        return null;
+    }
+
+    public function getReviewsForHistory(array $historyIds)
+    {
+        if (empty($historyIds)) {
+            return [];
+        }
+
+        // We need to check for both the old simple type and the new FQCN
+        $reviewable_type_simple = 'ticket_detail';
+        $reviewable_type_fqcn = 'App\\Models\\Tickets\\TicketDetail';
+
+        // Create placeholders for the IN clause
+        $placeholders = implode(',', array_fill(0, count($historyIds), '?'));
+
+        $sql = "SELECT r.*, u.username as reviewer_name 
+                FROM reviews r
+                JOIN users u ON r.reviewed_by = u.id
+                WHERE (r.reviewable_type = ? OR r.reviewable_type = ?)
+                AND r.reviewable_id IN ($placeholders)
+                ORDER BY r.reviewed_at DESC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            
+            // Bind the parameters
+            $params = array_merge([$reviewable_type_fqcn, $reviewable_type_simple], $historyIds);
+            $stmt->execute($params);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getReviewsForHistory: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Efficiently fetches all reviews for a list of items of a specific type.
+     * e.g., get all reviews for a list of driver_call IDs.
+     *
+     * @param string $type The simple type of the items (e.g., 'driver_call').
+     * @param array $itemIds An array of item IDs.
+     * @return array A list of reviews.
+     */
+    public function getReviewsForMultipleItems(string $type, array $itemIds): array
+    {
+        if (empty($itemIds)) {
+            return [];
+        }
+
+        // Map simple type to FQCN for robust checking
+        $typeMap = [
+            'ticket_detail' => 'App\\Models\\Tickets\\TicketDetail',
+            'driver_call'   => 'App\\Models\\Call\\DriverCall'
+        ];
+        $reviewable_type_fqcn = $typeMap[$type] ?? '';
+
+        $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+        $sql = "SELECT r.*, u.username as reviewer_name 
+                FROM reviews r
+                JOIN users u ON r.reviewed_by = u.id
+                WHERE (r.reviewable_type = ? OR r.reviewable_type = ?)
+                AND r.reviewable_id IN ($placeholders)
+                ORDER BY r.reviewed_at DESC";
+
+        // Prepare parameters for execute()
+        $params = [$type, $reviewable_type_fqcn, ...$itemIds];
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getReviewsForMultipleItems: " . $e->getMessage());
+            return [];
         }
     }
 } 

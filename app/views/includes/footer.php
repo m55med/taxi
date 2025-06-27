@@ -74,6 +74,11 @@
     </script>
     <?php endif; ?>
 
+    <!-- Quill Editor for Discussions -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <script src="<?= BASE_PATH ?>/js/quill-initializer.js"></script>
+
     <!-- Custom JavaScript -->
 </body>
 </html> 

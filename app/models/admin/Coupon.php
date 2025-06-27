@@ -7,6 +7,7 @@ use Exception;
 
 class Coupon {
     private $pdo;
+    const HOLD_DURATION_MINUTES = 5; // Hold coupons for 5 minutes
 
     public function __construct() {
         $this->pdo = Database::getInstance();
@@ -286,63 +287,154 @@ class Coupon {
     }
 
     /**
-     * Gets available coupons for a country, excluding those recently held by others.
-     * Limits the result to 3 coupons per distinct value.
+     * Get available coupons for a specific country, excluding those held by other users
+     * or those in the exclude list. A coupon is available if it's not used and either
+     * not held or held by the current user.
+     *
+     * @param int $countryId The ID of the country to fetch coupons for.
+     * @param int $currentUserId The ID of the current user.
+     * @param array $excludeIds A list of coupon IDs to exclude from the result.
+     * @return array An array containing the list of available coupons and the debug info.
      */
     public function getAvailableByCountry(int $countryId, int $currentUserId, array $excludeIds = [])
     {
-        // This is a compatible version for older MySQL/MariaDB that don't support window functions.
-        // It fetches all available coupons and then filters them in PHP.
-        $sql = "
-            SELECT id, code, `value`
-            FROM coupons
-            WHERE country_id = ? AND is_used = 0
-            AND (held_by IS NULL OR held_by = ? OR held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE)
-        ";
+        // Base query for available coupons
+        $sql = "SELECT id, code, `value`
+                FROM coupons
+                WHERE country_id = ? 
+                  AND is_used = 0
+                  AND (
+                      held_by IS NULL OR 
+                      held_by = ? OR 
+                      held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
+                  )";
 
         $params = [$countryId, $currentUserId];
-        
+
+        // Exclude coupons that are already selected in the form
         if (!empty($excludeIds)) {
+            // Generates ?,?,? for the IN clause
             $excludePlaceholders = implode(',', array_fill(0, count($excludeIds), '?'));
             $sql .= " AND id NOT IN ($excludePlaceholders)";
+            // Add the IDs to the parameter array
             $params = array_merge($params, $excludeIds);
         }
-        
-        $sql .= " ORDER BY `value` ASC, RAND()";
+
+        // Limit the number of results to prevent overwhelming the user
+        $sql .= " ORDER BY created_at DESC LIMIT 20";
 
         try {
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            $allCoupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Group by value and limit to 3 per group in PHP
-            $groupedCoupons = [];
-            foreach ($allCoupons as $coupon) {
-                $value = $coupon['value'];
-                if (!isset($groupedCoupons[$value])) {
-                    $groupedCoupons[$value] = [];
-                }
-                if (count($groupedCoupons[$value]) < 3) {
-                    $groupedCoupons[$value][] = $coupon;
-                }
-            }
-
-            // Flatten the array back to a simple list
-            $finalCoupons = [];
-            foreach ($groupedCoupons as $group) {
-                $finalCoupons = array_merge($finalCoupons, $group);
-            }
-
-            return $finalCoupons;
-
-        } catch (\PDOException $e) {
-            error_log("Coupon Fetch Error in getAvailableByCountry: " . $e->getMessage());
-            return []; // Return empty array on error
+            // Prepare debug info
+            $debug_sql = $this->interpolateQuery($sql, $params);
+            return [
+                'coupons' => $coupons,
+                'debug' => [
+                    'sql' => $debug_sql,
+                    'params' => $params,
+                    'count' => count($coupons)
+                ]
+            ];
+        } catch (\Exception $e) {
+            // Return error information for debugging
+            return [
+                'coupons' => [],
+                'debug' => [
+                    'sql' => $this->interpolateQuery($sql, $params),
+                    'params' => $params,
+                    'count' => 0,
+                    'EXCEPTION_MESSAGE' => $e->getMessage()
+                ]
+            ];
         }
     }
 
+    private function interpolateQuery($query, $params) {
+        $keys = array();
+        $values = $params;
+    
+        # build a regular expression for each parameter
+        foreach ($params as $key => $value) {
+            if (is_string($key)) {
+                $keys[] = '/:'.$key.'/';
+            } else {
+                $keys[] = '/[?]/';
+            }
+    
+            if (is_string($value))
+                $values[$key] = "'" . $value . "'";
+    
+            if (is_array($value))
+                $values[$key] = implode(',', $value);
+    
+            if (is_null($value))
+                $values[$key] = 'NULL';
+        }
+    
+        // Walk the array to see if we can replace parameters
+        $query = preg_replace($keys, $values, $query, 1, $count);
+    
+        return $query;
+    }
+
     /**
-     * Attempts to place a hold on a specific coupon for a user.
+     * Places a temporary hold on a coupon for a specific user.
+     * A hold prevents other users from seeing or using this coupon for a short period.
      */
-    // ... existing code ...
+    public function hold($couponId, $userId)
+    {
+        // Atomically check if the coupon is available and hold it
+        $sql = "UPDATE coupons
+                SET held_by = :user_id, held_at = NOW()
+                WHERE id = :coupon_id
+                  AND is_used = 0
+                  AND (
+                      held_by IS NULL OR
+                      held_by = :user_id OR
+                      held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
+                  )";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':coupon_id' => $couponId
+        ]);
+
+        // The operation is successful if one row was affected
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Releases a specific coupon that was held by the user.
+     */
+    public function release($couponId, $userId)
+    {
+        // Only the user who holds the coupon can release it
+        $sql = "UPDATE coupons 
+                SET held_by = NULL, held_at = NULL 
+                WHERE id = :coupon_id AND held_by = :user_id";
+        
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([
+            ':coupon_id' => $couponId,
+            ':user_id' => $userId
+        ]);
+    }
+
+    /**
+     * Releases all coupons held by a specific user.
+     * Typically used when the user navigates away from the page.
+     */
+    public function releaseAllForUser($userId)
+    {
+        $sql = "UPDATE coupons
+                SET held_by = NULL, held_at = NULL
+                WHERE held_by = :user_id";
+        
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([':user_id' => $userId]);
+    }
 } 

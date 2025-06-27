@@ -67,15 +67,21 @@ class PointsController extends Controller {
             
             $data = [
                 'points' => trim($_POST['points']),
+                'call_type' => trim($_POST['call_type']),
                 'valid_from' => trim($_POST['valid_from'])
             ];
             
-            if (empty($data['points']) || empty($data['valid_from'])) {
+            if (empty($data['points']) || empty($data['valid_from']) || empty($data['call_type'])) {
                 flash('points_message', 'Please fill in all required fields.', 'error');
                 redirect('/admin/points');
             }
 
-            $this->pointsModel->endPreviousPointRule('call_points', [], $data['valid_from']);
+            if (!in_array($data['call_type'], ['incoming', 'outgoing'])) {
+                flash('points_message', 'Invalid call type specified.', 'error');
+                redirect('/admin/points');
+            }
+
+            $this->pointsModel->endPreviousPointRule('call_points', ['call_type' => $data['call_type']], $data['valid_from']);
             
             if ($this->pointsModel->addCallPoint($data)) {
                 flash('points_message', 'Call points set successfully.');

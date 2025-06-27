@@ -3,16 +3,21 @@
 namespace App\Controllers\Driver;
 
 use App\Core\Controller;
+use App\Models\Review\Review;
 use Exception;
 
 class DriverController extends Controller
 {
     private $driverModel;
+    private $discussionModel;
+    private $reviewModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->driverModel = $this->model('driver/Driver');
+        $this->discussionModel = $this->model('discussion/Discussion');
+        $this->reviewModel = $this->model('review/Review');
     }
 
     public function update()
@@ -182,13 +187,57 @@ class DriverController extends Controller
         $assignmentHistory = $this->driverModel->getAssignmentHistory($id);
         $assignableUsers = $this->driverModel->getAssignableUsers(); // Fetch users for the form
 
+        // Get driver-level discussions
+        $driverDiscussions = $this->discussionModel->getDiscussions('App\\\\Models\\\\Driver\\\\Driver', $id);
+
+        // Efficiently fetch reviews, discussions, and replies for all calls
+        $callIds = array_map(fn($call) => $call['id'], $callHistory);
+        
+        $allReviews = !empty($callIds) ? $this->reviewModel->getReviewsForMultipleItems('driver_call', $callIds) : [];
+        
+        $reviewIds = !empty($allReviews) ? array_map(fn($r) => $r['id'], $allReviews) : [];
+        $allDiscussions = !empty($reviewIds) ? $this->discussionModel->getDiscussionsForReviews($reviewIds) : [];
+
+        $discussionIds = !empty($allDiscussions) ? array_map(fn($d) => $d['id'], $allDiscussions) : [];
+        $allReplies = !empty($discussionIds) ? $this->discussionModel->getRepliesForDiscussions($discussionIds) : [];
+
+        // Group replies by discussion ID
+        $repliesByDiscussionId = [];
+        foreach ($allReplies as $reply) {
+            $repliesByDiscussionId[$reply['discussion_id']][] = $reply;
+        }
+
+        // Attach replies to discussions
+        foreach ($allDiscussions as $key => $discussion) {
+            $allDiscussions[$key]['replies'] = $repliesByDiscussionId[$discussion['id']] ?? [];
+        }
+
+        // Group discussions by review ID
+        $discussionsByReviewId = [];
+        foreach ($allDiscussions as $discussion) {
+            $discussionsByReviewId[$discussion['discussable_id']][] = $discussion;
+        }
+
+        // Group reviews by call (reviewable) ID
+        $reviewsByCallId = [];
+        foreach ($allReviews as $review) {
+            $review['discussions'] = $discussionsByReviewId[$review['id']] ?? [];
+            $reviewsByCallId[$review['reviewable_id']][] = $review;
+        }
+        
+        // Attach the fully-loaded reviews to each call in the history
+        foreach ($callHistory as $key => $call) {
+            $callHistory[$key]['reviews'] = $reviewsByCallId[$call['id']] ?? [];
+        }
+
         $data = [
             'page_main_title' => 'تفاصيل السائق',
             'driver' => $driver,
             'callHistory' => $callHistory,
             'assignmentHistory' => $assignmentHistory,
             'assignableUsers' => $assignableUsers,
-            'currentUser' => ['id' => $_SESSION['user_id']] // Pass current user info
+            'discussions' => $driverDiscussions, // Renamed for clarity
+            'currentUser' => ['id' => $_SESSION['user_id'], 'role' => $_SESSION['role']]
         ];
 
         $this->view('drivers/details', $data);

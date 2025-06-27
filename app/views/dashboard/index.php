@@ -81,7 +81,7 @@
             </a>
 
             <!-- Ticket Management -->
-            <a href="<?= BASE_PATH ?>/tickets" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300">
+            <a href="<?= BASE_PATH ?>/create_ticket" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 group-hover:text-purple-800">Ticket Management</h3>
                     <i class="fas fa-ticket-alt text-2xl text-purple-500 group-hover:text-purple-600"></i>

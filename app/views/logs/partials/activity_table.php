@@ -1,12 +1,12 @@
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-gray-200 table-fixed">
+    <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">النوع</th>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">التفاصيل</th>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">الموظف</th>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">الفريق</th>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">التاريخ والوقت</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Type</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">Details</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Employee</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Team</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Date & Time</th>
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -18,25 +18,30 @@
                             $type_text = '';
                             $type_color = 'gray';
                             switch ($activity->activity_type) {
-                                case 'ticket':
+                                case 'Ticket':
                                     $type_icon = 'fa-ticket-alt';
-                                    $type_text = 'تذكرة';
+                                    $type_text = 'Ticket';
                                     $type_color = 'purple';
                                     break;
-                                case 'call':
-                                    $type_icon = 'fa-phone-alt';
-                                    $type_text = 'مكالمة';
+                                case 'Outgoing Call':
+                                    $type_icon = 'fa-phone-alt fa-flip-horizontal';
+                                    $type_text = 'Outgoing';
                                     $type_color = 'blue';
                                     break;
-                                case 'assignment':
+                                case 'Incoming Call':
+                                    $type_icon = 'fa-phone-alt';
+                                    $type_text = 'Incoming';
+                                    $type_color = 'green';
+                                    break;
+                                case 'Assignment':
                                     $type_icon = 'fa-exchange-alt';
-                                    $type_text = 'تحويل';
+                                    $type_text = 'Assignment';
                                     $type_color = 'red';
                                     break;
                             }
                         ?>
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-<?= $type_color ?>-100 text-<?= $type_color ?>-800">
-                            <i class="fas <?= $type_icon ?> ml-1 mt-1"></i>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-<?= $type_color ?>-100 text-<?= $type_color ?>-800" title="<?= $type_text ?>">
+                            <i class="fas <?= $type_icon ?> mr-1 mt-1"></i>
                             <?= $type_text ?>
                         </span>
                     </td>
@@ -54,9 +59,9 @@
                         <div class="text-sm text-gray-900"><?= htmlspecialchars($activity->username) ?></div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500"><?= htmlspecialchars($activity->team_name ?? 'بدون فريق') ?></div>
+                        <div class="text-sm text-gray-500"><?= htmlspecialchars($activity->team_name ?? 'N/A') ?></div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" dir="ltr">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <?= date('Y-m-d H:i', strtotime($activity->activity_date)) ?>
                     </td>
                 </tr>

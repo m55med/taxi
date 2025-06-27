@@ -13,51 +13,135 @@
 </head>
 <body class="bg-gray-100">
     
-<?php include_once APPROOT . '/app/views/includes/nav.php'; ?>
+<?php include_once APPROOT . '/views/includes/header.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($page_main_title); ?></h1>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+        <div class="flex items-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($data['page_main_title']); ?></h1>
+            <?php if ($data['open_discussions_count'] > 0) : ?>
+                <span class="ml-4 bg-red-500 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                    <?= $data['open_discussions_count'] ?> Open
+                </span>
+            <?php endif; ?>
+        </div>
+        <a href="javascript:history.back()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center self-start sm:self-center">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back
+        </a>
     </div>
 
+    <!-- Flash Messages -->
+    <?php include_once APPROOT . '/views/includes/flash_messages.php'; ?>
+    
+    <!-- Discussions List -->
     <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="space-y-4">
-            <?php if (!empty($discussions)): ?>
-                <?php foreach ($discussions as $discussion): ?>
-                    <a href="<?= BASE_PATH . '/tickets/details/' . $discussion['ticket_id'] ?>" class="block p-4 rounded-lg border hover:bg-gray-50 transition-colors duration-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-grow">
-                                <p class="font-semibold text-lg text-indigo-600">
-                                    تذكرة #<?= htmlspecialchars($discussion['ticket_number']) ?>
-                                    <span class="text-gray-700 font-normal">- <?= htmlspecialchars($discussion['reason']) ?></span>
-                                </p>
+        <?php if (!empty($data['discussions'])) : ?>
+            <div class="space-y-6">
+                <?php foreach ($data['discussions'] as $discussion) : ?>
+                    <div id="discussion-<?= $discussion['id'] ?>" class="p-5 rounded-lg border-2 <?= $discussion['status'] === 'open' ? 'border-orange-300 bg-orange-50' : 'border-gray-200 bg-gray-50' ?>">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-start">
+                            <!-- Discussion Title/Reason -->
+                            <div class="flex-grow mb-3 sm:mb-0">
+                                <h3 class="text-lg font-bold text-gray-800"><?= htmlspecialchars($discussion['reason']) ?></h3>
                                 <p class="text-sm text-gray-500 mt-1">
-                                    فُتحت بواسطة: <span class="font-medium"><?= htmlspecialchars($discussion['opener_username']) ?></span>
-                                    • بتاريخ: <span dir="ltr"><?= date('Y-m-d', strtotime($discussion['created_at'])) ?></span>
+                                    Opened by <span class="font-semibold"><?= htmlspecialchars($discussion['opener_name']) ?></span> on <?= date('M d, Y', strtotime($discussion['created_at'])) ?>
                                 </p>
                             </div>
-                            <div class="flex items-center space-x-4 space-x-reverse">
-                                 <span class="text-sm px-3 py-1 rounded-full font-medium <?= $discussion['status'] === 'open' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
-                                    <?= $discussion['status'] === 'open' ? 'مفتوحة' : 'مغلقة' ?>
+                            <!-- Status and Actions -->
+                            <div class="flex items-center space-x-4 flex-shrink-0">
+                                <span class="text-sm font-semibold px-3 py-1 rounded-full <?= $discussion['status'] === 'open' ? 'bg-orange-200 text-orange-800' : 'bg-gray-200 text-gray-800' ?>">
+                                    <?= ucfirst($discussion['status']) ?>
                                 </span>
-                                <div class="text-center">
-                                    <p class="font-bold text-xl text-gray-700"><?= htmlspecialchars($discussion['replies_count']) ?></p>
-                                    <p class="text-xs text-gray-500">ردود</p>
-                                </div>
-                                <i class="fas fa-chevron-left text-gray-400"></i>
+                                <?php if ($discussion['status'] === 'open' && ($data['currentUser']['role'] === 'admin' || $data['currentUser']['id'] === $discussion['opener_id'])) : ?>
+                                    <form action="<?= BASE_PATH ?>/discussions/close/<?= $discussion['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to close this discussion?');">
+                                        <button type="submit" class="text-sm text-red-600 hover:text-red-800 font-semibold flex items-center">
+                                            <i class="fas fa-times-circle mr-1"></i> Close
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                             </div>
                         </div>
-                    </a>
+
+                        <!-- Discussion Context -->
+                        <div class="mt-4 border-t pt-4">
+                            <div class="flex-shrink-0">
+                                <p class="text-sm font-semibold text-gray-500">Regarding:</p>
+                                <p class="font-bold text-gray-800">
+                                    <?php if (!empty($discussion['ticket_number'])) : ?>
+                                        <a href="<?= BASE_PATH ?>/tickets/view/<?= $discussion['ticket_id'] ?>" class="text-blue-600 hover:underline">
+                                            Ticket #<?= htmlspecialchars($discussion['ticket_number']) ?>
+                                        </a>
+                                    <?php elseif (!empty($discussion['driver_name'])) : ?>
+                                        <a href="<?= BASE_PATH ?>/drivers/details/<?= $discussion['driver_id'] ?>" class="text-blue-600 hover:underline">
+                                            Call with <?= htmlspecialchars($discussion['driver_name']) ?>
+                                        </a>
+                                    <?php else : ?>
+                                        <span class="text-gray-500">N/A</span>
+                                    <?php endif; ?>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Discussion Notes -->
+                        <div class="prose prose-sm max-w-none mt-4 text-gray-800 bg-white p-4 rounded-lg border">
+                            <?= $discussion['notes'] ?>
+                        </div>
+
+                        <!-- Replies Section -->
+                        <div class="mt-5">
+                            <h5 class="font-semibold text-gray-600 mb-3">Replies:</h5>
+                            <div class="space-y-4">
+                                <?php if (!empty($discussion['replies'])) : ?>
+                                    <?php foreach ($discussion['replies'] as $reply) : ?>
+                                        <div class="flex items-start space-x-3">
+                                            <div class="flex-shrink-0">
+                                                <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 text-gray-600">
+                                                    <i class="fas fa-user"></i>
+                                                </span>
+                                            </div>
+                                            <div class="flex-1 bg-gray-100 p-3 rounded-lg">
+                                                <div class="flex justify-between items-center">
+                                                    <p class="font-semibold text-gray-800 text-sm"><?= htmlspecialchars($reply['username']) ?></p>
+                                                    <p class="text-xs text-gray-500"><?= date('M d, Y H:i', strtotime($reply['created_at'])) ?></p>
+                                                </div>
+                                                <p class="text-sm text-gray-700 mt-1"><?= nl2br(htmlspecialchars($reply['message'])) ?></p>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else : ?>
+                                    <p class="text-sm text-gray-500 italic">No replies yet.</p>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Add Reply Form -->
+                            <?php if ($discussion['status'] === 'open') : ?>
+                                <div class="mt-5 border-t pt-4">
+                                    <form action="<?= BASE_PATH ?>/discussions/addReply/<?= $discussion['id'] ?>" method="POST">
+                                        <textarea name="message" rows="3" class="w-full p-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Write a reply..." required></textarea>
+                                        <div class="text-right mt-2">
+                                            <button type="submit" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700">
+                                                Submit Reply
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php endforeach; ?>
-            <?php else: ?>
-                <div class="text-center py-12">
-                    <i class="fas fa-comments fa-3x text-gray-400 mb-4"></i>
-                    <p class="text-gray-500 text-lg">لا توجد مناقشات مرتبطة بك حاليًا.</p>
-                </div>
+            </div>
+        <?php else : ?>
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-comments text-4xl mb-3"></i>
+                <p>No discussions found.</p>
+            </div>
         <?php endif; ?>
-        </div>
     </div>
 </div>
+
+<?php include_once APPROOT . '/views/includes/footer.php'; ?>
 
 </body>
 </html> 

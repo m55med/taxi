@@ -15,15 +15,15 @@ class LogsController extends Controller {
     }
 
     public function index() {
-        $page_main_title = 'سجل الأنشطة';
+        $page_main_title = 'Activity Log';
         
         // Default filters from GET request
         $filters = [
             'activity_type' => $_GET['activity_type'] ?? 'all',
             'user_id' => $_GET['user_id'] ?? 'all',
             'team_id' => $_GET['team_id'] ?? 'all',
-            'date_from' => $_GET['date_from'] ?? '',
-            'date_to' => $_GET['date_to'] ?? '',
+            'date_from' => $_GET['date_from'] ?? date('Y-m-01'),
+            'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
             'search' => $_GET['search'] ?? ''
         ];
 

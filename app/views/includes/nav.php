@@ -28,7 +28,7 @@
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
                             <a href="<?= BASE_PATH ?>/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a>
-                            <a href="<?= BASE_PATH ?>/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt mr-2"></i>Ticket Management</a>
+                            <a href="<?= BASE_PATH ?>/create_ticket" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
                             <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
                             <a href="<?= BASE_PATH ?>/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
                             <?php endif; ?>
@@ -342,7 +342,8 @@
                 </button>
                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
                     <a href="<?= BASE_PATH ?>/calls" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-headset mr-2"></i>Call Center</a>
-                    <a href="<?= BASE_PATH ?>/tickets" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-ticket-alt mr-2"></i>Ticket Management</a>
+                    <a href="<?= BASE_PATH ?>/call_log" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-phone-alt mr-2"></i>Log Incoming Call</a>
+                    <a href="<?= BASE_PATH ?>/create_ticket" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
                     <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
                     <a href="<?= BASE_PATH ?>/referral/dashboard" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
                     <?php endif; ?>

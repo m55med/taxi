@@ -53,9 +53,8 @@ class Permission
             
             // Remove old ones
             if (!empty($toRemove)) {
-                // Use a subquery to avoid deadlock issues and use permission_key
                 $removeStmt = $this->db->prepare("DELETE FROM permissions WHERE permission_key IN (" . implode(',', array_fill(0, count($toRemove), '?')) . ")");
-                $removeStmt->execute($toRemove);
+                $removeStmt->execute(array_values($toRemove));
             }
 
             $this->db->commit();
@@ -80,12 +79,21 @@ class Permission
                 continue;
             }
 
-            // Construct FQCN (Fully Qualified Class Name) in a robust way
             $filePath = $file->getRealPath();
-            $classPath = str_replace([$basePath . DIRECTORY_SEPARATOR, '.php'], '', $filePath);
-            $namespace = 'App\\Controllers\\' . str_replace(DIRECTORY_SEPARATOR, '\\', $classPath);
+            $fileNamespace = $this->getNamespaceFromFile($filePath);
+            $className = basename($file->getFilename(), '.php');
+
+            if (!$fileNamespace) {
+                // Skip files without a namespace declaration.
+                continue;
+            }
             
-            if (in_array($namespace, self::$excludedClasses) || !class_exists($namespace)) {
+            $namespace = $fileNamespace . '\\' . $className;
+
+            if (in_array($namespace, self::$excludedClasses) || !class_exists($namespace, true)) {
+                 if (!in_array($namespace, self::$excludedClasses)) {
+                    error_log("Permission sync: Skipping class that does not exist or could not be loaded: $namespace");
+                }
                 continue;
             }
 
@@ -95,12 +103,10 @@ class Permission
 
                 $methods = $reflector->getMethods(ReflectionMethod::IS_PUBLIC);
                 foreach ($methods as $method) {
-                    // Skip constructors, magic methods, and methods from the parent Controller class
                     if ($method->isConstructor() || str_starts_with($method->getName(), '__') || $method->getDeclaringClass()->getName() !== $reflector->getName()) {
                         continue;
                     }
 
-                    // Format: ControllerName/methodName (e.g., "Users/index", "Calls/create")
                     $controllerShortName = str_replace('Controller', '', $reflector->getShortName());
                     $permissionKey = $controllerShortName . '/' . $method->getName();
                     $permissions[] = $permissionKey;
@@ -112,6 +118,30 @@ class Permission
         return array_unique($permissions);
     }
     
+    /**
+     * Extracts the namespace from a PHP file.
+     *
+     * @param string $filePath The full path to the PHP file.
+     * @return string|null The found namespace or null.
+     */
+    private function getNamespaceFromFile(string $filePath): ?string
+    {
+        $src = file_get_contents($filePath);
+        $tokens = token_get_all($src);
+        $namespace = '';
+        $namespaceStarted = false;
+        foreach ($tokens as $token) {
+            if (is_array($token) && $token[0] == T_NAMESPACE) {
+                $namespaceStarted = true;
+            } elseif ($namespaceStarted && is_array($token) && in_array($token[0], [T_NAME_QUALIFIED, T_STRING, T_NS_SEPARATOR])) {
+                $namespace .= $token[1];
+            } elseif ($namespaceStarted && $token === ';') {
+                break;
+            }
+        }
+        return $namespace ?: null;
+    }
+
     private function createFriendlyPermissionName($permissionKey) {
         $parts = explode('/', $permissionKey);
         // "Users/edit" -> "Users / Edit"

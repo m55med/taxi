@@ -3,67 +3,365 @@
 namespace App\Models\Discussion;
 
 use App\Core\Database;
+use App\Models\Notifications\Notification;
 use PDO;
 use PDOException;
 
 class Discussion
 {
     private $db;
+    private $notificationModel;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
+        $this->notificationModel = new Notification();
     }
 
     /**
-     * Fetches all discussions relevant to a specific user.
+     * Fetches all discussions relevant to a specific user, with contextual information.
      * - Admins/Developers/QM see all discussions.
-     * - Team Leaders see discussions on their tickets or opened by them.
-     * - Agents see discussions they opened or were involved in.
+     * - Team Leaders see discussions related to their team members.
+     * - Agents see discussions on reviews of their work (ticket details/calls).
      */
     public function getDiscussionsForUser($userId, $role)
     {
+        // Base query to get discussions and join with the user who opened it.
         $sql = "
             SELECT 
-                d.id as discussion_id,
-                d.reason,
-                d.status,
-                d.created_at,
-                t.id as ticket_id,
-                t.ticket_number,
-                opener.username as opener_username,
-                (SELECT COUNT(*) FROM ticket_objections WHERE discussion_id = d.id) as replies_count,
-                (SELECT MAX(created_at) FROM ticket_objections WHERE discussion_id = d.id) as last_reply_at
-            FROM ticket_discussions d
-            JOIN tickets t ON d.ticket_id = t.id
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, will be populated based on the type of discussion
+                COALESCE(t_from_review.id, t_direct.id) as ticket_id,
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                dr.id as driver_id,
+                dr.name as driver_name,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
             JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\\\Models\\\\Review\\\\Review' AND d.discussable_id = r.id
+            
+            -- Join to find the related ticket details (if review is for a ticket_detail or its class name)
+            LEFT JOIN ticket_details td ON (r.reviewable_type = 'ticket_detail' OR r.reviewable_type = 'App\\\\Models\\\\Tickets\\\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join to find the related driver call (if review is for a driver_call)
+            LEFT JOIN driver_calls dc ON r.reviewable_type = 'driver_call' AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join to find tickets when discussion is directly on a ticket
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\\\Models\\\\Tickets\\\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (can be from ticket_details or driver_calls)
+            -- For direct ticket discussions, the creator context might be different or not applicable
+            -- We can COALESCE to get the user who last edited the ticket if it's a direct discussion
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.id IS NOT NULL THEN t_direct.created_by -- Or whoever should be notified for direct ticket discussions
+                    ELSE NULL
+                END
+            )
         ";
 
         $params = [];
+        $conditions = [];
 
-        // Tailor the query based on user role
+        // Role-based filtering
         if (!in_array($role, ['admin', 'developer', 'quality_manager'])) {
-            $sql .= " LEFT JOIN team_members tm ON t.created_by = tm.user_id";
-            $sql .= " LEFT JOIN teams team ON tm.team_id = team.id";
-            
             if ($role === 'Team_leader') {
-                // Team leaders see discussions on their team's tickets or ones they opened
-                $sql .= " WHERE (team.team_leader_id = :user_id OR d.opened_by = :user_id)";
-            } else { // For agents or other roles
-                // Agents see discussions only on tickets they created
-                $sql .= " WHERE t.created_by = :user_id";
+                // Team leaders see discussions related to their team members' work
+                $conditions[] = "creator.id IN (SELECT user_id FROM team_members WHERE team_id = (SELECT team_id FROM team_members WHERE user_id = :user_id))";
+                $params[':user_id'] = $userId;
+            } else { // Agent
+                // Agents see discussions on reviews of their ticket details or calls they made
+                $conditions[] = "creator.id = :user_id OR dc.call_by = :user_id";
+                $params[':user_id'] = $userId;
             }
-             $params[':user_id'] = $userId;
+        }
+        // Admins, QMs, Devs see everything, so no conditions are added.
+
+        if (!empty($conditions)) {
+            $sql .= " WHERE " . implode(" OR ", $conditions);
         }
 
-        $sql .= " GROUP BY d.id ORDER BY d.status ASC, d.updated_at DESC";
+        $sql .= " ORDER BY d.status ASC, d.created_at DESC";
 
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // For each discussion, fetch its replies
+            foreach ($discussions as $key => $discussion) {
+                $discussions[$key]['replies'] = $this->getReplies($discussion['id']);
+            }
+
+            return $discussions;
+
         } catch (PDOException $e) {
             error_log("Error in getDiscussionsForUser: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getDiscussions($discussable_type, $discussable_id)
+    {
+        $sql = "SELECT d.*, u.username as opener_name 
+                FROM discussions d
+                JOIN users u ON d.opened_by = u.id
+                WHERE d.discussable_type = :discussable_type 
+                AND d.discussable_id = :discussable_id
+                ORDER BY d.created_at DESC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':discussable_type' => $discussable_type,
+                ':discussable_id' => $discussable_id
+            ]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getDiscussions: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function addDiscussion($type, $discussable_id, $userId, $data)
+    {
+        // Map simple type string to the fully qualified class name
+        $typeMap = [
+            'review' => 'App\\Models\\Review\\Review',
+            'ticket' => 'App\\Models\\Tickets\\Ticket',
+            // Add other types here as needed
+        ];
+
+        if (!array_key_exists($type, $typeMap)) {
+            error_log("Invalid discussable type provided: " . $type);
+            return false;
+        }
+        $discussable_type = $typeMap[$type];
+
+        $sql = "INSERT INTO discussions (discussable_type, discussable_id, opened_by, reason, notes, status)
+                VALUES (:discussable_type, :discussable_id, :opened_by, :reason, :notes, 'open')";
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':discussable_type' => $discussable_type,
+                ':discussable_id' => $discussable_id,
+                ':opened_by' => $userId,
+                ':reason' => $data['reason'],
+                ':notes' => $data['notes']
+            ]);
+            $newDiscussionId = $this->db->lastInsertId();
+
+            if (!$newDiscussionId) {
+                throw new PDOException("Failed to get last insert ID for new discussion.");
+            }
+
+            // --- Notification Logic ---
+            $targetUserId = $this->getTargetUserIdForNotification($type, $discussable_id); // Use original simple type
+            if ($targetUserId && $targetUserId != $userId) { // Don't notify user about their own action
+                $opener = $this->getUserById($userId);
+                $title = "New Discussion Opened by " . ($opener['username'] ?? 'System');
+                $message = "A new discussion has been opened regarding your work. Reason: " . htmlspecialchars($data['reason']);
+                $link = URLROOT . "/discussions#discussion-" . $newDiscussionId;
+                $this->notificationModel->createForUser($title, $message, $targetUserId, $link);
+            }
+            
+            $this->db->commit();
+            return $newDiscussionId;
+
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error in addDiscussion: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function addReply($discussionId, $userId, $message)
+    {
+        $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':discussion_id' => $discussionId,
+                ':user_id' => $userId,
+                ':message' => $message,
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error in addReply: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getReplies($discussionId)
+    {
+        $sql = "SELECT dr.*, u.username 
+                FROM discussion_replies dr
+                JOIN users u ON dr.user_id = u.id
+                WHERE dr.discussion_id = :discussion_id
+                ORDER BY dr.created_at ASC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':discussion_id' => $discussionId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getReplies: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getTargetUserIdForNotification($type, $discussable_id)
+    {
+        if ($type !== 'review') return null;
+
+        $sql = "SELECT r.reviewable_type, r.reviewable_id FROM reviews r WHERE r.id = :review_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':review_id' => $discussable_id]);
+        $review = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if(!$review) return null;
+
+        if ($review['reviewable_type'] === 'ticket_detail') {
+            $sql = "SELECT edited_by FROM ticket_details WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $review['reviewable_id']]);
+            return $stmt->fetchColumn();
+        } elseif ($review['reviewable_type'] === 'driver_call') {
+            $sql = "SELECT call_by FROM driver_calls WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $review['reviewable_id']]);
+            return $stmt->fetchColumn();
+        }
+        
+        return null;
+    }
+
+    private function getUserById($userId)
+    {
+        $stmt = $this->db->prepare("SELECT username FROM users WHERE id = :id");
+        $stmt->execute([':id' => $userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function closeDiscussion($discussionId, $userId, $role)
+    {
+        // First, get the discussion to check for ownership
+        $stmt = $this->db->prepare("SELECT opened_by FROM discussions WHERE id = :id");
+        $stmt->execute([':id' => $discussionId]);
+        $discussion = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$discussion) {
+            return false; // Not found
+        }
+
+        // Allow closing if user is an admin or the one who opened it
+        if ($role === 'admin' || $discussion['opened_by'] == $userId) {
+            $update_stmt = $this->db->prepare("UPDATE discussions SET status = 'closed' WHERE id = :id");
+            return $update_stmt->execute([':id' => $discussionId]);
+        }
+
+        return false; // No permission
+    }
+
+    public function getEntityForRedirect($type, $discussable_id)
+    {
+        if ($type === 'review') {
+            // Find what the review belongs to.
+            $sql = "SELECT reviewable_type, reviewable_id FROM reviews WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $discussable_id]);
+            $review_parent = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($review_parent) {
+                $parent_type = $review_parent['reviewable_type'];
+                $parent_id = $review_parent['reviewable_id'];
+
+                if ($parent_type === 'ticket_detail') {
+                    $sql = "SELECT ticket_id FROM ticket_details WHERE id = :id";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([':id' => $parent_id]);
+                    $ticket_id = $stmt->fetchColumn();
+                    return ['type' => 'ticket', 'id' => $ticket_id];
+                } elseif ($parent_type === 'driver_call') {
+                    $sql = "SELECT driver_id FROM driver_calls WHERE id = :id";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([':id' => $parent_id]);
+                    $driver_id = $stmt->fetchColumn();
+                    return ['type' => 'driver', 'id' => $driver_id];
+                }
+            }
+        } elseif ($type === 'driver') {
+            return ['type' => 'driver', 'id' => $discussable_id];
+        } elseif ($type === 'ticket') {
+            return ['type' => 'ticket', 'id' => $discussable_id];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Efficiently fetches all discussions for a given list of review IDs.
+     *
+     * @param array $reviewIds An array of review IDs.
+     * @return array A list of discussions.
+     */
+    public function getDiscussionsForReviews(array $reviewIds): array
+    {
+        if (empty($reviewIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($reviewIds), '?'));
+        $sql = "SELECT d.*, u.username as opener_name 
+                FROM discussions d
+                JOIN users u ON d.opened_by = u.id
+                WHERE d.discussable_type = 'App\\\\Models\\\\Review\\\\Review' 
+                AND d.discussable_id IN ($placeholders)
+                ORDER BY d.created_at DESC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($reviewIds);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getDiscussionsForReviews: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Efficiently fetches all replies for a given list of discussion IDs.
+     *
+     * @param array $discussionIds An array of discussion IDs.
+     * @return array A list of replies.
+     */
+    public function getRepliesForDiscussions(array $discussionIds): array
+    {
+        if (empty($discussionIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($discussionIds), '?'));
+        $sql = "SELECT dr.*, u.username 
+                FROM discussion_replies dr
+                JOIN users u ON dr.user_id = u.id
+                WHERE dr.discussion_id IN ($placeholders)
+                ORDER BY dr.created_at ASC";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($discussionIds);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getRepliesForDiscussions: " . $e->getMessage());
             return [];
         }
     }

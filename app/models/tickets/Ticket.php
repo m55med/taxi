@@ -13,6 +13,13 @@ class Ticket extends Model
         parent::__construct();
     }
 
+    /**
+     * Creates a new ticket and its initial detail record.
+     *
+     * @param array $data The data for the new ticket.
+     * @param int $userId The ID of the user creating the ticket.
+     * @return array|false An array containing the new ticket_id and ticket_detail_id, or false on failure.
+     */
     public function createTicket(array $data, $userId)
     {
         $this->db->beginTransaction();
@@ -21,54 +28,65 @@ class Ticket extends Model
             // Step 1: Create the main ticket record
             $ticketSql = "INSERT INTO tickets (ticket_number, created_by) VALUES (:ticket_number, :created_by)";
             $stmt = $this->db->prepare($ticketSql);
-            $stmt->execute([':ticket_number' => $data['ticket_number'], ':created_by' => $userId]);
+            $stmt->execute([
+                ':ticket_number' => $data['ticket_number'],
+                ':created_by' => $userId
+            ]);
             $ticketId = $this->db->lastInsertId();
 
-            // Step 2: Add the first detail record, which also handles coupons
-            $this->addTicketDetail($ticketId, $data, $userId);
+            // Step 2: Create the first detail record, linking it to the main ticket
+            $ticketDetailId = $this->addTicketDetail($ticketId, $data, $userId);
 
-            $this->db->commit();
-            return $ticketId;
-
+            if ($ticketDetailId) {
+                $this->db->commit();
+                return ['ticket_id' => $ticketId, 'ticket_detail_id' => $ticketDetailId];
+            } else {
+                // If addTicketDetail fails, roll back the whole transaction
+                $this->db->rollBack();
+                return false;
+            }
         } catch (\Exception $e) {
             $this->db->rollBack();
-            throw $e;
+            error_log("Error in createTicket: " . $e->getMessage());
+            return false;
         }
     }
 
     public function addTicketDetail($ticketId, array $data, $userId)
     {
-        // This function now assumes it is called within a transaction (from store() in controller)
+        $this->db->beginTransaction();
+
         try {
-            $detailSql = "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by)
-                          VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by)";
-            
-            $stmt = $this->db->prepare($detailSql);
-            $teamLeaderId = $this->getTeamLeaderForUser($userId);
-            $params = [
+            // Step 1: Insert the new detail record
+            $stmt = $this->db->prepare(
+                "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by)
+                 VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by)"
+            );
+
+            $stmt->execute([
                 ':ticket_id' => $ticketId,
                 ':is_vip' => $data['is_vip'] ?? 0,
                 ':platform_id' => $data['platform_id'],
-                ':phone' => !empty($data['phone']) ? $data['phone'] : null,
+                ':phone' => $data['phone'] ?? null,
                 ':category_id' => $data['category_id'],
                 ':subcategory_id' => $data['subcategory_id'],
                 ':code_id' => $data['code_id'],
-                ':notes' => !empty($data['notes']) ? $data['notes'] : null,
-                ':country_id' => !empty($data['country_id']) ? $data['country_id'] : null,
-                ':assigned_team_leader_id' => $teamLeaderId,
+                ':notes' => $data['notes'] ?? null,
+                ':country_id' => $data['country_id'] ?? null,
+                ':assigned_team_leader_id' => $data['assigned_team_leader_id'],
                 ':edited_by' => $userId
-            ];
-            $stmt->execute($params);
-            $detailId = $this->db->lastInsertId();
+            ]);
 
-            // Sync coupons to this new detail ID
-            if (isset($data['coupons'])) {
-                $this->syncCoupons($ticketId, $detailId, $data['coupons']);
-            }
+            $ticketDetailId = $this->db->lastInsertId();
 
-            return $detailId;
+            $this->db->commit();
+            
+            return $ticketDetailId; // Return the new detail ID
+
         } catch (\Exception $e) {
-            throw $e;
+            $this->db->rollBack();
+            error_log("Error in addTicketDetail: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -150,50 +168,57 @@ class Ticket extends Model
         return $stmt->fetchColumn();
     }
     
-    public function syncCoupons($ticketId, $detailId, array $couponIds) {
+    /**
+     * Synchronizes the coupons for a specific ticket detail.
+     * It removes old coupons for the ticket and adds the new ones.
+     *
+     * @param int $ticketId The main ticket ID.
+     * @param int $ticketDetailId The ID of the specific ticket detail record.
+     * @param array $couponIds The array of coupon IDs to associate with the ticket detail.
+     * @return bool
+     */
+    public function syncCoupons($ticketId, $ticketDetailId, array $couponIds)
+    {
+        if (empty($couponIds) || empty($ticketDetailId)) {
+            return true; // Nothing to do or no detail to link to.
+        }
+
+        $this->db->beginTransaction();
+
         try {
-            // Unmark coupons that are associated with the ticket but are not in the new list
-            $currentCouponsSql = "SELECT coupon_id FROM ticket_coupons WHERE ticket_id = ?";
-            $stmt = $this->db->prepare($currentCouponsSql);
-            $stmt->execute([$ticketId]);
-            $allTicketCouponIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $couponsToUnmark = array_diff($allTicketCouponIds, $couponIds);
+            // Step 1: Mark all new coupons as used and link them to the ticket
+            $updateSql = "UPDATE coupons SET is_used = 1, used_in_ticket = :ticket_id, used_by = :user_id, used_at = NOW() WHERE id = :coupon_id";
+            $updateStmt = $this->db->prepare($updateSql);
 
-            if (!empty($couponsToUnmark)) {
-                $unmarkPlaceholders = implode(',', array_fill(0, count($couponsToUnmark), '?'));
-                $unmarkSql = "UPDATE coupons SET is_used = 0, used_by = NULL, used_in_ticket = NULL, used_at = NULL, used_for_phone = NULL WHERE id IN ($unmarkPlaceholders)";
-                $stmt = $this->db->prepare($unmarkSql);
-                $stmt->execute(array_values($couponsToUnmark));
-            }
-            
-            // Delete all of the ticket's existing coupon associations
-            $deleteSql = "DELETE FROM ticket_coupons WHERE ticket_id = ?";
-            $stmt = $this->db->prepare($deleteSql);
-            $stmt->execute([$ticketId]);
+            // Step 2: Insert into the pivot table
+            $pivotSql = "INSERT INTO ticket_coupons (ticket_id, ticket_detail_id, coupon_id) VALUES (:ticket_id, :ticket_detail_id, :coupon_id)
+                         ON DUPLICATE KEY UPDATE ticket_detail_id = VALUES(ticket_detail_id)"; // Handle re-saving
+            $pivotStmt = $this->db->prepare($pivotSql);
 
-            // Re-insert associations for all coupons in the current submission
-            if (!empty($couponIds)) {
-                $phoneSql = "SELECT phone FROM ticket_details WHERE id = ?";
-                $phoneStmt = $this->db->prepare($phoneSql);
-                $phoneStmt->execute([$detailId]);
-                $phone = $phoneStmt->fetchColumn();
-                $userId = $_SESSION['user_id'];
+            foreach ($couponIds as $couponId) {
+                if (empty($couponId)) continue;
                 
-                $couponSql = "INSERT INTO ticket_coupons (ticket_id, ticket_detail_id, coupon_id) VALUES (?, ?, ?)";
-                $couponStmt = $this->db->prepare($couponSql);
-                
-                $updateUsedCouponSql = "UPDATE coupons SET is_used = 1, used_by = ?, used_in_ticket = ?, used_at = NOW(), used_for_phone = ? WHERE id = ?";
-                $updateStmt = $this->db->prepare($updateUsedCouponSql);
+                // Mark as used
+                $updateStmt->execute([
+                    ':ticket_id' => $ticketId,
+                    ':user_id' => $_SESSION['user_id'],
+                    ':coupon_id' => $couponId
+                ]);
 
-                foreach ($couponIds as $couponId) {
-                    if (empty($couponId)) continue;
-                    $couponStmt->execute([$ticketId, $detailId, $couponId]);
-                    $updateStmt->execute([$userId, $ticketId, $phone, $couponId]);
-                }
+                // Insert into pivot table
+                $pivotStmt->execute([
+                    ':ticket_id' => $ticketId,
+                    ':ticket_detail_id' => $ticketDetailId,
+                    ':coupon_id' => $couponId
+                ]);
             }
+
+            $this->db->commit();
             return true;
         } catch (\Exception $e) {
-            throw $e;
+            $this->db->rollBack();
+            error_log("Error in syncCoupons: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -267,17 +292,19 @@ class Ticket extends Model
     {
         $sql = "SELECT 
                     td.*,
-                    p.name as platform_name, 
-                    c.name as category_name, 
+                    p.name as platform_name,
+                    cnt.name as country_name,
+                    cat.name as category_name, 
                     sc.name as subcategory_name, 
-                    co.name as code_name,
+                    cod.name as code_name,
                     u_editor.username as editor_name,
                     u_leader.username as leader_name
                 FROM ticket_details td
                 LEFT JOIN platforms p ON td.platform_id = p.id
-                LEFT JOIN ticket_categories c ON td.category_id = c.id
+                LEFT JOIN countries cnt ON td.country_id = cnt.id
+                LEFT JOIN ticket_categories cat ON td.category_id = cat.id
                 LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
-                LEFT JOIN ticket_codes co ON td.code_id = co.id
+                LEFT JOIN ticket_codes cod ON td.code_id = cod.id
                 LEFT JOIN users u_editor ON td.edited_by = u_editor.id
                 LEFT JOIN users u_leader ON td.assigned_team_leader_id = u_leader.id
                 WHERE td.ticket_id = :ticket_id
@@ -304,14 +331,13 @@ class Ticket extends Model
 
     public function getCouponsForTicketDetail($detailId)
     {
-        // This gets only the coupons for a SPECIFIC version of the ticket.
-        $sql = "SELECT c.id, c.code, c.value
-                FROM ticket_coupons tc
-                JOIN coupons c ON tc.coupon_id = c.id
-                WHERE tc.ticket_detail_id = ?";
-
+        $sql = "SELECT c.code, c.value 
+                FROM coupons c
+                JOIN ticket_coupons tc ON c.id = tc.coupon_id
+                WHERE tc.ticket_detail_id = :detail_id";
+        
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$detailId]);
+        $stmt->execute([':detail_id' => $detailId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -322,8 +348,8 @@ class Ticket extends Model
         }
 
         try {
-            $stmt = $this->db->prepare("SELECT id, ticket_number, created_at FROM tickets WHERE phone = :phone AND id != :current_id ORDER BY created_at DESC");
-            $stmt->execute([':phone' => $phone, ':current_id' => $currentTicketId]);
+            $stmt = $this->db->prepare("SELECT id, ticket_number, created_at FROM tickets WHERE phone = :phone AND id != :current_ticket_id ORDER BY created_at DESC");
+            $stmt->execute([':phone' => $phone, ':current_ticket_id' => $currentTicketId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error getting related tickets: " . $e->getMessage());
@@ -331,118 +357,38 @@ class Ticket extends Model
         }
     }
 
-    public function getReviews($ticketId)
+    public function getSuggestions(string $term)
     {
-        try {
-            $stmt = $this->db->prepare("
-                SELECT tr.*, u.username as reviewer_username
-                FROM ticket_reviews tr
-                JOIN users u ON tr.reviewed_by = u.id
-                WHERE tr.ticket_id = :ticket_id
-                ORDER BY tr.reviewed_at DESC
-            ");
-            $stmt->execute([':ticket_id' => $ticketId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error in getReviews: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    public function getDiscussions($ticketId)
-    {
-         try {
-            $stmt = $this->db->prepare("
-                SELECT td.*, u.username as opener_username
-                FROM ticket_discussions td
-                JOIN users u ON td.opened_by = u.id
-                WHERE td.ticket_id = :ticket_id
-                ORDER BY td.created_at DESC
-            ");
-            $stmt->execute([':ticket_id' => $ticketId]);
-            $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($discussions as &$discussion) {
-                $discussion['objections'] = $this->getObjections($discussion['id']);
-            }
-
-            return $discussions;
-        } catch (PDOException $e) {
-            error_log("Error in getDiscussions: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    public function getObjections($discussionId)
-    {
-        try {
-            $stmt = $this->db->prepare("
-                SELECT tob.*, u_replier.username as replier_username, u_replied_to.username as replied_to_username
-                FROM ticket_objections tob
-                JOIN users u_replier ON tob.replied_by_agent_id = u_replier.id
-                JOIN users u_replied_to ON tob.replied_to_user_id = u_replied_to.id
-                WHERE tob.discussion_id = :discussion_id
-                ORDER BY tob.created_at ASC
-            ");
-            $stmt->execute([':discussion_id' => $discussionId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error in getObjections: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    public function addReview($data) {
-        try {
-            $sql = "INSERT INTO ticket_reviews (ticket_id, reviewed_by, review_result, review_notes) VALUES (:ticket_id, :reviewed_by, :review_result, :review_notes)";
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute($data);
-        } catch (PDOException $e) {
-            error_log("Error adding review: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function addDiscussion($data) {
-        try {
-            $this->db->beginTransaction();
-            
-            $sql = "INSERT INTO ticket_discussions (ticket_id, opened_by, reason, notes) VALUES (:ticket_id, :opened_by, :reason, :notes)";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($data);
-
-            $discussionId = $this->db->lastInsertId();
-
-            // Potentially update ticket status here
-            $updateSql = "UPDATE tickets SET status = 'under_discussion' WHERE id = :ticket_id";
-            // Note: 'status' column is not in the tickets table schema provided. This would need to be added.
-            // For now, we will skip this part.
-            // $updateStmt = $this->db->prepare($updateSql);
-            // $updateStmt->execute([':ticket_id' => $data['ticket_id']]);
-
-            $this->db->commit();
-            return $discussionId;
-        } catch (PDOException $e) {
-            $this->db->rollBack();
-            error_log("Error adding discussion: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function addObjection($data) {
-        try {
-            $sql = "INSERT INTO ticket_objections (discussion_id, objection_text, replied_to_user_id, replied_by_agent_id) VALUES (:discussion_id, :objection_text, :replied_to_user_id, :replied_by_agent_id)";
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute($data);
-        } catch (PDOException $e) {
-            error_log("Error adding objection: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function closeDiscussion($discussionId) {
-        $sql = "UPDATE ticket_discussions SET status = 'closed', updated_at = NOW() WHERE id = :discussion_id";
+        $searchTerm = '%' . $term . '%';
+        $sql = "SELECT 
+                    t.id, 
+                    t.ticket_number,
+                    (SELECT phone FROM ticket_details WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) as phone
+                FROM tickets as t
+                -- We need to check both the ticket number and the latest phone number
+                WHERE t.ticket_number LIKE :searchTerm1 
+                   OR t.id IN (SELECT ticket_id FROM ticket_details WHERE phone LIKE :searchTerm2)
+                ORDER BY t.created_at DESC
+                LIMIT 7";
+        
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':discussion_id' => $discussionId]);
+        $stmt->execute([
+            ':searchTerm1' => $searchTerm,
+            ':searchTerm2' => $searchTerm
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTicketIdFromDetailId($detailId)
+    {
+        $sql = "SELECT ticket_id FROM ticket_details WHERE id = :detail_id";
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':detail_id' => $detailId]);
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error getting ticket_id from detail_id: " . $e->getMessage());
+            return null;
+        }
     }
 } 

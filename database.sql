@@ -181,6 +181,22 @@ CREATE TABLE platforms (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
+
+-- جدول المكالمات الواردة
+CREATE TABLE incoming_calls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    caller_phone_number VARCHAR(20) NOT NULL,
+    call_received_by INT NOT NULL,
+    call_started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    call_ended_at DATETIME DEFAULT NULL,
+    status ENUM('answered', 'missed') DEFAULT 'answered',
+    linked_ticket_detail_id INT DEFAULT NULL,
+    
+    FOREIGN KEY (call_received_by) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (linked_ticket_detail_id) REFERENCES ticket_details(id) ON DELETE SET NULL,
+    INDEX idx_caller_phone (caller_phone_number)
+);
+
 -- جدول الفرق
 CREATE TABLE teams (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -263,23 +279,26 @@ CREATE TABLE ticket_details (
     FOREIGN KEY (edited_by) REFERENCES users(id)
 );
 
+
 --جدول مراجعات التذاكر
-CREATE TABLE ticket_reviews (
+CREATE TABLE reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ticket_id INT NOT NULL,
+    reviewable_id INT(11) NOT NULL,
+    reviewable_type VARCHAR(50) NOT NULL,
     reviewed_by INT NOT NULL,
     review_result ENUM('return_to_agent', 'accepted', 'rejected') NOT NULL,
     review_notes TEXT,
     reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    INDEX idx_reviewable (reviewable_id, reviewable_type),
     FOREIGN KEY (reviewed_by) REFERENCES users(id)
 );
 
 --المناقشات
-CREATE TABLE ticket_discussions (
+CREATE TABLE discussions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ticket_id INT NOT NULL,
+    discussable_id INT NOT NULL,
+    discussable_type VARCHAR(50) NOT NULL,
     opened_by INT NOT NULL,
     reason VARCHAR(255) NOT NULL,
     notes TEXT,
@@ -287,22 +306,21 @@ CREATE TABLE ticket_discussions (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    INDEX idx_discussable (discussable_id, discussable_type),
     FOREIGN KEY (opened_by) REFERENCES users(id)
 );
 
---جدول الاعتراضات
-CREATE TABLE ticket_objections (
+
+--جدول الردود
+CREATE TABLE discussion_replies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     discussion_id INT NOT NULL,
-    objection_text TEXT NOT NULL,
-    replied_to_user_id INT NOT NULL,
-    replied_by_agent_id INT NOT NULL,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (discussion_id) REFERENCES ticket_discussions(id),
-    FOREIGN KEY (replied_to_user_id) REFERENCES users(id),
-    FOREIGN KEY (replied_by_agent_id) REFERENCES users(id)
+    FOREIGN KEY (discussion_id) REFERENCES discussions(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
@@ -518,14 +536,7 @@ CREATE TABLE trips (
     promo_campaign_name VARCHAR(100) COMMENT 'اسم الحملة الترويجية - إن وُجدت'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- CREATE TABLE role_permissions (
---   id INT AUTO_INCREMENT PRIMARY KEY,
---   role_id INT NOT NULL,
---   permission VARCHAR(255) NOT NULL,
---   FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
---   UNIQUE KEY unique_permission (role_id, permission)
--- );
---
+
 --جدول لتخزين إجازات السائقين
 CREATE TABLE driver_snoozes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -574,6 +585,7 @@ CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
+    link VARCHAR(512) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -608,9 +620,11 @@ CREATE TABLE ticket_code_points (
 CREATE TABLE call_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
     points INT NOT NULL,
+    call_type ENUM('incoming', 'outgoing') NOT NULL DEFAULT 'outgoing',
     valid_from DATE NOT NULL,
     valid_to DATE DEFAULT NULL,
-    KEY (valid_from, valid_to)
+    KEY (valid_from, valid_to),
+    KEY (call_type, valid_from, valid_to)
 );
 
 
@@ -632,3 +646,11 @@ INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, 
 SELECT 
     id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, created_at
 FROM tickets;
+
+INSERT INTO `platforms` (`name`) VALUES
+('Phone'),
+('Facebook'),
+('WhatsApp'),
+('Telegram'),
+('Email'),
+('Incoming Call');

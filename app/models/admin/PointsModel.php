@@ -30,7 +30,7 @@ class PointsModel {
     }
 
     public function getCallPoints() {
-        $stmt = $this->db->query("SELECT * FROM call_points ORDER BY valid_from DESC");
+        $stmt = $this->db->query("SELECT * FROM call_points ORDER BY call_type, valid_from DESC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -50,12 +50,13 @@ class PointsModel {
 
     public function addCallPoint($data) {
         $stmt = $this->db->prepare("
-            INSERT INTO call_points (points, valid_from, valid_to) 
-            VALUES (:points, :valid_from, NULL)
+            INSERT INTO call_points (points, call_type, valid_from, valid_to) 
+            VALUES (:points, :call_type, :valid_from, NULL)
         ");
         
         return $stmt->execute([
             ':points' => $data['points'],
+            ':call_type' => $data['call_type'],
             ':valid_from' => $data['valid_from']
         ]);
     }

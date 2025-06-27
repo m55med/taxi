@@ -26,7 +26,7 @@
 </head>
 <body class="bg-gray-100">
     
-<?php include_once APPROOT . '/app/views/includes/nav.php'; ?>
+<?php include_once APPROOT . '/views/includes/nav.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
     <!-- Header -->
@@ -37,6 +37,9 @@
             عودة
         </a>
     </div>
+
+    <!-- Flash Messages -->
+    <?php include_once APPROOT . '/views/includes/flash_messages.php'; ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content (Driver Details & Assignment) -->
@@ -64,6 +67,7 @@
             
             <!-- Assignment Form Partial -->
             <?php include_once __DIR__ . '/partials/assignment_form.php'; ?>
+
         </div>
         
         <!-- Sidebar (History) -->
@@ -97,6 +101,18 @@
                                      <?php if ($call['next_call_at']): ?>
                                         <p class="text-xs text-red-600 mt-2"><strong>متابعة في:</strong> <?= date('Y-m-d H:i', strtotime($call['next_call_at'])) ?></p>
                                     <?php endif; ?>
+
+                                    <!-- Review and Discussion sections for the call -->
+                                    <div class="mt-4 pt-4 border-t space-y-4">
+                                        <div>
+                                            <?php
+                                            $reviews = $call['reviews'] ?? [];
+                                            $add_review_url = BASE_PATH . "/review/add/driver_call/" . $call['id'];
+                                            $can_add_review = in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']);
+                                            include APPROOT . '/views/tickets/partials/reviews_section.php';
+                                            ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -142,6 +158,6 @@
         </div>
     </div>
 </div>
-
+<?php include_once APPROOT . '/views/includes/footer.php'; ?>
 </body>
 </html> 

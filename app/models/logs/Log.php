@@ -58,40 +58,81 @@ class Log
     public function getActivities($filters, $limit = 50, $offset = 0)
     {
         $params = [];
-        $countParams = [];
         
         $ticketsQuery = "
             SELECT 
-                'ticket' as activity_type, t.id as activity_id, t.ticket_number as details_primary,
-                CONCAT('تصنيف: ', tc.name, ' / ', ts.name, ' / ', tco.name) as details_secondary,
-                t.created_at as activity_date, t.created_by as user_id, u.username,
-                tm.team_id, teams.name as team_name, t.id as link_id, 'tickets/details' as link_prefix
-            FROM tickets t
-            JOIN users u ON t.created_by = u.id
-            JOIN ticket_categories tc ON t.category_id = tc.id
-            JOIN ticket_subcategories ts ON t.subcategory_id = ts.id
-            JOIN ticket_codes tco ON t.code_id = tco.id
+                'Ticket' as activity_type, 
+                td.id as activity_id, 
+                t.ticket_number as details_primary,
+                CONCAT('Platform: ', p.name, ' | Country: ', c.name) as details_secondary,
+                td.created_at as activity_date, 
+                td.edited_by as user_id, 
+                u.username,
+                tm.team_id, 
+                teams.name as team_name, 
+                t.id as link_id, 
+                'tickets/view' as link_prefix
+            FROM ticket_details td
+            JOIN tickets t ON td.ticket_id = t.id
+            JOIN users u ON td.edited_by = u.id
+            JOIN platforms p ON td.platform_id = p.id
+            JOIN countries c ON td.country_id = c.id
             LEFT JOIN team_members tm ON u.id = tm.user_id
             LEFT JOIN teams ON tm.team_id = teams.id
         ";
-        $callsQuery = "
+        
+        $outgoingCallsQuery = "
             SELECT
-                'call' as activity_type, dc.id as activity_id, CONCAT('مكالمة للسائق: ', d.name) as details_primary,
-                CONCAT('الحالة: ', dc.call_status, '. ملاحظات: ', dc.notes) as details_secondary,
-                dc.created_at as activity_date, dc.call_by as user_id, u.username,
-                tm.team_id, teams.name as team_name, dc.driver_id as link_id, 'drivers/details' as link_prefix
+                'Outgoing Call' as activity_type, 
+                dc.id as activity_id, 
+                CONCAT('Call to driver: ', d.name) as details_primary,
+                CONCAT('Status: ', dc.call_status, '. Notes: ', dc.notes) as details_secondary,
+                dc.created_at as activity_date, 
+                dc.call_by as user_id, 
+                u.username,
+                tm.team_id, 
+                teams.name as team_name, 
+                dc.driver_id as link_id, 
+                'drivers/details' as link_prefix
             FROM driver_calls dc
             JOIN users u ON dc.call_by = u.id
             JOIN drivers d ON dc.driver_id = d.id
             LEFT JOIN team_members tm ON u.id = tm.user_id
             LEFT JOIN teams ON tm.team_id = teams.id
         ";
+
+        $incomingCallsQuery = "
+            SELECT
+                'Incoming Call' as activity_type,
+                ic.id as activity_id,
+                CONCAT('Call from: ', ic.caller_phone_number) as details_primary,
+                CONCAT('Status: ', ic.status) as details_secondary,
+                ic.call_started_at as activity_date,
+                ic.call_received_by as user_id,
+                u.username,
+                tm.team_id,
+                teams.name as team_name,
+                ic.id as link_id,
+                'logs' as link_prefix -- No specific link for incoming calls yet
+            FROM incoming_calls ic
+            JOIN users u ON ic.call_received_by = u.id
+            LEFT JOIN team_members tm ON u.id = tm.user_id
+            LEFT JOIN teams ON tm.team_id = teams.id
+        ";
+
         $assignmentsQuery = "
             SELECT
-                'assignment' as activity_type, da.id as activity_id, CONCAT('تحويل السائق: ', d.name) as details_primary,
-                CONCAT('من: ', u_from.username, ' إلى: ', u_to.username) as details_secondary,
-                da.created_at as activity_date, da.from_user_id as user_id, u_from.username,
-                tm.team_id, teams.name as team_name, da.driver_id as link_id, 'drivers/details' as link_prefix
+                'Assignment' as activity_type, 
+                da.id as activity_id, 
+                CONCAT('Assigning driver: ', d.name) as details_primary,
+                CONCAT('From: ', u_from.username, ' To: ', u_to.username) as details_secondary,
+                da.created_at as activity_date, 
+                da.from_user_id as user_id, 
+                u_from.username,
+                tm.team_id, 
+                teams.name as team_name, 
+                da.driver_id as link_id, 
+                'drivers/details' as link_prefix
             FROM driver_assignments da
             JOIN users u_from ON da.from_user_id = u_from.id
             JOIN users u_to ON da.to_user_id = u_to.id
@@ -102,8 +143,10 @@ class Log
 
         $queries = [];
         if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'ticket') $queries[] = $ticketsQuery;
-        if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'call') $queries[] = $callsQuery;
+        if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'outgoing_call') $queries[] = $outgoingCallsQuery;
+        if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'incoming_call') $queries[] = $incomingCallsQuery;
         if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'assignment') $queries[] = $assignmentsQuery;
+        
         if (empty($queries)) return ['activities' => [], 'total' => 0];
 
         $baseQuery = implode(" UNION ALL ", $queries);
@@ -126,8 +169,9 @@ class Log
             $params[':date_to'] = $filters['date_to'];
         }
         if (!empty($filters['search'])) {
+            $search_term = '%' . $filters['search'] . '%';
             $whereClauses .= " AND (details_primary LIKE :search OR details_secondary LIKE :search OR username LIKE :search)";
-            $params[':search'] = '%' . $filters['search'] . '%';
+            $params[':search'] = $search_term;
         }
 
         // Query for counting total records

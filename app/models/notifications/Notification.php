@@ -49,6 +49,31 @@ class Notification extends Model {
     }
 
     /**
+     * Creates a notification and assigns it to a single user.
+     */
+    public function createForUser($title, $message, $userId, $link = null) {
+        try {
+            $this->query("INSERT INTO notifications (title, message, link) VALUES (:title, :message, :link)");
+            $this->bind(':title', $title);
+            $this->bind(':message', $message);
+            $this->bind(':link', $link);
+            $this->execute();
+            $notificationId = $this->lastInsertId();
+
+            $this->query("INSERT INTO user_notifications (user_id, notification_id) VALUES (:user_id, :notification_id)");
+            $this->bind(':user_id', $userId);
+            $this->bind(':notification_id', $notificationId);
+            $this->execute();
+            
+            return $notificationId;
+        } catch (\Exception $e) {
+            error_log('Single User Notification Creation Failed: ' . $e->getMessage());
+            // Re-throw the exception to be caught by the parent transaction
+            throw $e;
+        }
+    }
+
+    /**
      * Gets all notifications and aggregates read/sent counts for the admin view.
      */
     public function getAll() {

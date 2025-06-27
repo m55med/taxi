@@ -60,6 +60,73 @@ class App
 
         $url = is_array($url) ? $url : [];
 
+        // NEW: Specific route for 'tickets' to override all other logic
+        if (!empty($url[0]) && $url[0] === 'tickets') {
+            $controllerName = 'TicketController';
+            $controllerFile = '../app/controllers/tickets/' . $controllerName . '.php';
+
+            if (file_exists($controllerFile)) {
+                $this->controller = new \App\Controllers\Tickets\TicketController();
+                $methodName = 'show'; // Default to 'show' for viewing a ticket
+
+                if (isset($url[1]) && $url[1] === 'view' && isset($url[2])) {
+                    $this->method = 'show';
+                    unset($url[0], $url[1]);
+                } elseif (isset($url[1])) {
+                    // Handle other methods like 'index', 'create', etc. if they exist
+                    if(method_exists($this->controller, $url[1])){
+                        $this->method = $url[1];
+                        unset($url[0], $url[1]);
+                    } else {
+                        $this->method = 'index'; // fallback to index
+                        unset($url[0]);
+                    }
+                } else {
+                    $this->method = 'index';
+                    unset($url[0]);
+                }
+                
+                $this->params = $url ? array_values($url) : [];
+                $this->checkPermissions();
+                call_user_func_array([$this->controller, $this->method], $this->params);
+                return; // Stop further processing
+            } else {
+                $this->triggerNotFound('Controller not found: ' . $controllerFile);
+            }
+        }
+
+        // Handle 'discussions' route specifically
+        if (!empty($url[0]) && $url[0] === 'discussions') {
+            $controllerName = 'DiscussionsController';
+            $controllerFile = '../app/controllers/discussions/' . $controllerName . '.php';
+            if(file_exists($controllerFile)){
+                $this->controller = new \App\Controllers\Discussions\DiscussionsController();
+                $methodName = 'index'; // Default
+                if (isset($url[1])) {
+                    switch ($url[1]) {
+                        case 'add':
+                            $methodName = 'add';
+                            break;
+                        case 'reply':
+                            $methodName = 'reply';
+                            break;
+                        // Add other cases for different methods if needed
+                    }
+                }
+                if(method_exists($this->controller, $methodName)){
+                    $this->method = $methodName;
+                    unset($url[0], $url[1]); // remove 'discussions' and method segment
+                } else {
+                    $this->method = 'index';
+                    unset($url[0]);
+                }
+                 $this->params = $url ? array_values($url) : [];
+                $this->checkPermissions();
+                call_user_func_array([$this->controller, $this->method], $this->params);
+                return;
+            }
+        }
+
         // تعيين المتحكم
         if (!empty($url[0])) {
             if ($url[0] === 'admin' && isset($url[1])) {
@@ -161,7 +228,7 @@ class App
                         $controllerName = 'Logs/LogsController';
                         break;
                     case 'tickets':
-                        $controllerName = 'Tickets/TicketsController';
+                        $controllerName = 'Tickets/TicketController';
                         break;
                     case 'driver-documents-compliance':
                         $controllerName = 'DriverDocumentsCompliance/DriverDocumentsComplianceController';
@@ -234,6 +301,20 @@ class App
                     // Fallback for unknown report types
                     $this->triggerNotFound();
                 }
+            } elseif ($url[0] === 'call_log') {
+                $controllerName = 'CallLogController';
+                $controllerFile = '../app/controllers/call_log/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\CallLog\CallLogController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound('Controller not found: ' . $controllerFile);
+                }
             } elseif ($url[0] === 'call' || $url[0] === 'calls') {
                 $controllerName = 'CallsController';
                 $controllerFile = '../app/controllers/calls/' . $controllerName . '.php';
@@ -303,8 +384,12 @@ class App
                     $this->controller = new $controllerClass();
                     
                     $methodName = 'index'; // Default method
-                    if(isset($url[1]) && method_exists($this->controller, $url[1])) {
-                        $methodName = $url[1];
+                    if(isset($url[1])) {
+                        if ($url[1] === 'view' && method_exists($this->controller, 'show')) {
+                            $methodName = 'show';
+                        } elseif (method_exists($this->controller, $url[1])) {
+                            $methodName = $url[1];
+                        }
                         unset($url[1]);
                     }
                     
@@ -326,18 +411,6 @@ class App
                     if (isset($url[1])) {
                         unset($url[1]);
                     }
-                } else {
-                    $this->triggerNotFound();
-                }
-            } elseif ($url[0] === 'discussions') { // Handle discussions route
-                $controllerName = 'DiscussionsController';
-                $controllerFile = '../app/controllers/discussions/' . $controllerName . '.php';
-                if (file_exists($controllerFile)) {
-                    $this->controller = new \App\Controllers\Discussions\DiscussionsController();
-                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
-                    unset($url[0]);
-                    if (isset($url[1]))
-                        unset($url[1]);
                 } else {
                     $this->triggerNotFound();
                 }
@@ -446,6 +519,23 @@ class App
                 } else {
                     $this->triggerNotFound();
                 }
+            } elseif ($url[0] === 'create_ticket') {
+                $controllerName = 'CreateTicketController';
+                $controllerFile = '../app/controllers/create_ticket/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\Create_ticket\CreateTicketController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound("Controller not found: " . $controllerFile);
+                }
+            } elseif ($url[0] === 'ticket') {
+                // Route for the new create ticket page
+                $this->controller = new \App\Controllers\Create_ticket\CreateTicketController();
             } else {
                 // التعامل مع باقي المسارات
                 $controllerName = ucfirst($url[0]) . 'Controller';
@@ -453,6 +543,8 @@ class App
                 // Handle 'drivers' route specifically to map to 'DriverController'
                 if (strtolower($url[0]) === 'drivers') {
                     $controllerName = 'Driver/DriverController';
+                } elseif (strtolower($url[0]) === 'tickets') {
+                    $controllerName = 'tickets/TicketController';
                 } else {
                     // Handle other controllers in subdirectories
                     if (in_array(strtolower($url[0]), ['upload'])) {
@@ -621,5 +713,17 @@ class App
             return explode('/', $url);
         }
         return [];
+    }
+
+    private function handleTicketsRoutes($url)
+    {
+        // ... existing code ...
+        $this->currentMethod = $method;
+        $this->params = $params;
+    }
+
+    private function getControllerFromUrl($url)
+    {
+        // ... existing code ...
     }
 }

@@ -4,6 +4,7 @@ namespace App\Controllers\Review;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\Auth;
 
 class ReviewController extends Controller
 {
@@ -13,6 +14,7 @@ class ReviewController extends Controller
     public function __construct()
     {
         parent::__construct();
+        Auth::requireLogin();
         $this->reviewModel = $this->model('review/Review');
         $this->userModel = $this->model('user/User');
     }
@@ -132,5 +134,47 @@ class ReviewController extends Controller
             echo json_encode(['success' => false, 'message' => 'حدث خطأ أثناء تحويل السائق']);
         }
         exit;
+    }
+
+    public function add($type, $id)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect(''); // Redirect home or show error
+            return;
+        }
+
+        // Basic validation
+        if (empty($_POST['review_result'])) {
+            flash('review_error', 'Review result is required.', 'alert alert-danger');
+            redirect($_SERVER['HTTP_REFERER'] ?? '');
+            return;
+        }
+
+        $data = [
+            'review_result' => $_POST['review_result'],
+            'review_notes' => trim($_POST['review_notes'])
+        ];
+
+        $userId = $_SESSION['user_id'];
+        $result = $this->reviewModel->addReview($type, $id, $userId, $data);
+
+        if ($result) {
+            flash('review_success', 'Review added successfully.', 'alert alert-success');
+        } else {
+            flash('review_error', 'Failed to add review.', 'alert alert-danger');
+        }
+
+        // Redirect back to the original entity's page (ticket or driver)
+        $redirectInfo = $this->reviewModel->getEntityIdForRedirect($type, $id);
+        if ($redirectInfo) {
+            if ($redirectInfo['type'] === 'ticket') {
+                redirect('tickets/view/' . $redirectInfo['id']);
+            } elseif ($redirectInfo['type'] === 'driver') {
+                redirect('drivers/details/' . $redirectInfo['id']);
+            }
+        }
+        
+        // Fallback redirect
+        redirect('');
     }
 } 

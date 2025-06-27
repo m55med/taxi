@@ -24,11 +24,16 @@ class ReviewQualityReport
                     agent.username as agent_name,
                     COUNT(tr.id) as total_reviews,
                     AVG(tr.rating) as average_rating,
-                    SUM(CASE WHEN td.type = 'objection' THEN 1 ELSE 0 END) as objection_count
+                    SUM(COALESCE(d.discussion_count, 0)) as objection_count
                 FROM ticket_reviews tr
                 JOIN tickets t ON tr.ticket_id = t.id
                 JOIN users agent ON t.assigned_to = agent.id
-                LEFT JOIN ticket_discussions td ON t.id = td.ticket_id AND td.type = 'objection'";
+                LEFT JOIN (
+                    SELECT discussable_id, COUNT(*) as discussion_count
+                    FROM discussions
+                    WHERE discussable_type = 'App\\\\Models\\\\Review\\\\Review'
+                    GROUP BY discussable_id
+                ) d ON d.discussable_id = tr.id";
 
         $conditions = [];
         $params = [];

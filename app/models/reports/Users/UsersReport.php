@@ -74,8 +74,6 @@ class UsersReport
                     COALESCE(cs_today.answered, 0) as today_answered,
                     COALESCE(cs_today.no_answer, 0) as today_no_answer,
                     COALESCE(cs_today.busy, 0) as today_busy,
-                    COALESCE(ts.normal_tickets, 0) as normal_tickets,
-                    COALESCE(ts.vip_tickets, 0) as vip_tickets,
                     COALESCE(asg.assignments_count, 0) as assignments_count
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
@@ -101,15 +99,6 @@ class UsersReport
                     WHERE DATE(created_at) = CURDATE()
                     GROUP BY call_by
                 ) cs_today ON u.id = cs_today.call_by
-                LEFT JOIN (
-                    SELECT
-                        t.created_by,
-                        SUM(CASE WHEN t.is_vip = 0 THEN 1 ELSE 0 END) as normal_tickets,
-                        SUM(CASE WHEN t.is_vip = 1 THEN 1 ELSE 0 END) as vip_tickets
-                    FROM tickets t
-                    WHERE 1=1 {$tickets_date_conditions_sql}
-                    GROUP BY t.created_by
-                ) ts ON u.id = ts.created_by
                 LEFT JOIN (
                     SELECT
                         da.from_user_id,
@@ -186,8 +175,6 @@ class UsersReport
             'answered_rate' => 0,
             'no_answer_rate' => 0,
             'busy_rate' => 0,
-            'normal_tickets' => 0,
-            'vip_tickets' => 0,
             'assignments_count' => 0
         ];
         
@@ -216,15 +203,6 @@ class UsersReport
             $callsSummaryStmt->execute(array_merge($userIds, $summaryDateParams));
             $callsSummary = $callsSummaryStmt->fetch(PDO::FETCH_ASSOC);
 
-            // Tickets summary
-            $ticketsSummarySql = "SELECT
-                                    SUM(CASE WHEN is_vip = 0 THEN 1 ELSE 0 END) as normal_tickets,
-                                    SUM(CASE WHEN is_vip = 1 THEN 1 ELSE 0 END) as vip_tickets
-                                  FROM tickets WHERE created_by IN ($placeholders) {$summaryDateConditions}";
-            $ticketsSummaryStmt = $this->db->prepare($ticketsSummarySql);
-            $ticketsSummaryStmt->execute(array_merge($userIds, $summaryDateParams));
-            $ticketsSummary = $ticketsSummaryStmt->fetch(PDO::FETCH_ASSOC);
-
             // Assignments summary
             $assignmentsSummarySql = "SELECT COUNT(*) as assignments_count FROM driver_assignments WHERE from_user_id IN ($placeholders) {$summaryDateConditions}";
             $assignmentsSummaryStmt = $this->db->prepare($assignmentsSummarySql);
@@ -232,7 +210,7 @@ class UsersReport
             $assignmentsSummary = $assignmentsSummaryStmt->fetch(PDO::FETCH_ASSOC);
 
             // Combine all summaries
-            $summaryStats = array_merge($summaryStats, (array)$callsSummary, (array)$ticketsSummary, (array)$assignmentsSummary);
+            $summaryStats = array_merge($summaryStats, (array)$callsSummary, (array)$assignmentsSummary);
             
             $totalCalls = (int)($summaryStats['total_calls'] ?? 0);
             $summaryStats['answered_rate'] = $totalCalls > 0 ? ((int)($summaryStats['answered'] ?? 0) / $totalCalls) * 100 : 0;

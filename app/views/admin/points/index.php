@@ -113,55 +113,98 @@ if (isset($_SESSION['points_message'])) {
             <!-- Section for Call Points -->
             <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Call Points</h2>
-                
-                <form action="<?= BASE_PATH ?>/admin/points/setCallPoints" method="POST">
-                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="call_points" class="block text-sm font-medium text-gray-700">Points per Call</label>
-                            <input type="number" name="points" id="call_points" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                        <div>
-                            <label for="call_valid_from" class="block text-sm font-medium text-gray-700">Valid From</label>
-                            <input type="date" name="valid_from" id="call_valid_from" required value="<?= date('Y-m-d') ?>" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
-                        </div>
-                    </div>
-                    <button type="submit" class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
-                        <i class="fas fa-save mr-2"></i>Save Call Points
-                    </button>
-                </form>
 
-                 <div class="mt-6">
-                    <h3 class="text-lg font-semibold mb-2">Current Rules</h3>
-                    <div class="max-h-64 overflow-y-auto border rounded-md">
-                        <table class="min-w-full divide-y divide-gray-200">
-                             <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Points</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php if (empty($data['call_points'])): ?>
-                                    <tr><td colspan="2" class="text-center py-4 text-gray-500">No current rules.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach($data['call_points'] as $rule): ?>
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-2 text-sm font-bold"><?= $rule['points'] ?></td>
-                                            <td class="px-4 py-2 text-sm">
-                                                <?= date('Y-m-d', strtotime($rule['valid_from'])) ?> → 
-                                                <?php if($rule['valid_to']): ?>
-                                                    <?= date('Y-m-d', strtotime($rule['valid_to'])) ?>
-                                                <?php else: ?>
-                                                    <span class="text-green-600 font-semibold">Active</span>
-                                                <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                <div x-data="{ tab: 'outgoing' }">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            <a href="#" @click.prevent="tab = 'outgoing'" :class="tab === 'outgoing' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                Outgoing Calls
+                            </a>
+                            <a href="#" @click.prevent="tab = 'incoming'" :class="tab === 'incoming' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                                Incoming Calls
+                            </a>
+                        </nav>
+                    </div>
+
+                    <div x-show="tab === 'outgoing'" class="pt-4">
+                        <h3 class="text-lg font-semibold mb-2 text-gray-800">Set Points for Outgoing Calls</h3>
+                        <form action="<?= BASE_PATH ?>/admin/points/setCallPoints" method="POST">
+                            <input type="hidden" name="call_type" value="outgoing">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="call_points_outgoing" class="block text-sm font-medium text-gray-700">Points per Call</label>
+                                    <input type="number" name="points" id="call_points_outgoing" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="call_valid_from_outgoing" class="block text-sm font-medium text-gray-700">Valid From</label>
+                                    <input type="date" name="valid_from" id="call_valid_from_outgoing" required value="<?= date('Y-m-d') ?>" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                </div>
+                            </div>
+                            <button type="submit" class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">
+                                <i class="fas fa-save mr-2"></i>Save Outgoing Call Points
+                            </button>
+                        </form>
+                    </div>
+
+                    <div x-show="tab === 'incoming'" class="pt-4">
+                        <h3 class="text-lg font-semibold mb-2 text-gray-800">Set Points for Incoming Calls</h3>
+                        <form action="<?= BASE_PATH ?>/admin/points/setCallPoints" method="POST">
+                            <input type="hidden" name="call_type" value="incoming">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="call_points_incoming" class="block text-sm font-medium text-gray-700">Points per Call</label>
+                                    <input type="number" name="points" id="call_points_incoming" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="call_valid_from_incoming" class="block text-sm font-medium text-gray-700">Valid From</label>
+                                    <input type="date" name="valid_from" id="call_valid_from_incoming" required value="<?= date('Y-m-d') ?>" class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                </div>
+                            </div>
+                            <button type="submit" class="mt-4 w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 transition duration-300">
+                                <i class="fas fa-save mr-2"></i>Save Incoming Call Points
+                            </button>
+                        </form>
                     </div>
                 </div>
+
+                <div class="mt-6">
+                   <h3 class="text-lg font-semibold mb-2">Current Rules for Calls</h3>
+                   <div class="max-h-64 overflow-y-auto border rounded-md">
+                       <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                               <tr>
+                                   <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                   <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Points</th>
+                                   <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                               </tr>
+                           </thead>
+                           <tbody class="bg-white divide-y divide-gray-200">
+                               <?php if (empty($data['call_points'])): ?>
+                                   <tr><td colspan="3" class="text-center py-4 text-gray-500">No current rules.</td></tr>
+                               <?php else: ?>
+                                   <?php foreach($data['call_points'] as $rule): ?>
+                                       <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-2 text-sm">
+                                               <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $rule['call_type'] == 'incoming' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' ?>">
+                                                   <?= htmlspecialchars(ucfirst($rule['call_type'])) ?>
+                                               </span>
+                                           </td>
+                                           <td class="px-4 py-2 text-sm font-bold"><?= $rule['points'] ?></td>
+                                           <td class="px-4 py-2 text-sm">
+                                               <?= date('Y-m-d', strtotime($rule['valid_from'])) ?> → 
+                                               <?php if($rule['valid_to']): ?>
+                                                   <?= date('Y-m-d', strtotime($rule['valid_to'])) ?>
+                                               <?php else: ?>
+                                                   <span class="text-green-600 font-semibold">Active</span>
+                                               <?php endif; ?>
+                                           </td>
+                                       </tr>
+                                   <?php endforeach; ?>
+                               <?php endif; ?>
+                           </tbody>
+                       </table>
+                   </div>
+               </div>
             </div>
         </div>
     </div>

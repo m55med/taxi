@@ -17,30 +17,30 @@ class TicketDiscussionsReport
     public function getDiscussions($filters)
     {
         $sql = "SELECT 
-                    td.id,
+                    d.id,
                     t.ticket_number,
-                    td.reason,
-                    td.notes,
-                    td.status,
+                    d.reason,
+                    d.notes,
+                    d.status,
                     u.username as opened_by_user,
-                    td.created_at
-                FROM ticket_discussions td
-                JOIN tickets t ON td.ticket_id = t.id
-                JOIN users u ON td.opened_by = u.id";
+                    d.created_at
+                FROM discussions d
+                JOIN tickets t ON d.discussable_id = t.id
+                JOIN users u ON d.opened_by = u.id";
 
-        $conditions = [];
+        $conditions = ["d.discussable_type = 'App\\\\Models\\\\Tickets\\\\Ticket'"];
         $params = [];
 
         if (!empty($filters['ticket_id'])) {
-            $conditions[] = "td.ticket_id = :ticket_id";
+            $conditions[] = "d.discussable_id = :ticket_id";
             $params[':ticket_id'] = $filters['ticket_id'];
         }
         if (!empty($filters['opened_by'])) {
-            $conditions[] = "td.opened_by = :opened_by";
+            $conditions[] = "d.opened_by = :opened_by";
             $params[':opened_by'] = $filters['opened_by'];
         }
         if (!empty($filters['status'])) {
-            $conditions[] = "td.status = :status";
+            $conditions[] = "d.status = :status";
             $params[':status'] = $filters['status'];
         }
 
@@ -48,13 +48,17 @@ class TicketDiscussionsReport
             $sql .= " WHERE " . implode(" AND ", $conditions);
         }
 
-        $sql .= " ORDER BY td.created_at DESC";
+        $sql .= " ORDER BY d.created_at DESC";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $users = $this->db->query("SELECT DISTINCT u.id, u.username FROM users u JOIN ticket_discussions td ON u.id = td.opened_by")->fetchAll(PDO::FETCH_ASSOC);
+        $usersSql = "SELECT DISTINCT u.id, u.username 
+                     FROM users u 
+                     JOIN discussions d ON u.id = d.opened_by 
+                     WHERE d.discussable_type = 'App\\\\Models\\\\Tickets\\\\Ticket'";
+        $users = $this->db->query($usersSql)->fetchAll(PDO::FETCH_ASSOC);
         
         return [
             'discussions' => $discussions,

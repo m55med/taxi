@@ -7,7 +7,7 @@ use App\Models\Tickets\Category;
 use App\Models\Tickets\Subcategory;
 use App\Models\Tickets\Code;
 use App\Models\Tickets\Platform;
-use App\Models\Tickets\Team;
+use App\Models\Admin\Team;
 use App\Models\Admin\Coupon;
 use App\Models\Tickets\Ticket;
 
@@ -33,33 +33,59 @@ class DataController extends Controller
         $this->categoryModel = new Category();
         $this->subcategoryModel = new Subcategory();
         $this->codeModel = new Code();
-        $this->couponModel = new Coupon();
+        $this->couponModel = $this->model('admin/Coupon');
         $this->ticketModel = new Ticket();
     }
 
     public function getCouponsByCountry()
     {
         header('Content-Type: application/json');
-        if (!isset($_GET['country_id']) || empty($_GET['country_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Country ID is required.']);
-            return;
-        }
+        // FORCED DEBUGGING: Check if the function is even being reached.
+        die(json_encode([
+            'success' => false, 
+            'message' => 'DEBUG: Reached the getCouponsByCountry function successfully.',
+            'debug' => ['step' => 'controller_entrypoint']
+        ]));
 
-        $countryId = (int)$_GET['country_id'];
-        $excludeIds = [];
-        if (!empty($_GET['exclude_ids'])) {
-            // Ensure IDs are integers
-            $excludeIds = array_map('intval', explode(',', $_GET['exclude_ids']));
-        }
-        
+        $debug = [];
+
         try {
-            $coupons = $this->couponModel->getAvailableByCountry($countryId, $_SESSION['user_id'], $excludeIds);
-            echo json_encode(['success' => true, 'coupons' => $coupons]);
+            if (!isset($_SESSION['user_id'])) {
+                throw new \Exception('User not authenticated.');
+            }
+            $debug['auth_check'] = 'Passed for user_id: ' . $_SESSION['user_id'];
+
+            if (!isset($_GET['country_id']) || empty($_GET['country_id'])) {
+                throw new \Exception('Country ID is required.');
+            }
+            $countryId = (int)$_GET['country_id'];
+            $debug['country_id'] = $countryId;
+
+            $excludeIds = [];
+            if (!empty($_GET['exclude_ids'])) {
+                $excludeIds = array_map('intval', explode(',', $_GET['exclude_ids']));
+            }
+            $debug['exclude_ids'] = $excludeIds;
+
+            if (!is_object($this->couponModel)) {
+                 throw new \Exception('Coupon model is not a valid object.');
+            }
+            $debug['model_check'] = 'Coupon model is a valid object.';
+
+            $result = $this->couponModel->getAvailableByCountry($countryId, $_SESSION['user_id'], $excludeIds);
+            
+            // Extract coupons and merge debug info
+            $coupons = $result['coupons'];
+            $debug = array_merge($debug, $result['debug']);
+
+            $debug['final_coupons_count'] = count($coupons);
+
+            echo json_encode(['success' => true, 'coupons' => $coupons, 'debug' => $debug]);
+
         } catch (\Exception $e) {
-            // Log the error for debugging
-            error_log('Coupon Fetch Error: ' . $e->getMessage());
-            // Send a generic error message to the client
-            echo json_encode(['success' => false, 'message' => 'An error occurred while fetching coupons.']);
+            $debug['EXCEPTION_MESSAGE'] = $e->getMessage();
+            $debug['EXCEPTION_TRACE'] = $e->getTraceAsString();
+            echo json_encode(['success' => false, 'message' => 'An error occurred.', 'coupons' => [], 'debug' => $debug]);
         }
     }
 
@@ -102,81 +128,6 @@ class DataController extends Controller
     {
         $teamModel = new Team();
         $this->sendJsonResponse($teamModel->getTeamLeaders());
-    }
-
-    public function getAvailableCoupons()
-    {
-        $countryId = $_GET['country_id'] ?? null;
-        if (!$countryId) {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Country ID is required.'], 400);
-            return;
-        }
-
-        $excludeIds = [];
-        if (!empty($_GET['exclude_ids'])) {
-            $excludeIds = explode(',', $_GET['exclude_ids']);
-            $excludeIds = array_map('intval', $excludeIds);
-            $excludeIds = array_filter($excludeIds, fn($id) => $id > 0);
-        }
-
-        $couponModel = new Coupon();
-        $coupons = $couponModel->getAvailableByCountry((int)$countryId, $_SESSION['user_id'], $excludeIds);
-
-        if (empty($coupons)) {
-            $this->sendJsonResponse(['success' => true, 'coupons' => [], 'message' => 'No available coupons found for this country.']);
-        } else {
-            $this->sendJsonResponse(['success' => true, 'coupons' => $coupons]);
-        }
-    }
-
-    public function holdCoupon()
-    {
-        header('Content-Type: application/json');
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!isset($data['coupon_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Coupon ID is required.']);
-            return;
-        }
-
-        $couponId = (int)$data['coupon_id'];
-        $userId = $_SESSION['user_id'];
-
-        if ($this->couponModel->hold($couponId, $userId)) {
-            echo json_encode(['success' => true, 'message' => 'Coupon held successfully.']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Coupon is already held by another user or is invalid.']);
-        }
-    }
-
-    public function releaseCoupon()
-    {
-        header('Content-Type: application/json');
-        $data = json_decode(file_get_contents('php://input'), true);
-
-        if (!isset($data['coupon_id'])) {
-            // No error needed if coupon_id is missing, just exit gracefully
-            return;
-        }
-
-        $couponId = (int)$data['coupon_id'];
-        $userId = $_SESSION['user_id'];
-        
-        $this->couponModel->release($couponId, $userId);
-        
-        // We don't need to send a response for release, it's a "fire and forget" action
-        http_response_code(204); // No Content
-    }
-
-    public function releaseAllCoupons()
-    {
-        // This endpoint is designed to be called from sendBeacon, so it's kept simple.
-        // It releases all coupons held by the current user.
-        $userId = $_SESSION['user_id'] ?? null;
-        if ($userId) {
-            $this->couponModel->releaseAllForUser($userId);
-        }
-        http_response_code(204); // No Content
     }
 
     public function getTicket()

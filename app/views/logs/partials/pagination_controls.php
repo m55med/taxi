@@ -30,7 +30,7 @@ if ($totalPages <= 1) {
 <div class="flex items-center justify-between mt-6">
     <!-- Results per page selector -->
     <div class="flex items-center">
-        <span class="text-sm text-gray-700 mr-2">عرض</span>
+        <span class="text-sm text-gray-700 mr-2">Show</span>
         <form action="" method="GET" class="inline-flex">
             <!-- Hidden inputs for existing filters -->
             <?php foreach ($_GET as $key => $value): ?>
@@ -45,7 +45,7 @@ if ($totalPages <= 1) {
                 <?php endforeach; ?>
             </select>
         </form>
-        <span class="text-sm text-gray-700 ml-2">نتيجة في الصفحة</span>
+        <span class="text-sm text-gray-700 ml-2">results per page</span>
     </div>
 
     <!-- Pagination Links -->
@@ -53,11 +53,11 @@ if ($totalPages <= 1) {
         <!-- Previous Page Link -->
         <?php if ($currentPage > 1): ?>
             <a href="?<?= get_pagination_query_string(['page' => $currentPage - 1]) ?>" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                السابق
+                Previous
             </a>
         <?php else: ?>
             <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 cursor-not-allowed rounded-md">
-                السابق
+                Previous
             </span>
         <?php endif; ?>
 
@@ -93,11 +93,11 @@ if ($totalPages <= 1) {
         <!-- Next Page Link -->
         <?php if ($currentPage < $totalPages): ?>
             <a href="?<?= get_pagination_query_string(['page' => $currentPage + 1]) ?>" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                التالي
+                Next
             </a>
         <?php else: ?>
             <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-300 cursor-not-allowed rounded-md">
-                التالي
+                Next
             </span>
         <?php endif; ?>
     </nav>
@@ -105,13 +105,13 @@ if ($totalPages <= 1) {
     <!-- Page Info -->
     <div>
         <p class="text-sm text-gray-700">
-            عرض
+            Showing
             <span class="font-medium"><?= $offset + 1 ?></span>
-            إلى
+            to
             <span class="font-medium"><?= min($offset + $limit, $totalRecords) ?></span>
-            من
+            of
             <span class="font-medium"><?= $totalRecords ?></span>
-            نتائج
+            results
         </p>
     </div>
 </div> 
