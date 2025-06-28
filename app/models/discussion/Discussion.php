@@ -26,6 +26,10 @@ class Discussion
      */
     public function getDiscussionsForUser($userId, $role)
     {
+        $logFile = APPROOT . '/logs/discussion_reply_debug.log';
+        $log_entry = "========== [" . date('Y-m-d H:i:s') . "] getDiscussionsForUser Attempt ==========\n";
+        $log_entry .= "User ID: $userId, Role: $role\n";
+
         // Base query to get discussions and join with the user who opened it.
         $sql = "
             SELECT 
@@ -34,11 +38,11 @@ class Discussion
                 opener.id as opener_id,
                 opener.username as opener_name,
                 
-                -- Context-specific fields, will be populated based on the type of discussion
-                COALESCE(t_from_review.id, t_direct.id) as ticket_id,
+                -- Context-specific fields, populated based on the type of discussion
                 COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
-                dr.id as driver_id,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
                 dr.name as driver_name,
+                dc.driver_id as driver_id,
                 creator.username as created_by_name -- The agent whose work is being discussed
 
             FROM discussions d
@@ -47,25 +51,23 @@ class Discussion
             -- Join to find the related review, if any
             LEFT JOIN reviews r ON d.discussable_type = 'App\\\\Models\\\\Review\\\\Review' AND d.discussable_id = r.id
             
-            -- Join to find the related ticket details (if review is for a ticket_detail or its class name)
-            LEFT JOIN ticket_details td ON (r.reviewable_type = 'ticket_detail' OR r.reviewable_type = 'App\\\\Models\\\\Tickets\\\\TicketDetail') AND r.reviewable_id = td.id
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\\\Models\\\\Tickets\\\\TicketDetail') AND r.reviewable_id = td.id
             LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
             
-            -- Join to find the related driver call (if review is for a driver_call)
-            LEFT JOIN driver_calls dc ON r.reviewable_type = 'driver_call' AND r.reviewable_id = dc.id
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\\\Models\\\\Call\\\\DriverCall') AND r.reviewable_id = dc.id
             LEFT JOIN drivers dr ON dc.driver_id = dr.id
 
-            -- Join to find tickets when discussion is directly on a ticket
+            -- Join for direct Ticket discussions
             LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\\\Models\\\\Tickets\\\\Ticket' AND d.discussable_id = t_direct.id
 
-            -- Join to find the agent who did the work (can be from ticket_details or driver_calls)
-            -- For direct ticket discussions, the creator context might be different or not applicable
-            -- We can COALESCE to get the user who last edited the ticket if it's a direct discussion
+            -- Join to find the agent who did the work (the creator of the reviewed item)
             LEFT JOIN users creator ON creator.id = (
                 CASE
                     WHEN td.edited_by IS NOT NULL THEN td.edited_by
                     WHEN dc.call_by IS NOT NULL THEN dc.call_by
-                    WHEN t_direct.id IS NOT NULL THEN t_direct.created_by -- Or whoever should be notified for direct ticket discussions
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
                     ELSE NULL
                 END
             )
@@ -77,13 +79,15 @@ class Discussion
         // Role-based filtering
         if (!in_array($role, ['admin', 'developer', 'quality_manager'])) {
             if ($role === 'Team_leader') {
-                // Team leaders see discussions related to their team members' work
-                $conditions[] = "creator.id IN (SELECT user_id FROM team_members WHERE team_id = (SELECT team_id FROM team_members WHERE user_id = :user_id))";
+                // Team leaders see discussions related to their team members' work OR opened by their team members
+                $team_members_subquery = "SELECT user_id FROM team_members WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = :user_id)";
+                $conditions[] = "creator.id IN ($team_members_subquery) OR d.opened_by IN ($team_members_subquery)";
                 $params[':user_id'] = $userId;
-            } else { // Agent
-                // Agents see discussions on reviews of their ticket details or calls they made
-                $conditions[] = "creator.id = :user_id OR dc.call_by = :user_id";
-                $params[':user_id'] = $userId;
+            } else { // Agent or any other non-admin role
+                // Agents see discussions about their work OR discussions they opened themselves.
+                $conditions[] = "creator.id = :creator_id OR d.opened_by = :opener_id";
+                $params[':creator_id'] = $userId;
+                $params[':opener_id'] = $userId;
             }
         }
         // Admins, QMs, Devs see everything, so no conditions are added.
@@ -94,20 +98,29 @@ class Discussion
 
         $sql .= " ORDER BY d.status ASC, d.created_at DESC";
 
+        $log_entry .= "Final SQL Query:\n" . $sql . "\n";
+        $log_entry .= "Parameters: " . json_encode($params) . "\n";
+
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $log_entry .= "Query executed successfully. Number of discussions found: " . count($discussions) . "\n";
 
             // For each discussion, fetch its replies
             foreach ($discussions as $key => $discussion) {
                 $discussions[$key]['replies'] = $this->getReplies($discussion['id']);
             }
 
+            file_put_contents($logFile, $log_entry . "========== End of Attempt ==========\n\n", FILE_APPEND);
             return $discussions;
 
         } catch (PDOException $e) {
+            $log_entry .= "!!!!!!!!!! EXCEPTION CAUGHT !!!!!!!!!!\n";
+            $log_entry .= "Exception Message: " . $e->getMessage() . "\n";
             error_log("Error in getDiscussionsForUser: " . $e->getMessage());
+            file_put_contents($logFile, $log_entry . "========== End of Attempt (FAILED) ==========\n\n", FILE_APPEND);
             return [];
         }
     }
@@ -189,10 +202,10 @@ class Discussion
 
     public function addReply($discussionId, $userId, $message)
     {
-        $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
         try {
             $this->db->beginTransaction();
 
+            $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
             $stmt = $this->db->prepare($sql);
             $success = $stmt->execute([
                 ':discussion_id' => $discussionId,
@@ -203,11 +216,12 @@ class Discussion
             if (!$success) {
                 throw new PDOException("Failed to insert the reply.");
             }
-
+            
             // --- Notification Logic ---
             $this->notifyUsersOnNewReply($discussionId, $userId, $message);
 
             $this->db->commit();
+
             return true;
 
         } catch (PDOException $e) {
@@ -221,23 +235,22 @@ class Discussion
     {
         // Get all unique user IDs involved in this discussion (opener and all repliers)
         $sql = "
-            (SELECT opened_by as user_id FROM discussions WHERE id = :discussion_id)
+            (SELECT opened_by as user_id FROM discussions WHERE id = :discussion_id1)
             UNION
-            (SELECT user_id FROM discussion_replies WHERE discussion_id = :discussion_id)
+            (SELECT user_id FROM discussion_replies WHERE discussion_id = :discussion_id2)
         ";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':discussion_id' => $discussionId]);
+        $stmt->execute([':discussion_id1' => $discussionId, ':discussion_id2' => $discussionId]);
         $participantIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $replier = $this->getUserById($replierId);
         $title = "New Reply in Discussion";
         $body = "User '" . ($replier['username'] ?? 'Unknown') . "' replied: " . htmlspecialchars(substr($message, 0, 50)) . "...";
-        $link = URLROOT . "/discussions#discussion-" . $discussionId;
 
         foreach ($participantIds as $participantId) {
             // Don't notify the user who just wrote the reply
             if ($participantId != $replierId) {
-                $this->notificationModel->createForUser($title, $body, $participantId, $link);
+                $this->notificationModel->createForUser($title, $body, $participantId);
             }
         }
     }
@@ -261,24 +274,29 @@ class Discussion
 
     private function getTargetUserIdForNotification($type, $discussable_id)
     {
-        if ($type !== 'review') return null;
-
-        $sql = "SELECT r.reviewable_type, r.reviewable_id FROM reviews r WHERE r.id = :review_id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':review_id' => $discussable_id]);
-        $review = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if(!$review) return null;
-
-        if ($review['reviewable_type'] === 'ticket_detail') {
-            $sql = "SELECT edited_by FROM ticket_details WHERE id = :id";
+        if ($type === 'review') {
+            $sql = "SELECT r.reviewable_type, r.reviewable_id FROM reviews r WHERE r.id = :review_id";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id' => $review['reviewable_id']]);
-            return $stmt->fetchColumn();
-        } elseif ($review['reviewable_type'] === 'driver_call') {
-            $sql = "SELECT call_by FROM driver_calls WHERE id = :id";
+            $stmt->execute([':review_id' => $discussable_id]);
+            $review = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if(!$review) return null;
+
+            if ($review['reviewable_type'] === 'ticket_detail') {
+                $sql = "SELECT edited_by FROM ticket_details WHERE id = :id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([':id' => $review['reviewable_id']]);
+                return $stmt->fetchColumn();
+            } elseif ($review['reviewable_type'] === 'driver_call') {
+                $sql = "SELECT call_by FROM driver_calls WHERE id = :id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([':id' => $review['reviewable_id']]);
+                return $stmt->fetchColumn();
+            }
+        } elseif ($type === 'ticket') {
+            $sql = "SELECT created_by FROM tickets WHERE id = :id";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id' => $review['reviewable_id']]);
+            $stmt->execute([':id' => $discussable_id]);
             return $stmt->fetchColumn();
         }
         

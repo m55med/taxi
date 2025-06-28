@@ -1,4 +1,4 @@
-function createTicketForm() {
+function createTicketForm(platforms) {
     return {
         formData: {
             ticket_number: '',
@@ -12,13 +12,79 @@ function createTicketForm() {
             coupons: [], // Array to hold coupon objects {id, code, value}
             notes: ''
         },
+        initialFormData: {}, // To store the initial state for resetting
+        platforms: platforms || [],
         subcategories: [],
         codes: [],
         couponInput: '',
         availableCoupons: [],
+        isSubmitting: false,
+        couponsLoading: false,
         
         // Initialization
         init() {
+            // Store the initial state of the form data
+            this.initialFormData = JSON.parse(JSON.stringify(this.formData));
+
+            // Watch for changes in platform_id to set VIP status
+            this.$watch('formData.platform_id', (newValue) => {
+                if (!newValue) {
+                    this.formData.is_vip = false;
+                    return;
+                }
+                const selectedPlatform = this.platforms.find(p => p.id == newValue);
+                if (selectedPlatform && selectedPlatform.name.toLowerCase().includes('vip')) {
+                    if (!this.formData.is_vip) {
+                        this.formData.is_vip = true;
+                        toastr.info('VIP status has been automatically applied.');
+                    }
+                } else {
+                    this.formData.is_vip = false;
+                }
+            });
+
+            // Watch for changes in country_id to fetch new coupons
+            this.$watch('formData.country_id', async (newValue, oldValue) => {
+                if (newValue !== oldValue) {
+                    if (this.formData.coupons.length > 0) {
+                        await this.releaseAllCoupons();
+                        this.formData.coupons = [];
+                        toastr.info('Coupons cleared because country was changed.');
+                    }
+                    await this.fetchAvailableCoupons();
+                }
+            });
+
+            // Watch for changes in category_id to fetch subcategories
+            this.$watch('formData.category_id', async (newValue, oldValue) => {
+                if (newValue !== oldValue) {
+                    // Reset child data arrays to force re-initialization of components
+                    this.subcategories = [];
+                    this.codes = [];
+                    // Reset the model values
+                    this.formData.subcategory_id = '';
+                    this.formData.code_id = '';
+                    
+                    if (newValue) {
+                        await this.fetchSubcategories();
+                    }
+                }
+            });
+
+            // Watch for changes in subcategory_id to fetch codes
+            this.$watch('formData.subcategory_id', async (newValue, oldValue) => {
+                if (newValue !== oldValue) {
+                     // Reset child data array
+                    this.codes = [];
+                    // Reset the model value
+                    this.formData.code_id = '';
+
+                    if (newValue) {
+                        await this.fetchCodes();
+                    }
+                }
+            });
+
             // Add event listener to release coupons if user leaves the page
             window.addEventListener('beforeunload', (event) => {
                 if (this.formData.coupons.length > 0) {
@@ -85,20 +151,11 @@ function createTicketForm() {
             }
         },
         
-        async countryChanged() {
-            // When country changes, release all coupons as they are country-specific
-            if (this.formData.coupons.length > 0) {
-                this.releaseAllCoupons();
-                this.formData.coupons = [];
-                toastr.info('Coupons cleared because country was changed.');
-            }
-            await this.fetchAvailableCoupons();
-        },
-
         async fetchAvailableCoupons() {
             this.availableCoupons = [];
             if (!this.formData.country_id) return;
 
+            this.couponsLoading = true;
             try {
                 const response = await fetch(`${URLROOT}/create_ticket/getAvailableCoupons/${this.formData.country_id}`);
                 if (!response.ok) throw new Error('Server error');
@@ -106,6 +163,8 @@ function createTicketForm() {
             } catch (error) {
                 console.error('Error fetching available coupons:', error);
                 toastr.error('Could not load coupons for the selected country.');
+            } finally {
+                this.couponsLoading = false;
             }
         },
 
@@ -188,8 +247,20 @@ function createTicketForm() {
             });
         },
 
+        resetForm() {
+            this.releaseAllCoupons(); // Release any held coupons
+            this.formData = JSON.parse(JSON.stringify(this.initialFormData)); // Deep copy to reset
+            this.subcategories = [];
+            this.codes = [];
+            this.couponInput = '';
+            this.availableCoupons = [];
+            document.getElementById('ticket-exists-warning').classList.add('hidden');
+            toastr.info('Form has been reset.');
+        },
+
         // Form Submission
         async submitForm() {
+            this.isSubmitting = true;
             const couponIds = this.formData.coupons.map(c => c.id);
             const payload = { ...this.formData, coupons: couponIds };
             
@@ -204,18 +275,15 @@ function createTicketForm() {
 
                 if (response.ok && result.success) {
                     toastr.success(result.message);
-                    // Reset form
-                    this.formData = {
-                        ticket_number: '', platform_id: '', phone: '', country_id: '', is_vip: false,
-                        category_id: '', subcategory_id: '', code_id: '', coupons: [], notes: ''
-                    };
-                    document.getElementById('ticket-exists-warning').classList.add('hidden');
+                    this.resetForm(); // Reset form on success
                 } else {
                     toastr.error(result.message || 'Failed to create ticket.');
                 }
             } catch (error) {
                 console.error('Error submitting form:', error);
                 toastr.error('An unexpected error occurred.');
+            } finally {
+                this.isSubmitting = false;
             }
         }
     };

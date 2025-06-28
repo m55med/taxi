@@ -69,16 +69,16 @@
                             <div class="flex-shrink-0">
                                 <p class="text-sm font-semibold text-gray-500">Regarding:</p>
                                 <p class="font-bold text-gray-800">
-                                    <?php if (!empty($discussion['ticket_number'])) : ?>
+                                    <?php if (!empty($discussion['ticket_number']) && !empty($discussion['ticket_id'])) : ?>
                                         <a href="<?= BASE_PATH ?>/tickets/view/<?= $discussion['ticket_id'] ?>" class="text-blue-600 hover:underline">
                                             Ticket #<?= htmlspecialchars($discussion['ticket_number']) ?>
                                         </a>
-                                    <?php elseif (!empty($discussion['driver_name'])) : ?>
+                                    <?php elseif (!empty($discussion['driver_name']) && !empty($discussion['driver_id'])) : ?>
                                         <a href="<?= BASE_PATH ?>/drivers/details/<?= $discussion['driver_id'] ?>" class="text-blue-600 hover:underline">
                                             Call with <?= htmlspecialchars($discussion['driver_name']) ?>
                                         </a>
                                     <?php else : ?>
-                                        <span class="text-gray-500">N/A</span>
+                                        <span class="text-gray-500">Context not available</span>
                                     <?php endif; ?>
                                 </p>
                             </div>

@@ -50,26 +50,37 @@ class Notification extends Model {
 
     /**
      * Creates a notification and assigns it to a single user.
+     * IMPORTANT: This method does NOT manage its own transaction,
+     * it assumes a transaction has been started by the calling method.
      */
     public function createForUser($title, $message, $userId, $link = null) {
         try {
-            $this->query("INSERT INTO notifications (title, message, link) VALUES (:title, :message, :link)");
-            $this->bind(':title', $title);
-            $this->bind(':message', $message);
-            $this->bind(':link', $link);
-            $this->execute();
-            $notificationId = $this->lastInsertId();
+            // Step 1: Insert the main notification record using a direct, stateless PDO call.
+            // The 'link' column is removed from the query to match the user's actual database schema.
+            $sql1 = "INSERT INTO notifications (title, message) VALUES (:title, :message)";
+            $stmt1 = $this->db->prepare($sql1);
+            $stmt1->execute([
+                ':title' => $title,
+                ':message' => $message
+            ]);
+            $notificationId = $this->db->lastInsertId();
 
-            $this->query("INSERT INTO user_notifications (user_id, notification_id) VALUES (:user_id, :notification_id)");
-            $this->bind(':user_id', $userId);
-            $this->bind(':notification_id', $notificationId);
-            $this->execute();
-            
+            if (!$notificationId) {
+                throw new \Exception("Failed to create notification, no ID was generated.");
+            }
+
+            // Step 2: Link the notification to the user using a separate, direct PDO call.
+            $sql2 = "INSERT INTO user_notifications (user_id, notification_id) VALUES (:user_id, :notification_id)";
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->execute([
+                ':user_id'         => $userId,
+                ':notification_id' => $notificationId,
+            ]);
+
             return $notificationId;
         } catch (\Exception $e) {
-            error_log('Single User Notification Creation Failed: ' . $e->getMessage());
-            // Re-throw the exception to be caught by the parent transaction
-            throw $e;
+            error_log('Notification Creation Failed: ' . $e->getMessage());
+            return false;
         }
     }
 

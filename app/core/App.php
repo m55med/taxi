@@ -27,6 +27,13 @@ class App
 
         $url = $this->parseUrl();
 
+        // Custom route for bulk logs export
+        if (!empty($url[0]) && $url[0] === 'logs' && !empty($url[1]) && $url[1] === 'bulk_export' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller = new \App\Controllers\Logs\LogsController();
+            $controller->bulk_export();
+            return;
+        }
+
         // Custom short routes for auth
         if (!empty($url[0])) {
             $route = strtolower($url[0]);
@@ -102,27 +109,18 @@ class App
             if(file_exists($controllerFile)){
                 $this->controller = new \App\Controllers\Discussions\DiscussionsController();
                 $methodName = 'index'; // Default
+                $params = [];
+
                 if (isset($url[1])) {
-                    switch ($url[1]) {
-                        case 'add':
-                            $methodName = 'add';
-                            break;
-                        case 'addReply':
-                            $methodName = 'addReply';
-                            break;
-                        case 'close':
-                            $methodName = 'close';
-                            break;
+                    if (method_exists($this->controller, $url[1])) {
+                        $methodName = $url[1];
+                        // Get the rest of the URL parts as parameters
+                        $this->params = array_slice($url, 2);
                     }
                 }
-                if(method_exists($this->controller, $methodName)){
-                    $this->method = $methodName;
-                    unset($url[0], $url[1]); // remove 'discussions' and method segment
-                } else {
-                    $this->method = 'index';
-                    unset($url[0]);
-                }
-                 $this->params = $url ? array_values($url) : [];
+                
+                $this->method = $methodName;
+
                 $this->checkPermissions();
                 call_user_func_array([$this->controller, $this->method], $this->params);
                 return;
@@ -625,6 +623,16 @@ class App
         if (!isset($_SESSION['user_id'])) {
             header('Location: ' . BASE_PATH . '/auth/login');
             exit;
+        }
+
+        // NEW: Routes that require login but not a specific permission key.
+        // The authorization for these actions is handled within the controller methods themselves.
+        $loggedInButNoPermissionNeeded = [
+            'Discussions/addReply',
+            'Discussions/close',
+        ];
+        if (in_array($permissionKey, $loggedInButNoPermissionNeeded, true)) {
+            return; // Skip specific permission check
         }
 
         // Final check for the permission

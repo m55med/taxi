@@ -4,6 +4,12 @@ namespace App\Controllers\Logs;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class LogsController extends Controller {
     private $logModel;
@@ -46,6 +52,21 @@ class LogsController extends Controller {
             }
         }
         
+        // Handle Export All
+        if (isset($_GET['export'])) {
+            $export_type = $_GET['export'];
+            $result = $this->logModel->getActivities($filters, null, 0); // null limit to get all
+            $activities = $result['activities'];
+            $summary = $this->logModel->getActivitiesSummary($filters);
+
+            if ($export_type === 'excel') {
+                $this->_exportToExcel($activities, $summary);
+            } elseif ($export_type === 'json') {
+                $this->_exportToJson($activities);
+            }
+            return;
+        }
+
         // Data for filter dropdowns
         $users = $this->logModel->getUsers();
         $teams = $this->logModel->getTeams();
@@ -62,9 +83,20 @@ class LogsController extends Controller {
         $totalRecords = $result['total'];
         $totalPages = ceil($totalRecords / $limit);
 
+        // Get activities summary
+        $activitiesSummary = $this->logModel->getActivitiesSummary($filters);
+
+        // Modify link_prefix for 'Incoming Call'
+        foreach ($activities as $activity) {
+            if ($activity->activity_type === 'Incoming Call') {
+                $activity->link_prefix = 'tickets/view';
+            }
+        }
+
         $data = [
             'page_main_title' => $page_main_title,
             'activities' => $activities,
+            'activitiesSummary' => $activitiesSummary,
             'filters' => $filters,
             'users' => $users,
             'teams' => $teams,
@@ -79,5 +111,136 @@ class LogsController extends Controller {
         ];
 
         $this->view('logs/index', $data);
+    }
+
+    public function bulk_export() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['activity_ids'])) {
+            redirect('logs');
+            return;
+        }
+
+        $activity_ids = $_POST['activity_ids'];
+        $export_type = $_POST['export_type'] ?? 'excel';
+        
+        $activities = $this->logModel->getActivitiesByIds($activity_ids);
+
+        if ($export_type === 'excel') {
+            // Summary is not available for selected items, so we pass null
+            $this->_exportToExcel($activities, null);
+        } elseif ($export_type === 'json') {
+            $this->_exportToJson($activities);
+        }
+    }
+
+    private function _exportToExcel($activities, $summary) {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Activity Log');
+
+        // Headers
+        $headers = ['Type', 'Is VIP', 'Details', 'Secondary Details', 'Employee', 'Team', 'Date'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Style Headers
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']]
+        ];
+        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+
+        // Data
+        $row = 2;
+        foreach ($activities as $activity) {
+            $is_vip = ($activity->activity_type === 'Ticket' && $activity->is_vip) ? 'Yes' : 'No';
+            $sheet->fromArray([
+                $activity->activity_type,
+                $is_vip,
+                $activity->details_primary,
+                $activity->details_secondary,
+                $activity->username,
+                $activity->team_name ?? 'N/A',
+                date('Y-m-d H:i', strtotime($activity->activity_date))
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Add summary if available
+        if ($summary) {
+            $row += 2;
+            $summary_start_row = $row;
+
+            // Title
+            $sheet->mergeCells("A{$row}:B{$row}");
+            $sheet->setCellValue('A' . $row, 'Activity Summary');
+            $sheet->getStyle("A{$row}")->applyFromArray([
+                'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+            ]);
+            $row++;
+
+            // Data
+            $summaryData = [
+                ['Total Tickets', ($summary['Normal Ticket'] ?? 0) + ($summary['VIP Ticket'] ?? 0)],
+                ['  Normal Tickets', $summary['Normal Ticket'] ?? 0],
+                ['  VIP Tickets', $summary['VIP Ticket'] ?? 0],
+                [], // spacer
+                ['Total Calls', ($summary['Incoming Call'] ?? 0) + ($summary['Outgoing Call'] ?? 0)],
+                ['  Incoming Calls', $summary['Incoming Call'] ?? 0],
+                ['  Outgoing Calls', $summary['Outgoing Call'] ?? 0],
+                [], // spacer
+                ['Total Assignments', $summary['Assignment'] ?? 0]
+            ];
+
+            foreach($summaryData as $summary_row) {
+                if (empty($summary_row)) {
+                    $row++;
+                    continue;
+                }
+                $sheet->fromArray($summary_row, null, 'A' . $row);
+                
+                // Style main totals
+                if (strpos($summary_row[0], 'Total') === 0) {
+                    $sheet->getStyle("A{$row}:B{$row}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$row}:B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+                }
+                
+                // Right align numbers
+                $sheet->getStyle("B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $row++;
+            }
+
+            // Add border
+            $summary_end_row = $row - 1;
+            $borderStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '9CA3AF'],
+                    ],
+                ],
+            ];
+            $sheet->getStyle("A{$summary_start_row}:B{$summary_end_row}")->applyFromArray($borderStyle);
+        }
+
+        // Output
+        $writer = new Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=utf-8');
+        header('Content-Disposition: attachment; filename="activity_log_' . date('Y-m-d') . '.xlsx"');
+        $writer->save('php://output');
+        exit;
+    }
+
+    private function _exportToJson($activities) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="activity_log_' . date('Y-m-d') . '.json"');
+        echo json_encode($activities, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
     }
 } 

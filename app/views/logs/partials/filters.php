@@ -71,6 +71,10 @@
 
         <!-- Action Buttons -->
         <div class="xl:col-start-5 flex items-end justify-end space-x-2">
+            <button type="button" @click="exportModal.open = true" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <i class="fas fa-file-export -ml-1 mr-2"></i>
+                <span>Export</span>
+            </button>
             <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <i class="fas fa-filter -ml-1 mr-2"></i>
                 <span>Filter</span>

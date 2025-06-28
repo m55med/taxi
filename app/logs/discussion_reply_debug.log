@@ -1,0 +1,1364 @@
+========== [2025-06-28 11:06:27] addReply Attempt ==========
+User ID: 3 attempting to reply to Discussion ID: 4
+Reply INSERT successful.
+!!!!!!!!!! EXCEPTION CAUGHT !!!!!!!!!!
+Exception Message: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'link' in 'field list'
+Transaction rolled back.
+========== End of Attempt (FAILED) ==========
+
+========== [2025-06-28 11:06:27] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:06:58] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+--- Notification Logic for Discussion 4 ---
+Replier ID: 1
+Found participants to notify: [1]
+--- End Notification Logic ---
+
+========== [2025-06-28 11:07:08] addReply Attempt ==========
+User ID: 1 attempting to reply to Discussion ID: 4
+Reply INSERT successful.
+Notification logic executed. Committing transaction.
+Transaction committed successfully.
+========== End of Attempt (SUCCESS) ==========
+
+========== [2025-06-28 11:07:08] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:17:31] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:17:37] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:17:54] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:19:44] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:19:51] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:19:55] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:19:59] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:22:15] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 0
+========== End of Attempt ==========
+
+========== [2025-06-28 11:22:33] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:22:42] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 0
+========== End of Attempt ==========
+
+========== [2025-06-28 11:23:15] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:23:23] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:23:28] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:23:36] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 4
+========== End of Attempt ==========
+
+========== [2025-06-28 11:23:39] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 0
+========== End of Attempt ==========
+
+========== [2025-06-28 11:25:01] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 5
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:14] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 6
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:27] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 6
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:30] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:44] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:54] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:36:58] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 6
+========== End of Attempt ==========
+
+========== [2025-06-28 11:37:07] getDiscussionsForUser Attempt ==========
+User ID: 3, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":3,":opener_id":3}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:37:15] getDiscussionsForUser Attempt ==========
+User ID: 4, Role: agent
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         WHERE creator.id = :creator_id OR d.opened_by = :opener_id ORDER BY d.status ASC, d.created_at DESC
+Parameters: {":creator_id":4,":opener_id":4}
+Query executed successfully. Number of discussions found: 2
+========== End of Attempt ==========
+
+========== [2025-06-28 11:37:26] getDiscussionsForUser Attempt ==========
+User ID: 1, Role: admin
+Final SQL Query:
+
+            SELECT 
+                d.id, d.reason, d.notes, d.status, d.created_at,
+                d.discussable_type, d.discussable_id,
+                opener.id as opener_id,
+                opener.username as opener_name,
+                
+                -- Context-specific fields, populated based on the type of discussion
+                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
+                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
+                dr.name as driver_name,
+                dc.driver_id as driver_id,
+                creator.username as created_by_name -- The agent whose work is being discussed
+
+            FROM discussions d
+            JOIN users opener ON d.opened_by = opener.id
+            
+            -- Join to find the related review, if any
+            LEFT JOIN reviews r ON d.discussable_type = 'App\\Models\\Review\\Review' AND d.discussable_id = r.id
+            
+            -- Join for Ticket-related context
+            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\Models\\Tickets\\TicketDetail') AND r.reviewable_id = td.id
+            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
+            
+            -- Join for Call-related context
+            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\Models\\Call\\DriverCall') AND r.reviewable_id = dc.id
+            LEFT JOIN drivers dr ON dc.driver_id = dr.id
+
+            -- Join for direct Ticket discussions
+            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\Models\\Tickets\\Ticket' AND d.discussable_id = t_direct.id
+
+            -- Join to find the agent who did the work (the creator of the reviewed item)
+            LEFT JOIN users creator ON creator.id = (
+                CASE
+                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
+                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
+                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
+                    ELSE NULL
+                END
+            )
+         ORDER BY d.status ASC, d.created_at DESC
+Parameters: []
+Query executed successfully. Number of discussions found: 6
+========== End of Attempt ==========
+
