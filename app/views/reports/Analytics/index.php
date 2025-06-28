@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-<?php include __DIR__ . '/../../includes/nav.php'; ?>
+<?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
@@ -147,4 +147,4 @@
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../../includes/footer.php'; ?> 
+<?php require_once __DIR__ . '/../../includes/footer.php'; ?> 

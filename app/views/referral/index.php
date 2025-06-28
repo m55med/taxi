@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/../../includes/header.php'; ?>
+<?php require_once __DIR__ . '/../includes/header.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="{ activeTab: 'reports' }">
     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($page_main_title); ?></h1>
@@ -44,16 +44,16 @@
     <div>
         <!-- Reports Section -->
         <div x-show="activeTab === 'reports'" x-transition>
-            <?php include_once APPROOT . '/app/views/referral/dashboard/_reports.php'; ?>
+            <?php include_once APPROOT . '/views/referral/dashboard/_reports.php'; ?>
         </div>
 
         <!-- Profile Section -->
         <?php if (isset($user_role) && strtolower($user_role) === 'marketer'): ?>
         <div x-show="activeTab === 'profile'" x-transition>
-             <?php include_once APPROOT . '/app/views/referral/profile/_profile.php'; ?>
+             <?php include_once APPROOT . '/views/referral/profile/_profile.php'; ?>
         </div>
         <?php endif; ?>
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

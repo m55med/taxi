@@ -90,45 +90,33 @@
                         </div>
 
                         <!-- Replies Section -->
-                        <div class="mt-5">
-                            <h5 class="font-semibold text-gray-600 mb-3">Replies:</h5>
-                            <div class="space-y-4">
-                                <?php if (!empty($discussion['replies'])) : ?>
-                                    <?php foreach ($discussion['replies'] as $reply) : ?>
-                                        <div class="flex items-start space-x-3">
-                                            <div class="flex-shrink-0">
-                                                <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 text-gray-600">
-                                                    <i class="fas fa-user"></i>
-                                                </span>
-                                            </div>
-                                            <div class="flex-1 bg-gray-100 p-3 rounded-lg">
-                                                <div class="flex justify-between items-center">
-                                                    <p class="font-semibold text-gray-800 text-sm"><?= htmlspecialchars($reply['username']) ?></p>
-                                                    <p class="text-xs text-gray-500"><?= date('M d, Y H:i', strtotime($reply['created_at'])) ?></p>
-                                                </div>
-                                                <p class="text-sm text-gray-700 mt-1"><?= nl2br(htmlspecialchars($reply['message'])) ?></p>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php else : ?>
-                                    <p class="text-sm text-gray-500 italic">No replies yet.</p>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Add Reply Form -->
-                            <?php if ($discussion['status'] === 'open') : ?>
-                                <div class="mt-5 border-t pt-4">
-                                    <form action="<?= BASE_PATH ?>/discussions/addReply/<?= $discussion['id'] ?>" method="POST">
-                                        <textarea name="message" rows="3" class="w-full p-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Write a reply..." required></textarea>
-                                        <div class="text-right mt-2">
-                                            <button type="submit" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700">
-                                                Submit Reply
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
+                        <div class="mt-4 ml-4 pl-4 border-l-2 border-gray-200 space-y-4">
+                            <?php if (!empty($discussion['replies'])) : ?>
+                                <?php foreach ($discussion['replies'] as $reply) : ?>
+                                    <div class="bg-gray-100 p-3 rounded-lg">
+                                        <p class="text-sm">
+                                            <span class="font-semibold text-gray-800"><?= htmlspecialchars($reply['username']) ?></span>:
+                                            <span class="text-gray-700"><?= nl2br(htmlspecialchars($reply['message'])) ?></span>
+                                        </p>
+                                        <p class="text-xs text-gray-500 mt-1 text-right"><?= date('M d, Y H:i', strtotime($reply['created_at'])) ?></p>
+                                    </div>
+                                <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
+
+                        <!-- Add Reply Form -->
+                        <?php if ($discussion['status'] === 'open') : ?>
+                            <div class="mt-5 border-t pt-4">
+                                <form action="<?= BASE_PATH ?>/discussions/addReply/<?= $discussion['id'] ?>" method="POST">
+                                    <textarea name="message" rows="3" class="w-full p-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Write a reply..." required></textarea>
+                                    <div class="text-right mt-2">
+                                        <button type="submit" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700">
+                                            Submit Reply
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>

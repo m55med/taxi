@@ -107,10 +107,12 @@ class App
                         case 'add':
                             $methodName = 'add';
                             break;
-                        case 'reply':
-                            $methodName = 'reply';
+                        case 'addReply':
+                            $methodName = 'addReply';
                             break;
-                        // Add other cases for different methods if needed
+                        case 'close':
+                            $methodName = 'close';
+                            break;
                     }
                 }
                 if(method_exists($this->controller, $methodName)){

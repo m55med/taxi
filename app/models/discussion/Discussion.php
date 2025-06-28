@@ -191,15 +191,54 @@ class Discussion
     {
         $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
         try {
+            $this->db->beginTransaction();
+
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+            $success = $stmt->execute([
                 ':discussion_id' => $discussionId,
                 ':user_id' => $userId,
                 ':message' => $message,
             ]);
+
+            if (!$success) {
+                throw new PDOException("Failed to insert the reply.");
+            }
+
+            // --- Notification Logic ---
+            $this->notifyUsersOnNewReply($discussionId, $userId, $message);
+
+            $this->db->commit();
+            return true;
+
         } catch (PDOException $e) {
+            $this->db->rollBack();
             error_log("Error in addReply: " . $e->getMessage());
             return false;
+        }
+    }
+
+    private function notifyUsersOnNewReply($discussionId, $replierId, $message)
+    {
+        // Get all unique user IDs involved in this discussion (opener and all repliers)
+        $sql = "
+            (SELECT opened_by as user_id FROM discussions WHERE id = :discussion_id)
+            UNION
+            (SELECT user_id FROM discussion_replies WHERE discussion_id = :discussion_id)
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':discussion_id' => $discussionId]);
+        $participantIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $replier = $this->getUserById($replierId);
+        $title = "New Reply in Discussion";
+        $body = "User '" . ($replier['username'] ?? 'Unknown') . "' replied: " . htmlspecialchars(substr($message, 0, 50)) . "...";
+        $link = URLROOT . "/discussions#discussion-" . $discussionId;
+
+        foreach ($participantIds as $participantId) {
+            // Don't notify the user who just wrote the reply
+            if ($participantId != $replierId) {
+                $this->notificationModel->createForUser($title, $body, $participantId, $link);
+            }
         }
     }
 

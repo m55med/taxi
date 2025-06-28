@@ -124,4 +124,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="/taxi/app/views/trips/js/trips.js"></script>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+
 </html> 

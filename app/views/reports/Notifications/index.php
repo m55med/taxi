@@ -1,5 +1,4 @@
 <?php include_once __DIR__ . '/../../includes/header.php'; ?>
-<?php require APPROOT . '/app/views/includes/nav.php'; ?>
 <div class="container mx-auto p-4 sm:p-6">
     <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800"><?= htmlspecialchars($data['page_main_title']) ?></h1>
 
