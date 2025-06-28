@@ -361,6 +361,19 @@ CREATE TABLE ticket_coupons (
     UNIQUE(ticket_id, coupon_id)
 );
 
+--جدول لربط تفاصيل التذاكر VIP بالمسوقين
+CREATE TABLE ticket_vip_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_detail_id INT NOT NULL,
+    marketer_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_detail_id) REFERENCES ticket_details(id) ON DELETE CASCADE,
+    FOREIGN KEY (marketer_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    UNIQUE(ticket_detail_id) --  نفترض أن كل تذكرة VIP يمكن أن تُسند إلى مسوق واحد فقط
+);
+
 --جدول لتخزين بيانات الزيارات المرجعية
 CREATE TABLE referral_visits (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -608,7 +621,7 @@ CREATE TABLE ticket_code_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code_id INT NOT NULL,
     is_vip BOOLEAN NOT NULL DEFAULT 0,
-    points INT NOT NULL,
+    points DECIMAL(10, 2) NOT NULL,
     valid_from DATE NOT NULL,
     valid_to DATE DEFAULT NULL,
     KEY (code_id, is_vip, valid_from, valid_to),
@@ -617,15 +630,17 @@ CREATE TABLE ticket_code_points (
 
 
 
+
 CREATE TABLE call_points (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    points INT NOT NULL,
+    points DECIMAL(10, 2) NOT NULL,
     call_type ENUM('incoming', 'outgoing') NOT NULL DEFAULT 'outgoing',
     valid_from DATE NOT NULL,
     valid_to DATE DEFAULT NULL,
     KEY (valid_from, valid_to),
     KEY (call_type, valid_from, valid_to)
 );
+
 
 
 CREATE TABLE user_monthly_bonus (
@@ -641,6 +656,22 @@ CREATE TABLE user_monthly_bonus (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE bonus_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    min_bonus_percent DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
+    max_bonus_percent DECIMAL(5, 2) NOT NULL DEFAULT 100.00,
+    predefined_bonus_1 DECIMAL(5, 2) NOT NULL DEFAULT 5.00,
+    predefined_bonus_2 DECIMAL(5, 2) NOT NULL DEFAULT 10.00,
+    predefined_bonus_3 DECIMAL(5, 2) NOT NULL DEFAULT 15.00,
+    updated_by INT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Insert a default row so we always have settings to work with
+INSERT INTO bonus_settings (id) VALUES (1);
+
 
 INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, created_at)
 SELECT 

@@ -43,6 +43,16 @@ class TicketController extends Controller
         // Get the full history of the ticket
         $ticketHistory = $this->ticketModel->getTicketHistory($id);
 
+        // Manually fetch marketer name for VIP tickets for each history item
+        foreach ($ticketHistory as $key => $historyItem) {
+            if (!empty($historyItem['is_vip'])) {
+                $marketer_info = $this->ticketModel->getVipMarketerForDetail($historyItem['id']);
+                $ticketHistory[$key]['marketer_name'] = $marketer_info ? $marketer_info['username'] : null;
+            } else {
+                $ticketHistory[$key]['marketer_name'] = null;
+            }
+        }
+
         // Extract all history IDs to fetch reviews in one query
         $historyIds = array_map(function($item) {
             return $item['id'];

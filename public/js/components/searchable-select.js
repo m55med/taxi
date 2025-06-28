@@ -51,6 +51,12 @@ function searchableSelect(options) {
             this.selected = option;
             this.open = false;
             this.searchTerm = '';
+        },
+
+        reset() {
+            this.selected = null;
+            this.searchTerm = '';
+            this.open = false;
         }
     };
 } 

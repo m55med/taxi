@@ -10,8 +10,9 @@ class BonusController extends Controller {
     private $bonusModel;
 
     public function __construct() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-            Auth::isLoggedIn() ? redirect('/unauthorized') : redirect('/auth/login');
+        // Broaden access control, will handle specific permissions in methods
+        if (!Auth::isLoggedIn()) {
+            redirect('/auth/login');
         }
         
         $this->bonusModel = $this->model('admin/BonusModel');
@@ -20,9 +21,61 @@ class BonusController extends Controller {
     public function index() {
         $data = [
             'users' => $this->bonusModel->getAllUsers(),
-            'bonuses' => $this->bonusModel->getGrantedBonuses()
+            'bonuses' => $this->bonusModel->getGrantedBonuses(),
+            'settings' => $this->bonusModel->getBonusSettings(),
+            'is_admin' => ($_SESSION['role'] === 'admin') // Pass role info to the view
         ];
         $this->view('admin/bonus/index', $data);
+    }
+
+    public function settings() {
+        // Only admins can view the settings page
+        if ($_SESSION['role'] !== 'admin') {
+            redirect('/unauthorized');
+        }
+
+        $data = [
+            'settings' => $this->bonusModel->getBonusSettings()
+        ];
+        $this->view('admin/bonus/settings', $data);
+    }
+
+    public function updateSettings() {
+        // Only admins can update settings
+        if ($_SESSION['role'] !== 'admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('/admin/bonus');
+        }
+
+        $fields = [
+            'min_bonus_percent' => FILTER_VALIDATE_FLOAT,
+            'max_bonus_percent' => FILTER_VALIDATE_FLOAT,
+            'predefined_bonus_1' => FILTER_VALIDATE_FLOAT,
+            'predefined_bonus_2' => FILTER_VALIDATE_FLOAT,
+            'predefined_bonus_3' => FILTER_VALIDATE_FLOAT,
+        ];
+        $data = [];
+        foreach ($fields as $field => $filter) {
+            $value = filter_input(INPUT_POST, $field, $filter);
+            if ($value === false || $value < 0) {
+                flash('bonus_settings_message', "Invalid value provided for " . str_replace('_', ' ', $field) . ".", 'error');
+                redirect('/admin/bonus/settings');
+                return;
+            }
+            $data[$field] = $value;
+        }
+
+        if ($data['min_bonus_percent'] > $data['max_bonus_percent']) {
+            flash('bonus_settings_message', "Minimum bonus cannot be greater than maximum bonus.", 'error');
+            redirect('/admin/bonus/settings');
+            return;
+        }
+        
+        if ($this->bonusModel->updateBonusSettings($data)) {
+            flash('bonus_settings_message', 'Bonus settings updated successfully.', 'success');
+        } else {
+            flash('bonus_settings_message', 'Failed to update settings.', 'error');
+        }
+        redirect('/admin/bonus/settings');
     }
 
     public function grant() {
@@ -40,6 +93,32 @@ class BonusController extends Controller {
                 'granted_by' => $_SESSION['user_id']
             ];
 
+            // --- New Validation Logic ---
+            $settings = $this->bonusModel->getBonusSettings();
+            $is_admin = ($_SESSION['role'] === 'admin');
+            
+            if ($is_admin) {
+                // Admin validation: check against min/max
+                if ($data['bonus_percent'] < $settings['min_bonus_percent'] || $data['bonus_percent'] > $settings['max_bonus_percent']) {
+                    flash('bonus_message', "Bonus must be between {$settings['min_bonus_percent']}% and {$settings['max_bonus_percent']}%.", 'error');
+                    redirect('/admin/bonus');
+                    return;
+                }
+            } else {
+                // Non-admin validation: check against predefined values
+                $allowed_bonuses = [
+                    $settings['predefined_bonus_1'],
+                    $settings['predefined_bonus_2'],
+                    $settings['predefined_bonus_3']
+                ];
+                if (!in_array($data['bonus_percent'], $allowed_bonuses)) {
+                    flash('bonus_message', 'Invalid bonus value selected.', 'error');
+                    redirect('/admin/bonus');
+                    return;
+                }
+            }
+            // --- End New Validation Logic ---
+
             if (empty($data['user_id']) || empty($data['bonus_percent']) || empty($data['bonus_year'])) {
                 flash('bonus_message', 'Please fill out all required fields.', 'error');
                 redirect('/admin/bonus');
@@ -49,10 +128,11 @@ class BonusController extends Controller {
             if ($this->bonusModel->bonusExists($data['user_id'], $data['bonus_year'], $data['bonus_month'])) {
                 flash('bonus_message', 'Failed to grant bonus. The employee has already received a bonus for this month.', 'error');
                 redirect('/admin/bonus');
+                return;
             }
             
             if ($this->bonusModel->addBonus($data)) {
-                flash('bonus_message', 'Bonus granted successfully.');
+                flash('bonus_message', 'Bonus granted successfully.', 'success');
                 redirect('/admin/bonus');
             } else {
                 flash('bonus_message', 'Failed to grant bonus due to a database error.', 'error');

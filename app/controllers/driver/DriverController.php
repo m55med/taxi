@@ -242,4 +242,18 @@ class DriverController extends Controller
 
         $this->view('drivers/details', $data);
     }
+
+    public function search()
+    {
+        // We expect a 'q' query parameter, e.g., /drivers/search?q=123
+        $query = $_GET['q'] ?? '';
+
+        if (empty($query) || !is_string($query)) {
+            $this->sendJsonResponse([]);
+            return;
+        }
+
+        $drivers = $this->driverModel->searchByPhone(trim($query));
+        $this->sendJsonResponse($drivers);
+    }
 }

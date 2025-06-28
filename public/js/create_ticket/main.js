@@ -1,4 +1,4 @@
-function createTicketForm(platforms) {
+function createTicketForm(platforms, marketers) {
     return {
         formData: {
             ticket_number: '',
@@ -6,6 +6,7 @@ function createTicketForm(platforms) {
             phone: '',
             country_id: '',
             is_vip: false,
+            marketer_id: '',
             category_id: '',
             subcategory_id: '',
             code_id: '',
@@ -14,32 +15,52 @@ function createTicketForm(platforms) {
         },
         initialFormData: {}, // To store the initial state for resetting
         platforms: platforms || [],
+        marketers: marketers || [],
         subcategories: [],
         codes: [],
         couponInput: '',
         availableCoupons: [],
         isSubmitting: false,
         couponsLoading: false,
+        isVipModalOpen: false,
         
         // Initialization
         init() {
             // Store the initial state of the form data
             this.initialFormData = JSON.parse(JSON.stringify(this.formData));
 
-            // Watch for changes in platform_id to set VIP status
-            this.$watch('formData.platform_id', (newValue) => {
-                if (!newValue) {
-                    this.formData.is_vip = false;
+            // Watch for changes in platform_id to set VIP status and open modal
+            this.$watch('formData.platform_id', (newValue, oldValue) => {
+                // Do not run on initial page load
+                if (oldValue === undefined) {
                     return;
                 }
+
                 const selectedPlatform = this.platforms.find(p => p.id == newValue);
+
                 if (selectedPlatform && selectedPlatform.name.toLowerCase().includes('vip')) {
-                    if (!this.formData.is_vip) {
-                        this.formData.is_vip = true;
-                        toastr.info('VIP status has been automatically applied.');
-                    }
+                    this.formData.is_vip = true;
+                    this.$nextTick(() => {
+                        this.isVipModalOpen = true; 
+                    });
                 } else {
                     this.formData.is_vip = false;
+                    this.formData.marketer_id = '';
+                    const marketerSelectEl = document.querySelector('[data-model-name="marketer_id"]');
+                    if (marketerSelectEl && marketerSelectEl._x_dataStack) {
+                         marketerSelectEl._x_dataStack[0].reset();
+                    }
+                }
+            });
+
+            // Watch for changes in marketer_id to close the modal
+            this.$watch('formData.marketer_id', (newValue) => {
+                if (newValue) {
+                    this.isVipModalOpen = false;
+                    const selectedMarketer = this.marketers.find(m => m.id == newValue);
+                    if (selectedMarketer) {
+                        toastr.info(`Assigned to marketer: ${selectedMarketer.username}`);
+                    }
                 }
             });
 
@@ -108,7 +129,6 @@ function createTicketForm(platforms) {
                 const response = await fetch(`${URLROOT}/create_ticket/getSubcategories/${this.formData.category_id}`);
                 this.subcategories = await response.json();
             } catch (error) {
-                console.error('Error fetching subcategories:', error);
                 toastr.error('Failed to load subcategories.');
             }
         },
@@ -123,7 +143,6 @@ function createTicketForm(platforms) {
                 const response = await fetch(`${URLROOT}/create_ticket/getCodes/${this.formData.subcategory_id}`);
                 this.codes = await response.json();
             } catch (error) {
-                console.error('Error fetching codes:', error);
                 toastr.error('Failed to load codes.');
             }
         },
@@ -161,7 +180,6 @@ function createTicketForm(platforms) {
                 if (!response.ok) throw new Error('Server error');
                 this.availableCoupons = await response.json();
             } catch (error) {
-                console.error('Error fetching available coupons:', error);
                 toastr.error('Could not load coupons for the selected country.');
             } finally {
                 this.couponsLoading = false;
@@ -201,7 +219,6 @@ function createTicketForm(platforms) {
                     await this.fetchAvailableCoupons();
                 }
             } catch (error) {
-                console.error('Error adding coupon:', error);
                 toastr.error('An error occurred while adding the coupon.');
             }
         },
@@ -219,7 +236,6 @@ function createTicketForm(platforms) {
                 this.fetchAvailableCoupons();
                 toastr.info(`Coupon ${coupon.code} has been released.`);
             } catch (error) {
-                console.error('Error removing coupon:', error);
                 toastr.error('An error occurred while removing the coupon.');
             }
         },
@@ -255,6 +271,15 @@ function createTicketForm(platforms) {
             this.couponInput = '';
             this.availableCoupons = [];
             document.getElementById('ticket-exists-warning').classList.add('hidden');
+
+            // Manually dispatch events to reset searchable selects
+            const selects = document.querySelectorAll('[data-model-name]');
+            selects.forEach(select => {
+                if (select && select._x_dataStack) {
+                    select._x_dataStack[0].reset();
+                }
+            });
+
             toastr.info('Form has been reset.');
         },
 
@@ -274,13 +299,12 @@ function createTicketForm(platforms) {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    toastr.success(result.message);
-                    this.resetForm(); // Reset form on success
+                    toastr.success(result.message || 'Ticket created successfully!');
+                    this.resetForm();
                 } else {
                     toastr.error(result.message || 'Failed to create ticket.');
                 }
             } catch (error) {
-                console.error('Error submitting form:', error);
                 toastr.error('An unexpected error occurred.');
             } finally {
                 this.isSubmitting = false;

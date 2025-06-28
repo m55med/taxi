@@ -253,12 +253,7 @@ class Ticket extends Model
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         $ticket = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($ticket) {
-            // Fetch all coupons ever associated with the ticket for the top-level display
-            $ticket['coupons'] = $this->getTicketCoupons($ticket['id']);
-        }
-
+        
         return $ticket ?: null;
     }
 
@@ -293,23 +288,26 @@ class Ticket extends Model
         $sql = "SELECT 
                     td.*,
                     p.name as platform_name,
-                    cnt.name as country_name,
-                    cat.name as category_name, 
-                    sc.name as subcategory_name, 
-                    cod.name as code_name,
+                    c.name as category_name,
+                    sc.name as subcategory_name,
+                    co.name as code_name,
                     u_editor.username as editor_name,
-                    u_leader.username as leader_name
+                    u_leader.username as leader_username,
+                    country.name as country_name,
+                    marketer.username as marketer_name
                 FROM ticket_details td
                 LEFT JOIN platforms p ON td.platform_id = p.id
-                LEFT JOIN countries cnt ON td.country_id = cnt.id
-                LEFT JOIN ticket_categories cat ON td.category_id = cat.id
+                LEFT JOIN ticket_categories c ON td.category_id = c.id
                 LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
-                LEFT JOIN ticket_codes cod ON td.code_id = cod.id
+                LEFT JOIN ticket_codes co ON td.code_id = co.id
                 LEFT JOIN users u_editor ON td.edited_by = u_editor.id
                 LEFT JOIN users u_leader ON td.assigned_team_leader_id = u_leader.id
+                LEFT JOIN countries country ON td.country_id = country.id
+                LEFT JOIN ticket_vip_assignments tva ON td.id = tva.ticket_detail_id
+                LEFT JOIN users marketer ON tva.marketer_id = marketer.id
                 WHERE td.ticket_id = :ticket_id
-                ORDER BY td.created_at DESC";
-
+                ORDER BY td.created_at DESC, td.id DESC";
+        
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':ticket_id' => $ticketId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -390,5 +388,17 @@ class Ticket extends Model
             error_log("Error getting ticket_id from detail_id: " . $e->getMessage());
             return null;
         }
+    }
+
+    public function getVipMarketerForDetail($ticketDetailId)
+    {
+        $sql = "SELECT u.username 
+                FROM users u
+                JOIN ticket_vip_assignments tva ON u.id = tva.marketer_id
+                WHERE tva.ticket_detail_id = :ticket_detail_id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 } 

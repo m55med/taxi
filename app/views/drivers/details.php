@@ -29,6 +29,54 @@
 <?php include_once APPROOT . '/views/includes/nav.php'; ?>
 
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- Driver Search Bar -->
+    <div x-data="driverSearch()" x-init="init()" class="mb-6 relative">
+        <label for="driver-search" class="block text-sm font-medium text-gray-700 mb-1">البحث عن سائق برقم الهاتف:</label>
+        <div class="relative">
+            <input type="text"
+                   id="driver-search"
+                   x-model="query"
+                   @input.debounce.300ms="search"
+                   @focus="isOpen = true"
+                   @keydown.escape.prevent="isOpen = false; query = ''"
+                   @keydown.arrow-down.prevent="highlightNext()"
+                   @keydown.arrow-up.prevent="highlightPrev()"
+                   @keydown.enter.prevent="selectHighlighted()"
+                   placeholder="أدخل رقم هاتف للبحث..."
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <i class="fas fa-search"></i>
+            </span>
+        </div>
+        
+        <!-- Search Results Dropdown -->
+        <div x-show="isOpen && results.length > 0"
+             @click.away="isOpen = false"
+             class="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto"
+             style="display: none;">
+            <ul>
+                <template x-for="(driver, index) in results" :key="driver.id">
+                    <li>
+                        <a :href="`<?= URLROOT ?>/drivers/details/${driver.id}`"
+                           @mouseenter="highlightedIndex = index"
+                           class="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-blue-500 hover:text-white"
+                           :class="{ 'bg-blue-500 text-white': highlightedIndex === index }">
+                            <span class="font-bold" x-text="driver.name"></span> -
+                            <span class="text-gray-500" :class="{ 'text-white': highlightedIndex === index }" x-text="driver.phone"></span>
+                        </a>
+                    </li>
+                </template>
+            </ul>
+        </div>
+        <div x-show="isOpen && query.length > 2 && isLoading" class="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 p-4 text-center text-gray-500">
+            جاري البحث...
+        </div>
+        <div x-show="isOpen && query.length > 2 && !isLoading && results.length === 0" class="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 p-4 text-center text-gray-500">
+            لا توجد نتائج.
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($page_main_title); ?>: <?= htmlspecialchars($driver['name']) ?></h1>
@@ -158,6 +206,55 @@
         </div>
     </div>
 </div>
+
+<script>
+function driverSearch() {
+    return {
+        query: '',
+        results: [],
+        isOpen: false,
+        isLoading: false,
+        highlightedIndex: -1,
+        search() {
+            if (this.query.length < 3) {
+                this.results = [];
+                this.isOpen = false;
+                return;
+            }
+            this.isLoading = true;
+            this.isOpen = true;
+            fetch(`<?= URLROOT ?>/drivers/search?q=${encodeURIComponent(this.query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    this.results = data;
+                })
+                .finally(() => {
+                    this.isLoading = false;
+                    this.highlightedIndex = -1;
+                });
+        },
+        highlightNext() {
+            if (this.highlightedIndex < this.results.length - 1) {
+                this.highlightedIndex++;
+            }
+        },
+        highlightPrev() {
+            if (this.highlightedIndex > 0) {
+                this.highlightedIndex--;
+            }
+        },
+        selectHighlighted() {
+            if (this.highlightedIndex > -1 && this.results[this.highlightedIndex]) {
+                window.location.href = `<?= URLROOT ?>/drivers/details/${this.results[this.highlightedIndex].id}`;
+            }
+        },
+        init() {
+            // Can be used for initialization if needed
+        }
+    }
+}
+</script>
+
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
 </body>
 </html> 

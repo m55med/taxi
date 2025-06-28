@@ -50,7 +50,7 @@ if (isset($_SESSION['points_message'])) {
                         </div>
                         <div>
                             <label for="points" class="block text-sm font-medium text-gray-700">Points</label>
-                            <input type="number" name="points" id="points" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                            <input type="number" step="0.01" name="points" id="points" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., 10.5">
                         </div>
                         <div>
                             <label for="valid_from" class="block text-sm font-medium text-gray-700">Valid From</label>
@@ -133,7 +133,7 @@ if (isset($_SESSION['points_message'])) {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="call_points_outgoing" class="block text-sm font-medium text-gray-700">Points per Call</label>
-                                    <input type="number" name="points" id="call_points_outgoing" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                    <input type="number" step="0.01" name="points" id="call_points_outgoing" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., 1.25">
                                 </div>
                                 <div>
                                     <label for="call_valid_from_outgoing" class="block text-sm font-medium text-gray-700">Valid From</label>
@@ -153,7 +153,7 @@ if (isset($_SESSION['points_message'])) {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="call_points_incoming" class="block text-sm font-medium text-gray-700">Points per Call</label>
-                                    <input type="number" name="points" id="call_points_incoming" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm">
+                                    <input type="number" step="0.01" name="points" id="call_points_incoming" required class="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm" placeholder="e.g., 0.75">
                                 </div>
                                 <div>
                                     <label for="call_valid_from_incoming" class="block text-sm font-medium text-gray-700">Valid From</label>

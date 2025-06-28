@@ -447,15 +447,32 @@ class Driver
 
     public function assignDriver($driverId, $fromUserId, $toUserId, $note)
     {
-        $sql = "INSERT INTO driver_assignments (driver_id, from_user_id, to_user_id, note) VALUES (:driver_id, :from_user_id, :to_user_id, :note)";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
-            ':driver_id' => $driverId,
-            ':from_user_id' => $fromUserId,
-            ':to_user_id' => $toUserId,
-            ':note' => $note
-        ]);
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare("
+                INSERT INTO driver_assignments (driver_id, from_user_id, to_user_id, note)
+                VALUES (:driver_id, :from_user_id, :to_user_id, :note)
+            ");
+            $stmt->execute([
+                ':driver_id' => $driverId,
+                ':from_user_id' => $fromUserId,
+                ':to_user_id' => $toUserId,
+                ':note' => $note,
+            ]);
+
+            $updateStmt = $this->db->prepare("UPDATE drivers SET assigned_to = :to_user_id WHERE id = :driver_id");
+            $updateStmt->execute([':to_user_id' => $toUserId, ':driver_id' => $driverId]);
+
+            $this->db->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error in assignDriver: " . $e->getMessage());
+            return false;
+        }
     }
+
     // الموديل المسؤل عن تحرير الهولد في النظام بعد 5 دقائق من اخر تحديث علي الصف في الصفوف المعلقة
     public function releaseHeldDrivers()
     {
@@ -472,6 +489,19 @@ class Driver
         } catch (PDOException $e) {
             error_log("Error in releaseHeldDrivers: " . $e->getMessage());
             return ['status' => false, 'message' => 'Database error.'];
+        }
+    }
+
+    public function searchByPhone($phoneQuery)
+    {
+        try {
+            $sql = "SELECT id, name, phone FROM drivers WHERE phone LIKE CONCAT(:query, '%') LIMIT 10";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':query' => $phoneQuery]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in searchByPhone: " . $e->getMessage());
+            return [];
         }
     }
 } 

@@ -61,4 +61,33 @@ class BonusModel {
         $stmt = $this->db->prepare("DELETE FROM user_monthly_bonus WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
+
+    public function getBonusSettings() {
+        // We assume there's only one row with ID 1
+        $stmt = $this->db->query("SELECT * FROM bonus_settings WHERE id = 1");
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateBonusSettings($data) {
+        $stmt = $this->db->prepare("
+            UPDATE bonus_settings 
+            SET 
+                min_bonus_percent = :min_bonus_percent,
+                max_bonus_percent = :max_bonus_percent,
+                predefined_bonus_1 = :predefined_bonus_1,
+                predefined_bonus_2 = :predefined_bonus_2,
+                predefined_bonus_3 = :predefined_bonus_3,
+                updated_by = :updated_by
+            WHERE id = 1
+        ");
+
+        return $stmt->execute([
+            ':min_bonus_percent' => $data['min_bonus_percent'],
+            ':max_bonus_percent' => $data['max_bonus_percent'],
+            ':predefined_bonus_1' => $data['predefined_bonus_1'],
+            ':predefined_bonus_2' => $data['predefined_bonus_2'],
+            ':predefined_bonus_3' => $data['predefined_bonus_3'],
+            ':updated_by' => $_SESSION['user_id']
+        ]);
+    }
 } 

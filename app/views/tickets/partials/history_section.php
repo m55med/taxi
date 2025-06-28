@@ -52,6 +52,13 @@ file_put_contents($log_file, "Entering history_section.php at " . date('Y-m-d H:
                         <span class="ml-2"><?= htmlspecialchars($history['leader_name'] ?? 'N/A') ?></span>
                     </div>
 
+                    <?php if (!empty($history['marketer_name'])) : ?>
+                        <div class="flex items-center">
+                            <i class="fas fa-bullhorn text-purple-400 mr-3 w-5 text-center"></i><strong>Assigned Marketer:</strong>
+                            <span class="ml-2 font-semibold text-purple-700"><?= htmlspecialchars($history['marketer_name']) ?></span>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="flex items-center col-span-1 md:col-span-2">
                         <i class="fas fa-sitemap text-gray-400 mr-3 w-5 text-center"></i><strong>Classification:</strong>
                         <span class="ml-2 text-sm"><?= htmlspecialchars($history['category_name']) ?> / <?= htmlspecialchars($history['subcategory_name']) ?> / <?= htmlspecialchars($history['code_name']) ?></span>

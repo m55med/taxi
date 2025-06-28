@@ -50,6 +50,12 @@ class CreateTicketModel extends Model
         return $this->resultSet();
     }
 
+    public function getMarketers()
+    {
+        $this->query("SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'marketer' ORDER BY u.username ASC");
+        return $this->resultSet();
+    }
+
     public function findByTicketNumber($ticketNumber)
     {
         $this->query("SELECT id FROM tickets WHERE ticket_number = :ticket_number");
@@ -121,7 +127,15 @@ class CreateTicketModel extends Model
             // Step 2: Create ticket details record
             $ticketDetailId = $this->createTicketDetailEntry($ticketId, $data);
 
-            // Step 3: Handle Incoming Call logging
+            // Step 3: Assign marketer if it's a VIP ticket
+            if (!empty($data['is_vip']) && !empty($data['marketer_id'])) {
+                $this->query("INSERT INTO ticket_vip_assignments (ticket_detail_id, marketer_id) VALUES (:ticket_detail_id, :marketer_id)");
+                $this->bind(':ticket_detail_id', $ticketDetailId);
+                $this->bind(':marketer_id', $data['marketer_id']);
+                $this->execute();
+            }
+
+            // Step 4: Handle Incoming Call logging
             if (!empty($data['platform_id'])) {
                 $this->query("SELECT name FROM platforms WHERE id = :platform_id");
                 $this->bind(':platform_id', $data['platform_id']);
@@ -136,7 +150,7 @@ class CreateTicketModel extends Model
                 }
             }
             
-            // Step 4: Process coupons
+            // Step 5: Process coupons
             if (!empty($data['coupons'])) {
                 $this->processCoupons($ticketId, $ticketDetailId, $data);
             }

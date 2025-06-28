@@ -29,16 +29,26 @@ class PointsController extends Controller {
 
     public function setTicketPoints() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+            // Sanitize specific inputs
+            $code_id = filter_input(INPUT_POST, 'code_id', FILTER_SANITIZE_NUMBER_INT);
+            $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_FLOAT);
+            $valid_from = filter_input(INPUT_POST, 'valid_from', FILTER_SANITIZE_STRING);
+            $is_vip = isset($_POST['is_vip']) ? 1 : 0;
+
+            if ($points === false) {
+                flash('points_message', 'Invalid points value. Please enter a valid number.', 'error');
+                redirect('/admin/points');
+                return;
+            }
 
             $data = [
-                'code_id' => trim($_POST['code_id']),
-                'is_vip' => isset($_POST['is_vip']) ? 1 : 0,
-                'points' => trim($_POST['points']),
-                'valid_from' => trim($_POST['valid_from'])
+                'code_id' => $code_id,
+                'is_vip' => $is_vip,
+                'points' => $points,
+                'valid_from' => $valid_from
             ];
 
-            if (empty($data['code_id']) || empty($data['points']) || empty($data['valid_from'])) {
+            if (empty($data['code_id']) || !isset($data['points']) || empty($data['valid_from'])) {
                 flash('points_message', 'Please fill in all required fields.', 'error');
                 redirect('/admin/points');
             }
@@ -63,15 +73,24 @@ class PointsController extends Controller {
 
     public function setCallPoints() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
+            // Sanitize specific inputs
+            $points = filter_input(INPUT_POST, 'points', FILTER_VALIDATE_FLOAT);
+            $call_type = filter_input(INPUT_POST, 'call_type', FILTER_SANITIZE_STRING);
+            $valid_from = filter_input(INPUT_POST, 'valid_from', FILTER_SANITIZE_STRING);
+
+            if ($points === false) {
+                flash('points_message', 'Invalid points value. Please enter a valid number.', 'error');
+                redirect('/admin/points');
+                return;
+            }
             
             $data = [
-                'points' => trim($_POST['points']),
-                'call_type' => trim($_POST['call_type']),
-                'valid_from' => trim($_POST['valid_from'])
+                'points' => $points,
+                'call_type' => $call_type,
+                'valid_from' => $valid_from
             ];
             
-            if (empty($data['points']) || empty($data['valid_from']) || empty($data['call_type'])) {
+            if (!isset($data['points']) || empty($data['valid_from']) || empty($data['call_type'])) {
                 flash('points_message', 'Please fill in all required fields.', 'error');
                 redirect('/admin/points');
             }

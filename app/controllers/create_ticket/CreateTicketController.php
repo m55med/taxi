@@ -24,6 +24,7 @@ class CreateTicketController extends Controller
             'countries' => $this->createTicketModel->getCountries(),
             'platforms' => $this->createTicketModel->getPlatforms(),
             'categories' => $this->createTicketModel->getCategories(),
+            'marketers' => $this->createTicketModel->getMarketers(),
             'title' => 'Create New Ticket'
         ];
 
@@ -102,6 +103,12 @@ class CreateTicketController extends Controller
         if (empty($data['ticket_number']) || empty($data['platform_id']) || empty($data['category_id'])) {
              $this->sendJsonResponse(['success' => false, 'message' => 'Please fill all required fields.'], 400);
              return;
+        }
+
+        // VIP Marketer validation
+        if (!empty($data['is_vip']) && empty($data['marketer_id'])) {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Please select a marketer for VIP tickets.'], 400);
+            return;
         }
 
         $data['user_id'] = $_SESSION['user_id'];
