@@ -28,6 +28,36 @@ class ProfileModel
     }
 
     /**
+     * Retrieves all agents and joins their corresponding user information.
+     *
+     * @return array A list of all agents with their user details.
+     */
+    public function getAllAgentsWithUsers(): array
+    {
+        $sql = "SELECT 
+                    u.id as user_id,
+                    u.username,
+                    u.email,
+                    r.name as role_name,
+                    a.id as agent_id,
+                    a.state,
+                    a.phone,
+                    a.is_online_only,
+                    a.map_url,
+                    (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id) as total_visits,
+                    (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id AND registration_status = 'successful') as total_registrations
+                FROM users u
+                LEFT JOIN agents a ON u.id = a.user_id
+                JOIN roles r ON u.role_id = r.id
+                WHERE r.name = 'marketer'
+                ORDER BY u.username ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Creates or updates an agent's profile.
      *
      * @param array $data The data for the agent.

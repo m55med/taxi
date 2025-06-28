@@ -1,7 +1,7 @@
 <div x-data="{ isOnlineOnly: <?php echo (isset($agentProfile['is_online_only']) && $agentProfile['is_online_only']) ? 'true' : 'false'; ?> }">
     <h2 class="text-2xl font-bold mb-6 text-gray-800">تعديل الملف الشخصي</h2>
     
-    <?php include_once APPROOT . '/app/views/includes/flash_messages.php'; ?>
+    <?php include_once APPROOT . '/views/includes/flash_messages.php'; ?>
 
     <form id="agentProfileForm" action="<?php echo URLROOT; ?>/referral/saveAgentProfile" method="POST" class="space-y-8">
         

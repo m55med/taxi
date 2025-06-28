@@ -144,57 +144,181 @@ class ReferralController extends Controller
         $this->authorize('Referral/dashboard');
 
         $dashboardModel = $this->model('Referral/DashboardModel');
-        $profileModel = $this->model('Referral/ProfileModel');
-        
         $userId = $_SESSION['user_id'];
-        $userRole = $_SESSION['role']; // Get user role
+        $userRole = $_SESSION['role'] ?? 'marketer'; // Default to marketer for safety
 
-        // Filter logic
+        if ($userRole === 'admin') {
+            $this->adminDashboard($dashboardModel);
+        } else {
+            $this->marketerDashboard($dashboardModel, $userId);
+        }
+    }
+
+    private function adminDashboard($dashboardModel)
+    {
         $filters = [
             'marketer_id' => filter_input(INPUT_GET, 'marketer_id', FILTER_VALIDATE_INT),
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
             'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
         ];
-        // Admins can filter by marketer, marketers can only see their own data
-        if ($userRole === 'marketer') {
-            $filters['marketer_id'] = $userId;
-        }
 
-        // Fetch data
+        $allMarketers = $this->model('Referral/ProfileModel')->getAllAgentsWithUsers();
+        
+        // Calculate aggregate stats for summary cards
+        $total_marketers = count($allMarketers);
+        $total_visits = array_sum(array_column($allMarketers, 'total_visits'));
+        $total_registrations = array_sum(array_column($allMarketers, 'total_registrations'));
+        $overall_conversion_rate = ($total_visits > 0) ? ($total_registrations / $total_visits) * 100 : 0;
+
+        $summary_stats = [
+            'total_marketers' => $total_marketers,
+            'total_visits' => $total_visits,
+            'total_registrations' => $total_registrations,
+            'conversion_rate' => $overall_conversion_rate
+        ];
+
+        $data = [
+            'page_main_title' => 'Admin - Referral Dashboard',
+            'marketers' => $allMarketers,
+            'summary_stats' => $summary_stats,
+            'filters' => $filters
+        ];
+        
+        $this->view('referral/dashboard/admin_dashboard', $data);
+    }
+
+    private function marketerDashboard($dashboardModel, $userId)
+    {
+        $profileModel = $this->model('Referral/ProfileModel');
+        
+        $filters = [
+            'marketer_id' => $userId, // Marketer can only see their own data
+            'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
+        ];
+
         $dashboardStats = $dashboardModel->getDashboardStats($filters);
-        $visits = ($userRole === 'admin') 
-            ? $dashboardModel->getAllVisits($filters) 
-            : $dashboardModel->getVisitsForMarketer($userId, $filters);
-        $marketers = ($userRole === 'admin') ? $dashboardModel->getMarketers() : [];
-        $agentProfile = ($userRole === 'marketer') ? $profileModel->getAgentByUserId($userId) : null;
+        $visits = $dashboardModel->getVisitsForMarketer($userId, $filters);
+        $agentProfile = $profileModel->getAgentByUserId($userId);
         $workingHours = ($agentProfile) ? $profileModel->getWorkingHoursByAgentId($agentProfile['id']) : [];
 
         $data = [
             'page_main_title' => 'لوحة تحكم المناديب',
             'dashboardStats' => $dashboardStats,
             'visits' => $visits,
-            'marketers' => $marketers,
             'filters' => $filters,
             'agentProfile' => $agentProfile,
             'working_hours' => $workingHours,
             'referral_link' => BASE_PATH . '/referral/register?ref=' . $_SESSION['username'],
-            'user_role' => $userRole
+            'user_role' => 'marketer'
         ];
         
-        $this->view('referral/index', $data);
+        $this->view('referral/dashboard/marketer_dashboard', $data);
+    }
+
+    /**
+     * Shows the profile editing form for a specific user (for admins).
+     * @param int $userId The ID of the user to edit.
+     */
+    public function editProfile(int $userId)
+    {
+        $this->authorize('Referral/editProfile'); 
+
+        $profileModel = $this->model('Referral/ProfileModel');
+        $user = $this->referralModel->findUserById($userId);
+
+        if (!$user) {
+            $_SESSION['error'] = 'User not found.';
+            redirect('referral/dashboard');
+            return;
+        }
+
+        $agentProfile = $profileModel->getAgentByUserId($userId);
+        
+        // Always fetch or generate working hours structure.
+        // If agent exists, get their hours. If not, get a default blank structure.
+        $agentIdForHours = $agentProfile ? $agentProfile['id'] : 0; // Use 0 or null for non-existent agent
+        $workingHours = $profileModel->getWorkingHoursByAgentId($agentIdForHours);
+
+        $data = [
+            'page_main_title' => 'Edit Profile for ' . htmlspecialchars($user['username']),
+            'user' => $user,
+            'agentProfile' => $agentProfile, // This can be null if no profile exists
+            'working_hours' => $workingHours,
+        ];
+
+        $this->view('referral/profile/edit_profile', $data);
+    }
+
+    /**
+     * Shows a detailed view of a single marketer's visits (for admins).
+     * @param int $userId The ID of the marketer to view.
+     */
+    public function marketerDetails(int $userId)
+    {
+        $this->authorize('Referral/dashboard'); // Reuse admin dashboard permission
+
+        // Use the ReferralModel which contains the findUserById method
+        $referralModel = $this->model('Referral/Referral'); 
+        $dashboardModel = $this->model('Referral/DashboardModel');
+
+        $marketer = $referralModel->findUserById($userId);
+
+        if (!$marketer) {
+            $_SESSION['error'] = 'Marketer not found.';
+            redirect('referral/dashboard');
+            return;
+        }
+
+        // We can add filtering later if needed
+        $filters = ['start_date' => null, 'end_date' => null];
+        $visits = $dashboardModel->getVisitsForMarketer($userId, $filters);
+
+        $data = [
+            'page_main_title' => 'Visit Details for ' . htmlspecialchars($marketer['username']),
+            'marketer' => $marketer,
+            'visits' => $visits,
+            'filters' => $filters
+        ];
+
+        $this->view('referral/dashboard/marketer_details', $data);
     }
 
     public function saveAgentProfile()
     {
-        $this->authorize('Referral/saveAgentProfile');
-
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
             return;
         }
 
+        // Determine which user's profile is being saved.
+        $targetUserId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
+        $currentUserId = $_SESSION['user_id'];
+        $currentUserRole = $_SESSION['role'];
+
+        // If no target user ID is provided, it's the current user editing their own profile.
+        if (empty($targetUserId)) {
+            $targetUserId = $currentUserId;
+        }
+
+        // Authorization check: 
+        // 1. You can edit your own profile.
+        // 2. An admin can edit anyone's profile.
+        if ($targetUserId != $currentUserId && $currentUserRole !== 'admin') {
+            $_SESSION['error'] = 'You are not authorized to perform this action.';
+            redirect('referral/dashboard');
+            return;
+        }
+        
+        // Authorize based on who is being edited
+        // A marketer saving their own profile
+        if($targetUserId == $currentUserId) {
+             $this->authorize('Referral/saveAgentProfile');
+        } else { // An admin saving another profile
+             $this->authorize('Referral/editProfile');
+        }
+
         $agentModel = $this->model('Referral/ProfileModel');
-        $userId = $_SESSION['user_id'];
 
         $latitude = filter_input(INPUT_POST, 'latitude', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $longitude = filter_input(INPUT_POST, 'longitude', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
@@ -210,16 +334,17 @@ class ReferralController extends Controller
                 $longitude = $coordinates['longitude'];
                 $map_url_to_save = $resolvedUrl;
             } else {
-                $_SESSION['error'] = 'تعذر استخراج الإحداثيات من الرابط. يرجى التحقق من الرابط والمحاولة مرة أخرى.';
-                redirect('referral/dashboard');
-                return;
+                 $_SESSION['error'] = 'Could not extract coordinates from the link. Please check the link and try again.';
+                 // Redirect back to the correct page
+                 redirect($currentUserRole === 'admin' ? 'referral/editProfile/' . $targetUserId : 'referral/dashboard');
+                 return;
             }
         } elseif ($latitude && $longitude) {
             $map_url_to_save = "https://www.google.com/maps?q={$latitude},{$longitude}";
         }
         
         $data = [
-            'user_id' => $userId,
+            'user_id' => $targetUserId,
             'state' => trim(htmlspecialchars($_POST['state'] ?? '')),
             'phone' => trim(htmlspecialchars($_POST['phone'] ?? '')),
             'is_online_only' => isset($_POST['is_online_only']) ? 1 : 0,
@@ -230,26 +355,26 @@ class ReferralController extends Controller
 
         // Basic validation
         if (empty($data['state']) || empty($data['phone'])) {
-            $_SESSION['error'] = 'الدولة ورقم الهاتف حقول إلزامية.';
-            redirect('referral/dashboard');
+            $_SESSION['error'] = 'State and Phone are required fields.';
+            redirect($currentUserRole === 'admin' ? 'referral/editProfile/' . $targetUserId : 'referral/dashboard');
             return;
         }
 
         $profileSaved = $agentModel->createOrUpdateAgent($data);
         
-        // Save working hours if profile was saved and hours are submitted
-        $agentProfile = $agentModel->getAgentByUserId($userId); // Re-fetch to ensure we have the agent ID
+        $agentProfile = $agentModel->getAgentByUserId($targetUserId);
         if ($profileSaved && $agentProfile && isset($_POST['working_hours'])) {
             $agentModel->saveWorkingHours($agentProfile['id'], $_POST['working_hours']);
         }
 
         if ($profileSaved) {
-            $_SESSION['success'] = 'تم تحديث ملفك الشخصي بنجاح.';
+            $_SESSION['success'] = 'Profile updated successfully.';
         } else {
-            $_SESSION['error'] = 'حدث خطأ أثناء تحديث ملفك الشخصي.';
+            $_SESSION['error'] = 'An error occurred while updating the profile.';
         }
-
-        redirect('referral/dashboard');
+        
+        // Redirect back to the appropriate page
+        redirect($currentUserRole === 'admin' ? 'referral/dashboard' : 'referral/dashboard');
     }
 
     private function resolveGoogleMapsShortLink($shortUrl) {

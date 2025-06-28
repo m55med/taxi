@@ -28,7 +28,7 @@ class Referral
 
     public function findUserById($id)
     {
-        $stmt = $this->db->prepare("SELECT id, username FROM users WHERE id = :id AND role_id = (SELECT id FROM roles WHERE name = 'marketer')");
+        $stmt = $this->db->prepare("SELECT id, username, email FROM users WHERE id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }

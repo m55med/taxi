@@ -158,6 +158,12 @@ class App
                         case 'saveAgentProfile':
                             $methodName = 'saveAgentProfile';
                             break;
+                        case 'editProfile':
+                            $methodName = 'editProfile';
+                            break;
+                        case 'marketerDetails':
+                            $methodName = 'marketerDetails';
+                            break;
                         case 'register':
                         default:
                             $methodName = 'index';
