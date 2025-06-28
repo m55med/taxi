@@ -22,7 +22,9 @@ function createTicketForm(platforms, marketers) {
         availableCoupons: [],
         isSubmitting: false,
         couponsLoading: false,
+        codesLoading: false,
         isVipModalOpen: false,
+        knowledgeBaseArticle: { id: null, title: null, url: null },
         
         // Initialization
         init() {
@@ -106,6 +108,13 @@ function createTicketForm(platforms, marketers) {
                 }
             });
 
+            // Watch for changes in code_id to fetch KB articles
+            this.$watch('formData.code_id', async (newValue, oldValue) => {
+                if (newValue !== oldValue) {
+                    await this.findKnowledgeBaseArticle();
+                }
+            });
+
             // Add event listener to release coupons if user leaves the page
             window.addEventListener('beforeunload', (event) => {
                 if (this.formData.coupons.length > 0) {
@@ -135,8 +144,10 @@ function createTicketForm(platforms, marketers) {
 
         async fetchCodes() {
             this.formData.code_id = '';
+            this.codesLoading = true;
             if (!this.formData.subcategory_id) {
                 this.codes = [];
+                this.codesLoading = false;
                 return;
             }
             try {
@@ -144,6 +155,34 @@ function createTicketForm(platforms, marketers) {
                 this.codes = await response.json();
             } catch (error) {
                 toastr.error('Failed to load codes.');
+            } finally {
+                this.codesLoading = false;
+            }
+        },
+
+        // KB Integration
+        async findKnowledgeBaseArticle() {
+            // Reset previous article
+            this.knowledgeBaseArticle = { id: null, title: null, url: null };
+
+            if (!this.formData.code_id) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${URLROOT}/knowledge_base/findByCode/${this.formData.code_id}`);
+                if (!response.ok) return;
+
+                const article = await response.json();
+                if (article && article.id) {
+                    this.knowledgeBaseArticle = {
+                        id: article.id,
+                        title: article.title,
+                        url: `${URLROOT}/knowledge_base/show/${article.id}`
+                    };
+                }
+            } catch (error) {
+                console.error('Error fetching knowledge base article:', error);
             }
         },
 

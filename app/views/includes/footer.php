@@ -1,9 +1,10 @@
     </main>
     <!-- Footer -->
-    <footer class="bg-white shadow-lg mt-8">
-        <div class="max-w-7xl mx-auto py-4 px-4">
+    <footer class="bg-white border-t mt-auto">
+        <div class="container mx-auto px-6 py-4">
             <div class="text-center text-gray-600">
-                <a href="<?php echo BASE_PATH; ?>/documentation/index" class="text-blue-600 hover:text-blue-800 hover:underline px-2">Documentation</a> |
+                <a href="<?= URLROOT ?>/documentation" class="text-blue-600 hover:text-blue-800 hover:underline px-2">Documentation</a> |
+                <a href="<?= URLROOT ?>/knowledge_base" class="text-blue-600 hover:text-blue-800 hover:underline px-2">Knowledge Base</a>
                 All rights reserved &copy; <?php echo date('Y'); ?> Taxi System
             </div>
         </div>

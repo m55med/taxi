@@ -10,6 +10,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
+        '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         '87b91d3d2e05a58b15e4bdbc53c83189' => __DIR__ . '/../..' . '/app/helpers/session_helper.php',
         '40f374a79196b8b2fbda90ea13466ab1' => __DIR__ . '/../..' . '/app/helpers/url_helper.php',
         '44243d3862f268c19b2ad7ab24687d79' => __DIR__ . '/../..' . '/app/helpers/view_helper.php',
@@ -113,6 +114,16 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         ),
     );
 
+    public static $prefixesPsr0 = array (
+        'H' => 
+        array (
+            'HTMLPurifier' => 
+            array (
+                0 => __DIR__ . '/..' . '/ezyang/htmlpurifier/library',
+            ),
+        ),
+    );
+
     public static $classMap = array (
         'App\\Controllers\\Admin\\BonusController' => __DIR__ . '/../..' . '/app/controllers/admin/BonusController.php',
         'App\\Controllers\\Admin\\CarTypesController' => __DIR__ . '/../..' . '/app/controllers/admin/CarTypesController.php',
@@ -180,9 +191,9 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Controllers\\Telegram\\WebhookController' => __DIR__ . '/../..' . '/app/controllers/telegram/WebhookController.php',
         'App\\Controllers\\Tickets\\DataController' => __DIR__ . '/../..' . '/app/controllers/tickets/DataController.php',
         'App\\Controllers\\Tickets\\TicketController' => __DIR__ . '/../..' . '/app/controllers/tickets/TicketController.php',
-        'App\\Controllers\\Tickets\\TicketsController' => __DIR__ . '/../..' . '/app/controllers/tickets/TicketsController.php',
         'App\\Controllers\\Trips\\TripsController' => __DIR__ . '/../..' . '/app/controllers/trips/TripsController.php',
         'App\\Controllers\\Upload\\UploadController' => __DIR__ . '/../..' . '/app/controllers/upload/UploadController.php',
+        'App\\Controllers\\knowledge_base\\KnowledgeBaseController' => __DIR__ . '/../..' . '/app/controllers/knowledge_base/KnowledgeBaseController.php',
         'App\\Core\\App' => __DIR__ . '/../..' . '/app/core/App.php',
         'App\\Core\\Auth' => __DIR__ . '/../..' . '/app/core/Auth.php',
         'App\\Core\\Controller' => __DIR__ . '/../..' . '/app/core/Controller.php',
@@ -258,6 +269,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\User\\User' => __DIR__ . '/../..' . '/app/models/user/User.php',
         'App\\Models\\call_log\\CallLogModel' => __DIR__ . '/../..' . '/app/models/call_log/CallLogModel.php',
         'App\\Models\\create_ticket\\CreateTicketModel' => __DIR__ . '/../..' . '/app/models/create_ticket/CreateTicketModel.php',
+        'App\\Models\\knowledge_base\\KnowledgeBaseModel' => __DIR__ . '/../..' . '/app/models/knowledge_base/KnowledgeBaseModel.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'CallsController' => __DIR__ . '/../..' . '/app/controllers/calls/CallsController.php app/models/Calls/Call.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
@@ -272,6 +284,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit1f962c94f3e321929d001730cf05b41c::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit1f962c94f3e321929d001730cf05b41c::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit1f962c94f3e321929d001730cf05b41c::$prefixesPsr0;
             $loader->classMap = ComposerStaticInit1f962c94f3e321929d001730cf05b41c::$classMap;
 
         }, null, ClassLoader::class);

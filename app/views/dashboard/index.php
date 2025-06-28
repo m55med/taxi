@@ -138,6 +138,24 @@
             </a>
             <?php endif; ?>
 
+            <!-- Documentation Card -->
+            <a href="<?= URLROOT ?>/documentation" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 group-hover:text-purple-800">Documentation</h3>
+                    <i class="fas fa-book text-2xl text-purple-500 group-hover:text-purple-600"></i>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Explore project documentation and guides.</p>
+            </a>
+            
+            <!-- Knowledge Base Card -->
+            <a href="<?= URLROOT ?>/knowledge_base" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-teal-50 hover:border-teal-300 transition-all duration-300">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 group-hover:text-teal-800">Knowledge Base</h3>
+                    <i class="fas fa-lightbulb text-2xl text-teal-500 group-hover:text-teal-600"></i>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Find helpful articles and solutions.</p>
+            </a>
+
         </div>
     </div>
 </div>

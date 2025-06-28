@@ -514,16 +514,30 @@ class App
                 } else {
                     $this->triggerNotFound("Controller {$controllerClass} not found at {$controllerFile}.");
                 }
-            } elseif ($url[0] === 'documentation' && isset($url[1])) {
+            } elseif ($url[0] === 'documentation') {
                 $controllerName = 'DocumentationController';
                 $controllerFile = '../app/controllers/documentation/' . $controllerName . '.php';
 
                 if (file_exists($controllerFile)) {
                     $this->controller = new \App\Controllers\Documentation\DocumentationController();
                     $this->method = 'index'; // Method is always index for documentation
-                    unset($url[0], $url[1]);
+                    unset($url[0]);
                 } else {
                     $this->triggerNotFound();
+                }
+            } elseif ($url[0] === 'knowledge_base') {
+                $controllerName = 'KnowledgeBaseController';
+                $controllerFile = '../app/controllers/knowledge_base/' . $controllerName . '.php';
+
+                if (file_exists($controllerFile)) {
+                    $this->controller = new \App\Controllers\knowledge_base\KnowledgeBaseController();
+                    $this->method = isset($url[1]) && method_exists($this->controller, $url[1]) ? $url[1] : 'index';
+                    unset($url[0]);
+                    if (isset($url[1])) {
+                        unset($url[1]);
+                    }
+                } else {
+                    $this->triggerNotFound("Controller not found: " . $controllerFile);
                 }
             } elseif ($url[0] === 'create_ticket') {
                 $controllerName = 'CreateTicketController';

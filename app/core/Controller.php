@@ -26,11 +26,10 @@ class Controller
         // Check if the model file exists before trying to require it
         if (file_exists($modelPath)) {
             require_once $modelPath;
-            // Construct the full class name with namespace, capitalizing directory names for namespace
+            // Construct the full class name with namespace, using directory names as they are
             $parts = explode('/', $model);
             $className = array_pop($parts);
-            $namespaceParts = array_map('ucfirst', $parts);
-            $namespace = implode('\\', $namespaceParts);
+            $namespace = implode('\\', $parts); // Keep original casing for namespace parts
             $modelClass = 'App\\Models\\' . ($namespace ? $namespace . '\\' : '') . $className;
             
             if (class_exists($modelClass)) {
