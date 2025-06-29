@@ -67,9 +67,7 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'users'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'users'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Users</a>
-                                        <a href="<?= BASE_PATH ?>/reports/teamperformance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Performance</a>
-                                        <a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Leaderboard</a>
+                                        <a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Users</a>                                        <a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Leaderboard</a>
                                         <a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Employee Score</a>
                                         <a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">My Activity</a>
                                     </div>

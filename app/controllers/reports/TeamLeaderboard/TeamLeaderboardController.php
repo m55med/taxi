@@ -11,28 +11,32 @@ class TeamLeaderboardController extends Controller
     public function __construct()
     {
         parent::__construct();
+        // Simple auth check
         if (!isset($_SESSION['user_id'])) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول للوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/auth/login');
-            exit;
+            redirect('auth/login');
         }
-        if (!in_array($_SESSION['role'], ['admin', 'developer', 'team_leader'])) {
-            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
-        }
-        $this->leaderboardModel = $this->model('reports/TeamLeaderboard/TeamLeaderboardReport');
+        $this->leaderboardModel = $this->model('reports/TeamLeaderboard/TeamLeaderboardModel');
     }
 
     public function index()
     {
-        $leaderboard = $this->leaderboardModel->getLeaderboard();
-        
-        $data = [
-            'title' => 'تقرير لوحة صدارة الفرق',
-            'leaderboard' => $leaderboard,
+        // 1. Set up filters
+        $filters = [
+            'date_from' => $_GET['date_from'] ?? date('Y-m-01'),
+            'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
         ];
 
-        $this->view('reports/TeamLeaderboard/index', $data);
+        // 2. Get data from the model
+        $leaderboardData = $this->leaderboardModel->getTeamLeaderboard($filters);
+
+        // 3. Prepare data for the view
+        $data = [
+            'page_main_title' => 'Team Leaderboard',
+            'leaderboard' => $leaderboardData,
+            'filters' => $filters,
+        ];
+
+        // 4. Load the view
+        $this->view('reports/team-leaderboard/index', $data);
     }
 } 

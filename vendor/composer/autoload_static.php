@@ -30,6 +30,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'P' => 
         array (
             'Psr\\SimpleCache\\' => 16,
+            'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'PhpOption\\' => 10,
@@ -37,6 +38,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         ),
         'M' => 
         array (
+            'Monolog\\' => 8,
             'Matrix\\' => 7,
         ),
         'G' => 
@@ -75,6 +77,10 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         array (
             0 => __DIR__ . '/..' . '/psr/simple-cache/src',
         ),
+        'Psr\\Log\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/src',
+        ),
         'Psr\\Http\\Message\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/http-factory/src',
@@ -91,6 +97,10 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'PhpOffice\\PhpSpreadsheet\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
+        ),
+        'Monolog\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
         ),
         'Matrix\\' => 
         array (
@@ -141,6 +151,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Controllers\\Admin\\TicketCodesController' => __DIR__ . '/../..' . '/app/controllers/admin/TicketCodesController.php',
         'App\\Controllers\\Admin\\TicketSubCategoriesController' => __DIR__ . '/../..' . '/app/controllers/admin/TicketSubCategoriesController.php',
         'App\\Controllers\\Admin\\UsersController' => __DIR__ . '/../..' . '/app/controllers/admin/UsersController.php',
+        'App\\Controllers\\Api\\ApiController' => __DIR__ . '/../..' . '/app/controllers/api/ApiController.php',
         'App\\Controllers\\Auth\\AuthController' => __DIR__ . '/../..' . '/app/controllers/Auth/AuthController.php',
         'App\\Controllers\\Calls\\AssignmentsController' => __DIR__ . '/../..' . '/app/controllers/calls/AssignmentsController.php',
         'App\\Controllers\\Calls\\BaseCallController' => __DIR__ . '/../..' . '/app/controllers/calls/BaseCallController.php',
@@ -236,6 +247,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\Reports\\DriverDocumentsCompliance\\DriverDocumentsComplianceReport' => __DIR__ . '/../..' . '/app/models/reports/DriverDocumentsCompliance/DriverDocumentsComplianceReport.php',
         'App\\Models\\Reports\\DriversReport' => __DIR__ . '/../..' . '/app/models/reports/DriversReport.php',
         'App\\Models\\Reports\\Drivers\\DriversReport' => __DIR__ . '/../..' . '/app/models/reports/Drivers/DriversReport.php',
+        'App\\Models\\Reports\\EmployeeActivityScore\\EmployeeActivityScoreModel' => __DIR__ . '/../..' . '/app/models/reports/EmployeeActivityScore/EmployeeActivityScoreModel.php',
         'App\\Models\\Reports\\EmployeeActivityScore\\EmployeeActivityScoreReport' => __DIR__ . '/../..' . '/app/models/reports/EmployeeActivityScore/EmployeeActivityScoreReport.php',
         'App\\Models\\Reports\\MarketerSummary\\MarketerSummaryReport' => __DIR__ . '/../..' . '/app/models/reports/MarketerSummary/MarketerSummaryReport.php',
         'App\\Models\\Reports\\MyActivity\\MyActivityReport' => __DIR__ . '/../..' . '/app/models/reports/MyActivity/MyActivityReport.php',
@@ -244,6 +256,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\Reports\\Referrals\\ReferralsReport' => __DIR__ . '/../..' . '/app/models/reports/Referrals/ReferralsReport.php',
         'App\\Models\\Reports\\ReviewQuality\\ReviewQualityReport' => __DIR__ . '/../..' . '/app/models/reports/ReviewQuality/ReviewQualityReport.php',
         'App\\Models\\Reports\\SystemLogs\\SystemLogsReport' => __DIR__ . '/../..' . '/app/models/reports/SystemLogs/SystemLogsReport.php',
+        'App\\Models\\Reports\\TeamLeaderboard\\TeamLeaderboardModel' => __DIR__ . '/../..' . '/app/models/reports/TeamLeaderboard/TeamLeaderboardModel.php',
         'App\\Models\\Reports\\TeamLeaderboard\\TeamLeaderboardReport' => __DIR__ . '/../..' . '/app/models/reports/TeamLeaderboard/TeamLeaderboardReport.php',
         'App\\Models\\Reports\\TeamPerformance\\TeamPerformanceReport' => __DIR__ . '/../..' . '/app/models/reports/TeamPerformance/TeamPerformanceReport.php',
         'App\\Models\\Reports\\TicketCoupons\\TicketCouponsReport' => __DIR__ . '/../..' . '/app/models/reports/TicketCoupons/TicketCouponsReport.php',
@@ -270,6 +283,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\call_log\\CallLogModel' => __DIR__ . '/../..' . '/app/models/call_log/CallLogModel.php',
         'App\\Models\\create_ticket\\CreateTicketModel' => __DIR__ . '/../..' . '/app/models/create_ticket/CreateTicketModel.php',
         'App\\Models\\knowledge_base\\KnowledgeBaseModel' => __DIR__ . '/../..' . '/app/models/knowledge_base/KnowledgeBaseModel.php',
+        'App\\Services\\PointsService' => __DIR__ . '/../..' . '/app/services/PointsService.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'CallsController' => __DIR__ . '/../..' . '/app/controllers/calls/CallsController.php app/models/Calls/Call.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',

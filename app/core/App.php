@@ -25,7 +25,7 @@ class App
             $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
         }
 
-        $url = $this->parseUrl();
+        $url = self::parseUrl();
 
         // Custom route for bulk logs export
         if (!empty($url[0]) && $url[0] === 'logs' && !empty($url[1]) && $url[1] === 'bulk_export' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -220,12 +220,6 @@ class App
                     case 'document':
                     case 'documents':
                         $controllerName = 'Documents/DocumentsController';
-                        break;
-                    case 'myactivity':
-                        $controllerName = 'MyActivity/MyActivityController';
-                        break;
-                    case 'teamperformance':
-                        $controllerName = 'TeamPerformance/TeamPerformanceController';
                         break;
                     case 'coupons':
                         $controllerName = 'Coupons/CouponsController';
@@ -556,9 +550,31 @@ class App
             } elseif ($url[0] === 'ticket') {
                 // Route for the new create ticket page
                 $this->controller = new \App\Controllers\Create_ticket\CreateTicketController();
+            } elseif ($url[0] === 'api' && isset($url[1])) {
+                $controllerName = 'ApiController';
+                $methodName = '';
+                if ($url[1] === 'agents') {
+                    $methodName = 'getAgents';
+                }
+
+                $controllerFile = '../app/controllers/api/' . $controllerName . '.php';
+                if (file_exists($controllerFile)) {
+                    require_once $controllerFile;
+                    $controllerClass = '\\App\\Controllers\\Api\\' . $controllerName;
+                    $this->controller = new $controllerClass();
+
+                    if (!empty($methodName) && method_exists($this->controller, $methodName)) {
+                        $this->method = $methodName;
+                        unset($url[0], $url[1]);
+                    } else {
+                        $this->triggerNotFound("Method not found in API controller.");
+                    }
+                } else {
+                    $this->triggerNotFound("API Controller not found.");
+                }
             } else {
                 // التعامل مع باقي المسارات
-                $controllerName = ucfirst($url[0]) . 'Controller';
+                $controllerName = ucwords($url[0]) . 'Controller';
 
                 // Handle 'drivers' route specifically to map to 'DriverController'
                 if (strtolower($url[0]) === 'drivers') {
@@ -719,7 +735,7 @@ class App
             $data['debug_message'] = $message;
             $data['diagnostics'] = [
                 'requested_url' => $_GET['url'] ?? 'Not set',
-                'parsed_url'    => $this->parseUrl(),
+                'parsed_url'    => self::parseUrl(),
                 'controller'    => is_object($this->controller) ? get_class($this->controller) : $this->controller,
                 'method'        => $this->method,
                 'params'        => $this->params
@@ -736,11 +752,10 @@ class App
         exit;
     }
 
-    public function parseUrl()
+    public static function parseUrl()
     {
         if (isset($_GET['url'])) {
-            $url = filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL);
-            return explode('/', $url);
+            return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
         }
         return [];
     }

@@ -4,6 +4,7 @@ namespace App\Controllers\Logs;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Services\PointsService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Font;
@@ -81,6 +82,13 @@ class LogsController extends Controller {
         $result = $this->logModel->getActivities($filters, $limit, $offset);
         $activities = $result['activities'];
         $totalRecords = $result['total'];
+
+        // Calculate points for each activity
+        $pointsService = new PointsService();
+        foreach ($activities as $activity) {
+            $pointsService->calculateForActivity($activity);
+        }
+
         $totalPages = ceil($totalRecords / $limit);
 
         // Get activities summary
@@ -116,6 +124,12 @@ class LogsController extends Controller {
         $export_type = $_POST['export_type'] ?? 'excel';
         
         $activities = $this->logModel->getActivitiesByIds($activity_ids);
+        
+        // Calculate points for each activity
+        $pointsService = new PointsService();
+        foreach ($activities as $activity) {
+            $pointsService->calculateForActivity($activity);
+        }
 
         if ($export_type === 'excel') {
             // Summary is not available for selected items, so we pass null
@@ -131,7 +145,7 @@ class LogsController extends Controller {
         $sheet->setTitle('Activity Log');
 
         // Headers
-        $headers = ['Type', 'Is VIP', 'Details', 'Secondary Details', 'Employee', 'Team', 'Date'];
+        $headers = ['Type', 'Is VIP', 'Details', 'Secondary Details', 'Employee', 'Team', 'Date', 'Points'];
         $sheet->fromArray($headers, null, 'A1');
 
         // Style Headers
@@ -139,7 +153,7 @@ class LogsController extends Controller {
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']]
         ];
-        $sheet->getStyle('A1:G1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 
         // Data
         $row = 2;
@@ -152,13 +166,14 @@ class LogsController extends Controller {
                 $activity->details_secondary,
                 $activity->username,
                 $activity->team_name ?? 'N/A',
-                date('Y-m-d H:i', strtotime($activity->activity_date))
+                date('Y-m-d H:i', strtotime($activity->activity_date)),
+                $activity->points ?? 0
             ], null, 'A' . $row);
             $row++;
         }
 
         // Auto-size columns
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 

@@ -14,15 +14,18 @@ class UsersReport
         $this->db = Database::getInstance();
     }
 
-    private function getIncomingCallPlatformId() {
-        // Cache the ID to avoid multiple queries
-        static $platformId = null;
-        if ($platformId === null) {
-            $stmt = $this->db->prepare("SELECT id FROM platforms WHERE name = 'Incoming Call'");
+    private function getIncomingCallPlatformIds() {
+        // Cache the IDs to avoid multiple queries
+        static $platformIds = null;
+        if ($platformIds === null) {
+            // Find all platform IDs that look like an incoming call to handle inconsistencies.
+            $stmt = $this->db->prepare("SELECT id FROM platforms WHERE LOWER(REPLACE(name, '_', ' ')) IN ('incoming call', 'incoming calls')");
             $stmt->execute();
-            $platformId = $stmt->fetchColumn() ?: -1; // Return -1 or another invalid ID if not found
+            $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            // If no matching platforms found, use an invalid ID to prevent SQL errors.
+            $platformIds = !empty($ids) ? $ids : [-1]; 
         }
-        return $platformId;
+        return $platformIds;
     }
 
     public function getAllUsersForFilter()
@@ -97,7 +100,7 @@ class UsersReport
         // Base query with placeholders for subquery conditions
         $sql = "SELECT 
                     u.id, u.username, u.email, u.status, u.is_online,
-                    r.name as role_name, t.name as team_name,
+                    r.name as role_name, t.name as team_name, t.id as team_id,
                     COALESCE(outgoing_cs.total_calls, 0) as total_outgoing_calls,
                     COALESCE(outgoing_cs.answered, 0) as answered_outgoing,
                     COALESCE(outgoing_cs.no_answer, 0) as no_answer_outgoing,
@@ -219,21 +222,18 @@ class UsersReport
         ]);
 
         // 1. Get tickets and aggregate counts
-        $incomingCallPlatformId = $this->getIncomingCallPlatformId();
-        $tickets = $this->getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformId);
+        $incomingCallPlatformIds = $this->getIncomingCallPlatformIds();
+        $tickets = $this->getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformIds);
         
         foreach ($tickets as $ticket) {
             $userId = $ticket['created_by'];
             if (isset($userStats[$userId])) {
-                if ($ticket['platform_id'] == $incomingCallPlatformId) {
-                    $userStats[$userId]['incoming_calls']++;
+                // Count all tickets regardless of platform.
+                // Points are handled separately.
+                if ($ticket['is_vip']) {
+                    $userStats[$userId]['vip_tickets']++;
                 } else {
-                    // This is a regular ticket (not from an incoming call)
-                    if ($ticket['is_vip']) {
-                        $userStats[$userId]['vip_tickets']++;
-                    } else {
-                        $userStats[$userId]['other_tickets']++;
-                    }
+                    $userStats[$userId]['other_tickets']++;
                 }
             }
         }
@@ -241,7 +241,7 @@ class UsersReport
         // 1. Get base points from tickets and calls, aggregated by user and month
         $monthlyBasePoints = [];
         // Calculate points only for tickets that are NOT from incoming calls
-        $ticketPointsData = $this->getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformId);
+        $ticketPointsData = $this->getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformIds);
         foreach ($ticketPointsData as $ticket) {
             $userId = $ticket['created_by'];
             $year = $ticket['year'];
@@ -252,7 +252,7 @@ class UsersReport
 
         $calls = $this->getCallsForUsers($userIds, $from, $to);
         foreach ($calls as $call) {
-            $userId = $call['call_by'];
+            $userId = $call['user_id'];
             $year = $call['year'];
             $month = $call['month'];
             $points = (float)($call['points'] ?? 0);
@@ -325,27 +325,31 @@ class UsersReport
         ];
     }
 
-    private function getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformId)
+    private function getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformIds)
     {
-        $sql = "SELECT 
-                    t.created_by,
-                    YEAR(td.created_at) as year,
-                    MONTH(td.created_at) as month,
-                    SUM(COALESCE(tcp.points, 0)) as points
-                FROM tickets t
-                JOIN ticket_details td ON t.id = td.ticket_id
-                LEFT JOIN ticket_code_points tcp ON td.code_id = tcp.code_id AND td.is_vip = tcp.is_vip
-                    AND DATE(td.created_at) >= tcp.valid_from 
-                    AND (DATE(td.created_at) <= tcp.valid_to OR tcp.valid_to IS NULL)
-                WHERE t.created_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")";
-
-        $params = $userIds;
-
-        // Exclude tickets from the 'Incoming Call' platform
-        if ($incomingCallPlatformId > 0) {
-            $sql .= " AND td.platform_id != ?";
-            $params[] = $incomingCallPlatformId;
+        if (empty($userIds)) {
+            return [];
         }
+
+        $placeholders = implode(',', array_fill(0, count($incomingCallPlatformIds), '?'));
+
+        // Base query to get points for tickets, excluding those from incoming calls.
+        $sql = "
+            SELECT 
+                td.edited_by as created_by, 
+                YEAR(td.created_at) as year, 
+                MONTH(td.created_at) as month,
+                tcp.points
+            FROM ticket_details td
+            JOIN ticket_code_points tcp ON td.code_id = tcp.code_id AND td.is_vip = tcp.is_vip
+            WHERE 
+                td.edited_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")
+                AND td.platform_id NOT IN ({$placeholders}) -- Exclude tickets from incoming calls
+                AND td.created_at >= tcp.valid_from 
+                AND (td.created_at <= tcp.valid_to OR tcp.valid_to IS NULL)
+        ";
+        
+        $params = array_merge($userIds, $incomingCallPlatformIds);
 
         if ($from) {
             $sql .= " AND td.created_at >= ?";
@@ -356,26 +360,26 @@ class UsersReport
             $params[] = $to . ' 23:59:59';
         }
 
-        $sql .= " GROUP BY t.created_by, year, month";
-        
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    private function getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformId)
+    public function getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformIds)
     {
+        if (empty($userIds)) {
+            return [];
+        }
+
         $sql = "SELECT 
-                    t.created_by,
-                    td.platform_id,
-                    td.is_vip
-                FROM tickets t
-                JOIN ticket_details td ON t.id = td.ticket_id
-                WHERE t.created_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")";
+                    td.edited_by as created_by,
+                    td.is_vip,
+                    td.platform_id
+                FROM ticket_details td
+                WHERE td.edited_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")";
         
         $params = $userIds;
 
-        // Correctly apply the incoming call platform exclusion for counting
         if ($from) {
             $sql .= " AND td.created_at >= ?";
             $params[] = $from . ' 00:00:00';
@@ -392,40 +396,96 @@ class UsersReport
 
     private function getCallsForUsers($userIds, $from, $to)
     {
-        if (empty($userIds)) return [];
+        if (empty($userIds)) {
+            return [];
+        }
 
-        $callsSql = "
-            SELECT 
-                dc.call_by, 
-                YEAR(dc.created_at) as year,
-                MONTH(dc.created_at) as month,
-                COALESCE((
-                    SELECT cp.points 
-                    FROM call_points cp
-                    WHERE DATE(dc.created_at) >= cp.valid_from 
-                      AND (cp.valid_to IS NULL OR DATE(dc.created_at) <= cp.valid_to)
-                    ORDER BY cp.valid_from DESC
-                    LIMIT 1
-                ), 0) as points
-            FROM driver_calls dc
-        ";
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $params = $userIds;
 
-        $callsConditions = ["dc.call_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")"];
-        $callsParams = $userIds;
-
+        // Build date conditions and params
+        $dateConditions = "";
+        $dateParams = [];
         if ($from) {
-            $callsConditions[] = "dc.created_at >= ?";
-            $callsParams[] = $from . ' 00:00:00';
+            $dateConditions .= " AND created_at >= ?";
+            $dateParams[] = $from . ' 00:00:00';
         }
         if ($to) {
-            $callsConditions[] = "dc.created_at <= ?";
-            $callsParams[] = $to . ' 23:59:59';
+            $dateConditions .= " AND created_at <= ?";
+            $dateParams[] = $to . ' 23:59:59';
         }
+        
+        $finalParams = array_merge($params, $dateParams);
 
-        $callsSql .= " WHERE " . implode(" AND ", $callsConditions);
+        $sql = "
+            -- Outgoing Calls
+            SELECT 
+                dc.call_by as user_id, 
+                YEAR(dc.created_at) as year,
+                MONTH(dc.created_at) as month,
+                cp.points
+            FROM driver_calls dc
+            JOIN call_points cp ON cp.call_type = 'outgoing'
+                AND dc.created_at >= cp.valid_from 
+                AND (dc.created_at <= cp.valid_to OR cp.valid_to IS NULL)
+            WHERE dc.call_by IN ({$placeholders})
+            
+            UNION ALL
 
-        $stmt = $this->db->prepare($callsSql);
-        $stmt->execute($callsParams);
+            -- Incoming Calls
+            SELECT 
+                ic.call_received_by as user_id, 
+                YEAR(ic.call_started_at) as year,
+                MONTH(ic.call_started_at) as month,
+                cp.points
+            FROM incoming_calls ic
+            JOIN call_points cp ON cp.call_type = 'incoming'
+                AND ic.call_started_at >= cp.valid_from 
+                AND (ic.call_started_at <= cp.valid_to OR cp.valid_to IS NULL)
+            WHERE ic.call_received_by IN ({$placeholders})
+        ";
+        
+        // This is tricky because the date column names are different.
+        // It's cleaner to handle date filtering in PHP after fetching, 
+        // or to wrap the queries. Let's wrap them for a cleaner SQL.
+
+        $sqlWrapper = "
+            SELECT user_id, year, month, points FROM (
+                -- Outgoing Calls
+                SELECT 
+                    dc.call_by as user_id, 
+                    YEAR(dc.created_at) as year,
+                    MONTH(dc.created_at) as month,
+                    cp.points,
+                    dc.created_at as created_at
+                FROM driver_calls dc
+                JOIN call_points cp ON cp.call_type = 'outgoing'
+                    AND dc.created_at >= cp.valid_from 
+                    AND (dc.created_at <= cp.valid_to OR cp.valid_to IS NULL)
+                WHERE dc.call_by IN ({$placeholders})
+                
+                UNION ALL
+
+                -- Incoming Calls
+                SELECT 
+                    ic.call_received_by as user_id, 
+                    YEAR(ic.call_started_at) as year,
+                    MONTH(ic.call_started_at) as month,
+                    cp.points,
+                    ic.call_started_at as created_at
+                FROM incoming_calls ic
+                JOIN call_points cp ON cp.call_type = 'incoming'
+                    AND ic.call_started_at >= cp.valid_from 
+                    AND (ic.call_started_at <= cp.valid_to OR cp.valid_to IS NULL)
+                WHERE ic.call_received_by IN ({$placeholders})
+            ) as all_calls
+            WHERE 1=1 {$dateConditions}
+        ";
+
+        $finalParams = array_merge($userIds, $userIds, $dateParams);
+
+        $stmt = $this->db->prepare($sqlWrapper);
+        $stmt->execute($finalParams);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -453,12 +513,14 @@ class UsersReport
         $stmt->execute($bonusParams);
         $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Re-index the array for easy lookup
-        $indexedBonuses = [];
-        foreach ($bonuses as $bonus) {
-            $indexedBonuses[$bonus['user_id']][$bonus['bonus_year']][$bonus['bonus_month']] = $bonus;
-        }
+        // Filter out bonuses where user_id might be null or not set
+        return array_filter($bonuses, function($bonus) {
+            return isset($bonus['user_id']);
+        });
+    }
 
-        return $indexedBonuses;
+    public function getTeamPerformanceReport($filters)
+    {
+        // ... existing code ...
     }
 }

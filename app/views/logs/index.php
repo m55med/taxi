@@ -20,6 +20,9 @@
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($page_main_title); ?></h1>
+        <button onclick="history.back()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium flex items-center transition">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </button>
     </div>
 
     <!-- Summary -->

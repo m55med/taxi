@@ -3,6 +3,10 @@
 namespace App\Controllers\Reports\Users;
 
 use App\Core\Controller;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class UsersController extends Controller
 {
@@ -37,10 +41,16 @@ class UsersController extends Controller
             'role_id' => $_GET['role_id'] ?? '',
             'status' => $_GET['status'] ?? '',
             'team_id' => $_GET['team_id'] ?? '',
-            'date_from' => $_GET['date_from'] ?? '',
-            'date_to' => $_GET['date_to'] ?? '',
+            'date_from' => $_GET['date_from'] ?? null,
+            'date_to' => $_GET['date_to'] ?? null,
             'user_id' => $_GET['user_id'] ?? ''
         ];
+
+        // Default to current month on initial load
+        if ($filters['date_from'] === null && $filters['date_to'] === null) {
+            $filters['date_from'] = date('Y-m-01');
+            $filters['date_to'] = date('Y-m-t');
+        }
 
         $usersData = $this->usersReportModel->getUsersReportWithPoints($filters);
 
@@ -68,78 +78,113 @@ class UsersController extends Controller
         ];
 
         $usersData = $this->usersReportModel->getUsersReportWithPoints($filters);
+        $exportType = $_GET['export_type'] ?? 'excel'; // default to excel
 
-        $this->exportUsersToExcel($usersData['users'], 'users_report');
+        if ($exportType === 'json') {
+            $this->exportUsersToJson($usersData['users']);
+        } else { // 'excel' or any other value
+            $this->exportUsersToExcel($usersData, 'users_report');
+        }
     }
 
+    private function flattenUserData($user) {
+        $stats = $user['call_stats'] ?? [];
+        $points = $user['points_details'] ?? [];
 
-    private function exportUsersToExcel($data, $filename)
+        return [
+            'User' => $user['username'] ?? '',
+            'Email' => $user['email'] ?? '',
+            'Role' => $user['role_name'] ?? '',
+            'Team' => $user['team_name'] ?? 'N/A',
+            'Status' => ucfirst($user['status'] ?? ''),
+            'Online' => (isset($user['is_online']) && $user['is_online'] ? 'Online' : 'Offline'),
+            'Total Calls' => ($stats['total_incoming_calls'] ?? 0) + ($stats['total_outgoing_calls'] ?? 0),
+            'Incoming' => $stats['total_incoming_calls'] ?? 0,
+            'Outgoing' => $stats['total_outgoing_calls'] ?? 0,
+            'Answered' => $stats['answered_outgoing'] ?? 0,
+            'No-Answer' => $stats['no_answer_outgoing'] ?? 0,
+            'Busy' => $stats['busy_outgoing'] ?? 0,
+            'Answer Rate (%)' => number_format($stats['answered_rate'] ?? 0, 1),
+            'Normal Tickets' => $user['normal_tickets'] ?? 0,
+            'VIP Tickets' => $user['vip_tickets'] ?? 0,
+            'Assignments' => $user['assignments_count'] ?? 0,
+            'Total Points' => number_format($points['final_total_points'] ?? 0, 2),
+            'Base Points' => number_format($points['total_base_points'] ?? 0, 2),
+            'Bonus Points' => number_format($points['total_bonus_amount'] ?? 0, 2),
+        ];
+    }
+
+    private function exportUsersToJson($data)
     {
-        header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
-        header('Content-Disposition: attachment;filename="' . $filename . '_' . date('Y-m-d') . '.xls"');
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Content-Disposition: attachment;filename="users_report_' . date('Y-m-d') . '.json"');
+        
+        $processedData = array_map([$this, 'flattenUserData'], $data);
+
+        echo json_encode($processedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    private function exportUsersToExcel($reportData, $filename)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $users = $reportData['users'];
+        $summary = $reportData['summary_stats'];
+        
+        if (empty($users)) {
+            $sheet->setCellValue('A1', 'No data to export.');
+        } else {
+            // Flatten data and get headers
+            $processedData = array_map([$this, 'flattenUserData'], $users);
+            $headers = array_keys($processedData[0]);
+
+            // Set Header Styles
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']]
+            ];
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->applyFromArray($headerStyle);
+            
+            // Add Data
+            $sheet->fromArray($processedData, null, 'A2');
+            
+            // Add Totals Row
+            $lastRow = count($processedData) + 2;
+            $summaryRow = [
+                'Grand Total', '', '', '', '', '',
+                $summary['total_incoming_calls'] + $summary['total_outgoing_calls'],
+                $summary['total_incoming_calls'],
+                $summary['total_outgoing_calls'],
+                $summary['answered_outgoing'],
+                $summary['no_answer_outgoing'],
+                $summary['busy_outgoing'],
+                number_format($summary['answered_rate'], 1),
+                $summary['normal_tickets'],
+                $summary['vip_tickets'],
+                $summary['assignments_count'],
+                number_format($summary['total_points'], 2)
+            ];
+            $sheet->fromArray($summaryRow, null, 'A' . $lastRow);
+
+            // Style Totals Row
+            $totalStyle = ['font' => ['bold' => true]];
+            $sheet->getStyle('A' . $lastRow . ':' . $sheet->getHighestColumn() . $lastRow)->applyFromArray($totalStyle);
+            $sheet->mergeCells('A' . $lastRow . ':F' . $lastRow);
+
+
+            // Auto-size columns
+            foreach (range('A', $sheet->getHighestColumn()) as $columnID) {
+                $sheet->getColumnDimension($columnID)->setAutoSize(true);
+            }
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '_' . date('Y-m-d') . '.xlsx"');
         header('Cache-Control: max-age=0');
 
-        echo "\xEF\xBB\xBF"; // UTF-8 BOM
-
-        // Define headers in English
-        $headers = [
-            'username' => 'User',
-            'email' => 'Email',
-            'role_name' => 'Role',
-            'team_name' => 'Team',
-            'status' => 'Status',
-            'is_online' => 'Online',
-            'total_calls' => 'Total Calls',
-            'answered' => 'Answered Calls',
-            'no_answer' => 'No-Answer Calls',
-            'busy' => 'Busy Calls',
-            'answered_rate' => 'Answer Rate (%)',
-            'today_total' => 'Today\'s Total Calls',
-            'today_answered' => 'Today\'s Answered Calls',
-            'normal_tickets' => 'Normal Tickets',
-            'vip_tickets' => 'VIP Tickets',
-            'assignments_count' => 'Assignments'
-        ];
-
-        echo '<table border="1">';
-        
-        // Print headers
-        echo '<tr>';
-        foreach ($headers as $header) {
-            echo '<th>' . htmlspecialchars($header) . '</th>';
-        }
-        echo '</tr>';
-
-        // Print data rows
-        foreach ($data as $row) {
-            echo '<tr>';
-            
-            // Manually map each column to ensure correct order and handling
-            echo '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>';
-            echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
-            echo '<td>' . htmlspecialchars($row['role_name'] ?? '') . '</td>';
-            echo '<td>' . htmlspecialchars($row['team_name'] ?? 'N/A') . '</td>';
-            echo '<td>' . htmlspecialchars(ucfirst($row['status'] ?? '')) . '</td>';
-            echo '<td>' . (isset($row['is_online']) && $row['is_online'] ? 'Online' : 'Offline') . '</td>';
-            
-            // Call stats from the nested array
-            $stats = $row['call_stats'] ?? [];
-            echo '<td>' . htmlspecialchars($stats['total_calls'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($stats['answered'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($stats['no_answer'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($stats['busy'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars(number_format($stats['answered_rate'] ?? 0, 1)) . '</td>';
-            echo '<td>' . htmlspecialchars($stats['today_total'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($stats['today_answered'] ?? '0') . '</td>';
-
-            // New stats from the main row
-            echo '<td>' . htmlspecialchars($row['normal_tickets'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($row['vip_tickets'] ?? '0') . '</td>';
-            echo '<td>' . htmlspecialchars($row['assignments_count'] ?? '0') . '</td>';
-            
-            echo '</tr>';
-        }
-
-        echo '</table>';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
     }
 }

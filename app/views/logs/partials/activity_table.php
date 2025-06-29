@@ -10,7 +10,8 @@
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Type</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">Details</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Employee</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Team</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Team</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Points</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Date & Time</th>
             </tr>
         </thead>
@@ -74,6 +75,16 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500"><?= htmlspecialchars($activity->team_name ?? 'N/A') ?></div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                        <?php if (isset($activity->points) && $activity->points > 0): ?>
+                            <span class="text-yellow-500">
+                                <i class="fas fa-star"></i>
+                                <?= htmlspecialchars(number_format($activity->points, 2)) ?>
+                            </span>
+                        <?php else: ?>
+                            <span class="text-gray-400">0.00</span>
+                        <?php endif; ?>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <?= date('Y-m-d H:i', strtotime($activity->activity_date)) ?>

@@ -32,7 +32,27 @@ define('ENVIRONMENT', 'development');
 // Load Helpers
 require_once APPROOT . '/helpers/url_helper.php';
 require_once APPROOT . '/helpers/session_helper.php';
+require_once '../app/helpers/view_helper.php';
 
-// Initialize and run the application
-$app = new \App\Core\App();
+// Load the main App class definition but don't instantiate it yet
+require_once APPROOT . '/core/App.php';
+
+// Load API routes
+require_once '../app/routes/api.php';
+
+// Parse the URL statically
+$url = App\Core\App::parseUrl();
+
+// Handle API routes first
+if (isset($url[0]) && $url[0] === 'api') {
+    if (handle_api_routes($url)) {
+        exit; // API route was handled
+    }
+}
+
+// If it's not a handled API route, proceed with the normal web flow
+$app = new App\Core\App();
+
+// The App's constructor already handled the routing, so we don't need to call anything else.
+// If the API route was not hit, the regular web page route should have been processed by the App's constructor.
 

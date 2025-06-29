@@ -3,7 +3,7 @@
         'name' => 'taxi/app',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '7889d5c1e7f8c1afeb5342269f2bacd1fb8a6948',
+        'reference' => 'ad18b34ed5de755c8ca4cde1b43838e17c0f0250',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -64,6 +64,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'monolog/monolog' => array(
+            'pretty_version' => '3.9.0',
+            'version' => '3.9.0.0',
+            'reference' => '10d85740180ecba7896c87e06a166e0c95a0e3b6',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../monolog/monolog',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'phpoffice/phpspreadsheet' => array(
             'pretty_version' => '4.4.0',
             'version' => '4.4.0.0',
@@ -109,6 +118,21 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'psr/log' => array(
+            'pretty_version' => '3.0.2',
+            'version' => '3.0.2.0',
+            'reference' => 'f16e1d5863e37f8d8c2a01719f5b34baa2b714d3',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../psr/log',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'psr/log-implementation' => array(
+            'dev_requirement' => false,
+            'provided' => array(
+                0 => '3.0.0',
+            ),
+        ),
         'psr/simple-cache' => array(
             'pretty_version' => '3.0.0',
             'version' => '3.0.0.0',
@@ -148,7 +172,7 @@
         'taxi/app' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '7889d5c1e7f8c1afeb5342269f2bacd1fb8a6948',
+            'reference' => 'ad18b34ed5de755c8ca4cde1b43838e17c0f0250',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

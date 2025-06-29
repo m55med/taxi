@@ -44,6 +44,8 @@ class ProfileModel
                     a.phone,
                     a.is_online_only,
                     a.map_url,
+                    a.latitude,
+                    a.longitude,
                     (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id) as total_visits,
                     (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id AND registration_status = 'successful') as total_registrations
                 FROM users u
