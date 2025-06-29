@@ -86,13 +86,6 @@ class LogsController extends Controller {
         // Get activities summary
         $activitiesSummary = $this->logModel->getActivitiesSummary($filters);
 
-        // Modify link_prefix for 'Incoming Call'
-        foreach ($activities as $activity) {
-            if ($activity->activity_type === 'Incoming Call') {
-                $activity->link_prefix = 'tickets/view';
-            }
-        }
-
         $data = [
             'page_main_title' => $page_main_title,
             'activities' => $activities,

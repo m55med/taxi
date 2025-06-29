@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Driver;
 
+// A test comment to see if any edit can be applied
 use App\Core\Controller;
 use App\Models\Review\Review;
 use Exception;
@@ -24,11 +25,11 @@ class DriverController extends Controller
     {
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة', 405);
+                throw new Exception('Invalid request method', 405);
             }
 
             if (empty($_POST['driver_id']) || empty(trim($_POST['name']))) {
-                throw new Exception('البيانات المطلوبة غير مكتملة', 400);
+                throw new Exception('Required data is missing', 400);
             }
 
             $result = $this->driverModel->update([
@@ -42,16 +43,16 @@ class DriverController extends Controller
             ]);
 
             if (!$result) {
-                throw new Exception('فشل في تحديث البيانات من جهة الخادم', 500);
+                throw new Exception('Failed to update data on the server', 500);
             }
 
-            // جلب بيانات السائق المحدثة لإرجاعها
+            // Fetch updated driver data to return
             $updatedDriver = $this->driverModel->getById($_POST['driver_id']);
             if (!$updatedDriver) {
-                 throw new Exception('فشل في استرداد بيانات السائق المحدثة', 500);
+                 throw new Exception('Failed to retrieve updated driver data', 500);
             }
 
-            $this->sendJsonResponse(['success' => true, 'message' => 'تم تحديث البيانات بنجاح', 'driver' => $updatedDriver]);
+            $this->sendJsonResponse(['success' => true, 'message' => 'Data updated successfully', 'driver' => $updatedDriver]);
 
         } catch (Exception $e) {
             error_log("Driver update error: " . $e->getMessage());
@@ -66,11 +67,11 @@ class DriverController extends Controller
     {
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة', 405);
+                throw new Exception('Invalid request method', 405);
             }
 
             if (empty($_POST['driver_id'])) {
-                throw new Exception('معرف السائق مطلوب', 400);
+                throw new Exception('Driver ID is required', 400);
             }
 
             $driverId = $_POST['driver_id'];
@@ -80,12 +81,12 @@ class DriverController extends Controller
             $result = $this->driverModel->updateDocuments($driverId, $documents, $documentNotes);
 
             if (!$result) {
-                throw new Exception('فشل تحديث المستندات في قاعدة البيانات', 500);
+                throw new Exception('Failed to update documents in the database', 500);
             }
 
             $this->sendJsonResponse([
                 'success' => true,
-                'message' => 'تم تحديث المستندات بنجاح'
+                'message' => 'Documents updated successfully'
             ]);
 
         } catch (Exception $e) {
@@ -130,13 +131,16 @@ class DriverController extends Controller
 
     public function assign()
     {
+        // Check if it's an AJAX request, which is what the call center transfer modal uses
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                throw new Exception('طريقة طلب غير صحيحة', 405);
+                throw new Exception('Invalid request method', 405);
             }
 
             if (empty($_POST['driver_id']) || empty($_POST['to_user_id'])) {
-                throw new Exception('البيانات المطلوبة للتحويل غير مكتملة', 400);
+                throw new Exception('Required data for assignment is missing', 400);
             }
 
             $driverId = $_POST['driver_id'];
@@ -147,27 +151,39 @@ class DriverController extends Controller
             $result = $this->driverModel->assignDriver($driverId, $fromUserId, $toUserId, $note);
 
             if ($result) {
-                // Release the hold on the driver so they are available for the new user
+                // This logic is common for both AJAX and non-AJAX responses
                 $callModel = $this->model('Calls/Call');
                 if ($callModel) {
                     $callModel->releaseDriverHold($driverId);
                 }
-
-                // Since this is an AJAX request from the call center, we don't redirect.
-                // The frontend will handle the redirect.
                 if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
                     unset($_SESSION['locked_driver_id']);
                 }
-                $this->sendJsonResponse(['success' => true, 'message' => 'تم تحويل السائق بنجاح.']);
+
+                if ($isAjax) {
+                    // For the call center, send a JSON response
+                    $this->sendJsonResponse(['success' => true, 'message' => 'Driver transferred successfully.']);
+                } else {
+                    // For other forms, use a flash message and redirect
+                    flash('driver_assignment_success', 'Driver assigned successfully.');
+                    redirect('drivers/details/' . $driverId);
+                }
+
             } else {
-                throw new Exception('فشل تحويل السائق في قاعدة البيانات.', 500);
+                throw new Exception('Failed to assign driver in the database.', 500);
             }
         } catch (Exception $e) {
             error_log("Driver assignment error: " . $e->getMessage());
-            $this->sendJsonResponse(
-                ['success' => false, 'message' => $e->getMessage()],
-                $e->getCode() ?: 400
-            );
+            
+            if ($isAjax) {
+                // For AJAX, send a JSON error response
+                $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], $e->getCode() ?: 500);
+            } else {
+                // For regular forms, use a flash message and redirect back
+                flash('driver_assignment_error', $e->getMessage(), 'bg-red-500 text-white');
+                $redirect_url = $_SERVER['HTTP_REFERER'] ?? 'drivers';
+                redirect($redirect_url);
+            }
         }
     }
 
@@ -231,7 +247,7 @@ class DriverController extends Controller
         }
 
         $data = [
-            'page_main_title' => 'تفاصيل السائق',
+            'page_main_title' => 'Driver Details',
             'driver' => $driver,
             'callHistory' => $callHistory,
             'assignmentHistory' => $assignmentHistory,

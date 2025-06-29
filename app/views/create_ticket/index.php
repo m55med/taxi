@@ -14,8 +14,8 @@
         <p class="text-sm text-gray-500 mt-1">Fill in the details below to create a new support ticket.</p>
     </div>
 
-    <!-- Flash Messages -->
-    <?php require_once APPROOT . '/views/includes/flash_messages.php'; ?>
+        <!-- Flash Messages -->
+        <?php require_once APPROOT . '/views/includes/flash_messages.php'; ?>
 
     <form @submit.prevent="submitForm" id="createTicketForm" class="space-y-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -27,14 +27,19 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold text-gray-700 mb-6 border-b pb-4">Basic Information</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                <div>
                             <label for="ticket_number" class="block text-sm font-medium text-gray-700">Ticket Number <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <input type="text" id="ticket_number" x-model="formData.ticket_number" @blur="checkTicketExists" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-                                <div id="ticket-exists-warning" class="hidden mt-1 text-sm text-blue-600">
-                                    Ticket already exists. <a href="#" id="view-ticket-link" target="_blank" class="font-bold underline">View Details</a>
-                                </div>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="text" id="ticket_number" x-model="formData.ticket_number" @blur="checkTicketExists" class="block w-full border-gray-300 rounded-md pl-3 pr-10 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                                <button @click.prevent="pasteFromClipboard('ticket_number')" type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 group" aria-label="Paste Ticket Number">
+                                    <svg class="h-5 w-5 text-gray-400 group-hover:text-indigo-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v3a2 2 0 01-2 2H4a2 2 0 01-2-2v-3z"/>
+                                    </svg>
+                                </button>
                             </div>
+                        <div id="ticket-exists-warning" class="hidden mt-1 text-sm text-blue-600">
+                            Ticket already exists. <a href="#" id="view-ticket-link" target="_blank" class="font-bold underline">View Details</a>
+                        </div>
                         </div>
                         <div>
                             <label for="platform_id" class="block text-sm font-medium text-gray-700">Platform <span class="text-red-500">*</span></label>
@@ -54,15 +59,22 @@
                                         <template x-for="option in filteredOptions" :key="option.id"><li @click="selectOption(option)" class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white" :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }"><span class="block truncate" x-text="option.name"></span><template x-if="selected && selected.id == option.id"><span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white"><svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></span></template></li></template>
                                         <template x-if="filteredOptions.length === 0"><li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">No platforms found.</li></template>
                                     </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label for="phone" class="block text-sm font-medium text-gray-700">Customer Phone</label>
-                            <input type="text" id="phone" x-model="formData.phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        </div>
-                        <div>
-                            <label for="country_id" class="block text-sm font-medium text-gray-700">Country</label>
+                    </div>
+                </div>
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700">Customer Phone</label>
+                             <div class="mt-1 relative rounded-md shadow-sm">
+                                <input type="text" id="phone" x-model="formData.phone" class="block w-full border-gray-300 rounded-md pl-3 pr-10 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <button @click.prevent="pasteFromClipboard('phone')" type="button" class="absolute inset-y-0 right-0 flex items-center pr-3 group" aria-label="Paste Phone Number">
+                                    <svg class="h-5 w-5 text-gray-400 group-hover:text-indigo-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v3a2 2 0 01-2 2H4a2 2 0 01-2-2v-3z"/>
+                                    </svg>
+                                </button>
+                </div>
+            </div>
+                 <div>
+                    <label for="country_id" class="block text-sm font-medium text-gray-700">Country</label>
                             <div x-data="searchableSelect(<?php echo htmlspecialchars(json_encode($data['countries'])); ?>)" 
                                  x-init="$el.dataset.initialValue = formData.country_id"
                                  data-model-name="country_id"
@@ -81,15 +93,15 @@
                                     </ul>
                                 </div>
                             </div>
-                        </div>
-                    </div>
                 </div>
-
+                </div>
+            </div>
+            
                 <!-- Card 2: Classification -->
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold text-gray-700 mb-6 border-b pb-4">Classification</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
                             <label for="category_id" class="block text-sm font-medium text-gray-700">Category <span class="text-red-500">*</span></label>
                             <div x-data="searchableSelect(<?php echo htmlspecialchars(json_encode($data['categories'])); ?>)" 
                                  x-init="$el.dataset.initialValue = formData.category_id"
@@ -109,9 +121,9 @@
                                     </ul>
                                 </div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="subcategory_id" class="block text-sm font-medium text-gray-700">Subcategory</label>
+                </div>
+                <div>
+                    <label for="subcategory_id" class="block text-sm font-medium text-gray-700">Subcategory</label>
                             <div x-show="!formData.category_id" class="mt-1 p-2 border rounded-md bg-gray-50 text-gray-500 text-sm">Select a category first</div>
                              <div x-show="formData.category_id && subcategories.length === 0" class="mt-1 p-2 border rounded-md bg-gray-50 text-gray-500 text-sm">Loading...</div>
                             <template x-if="subcategories.length > 0">
@@ -128,10 +140,10 @@
                                         </ul>
                                     </div>
                                 </div>
-                            </template>
-                        </div>
-                        <div>
-                            <label for="code_id" class="block text-sm font-medium text-gray-700">Code</label>
+                        </template>
+                </div>
+                <div>
+                    <label for="code_id" class="block text-sm font-medium text-gray-700">Code</label>
                              <div x-show="!formData.subcategory_id" class="mt-1 p-2 border rounded-md bg-gray-50 text-gray-500 text-sm">Select a subcategory first</div>
                              <div x-show="formData.subcategory_id && codes.length === 0 && !codesLoading" class="mt-1 p-2 border rounded-md bg-gray-50 text-gray-500 text-sm">No codes for this subcategory.</div>
                              <div x-show="codesLoading" class="mt-1 p-2 border rounded-md bg-gray-50 text-gray-500 text-sm">Loading...</div>

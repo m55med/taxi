@@ -108,19 +108,24 @@ class Log
                 'Incoming Call' as activity_type,
                 ic.id as activity_id,
                 CONCAT('Call from: ', ic.caller_phone_number) as details_primary,
-                CONCAT('Status: ', ic.status) as details_secondary,
+                CASE 
+                    WHEN td.ticket_id IS NOT NULL THEN CONCAT('Status: ', ic.status, ' | Linked to Ticket: #', t.ticket_number)
+                    ELSE CONCAT('Status: ', ic.status)
+                END as details_secondary,
                 ic.call_started_at as activity_date,
                 ic.call_received_by as user_id,
                 u.username,
                 tm.team_id,
                 teams.name as team_name,
-                ic.id as link_id,
-                'logs' as link_prefix, -- No specific link for incoming calls yet
+                t.id as link_id,
+                'tickets/view' as link_prefix,
                 NULL as is_vip
             FROM incoming_calls ic
             JOIN users u ON ic.call_received_by = u.id
             LEFT JOIN team_members tm ON u.id = tm.user_id
             LEFT JOIN teams ON tm.team_id = teams.id
+            LEFT JOIN ticket_details td ON ic.linked_ticket_detail_id = td.id
+            LEFT JOIN tickets t ON td.ticket_id = t.id
         ";
 
         $assignmentsQuery = "

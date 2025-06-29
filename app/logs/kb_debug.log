@@ -58,3 +58,20 @@
 )
 
 [2025-06-28 21:02:40] Model create() returned true. Success.
+[2025-06-29 09:55:58] --- KB Store method initiated ---
+[2025-06-29 09:55:58] POST data: Array
+(
+    [id] => 
+    [title] => شرح حل المشكلة
+    [ticket_code_id] => 5
+    [content] => <p>اختبيلبيبليبليبليبليبلبيبل</p>
+)
+
+[2025-06-29 09:55:58] Data validated. Attempting to create article with data: Array
+(
+    [title] => شرح حل المشكلة
+    [content] => <p>اختبيلبيبليبليبليبليبلبيبل</p>
+    [ticket_code_id] => 5
+)
+
+[2025-06-29 09:55:58] Model create() returned true. Success.

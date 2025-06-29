@@ -234,7 +234,7 @@ class Ticket extends Model
                     cod.name as code_name, 
                     u_creator.username as creator_username,
                     u_editor.username as editor_username, 
-                    u_leader.username as leader_username,
+                    u_leader.username as leader_name,
                     cnt.name as country_name
                 FROM tickets t
                 JOIN ticket_details td ON t.id = td.ticket_id AND td.id = (

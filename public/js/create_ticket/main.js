@@ -293,13 +293,38 @@ function createTicketForm(platforms, marketers) {
             }
         },
         
+        // Method to copy text to clipboard
         copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                toastr.success(`'${text}' copied to clipboard.`);
-            }, (err) => {
-                toastr.error('Failed to copy text.');
+                toastr.success('Coupon code copied to clipboard!');
+            }).catch(err => {
+                toastr.error('Failed to copy code.');
                 console.error('Could not copy text: ', err);
             });
+        },
+        
+        // Method to paste text from clipboard
+        async pasteFromClipboard(fieldName) {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    this.formData[fieldName] = text;
+                    toastr.success(`Pasted from clipboard.`);
+                    // Manually trigger blur to run validation if any
+                    this.$nextTick(() => {
+                         const el = document.getElementById(fieldName);
+                         if (el) {
+                            el.focus(); // focus and blur to trigger alpine's reactivity and validation
+                            el.blur();
+                         }
+                    });
+                } else {
+                    toastr.warning('Clipboard is empty.');
+                }
+            } catch (err) {
+                toastr.error('Failed to read from clipboard. Please check permissions.');
+                console.error('Could not paste text: ', err);
+            }
         },
 
         resetForm() {

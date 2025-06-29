@@ -14,18 +14,16 @@ class UsersController extends Controller
     {
         parent::__construct();
 
-        // التحقق من الصلاحيات
+        // Authorization check
         if (!isset($_SESSION['user_id'])) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول للوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/auth/login');
-            exit;
+            flash('auth_error', 'You must be logged in to view this page.', 'error');
+            redirect('auth/login');
         }
 
-        // صلاحيات محددة لهذه الصفحة يمكن تعديلها
+        // Specific permissions for this page
         if (!in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
-            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
+            flash('auth_error', 'You are not authorized to access this page.', 'error');
+            redirect('dashboard');
         }
 
         $this->usersReportModel = $this->model('reports/Users/UsersReport');
@@ -83,24 +81,24 @@ class UsersController extends Controller
 
         echo "\xEF\xBB\xBF"; // UTF-8 BOM
 
-        // Define headers in Arabic for clarity and order
+        // Define headers in English
         $headers = [
-            'username' => 'المستخدم',
-            'email' => 'البريد الإلكتروني',
-            'role_name' => 'الدور',
-            'team_name' => 'الفريق',
-            'status' => 'الحالة',
-            'is_online' => 'متصل',
-            'total_calls' => 'إجمالي المكالمات',
-            'answered' => 'مكالمات مجابة',
-            'no_answer' => 'مكالمات لم يرد عليها',
-            'busy' => 'مشغول',
-            'answered_rate' => 'نسبة الرد (%)',
-            'today_total' => 'إجمالي مكالمات اليوم',
-            'today_answered' => 'مكالمات اليوم المجابة',
-            'normal_tickets' => 'تذاكر عادية',
-            'vip_tickets' => 'تذاكر VIP',
-            'assignments_count' => 'التحويلات'
+            'username' => 'User',
+            'email' => 'Email',
+            'role_name' => 'Role',
+            'team_name' => 'Team',
+            'status' => 'Status',
+            'is_online' => 'Online',
+            'total_calls' => 'Total Calls',
+            'answered' => 'Answered Calls',
+            'no_answer' => 'No-Answer Calls',
+            'busy' => 'Busy Calls',
+            'answered_rate' => 'Answer Rate (%)',
+            'today_total' => 'Today\'s Total Calls',
+            'today_answered' => 'Today\'s Answered Calls',
+            'normal_tickets' => 'Normal Tickets',
+            'vip_tickets' => 'VIP Tickets',
+            'assignments_count' => 'Assignments'
         ];
 
         echo '<table border="1">';
@@ -116,19 +114,13 @@ class UsersController extends Controller
         foreach ($data as $row) {
             echo '<tr>';
             
-            $status_translation = [
-                'active' => 'نشط',
-                'pending' => 'معلق',
-                'banned' => 'محظور'
-            ];
-
             // Manually map each column to ensure correct order and handling
             echo '<td>' . htmlspecialchars($row['username'] ?? '') . '</td>';
             echo '<td>' . htmlspecialchars($row['email'] ?? '') . '</td>';
             echo '<td>' . htmlspecialchars($row['role_name'] ?? '') . '</td>';
             echo '<td>' . htmlspecialchars($row['team_name'] ?? 'N/A') . '</td>';
-            echo '<td>' . htmlspecialchars($status_translation[$row['status']] ?? $row['status']) . '</td>';
-            echo '<td>' . (isset($row['is_online']) && $row['is_online'] ? 'متصل' : 'غير متصل') . '</td>';
+            echo '<td>' . htmlspecialchars(ucfirst($row['status'] ?? '')) . '</td>';
+            echo '<td>' . (isset($row['is_online']) && $row['is_online'] ? 'Online' : 'Offline') . '</td>';
             
             // Call stats from the nested array
             $stats = $row['call_stats'] ?? [];

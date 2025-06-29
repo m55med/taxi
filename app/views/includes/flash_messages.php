@@ -10,5 +10,9 @@ echo flash('discussion_error');
 echo flash('review_success');
 echo flash('review_error');
 
+// Display Driver Assignment Flash Messages
+echo flash('driver_assignment_success');
+echo flash('driver_assignment_error');
+
 // You can add more flash message checks here as needed
 // e.g., echo flash('user_update_success'); 

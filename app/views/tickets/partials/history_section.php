@@ -49,7 +49,7 @@ file_put_contents($log_file, "Entering history_section.php at " . date('Y-m-d H:
                     </div>
                     <div class="flex items-center">
                         <i class="fas fa-user-tie text-gray-400 mr-3 w-5 text-center"></i><strong>Team Leader:</strong>
-                        <span class="ml-2"><?= htmlspecialchars($history['leader_name'] ?? 'N/A') ?></span>
+                        <span class="ml-2"><?= htmlspecialchars($history['leader_username'] ?? 'N/A') ?></span>
                     </div>
 
                     <?php if (!empty($history['marketer_name'])) : ?>

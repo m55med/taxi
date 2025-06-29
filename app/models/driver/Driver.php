@@ -461,8 +461,8 @@ class Driver
                 ':note' => $note,
             ]);
 
-            $updateStmt = $this->db->prepare("UPDATE drivers SET assigned_to = :to_user_id WHERE id = :driver_id");
-            $updateStmt->execute([':to_user_id' => $toUserId, ':driver_id' => $driverId]);
+            // $updateStmt = $this->db->prepare("UPDATE drivers SET assigned_to = :to_user_id WHERE id = :driver_id");
+            // $updateStmt->execute([':to_user_id' => $toUserId, ':driver_id' => $driverId]);
 
             $this->db->commit();
             return true;
