@@ -82,6 +82,21 @@ if (!function_exists('getAppStatusInfo')) {
             </span>
         </div>
 
+        <div class="flex justify-between items-center text-sm">
+            <span class="font-semibold text-gray-600">Trips Status:</span>
+            <?php if (!empty($driver['has_many_trips'])): ?>
+                <span id="driverTripsStatus" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    Exceeds 10 Trips
+                </span>
+            <?php else: ?>
+                <span id="driverTripsStatus" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                    <i class="fas fa-times-circle mr-1"></i>
+                    Under 10 Trips
+                </span>
+            <?php endif; ?>
+        </div>
+
         <div class="text-sm">
             <span class="font-semibold text-gray-600">Notes:</span>
             <p id="driver-profile-notes" class="mt-1 text-gray-800 bg-gray-50 p-2 rounded-md whitespace-pre-wrap"><?= htmlspecialchars($driver['notes'] ?? 'None') ?></p>

@@ -85,6 +85,17 @@ $car_types = $data['car_types'] ?? [];
                 <textarea id="driverNotes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"><?= htmlspecialchars($driver['notes'] ?? '') ?></textarea>
             </div>
 
+            <!-- Has Many Trips Switch -->
+            <div class="flex items-center justify-between py-2">
+                <span class="text-sm font-medium text-gray-700">Driver has > 10 trips?</span>
+                <label for="hasManyTripsToggle" class="relative inline-flex items-center cursor-pointer">
+                    <input type="hidden" name="has_many_trips" value="0">
+                    <input type="checkbox" name="has_many_trips" value="1" id="hasManyTripsToggle" class="sr-only peer" 
+                           <?= !empty($driver['has_many_trips']) ? 'checked' : '' ?>>
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+            </div>
+
             <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-3 rounded-md hover:bg-indigo-700 font-semibold flex items-center justify-center">
                 <i class="fas fa-save mr-2"></i>
                 Update Driver Info

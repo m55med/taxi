@@ -1,0 +1,9 @@
+CREATE TABLE `driver_attributes` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `driver_id` INT NOT NULL,
+  `has_many_trips` BOOLEAN NOT NULL DEFAULT FALSE,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `driver_id_unique` (`driver_id`),
+  FOREIGN KEY (`driver_id`) REFERENCES `drivers`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 

@@ -504,4 +504,35 @@ class Driver
             return [];
         }
     }
+
+    public function getDrivers($filters)
+    {
+        // ... implementation ...
+    }
+
+    public function updateCoreInfo($driverId, $data) {
+        $sql = 'UPDATE drivers SET name = :name, email = :email, gender = :gender, country_id = :country_id, app_status = :app_status, car_type_id = :car_type_id, notes = :notes WHERE id = :id';
+        $params = [
+            ':name' => $data['name'],
+            ':email' => $data['email'],
+            ':gender' => $data['gender'],
+            ':country_id' => $data['country_id'],
+            ':app_status' => $data['app_status'],
+            ':car_type_id' => $data['car_type_id'],
+            ':notes' => $data['notes'],
+            ':id' => $driverId
+        ];
+        $this->db->query($sql);
+        return $this->db->execute($params);
+    }
+    
+    public function updateTripAttribute($driverId, $hasManyTrips) {
+        $sql = 'INSERT INTO driver_attributes (driver_id, has_many_trips) VALUES (:driver_id, :has_many_trips) ON DUPLICATE KEY UPDATE has_many_trips = VALUES(has_many_trips)';
+        $params = [
+            ':driver_id' => $driverId,
+            ':has_many_trips' => (int)(bool)($hasManyTrips ?? 0)
+        ];
+        $this->db->query($sql);
+        return $this->db->execute($params);
+    }
 } 

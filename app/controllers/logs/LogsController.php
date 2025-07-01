@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class LogsController extends Controller {
     private $logModel;
+    private $rolesWithPointsAccess = ['Admin', 'admin', 'Team_leader', 'Quality', 'quality'];
 
     public function __construct() {
         parent::__construct(); // It's good practice to call parent constructor
@@ -53,11 +54,21 @@ class LogsController extends Controller {
             }
         }
         
+        $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
+
         // Handle Export All
         if (isset($_GET['export'])) {
             $export_type = $_GET['export'];
             $result = $this->logModel->getActivities($filters, null, 0); // null limit to get all
             $activities = $result['activities'];
+
+            if ($showPoints) {
+                $pointsService = new PointsService();
+                foreach ($activities as $activity) {
+                    $pointsService->calculateForActivity($activity);
+                }
+            }
+
             $summary = $this->logModel->getActivitiesSummary($filters);
 
             if ($export_type === 'excel') {
@@ -84,9 +95,11 @@ class LogsController extends Controller {
         $totalRecords = $result['total'];
 
         // Calculate points for each activity
-        $pointsService = new PointsService();
-        foreach ($activities as $activity) {
-            $pointsService->calculateForActivity($activity);
+        if ($showPoints) {
+            $pointsService = new PointsService();
+            foreach ($activities as $activity) {
+                $pointsService->calculateForActivity($activity);
+            }
         }
 
         $totalPages = ceil($totalRecords / $limit);
@@ -102,6 +115,7 @@ class LogsController extends Controller {
             'users' => $users,
             'teams' => $teams,
             'userRole' => $userRole,
+            'showPoints' => $showPoints,
             'pagination' => [
                 'currentPage' => $page,
                 'totalPages' => $totalPages,
@@ -125,10 +139,15 @@ class LogsController extends Controller {
         
         $activities = $this->logModel->getActivitiesByIds($activity_ids);
         
+        $userRole = $_SESSION['role'];
+        $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
+
         // Calculate points for each activity
-        $pointsService = new PointsService();
-        foreach ($activities as $activity) {
-            $pointsService->calculateForActivity($activity);
+        if ($showPoints) {
+            $pointsService = new PointsService();
+            foreach ($activities as $activity) {
+                $pointsService->calculateForActivity($activity);
+            }
         }
 
         if ($export_type === 'excel') {
@@ -144,8 +163,14 @@ class LogsController extends Controller {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Activity Log');
 
+        $userRole = $_SESSION['role'];
+        $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
+
         // Headers
-        $headers = ['Type', 'Is VIP', 'Details', 'Secondary Details', 'Employee', 'Team', 'Date', 'Points'];
+        $headers = ['Type', 'Is VIP', 'Details', 'Secondary Details', 'Employee', 'Team', 'Date'];
+        if ($showPoints) {
+            $headers[] = 'Points';
+        }
         $sheet->fromArray($headers, null, 'A1');
 
         // Style Headers
@@ -153,13 +178,14 @@ class LogsController extends Controller {
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']]
         ];
-        $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
+        $headerRange = $showPoints ? 'A1:H1' : 'A1:G1';
+        $sheet->getStyle($headerRange)->applyFromArray($headerStyle);
 
         // Data
         $row = 2;
         foreach ($activities as $activity) {
             $is_vip = ($activity->activity_type === 'Ticket' && $activity->is_vip) ? 'Yes' : 'No';
-            $sheet->fromArray([
+            $rowData = [
                 $activity->activity_type,
                 $is_vip,
                 $activity->details_primary,
@@ -167,13 +193,17 @@ class LogsController extends Controller {
                 $activity->username,
                 $activity->team_name ?? 'N/A',
                 date('Y-m-d H:i', strtotime($activity->activity_date)),
-                $activity->points ?? 0
-            ], null, 'A' . $row);
+            ];
+            if ($showPoints) {
+                $rowData[] = $activity->points ?? 0;
+            }
+            $sheet->fromArray($rowData, null, 'A' . $row);
             $row++;
         }
 
         // Auto-size columns
-        foreach (range('A', 'H') as $col) {
+        $lastCol = $showPoints ? 'H' : 'G';
+        foreach (range('A', $lastCol) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -246,9 +276,18 @@ class LogsController extends Controller {
     }
 
     private function _exportToJson($activities) {
+        $userRole = $_SESSION['role'];
+        $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
+
+        if (!$showPoints) {
+            foreach ($activities as &$activity) {
+                unset($activity->points);
+            }
+        }
+
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="activity_log_' . date('Y-m-d') . '.json"');
-        echo json_encode($activities, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        echo json_encode($activities, JSON_PRETTY_PRINT);
         exit;
     }
 } 

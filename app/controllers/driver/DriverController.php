@@ -28,31 +28,43 @@ class DriverController extends Controller
                 throw new Exception('Invalid request method', 405);
             }
 
-            if (empty($_POST['driver_id']) || empty(trim($_POST['name']))) {
-                throw new Exception('Required data is missing', 400);
+            $driverId = filter_input(INPUT_POST, 'driver_id', FILTER_VALIDATE_INT);
+            if (!$driverId) {
+                throw new Exception('Required driver_id is missing', 400);
             }
+            
+            // Collect all data from POST
+            $data = [
+                'name' => $_POST['name'] ?? '',
+                'email' => filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL),
+                'gender' => $_POST['gender'] ?? '',
+                'country_id' => filter_input(INPUT_POST, 'country_id', FILTER_VALIDATE_INT) ?: null,
+                'app_status' => $_POST['app_status'] ?? 'inactive',
+                'car_type_id' => filter_input(INPUT_POST, 'car_type_id', FILTER_VALIDATE_INT) ?: null,
+                'notes' => $_POST['notes'] ?? ''
+            ];
+            
+            $hasManyTrips = filter_var($_POST['has_many_trips'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
-            $result = $this->driverModel->update([
-                'id' => $_POST['driver_id'],
-                'name' => trim($_POST['name']),
-                'email' => trim($_POST['email'] ?? ''),
-                'gender' => trim($_POST['gender'] ?? ''),
-                'nationality' => trim($_POST['nationality'] ?? ''),
-                'data_source' => trim($_POST['data_source'] ?? ''),
-                'app_status' => trim($_POST['app_status'] ?? 'active')
-            ]);
+            // Execute updates as separate operations
+            $this->driverModel->updateCoreInfo($driverId, $data);
+            $this->driverModel->updateTripAttribute($driverId, $hasManyTrips);
 
-            if (!$result) {
-                throw new Exception('Failed to update data on the server', 500);
-            }
-
-            // Fetch updated driver data to return
-            $updatedDriver = $this->driverModel->getById($_POST['driver_id']);
+            // Fetch fully updated driver data to return
+            $callModel = $this->model('Calls/Call');
+            $updatedDriver = $callModel->getDriverById($driverId); 
             if (!$updatedDriver) {
                  throw new Exception('Failed to retrieve updated driver data', 500);
             }
 
-            $this->sendJsonResponse(['success' => true, 'message' => 'Data updated successfully', 'driver' => $updatedDriver]);
+            // Clean any previous output before sending JSON response
+            ob_clean();
+
+            $this->sendJsonResponse([
+                'success' => true, 
+                'message' => 'Data updated successfully', 
+                'driver' => $updatedDriver
+            ]);
 
         } catch (Exception $e) {
             error_log("Driver update error: " . $e->getMessage());

@@ -11,7 +11,9 @@
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">Details</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Employee</th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Team</th>
+                <?php if (isset($showPoints) && $showPoints): ?>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Points</th>
+                <?php endif; ?>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">Date & Time</th>
             </tr>
         </thead>
@@ -76,6 +78,7 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-500"><?= htmlspecialchars($activity->team_name ?? 'N/A') ?></div>
                     </td>
+                    <?php if (isset($showPoints) && $showPoints): ?>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                         <?php if (isset($activity->points) && $activity->points > 0): ?>
                             <span class="text-yellow-500">
@@ -86,6 +89,7 @@
                             <span class="text-gray-400">0.00</span>
                         <?php endif; ?>
                     </td>
+                    <?php endif; ?>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <?= date('Y-m-d H:i', strtotime($activity->activity_date)) ?>
                     </td>

@@ -24,4 +24,7 @@ $router->post('/calls/mark-seen', 'calls/AssignmentsController@markAsSeen');
 $router->post('/calls/updateDriverInfo', 'calls/CallsController@updateDriverInfo');
 
 // تخطي السائق
-$router->get('/calls/skip/:id', 'calls/CallsController@skip'); 
+$router->get('/calls/skip/:id', 'calls/CallsController@skip');
+
+// تحديث سمة السائق (رحلات > 10)
+$router->post('/calls/updateDriverAttribute', 'calls/CallsController@updateDriverAttribute'); 

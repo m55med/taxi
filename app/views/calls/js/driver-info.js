@@ -32,10 +32,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: formData // Send as form data, not JSON
                 });
 
-                const result = await response.json();
+                const parsedData = await response.json();
 
-                if (response.ok && result.success) {
-                    showToast(result.message || 'تم تحديث البيانات بنجاح!', 'success');
+                if (parsedData.success) {
+                    if (parsedData.update_debug) {
+                        console.log('✅ Server Update Debug Info:', parsedData.update_debug);
+                    }
+                    showToast(parsedData.message || 'تم تحديث البيانات بنجاح!', 'success');
                     
                     // Update Name
                     const nameElement = document.getElementById('driver-profile-name');
@@ -89,17 +92,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         notesElement.textContent = formData.get('notes') || 'لا يوجد';
                     }
 
+                    updateProfileCard(parsedData.driver);
+                    showToast('success', parsedData.message || 'Driver info updated successfully.');
+
                 } else {
-                    showToast(result.message || 'فشل تحديث البيانات.', 'error');
+                    showToast(parsedData.message || 'فشل تحديث البيانات.', 'error');
                 }
 
             } catch (error) {
-                console.error('Error submitting driver info form:', error);
-                showToast('حدث خطأ فني أثناء الاتصال بالخادم.', 'error');
+                console.error('Error submitting form:', error);
+                showToast('error', 'An unexpected error occurred.');
             } finally {
-                // Restore button state
-                submitButton.innerHTML = originalButtonContent;
                 submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="fas fa-save mr-2"></i> Update Driver Info';
             }
         });
     }

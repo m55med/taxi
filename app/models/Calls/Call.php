@@ -123,40 +123,21 @@ class Call extends Model
 
     public function findAndLockDriverByPhone($phone)
     {
-        try {
-            $this->db->beginTransaction();
+        $sql = "SELECT d.*, da.has_many_trips 
+                FROM drivers d
+                LEFT JOIN driver_attributes da ON d.id = da.driver_id
+                WHERE d.phone = :phone AND d.is_active = 1";
+        
+        $this->db->query($sql);
+        $this->db->bind(':phone', $phone);
+        $driver = $this->db->single();
 
-            // First, try for an exact match
-            $sql = "SELECT * FROM drivers WHERE phone = :phone AND hold = 0 LIMIT 1";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':phone' => $phone]);
-            $driver = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // If no exact match, try a broader search (e.g., for partial numbers)
-            if (!$driver) {
-                $sql = "SELECT * FROM drivers WHERE phone LIKE :phone AND hold = 0 ORDER BY created_at DESC LIMIT 1";
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute([':phone' => '%' . $phone . '%']);
-                $driver = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            
-            if ($driver) {
-                // Lock the driver to prevent others from accessing it
-                $this->setDriverHold($driver['id'], true);
-                $this->db->commit();
-                return $driver;
-            }
-
-            $this->db->commit();
-            return null;
-
-        } catch (PDOException $e) {
-            if ($this->db->inTransaction()) {
-                $this->db->rollBack();
-            }
-            error_log("Error in findAndLockDriverByPhone: " . $e->getMessage());
-            return null;
+        if ($driver) {
+            // Lock the driver to prevent others from accessing it
+            $this->setDriverHold($driver['id'], true);
+            return $driver;
         }
+        return null;
     }
 
     // =================================================================
@@ -231,9 +212,14 @@ class Call extends Model
 
     public function getDriverById($driverId)
     {
-        $stmt = $this->db->prepare("SELECT * FROM drivers WHERE id = :id");
-        $stmt->execute([':id' => $driverId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $sql = "SELECT d.*, da.has_many_trips 
+                FROM drivers d 
+                LEFT JOIN driver_attributes da ON d.id = da.driver_id
+                WHERE d.id = :driver_id";
+        
+        $this->db->query($sql);
+        $this->db->bind(':driver_id', $driverId);
+        return $this->db->single();
     }
 
     public function getCallHistory($driverId)
@@ -318,5 +304,18 @@ class Call extends Model
             return $this->releaseDriverHold($_SESSION['locked_driver_id']);
         }
         return true; // No driver was held, so the operation is successful.
+    }
+
+    public function updateDriverAttribute($driverId, $hasManyTrips) {
+        // This will insert a new record or update an existing one
+        $sql = "INSERT INTO driver_attributes (driver_id, has_many_trips) 
+                VALUES (:driver_id, :has_many_trips)
+                ON DUPLICATE KEY UPDATE has_many_trips = :has_many_trips";
+        
+        $this->db->query($sql);
+        $this->db->bind(':driver_id', $driverId);
+        $this->db->bind(':has_many_trips', $hasManyTrips, \PDO::PARAM_BOOL);
+        
+        return $this->db->execute();
     }
 }
