@@ -89,6 +89,7 @@ class AuthController extends Controller
                 $_SESSION['role'] = $result['role'];
                 $_SESSION['role_id'] = $result['role_id'];
                 $_SESSION['is_online'] = true;
+                $_SESSION['last_activity'] = time();
 
                 // Fetch and store permissions in the session
                 $permissions = $this->userModel->getUserPermissions($result['id']);

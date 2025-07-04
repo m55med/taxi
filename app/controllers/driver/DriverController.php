@@ -4,6 +4,7 @@ namespace App\Controllers\Driver;
 
 // A test comment to see if any edit can be applied
 use App\Core\Controller;
+use App\Core\Database;
 use App\Models\Review\Review;
 use Exception;
 
@@ -12,6 +13,7 @@ class DriverController extends Controller
     private $driverModel;
     private $discussionModel;
     private $reviewModel;
+    private $documentModel;
 
     public function __construct()
     {
@@ -19,6 +21,7 @@ class DriverController extends Controller
         $this->driverModel = $this->model('driver/Driver');
         $this->discussionModel = $this->model('discussion/Discussion');
         $this->reviewModel = $this->model('review/Review');
+        $this->documentModel = $this->model('document/Document');
     }
 
     public function update()
@@ -47,17 +50,22 @@ class DriverController extends Controller
             $hasManyTrips = filter_var($_POST['has_many_trips'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
             // Execute updates as separate operations
-            $this->driverModel->updateCoreInfo($driverId, $data);
-            $this->driverModel->updateTripAttribute($driverId, $hasManyTrips);
+            $coreInfoSuccess = $this->driverModel->updateCoreInfo($driverId, $data);
+            if (!$coreInfoSuccess) {
+                throw new Exception('Failed to update core driver information.', 500);
+            }
+
+            $tripAttrSuccess = $this->driverModel->updateTripAttribute($driverId, $hasManyTrips);
+            if (!$tripAttrSuccess) {
+                throw new Exception('Failed to update driver trip attribute.', 500);
+            }
 
             // Fetch fully updated driver data to return
-            $callModel = $this->model('Calls/Call');
-            $updatedDriver = $callModel->getDriverById($driverId); 
+            $updatedDriver = $this->driverModel->getById($driverId); 
             if (!$updatedDriver) {
                  throw new Exception('Failed to retrieve updated driver data', 500);
             }
 
-            // Clean any previous output before sending JSON response
             ob_clean();
 
             $this->sendJsonResponse([
@@ -109,37 +117,6 @@ class DriverController extends Controller
             );
         }
     }
-
-    // public function updateStatus()
-    // {
-    //     header('Content-Type: application/json');
-    //     $data = json_decode(file_get_contents('php://input'), true);
-
-    //     if (!$this->isAjax() || !$this->isAuthenticated()) {
-    //         http_response_code(401);
-    //         echo json_encode(['error' => 'Unauthorized']);
-    //         return;
-    //     }
-
-    //     if (!isset($data['driver_id']) || !isset($data['status'])) {
-    //         http_response_code(400);
-    //         echo json_encode(['error' => 'Invalid input']);
-    //         return;
-    //     }
-
-    //     try {
-    //         $result = $this->driverModel->updateStatus($data['driver_id'], $data['status']);
-    //         if ($result) {
-    //             echo json_encode(['success' => true]);
-    //         } else {
-    //             http_response_code(500);
-    //             echo json_encode(['error' => 'Failed to update status']);
-    //         }
-    //     } catch (Exception $e) {
-    //         http_response_code(500);
-    //         echo json_encode(['error' => $e->getMessage()]);
-    //     }
-    // }
 
     public function assign()
     {
@@ -214,6 +191,9 @@ class DriverController extends Controller
         $callHistory = $this->driverModel->getCallHistory($id);
         $assignmentHistory = $this->driverModel->getAssignmentHistory($id);
         $assignableUsers = $this->driverModel->getAssignableUsers(); // Fetch users for the form
+        
+        $driverDocuments = $this->documentModel->getDriverDocuments($id);
+        $unassignedDocuments = $this->documentModel->getUnassignedDocumentTypes($id);
 
         // Get driver-level discussions
         $driverDiscussions = $this->discussionModel->getDiscussions('App\\\\Models\\\\Driver\\\\Driver', $id);
@@ -264,7 +244,10 @@ class DriverController extends Controller
             'callHistory' => $callHistory,
             'assignmentHistory' => $assignmentHistory,
             'assignableUsers' => $assignableUsers,
-            'discussions' => $driverDiscussions, // Renamed for clarity
+            'driverDiscussions' => $driverDiscussions,
+            'callReviews' => $callHistory,
+            'driverDocuments' => $driverDocuments,
+            'unassignedDocuments' => $unassignedDocuments,
             'currentUser' => ['id' => $_SESSION['user_id'], 'role' => $_SESSION['role']]
         ];
 
@@ -273,8 +256,8 @@ class DriverController extends Controller
 
     public function search()
     {
-        // We expect a 'q' query parameter, e.g., /drivers/search?q=123
-        $query = $_GET['q'] ?? '';
+        // We expect a 'phone' query parameter, e.g., /drivers/search?phone=123
+        $query = $_GET['phone'] ?? '';
 
         if (empty($query) || !is_string($query)) {
             $this->sendJsonResponse([]);
@@ -283,5 +266,71 @@ class DriverController extends Controller
 
         $drivers = $this->driverModel->searchByPhone(trim($query));
         $this->sendJsonResponse($drivers);
+    }
+
+    public function manageDocument()
+    {
+        $this->authorize('Driver/manageDocument');
+        
+        $db = Database::getInstance(); // Get DB instance for transaction
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Invalid request method', 405);
+            }
+
+            $driverId = filter_input(INPUT_POST, 'driver_id', FILTER_VALIDATE_INT);
+            $action = $_POST['action'] ?? '';
+
+            if (!$driverId || !$action) {
+                throw new Exception('Missing required parameters.', 400);
+            }
+
+            $db->beginTransaction();
+
+            if ($action === 'upsert') {
+                $docTypeId = filter_input(INPUT_POST, 'doc_type_id', FILTER_VALIDATE_INT);
+                if (!$docTypeId) throw new Exception('Missing document type ID.', 400);
+                $status = $_POST['status'] ?? 'missing';
+                $note = trim($_POST['note'] ?? '');
+                $this->documentModel->upsertDriverDocument($driverId, $docTypeId, $status, $note);
+
+            } elseif ($action === 'remove') {
+                $docTypeId = filter_input(INPUT_POST, 'doc_type_id', FILTER_VALIDATE_INT);
+                if (!$docTypeId) throw new Exception('Missing document type ID.', 400);
+                $this->documentModel->removeDriverDocument($driverId, $docTypeId);
+
+            } else {
+                throw new Exception('Invalid action specified.', 400);
+            }
+
+            // After any change, update the master flag
+            $this->documentModel->updateDriverMissingDocsFlag($driverId);
+
+            $db->commit();
+
+            // Fetch the updated list of documents to send back to the client
+            $updatedDocuments = $this->documentModel->getDriverDocuments($driverId);
+            $unassignedDocuments = $this->documentModel->getUnassignedDocumentTypes($driverId);
+            $updatedDriver = $this->driverModel->getById($driverId);
+
+
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Document managed successfully.',
+                'documents' => $updatedDocuments,
+                'unassigned' => $unassignedDocuments,
+                'driver' => $updatedDriver
+            ]);
+
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Document management error: " . $e->getMessage());
+            $this->sendJsonResponse(
+                ['success' => false, 'message' => $e->getMessage()],
+                $e->getCode() ?: 500
+            );
+        }
     }
 }

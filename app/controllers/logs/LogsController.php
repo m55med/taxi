@@ -30,8 +30,8 @@ class LogsController extends Controller {
             'activity_type' => $_GET['activity_type'] ?? 'all',
             'user_id' => $_GET['user_id'] ?? 'all',
             'team_id' => $_GET['team_id'] ?? 'all',
-            'date_from' => $_GET['date_from'] ?? date('Y-m-01'),
-            'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
+            'date_from' => $_GET['date_from'] ?? '',
+            'date_to' => $_GET['date_to'] ?? '',
             'search' => $_GET['search'] ?? ''
         ];
 

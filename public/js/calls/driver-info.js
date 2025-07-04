@@ -23,77 +23,83 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add a loading indicator to the button
             const submitButton = form.querySelector('button[type="submit"]');
             const originalButtonContent = submitButton.innerHTML;
-            submitButton.innerHTML = `<i class="fas fa-spinner fa-spin ml-2"></i> جارٍ الحفظ...`;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Updating...';
             submitButton.disabled = true;
 
             try {
-                const response = await fetch(`${BASE_PATH}/driver/update`, {
+                const response = await fetch(`${URLROOT}/driver/update`, {
                     method: 'POST',
                     body: formData // Send as form data, not JSON
                 });
 
                 const parsedData = await response.json();
 
-                if (parsedData.success) {
-                    if (parsedData.update_debug) {
-                        console.log('✅ Server Update Debug Info:', parsedData.update_debug);
-                    }
+                if (parsedData.success && parsedData.driver) {
                     showToast(parsedData.message || 'تم تحديث البيانات بنجاح!', 'success');
-                    
-                    // Update Name
+                    const driver = parsedData.driver;
+
+                    // --- Update the display card using data confirmed by the server ---
+
                     const nameElement = document.getElementById('driver-profile-name');
-                    if (nameElement && formData.get('name')) {
-                        nameElement.textContent = formData.get('name');
-                    }
+                    if (nameElement) nameElement.textContent = driver.name;
 
-                    // Update Email
                     const emailElement = document.getElementById('driver-profile-email');
-                    if (emailElement) {
-                        emailElement.textContent = formData.get('email') || 'غير متوفر';
-                    }
+                    if (emailElement) emailElement.textContent = driver.email || 'غير متوفر';
 
-                    // Update App Status
                     const statusElement = document.getElementById('driverAppStatus');
-                    if (statusElement && formData.get('app_status')) {
+                    if (statusElement) {
                         const statusMap = {
                             active: { text: 'نشط', class: 'bg-green-100 text-green-800' },
                             inactive: { text: 'غير نشط', class: 'bg-yellow-100 text-yellow-800' },
                             banned: { text: 'محظور', class: 'bg-red-100 text-red-800' },
                         };
-                        const statusInfo = statusMap[formData.get('app_status')] || { text: formData.get('app_status'), class: 'bg-gray-100 text-gray-800' };
+                        const statusInfo = statusMap[driver.app_status] || { text: driver.app_status, class: 'bg-gray-100 text-gray-800' };
                         
                         statusElement.textContent = statusInfo.text;
                         statusElement.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
                     }
 
-                    // Update Gender
                     const genderElement = document.getElementById('driver-profile-gender');
-                    if (genderElement && formData.get('gender')) {
-                        genderElement.textContent = formData.get('gender') === 'male' ? 'ذكر' : 'أنثى';
+                    if (genderElement) {
+                        if (driver.gender === 'male') genderElement.textContent = 'ذكر';
+                        else if (driver.gender === 'female') genderElement.textContent = 'أنثى';
+                        else genderElement.textContent = 'غير محدد';
                     }
-
-                    // Update Nationality
+                    
                     const nationalityElement = document.getElementById('driver-profile-nationality');
-                    const countrySelect = form.querySelector('select[name="country_id"]');
-                    if (nationalityElement && countrySelect && countrySelect.selectedIndex > 0) {
-                        nationalityElement.textContent = countrySelect.options[countrySelect.selectedIndex].text;
-                    }
+                    if (nationalityElement) nationalityElement.textContent = driver.country_name || 'غير محدد';
 
-                    // Update Car Type
                     const carTypeElement = document.getElementById('driver-profile-car-type');
-                    const carTypeSelect = form.querySelector('select[name="car_type_id"]');
-                    if (carTypeElement && carTypeSelect && carTypeSelect.selectedIndex > 0) {
-                        carTypeElement.textContent = carTypeSelect.options[carTypeSelect.selectedIndex].text;
-                    }
+                    if (carTypeElement) carTypeElement.textContent = driver.car_type_name || 'غير محدد';
 
-                    // Update Notes
                     const notesElement = document.getElementById('driver-profile-notes');
-                    if (notesElement) {
-                        notesElement.textContent = formData.get('notes') || 'لا يوجد';
-                    }
+                    if (notesElement) notesElement.textContent = driver.notes || 'لا يوجد';
 
-                    updateProfileCard(parsedData.driver);
-                    showToast('success', parsedData.message || 'Driver info updated successfully.');
+                    const tripsStatusElement = document.getElementById('driverTripsStatus');
+                    if (tripsStatusElement) {
+                        if (!!parseInt(driver.has_many_trips)) {
+                            tripsStatusElement.className = 'px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800';
+                            tripsStatusElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Exceeds 10 Trips';
+                        } else {
+                            tripsStatusElement.className = 'px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800';
+                            tripsStatusElement.innerHTML = '<i class="fas fa-times-circle mr-1"></i> Under 10 Trips';
+                        }
+                    }
+                    
+                    // --- Also update the form fields to keep them in sync ---
+                    
+                    form.querySelector('[name="name"]').value = driver.name;
+                    form.querySelector('[name="email"]').value = driver.email;
+                    form.querySelector('[name="gender"]').value = driver.gender;
+                    form.querySelector('[name="country_id"]').value = driver.country_id;
+                    form.querySelector('[name="app_status"]').value = driver.app_status;
+                    form.querySelector('[name="car_type_id"]').value = driver.car_type_id;
+                    form.querySelector('[name="notes"]').value = driver.notes;
+
+                    const hasManyTripsToggle = form.querySelector('[name="has_many_trips"][type="checkbox"]');
+                    if(hasManyTripsToggle) {
+                        hasManyTripsToggle.checked = !!parseInt(driver.has_many_trips);
+                    }
 
                 } else {
                     showToast(parsedData.message || 'فشل تحديث البيانات.', 'error');

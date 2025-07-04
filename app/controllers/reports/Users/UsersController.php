@@ -88,29 +88,21 @@ class UsersController extends Controller
     }
 
     private function flattenUserData($user) {
-        $stats = $user['call_stats'] ?? [];
-        $points = $user['points_details'] ?? [];
-
         return [
             'User' => $user['username'] ?? '',
             'Email' => $user['email'] ?? '',
             'Role' => $user['role_name'] ?? '',
             'Team' => $user['team_name'] ?? 'N/A',
             'Status' => ucfirst($user['status'] ?? ''),
-            'Online' => (isset($user['is_online']) && $user['is_online'] ? 'Online' : 'Offline'),
-            'Total Calls' => ($stats['total_incoming_calls'] ?? 0) + ($stats['total_outgoing_calls'] ?? 0),
-            'Incoming' => $stats['total_incoming_calls'] ?? 0,
-            'Outgoing' => $stats['total_outgoing_calls'] ?? 0,
-            'Answered' => $stats['answered_outgoing'] ?? 0,
-            'No-Answer' => $stats['no_answer_outgoing'] ?? 0,
-            'Busy' => $stats['busy_outgoing'] ?? 0,
-            'Answer Rate (%)' => number_format($stats['answered_rate'] ?? 0, 1),
+            'Online' => ($user['is_online'] ? 'Online' : 'Offline'),
+            'Total Calls' => ($user['incoming_calls'] ?? 0) + ($user['outgoing_calls'] ?? 0),
+            'Incoming Calls' => $user['incoming_calls'] ?? 0,
+            'Outgoing Calls' => $user['outgoing_calls'] ?? 0,
             'Normal Tickets' => $user['normal_tickets'] ?? 0,
             'VIP Tickets' => $user['vip_tickets'] ?? 0,
-            'Assignments' => $user['assignments_count'] ?? 0,
-            'Total Points' => number_format($points['final_total_points'] ?? 0, 2),
-            'Base Points' => number_format($points['total_base_points'] ?? 0, 2),
-            'Bonus Points' => number_format($points['total_bonus_amount'] ?? 0, 2),
+            'Quality Score (%)' => number_format($user['quality_score'] ?? 0, 2),
+            'Total Reviews' => $user['total_reviews'] ?? 0,
+            'Total Points' => number_format($user['total_points'] ?? 0, 2),
         ];
     }
 
@@ -152,19 +144,17 @@ class UsersController extends Controller
             
             // Add Totals Row
             $lastRow = count($processedData) + 2;
+            $average_quality = ($summary['total_reviews'] ?? 0) > 0 ? ($summary['total_quality_score'] / $summary['total_reviews']) : 0;
             $summaryRow = [
                 'Grand Total', '', '', '', '', '',
-                $summary['total_incoming_calls'] + $summary['total_outgoing_calls'],
-                $summary['total_incoming_calls'],
-                $summary['total_outgoing_calls'],
-                $summary['answered_outgoing'],
-                $summary['no_answer_outgoing'],
-                $summary['busy_outgoing'],
-                number_format($summary['answered_rate'], 1),
-                $summary['normal_tickets'],
-                $summary['vip_tickets'],
-                $summary['assignments_count'],
-                number_format($summary['total_points'], 2)
+                ($summary['incoming_calls'] ?? 0) + ($summary['outgoing_calls'] ?? 0),
+                $summary['incoming_calls'] ?? 0,
+                $summary['outgoing_calls'] ?? 0,
+                $summary['normal_tickets'] ?? 0,
+                $summary['vip_tickets'] ?? 0,
+                number_format($average_quality, 2),
+                $summary['total_reviews'] ?? 0,
+                number_format($summary['total_points'] ?? 0, 2)
             ];
             $sheet->fromArray($summaryRow, null, 'A' . $lastRow);
 

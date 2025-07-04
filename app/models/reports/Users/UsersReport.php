@@ -3,80 +3,159 @@
 namespace App\Models\Reports\Users;
 
 use App\Core\Database;
+use App\Services\PointsService;
 use PDO;
 
 class UsersReport
 {
     private $db;
+    private $pointsService;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
+        $this->pointsService = new PointsService();
     }
 
-    private function getIncomingCallPlatformIds() {
-        // Cache the IDs to avoid multiple queries
-        static $platformIds = null;
-        if ($platformIds === null) {
-            // Find all platform IDs that look like an incoming call to handle inconsistencies.
-            $stmt = $this->db->prepare("SELECT id FROM platforms WHERE LOWER(REPLACE(name, '_', ' ')) IN ('incoming call', 'incoming calls')");
-            $stmt->execute();
-            $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            // If no matching platforms found, use an invalid ID to prevent SQL errors.
-            $platformIds = !empty($ids) ? $ids : [-1]; 
-        }
-        return $platformIds;
-    }
-
-    public function getAllUsersForFilter()
+    private function getAllActivitiesForUsers(array $userIds, $dateFrom, $dateTo)
     {
-        $sql = "SELECT id, username FROM users ORDER BY username ASC";
-        $stmt = $this->db->query($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+        if (empty($userIds)) {
+            return [];
+        }
 
+        $userIdsPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
+        $params = [];
+        
+        $ticketsQuery = "
+            SELECT 
+                'Ticket' as activity_type, td.id as activity_id, td.created_at as activity_date, 
+                td.edited_by as user_id, td.is_vip, p.name as platform_name
+            FROM ticket_details td
+            JOIN platforms p ON td.platform_id = p.id
+            WHERE td.edited_by IN ({$userIdsPlaceholders})
+        ";
+        $ticketParams = $userIds;
+        if ($dateFrom) { $ticketsQuery .= " AND td.created_at >= ?"; $ticketParams[] = $dateFrom . ' 00:00:00'; }
+        if ($dateTo)   { $ticketsQuery .= " AND td.created_at <= ?"; $ticketParams[] = $dateTo . ' 23:59:59'; }
+        $params = array_merge($params, $ticketParams);
+
+        $outgoingCallsQuery = "
+            SELECT 
+                'Outgoing Call' as activity_type, dc.id as activity_id, dc.created_at as activity_date, 
+                dc.call_by as user_id, NULL as is_vip, NULL as platform_name
+            FROM driver_calls dc
+            WHERE dc.call_by IN ({$userIdsPlaceholders})
+        ";
+        $outgoingParams = $userIds;
+        if ($dateFrom) { $outgoingCallsQuery .= " AND dc.created_at >= ?"; $outgoingParams[] = $dateFrom . ' 00:00:00'; }
+        if ($dateTo)   { $outgoingCallsQuery .= " AND dc.created_at <= ?"; $outgoingParams[] = $dateTo . ' 23:59:59'; }
+        $params = array_merge($params, $outgoingParams);
+        
+        $incomingCallsQuery = "
+            SELECT 
+                'Incoming Call' as activity_type, ic.id as activity_id, ic.call_started_at as activity_date, 
+                ic.call_received_by as user_id, NULL as is_vip, NULL as platform_name
+            FROM incoming_calls ic
+            WHERE ic.call_received_by IN ({$userIdsPlaceholders})
+        ";
+        $incomingParams = $userIds;
+        if ($dateFrom) { $incomingCallsQuery .= " AND ic.call_started_at >= ?"; $incomingParams[] = $dateFrom . ' 00:00:00'; }
+        if ($dateTo)   { $incomingCallsQuery .= " AND ic.call_started_at <= ?"; $incomingParams[] = $dateTo . ' 23:59:59'; }
+        $params = array_merge($params, $incomingParams);
+
+        $sql = $ticketsQuery . " UNION ALL " . $outgoingCallsQuery . " UNION ALL " . $incomingCallsQuery;
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+    
+    public function getUsersReportWithPoints($filters)
+    {
+        $baseUsers = $this->getUsersReport($filters);
+        $users = $baseUsers['users'];
+        $userIds = array_column($users, 'id');
+
+        if (empty($userIds)) {
+            return [
+                'users' => [],
+                'summary_stats' => [
+                    'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+                    'total_points' => 0, 'total_quality_score' => 0, 'total_reviews' => 0,
+                ]
+            ];
+        }
+
+        $activities = $this->getAllActivitiesForUsers($userIds, $filters['date_from'] ?? null, $filters['date_to'] ?? null);
+
+        $userStats = [];
+        foreach ($userIds as $id) {
+            $userStats[$id] = [
+                'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+                'total_points' => 0
+            ];
+        }
+        
+        foreach ($activities as $activity) {
+            if(!isset($userStats[$activity->user_id])) continue;
+
+            $this->pointsService->calculateForActivity($activity);
+            $userStats[$activity->user_id]['total_points'] += $activity->points;
+
+            switch ($activity->activity_type) {
+                case 'Ticket':
+                    $platformName = strtolower(str_replace('_', ' ', $activity->platform_name ?? ''));
+                    if ($platformName !== 'incoming call' && $platformName !== 'incoming calls') {
+                        if ($activity->is_vip) {
+                            $userStats[$activity->user_id]['vip_tickets']++;
+                        } else {
+                            $userStats[$activity->user_id]['normal_tickets']++;
+                        }
+                    }
+                    break;
+                case 'Incoming Call':
+                    $userStats[$activity->user_id]['incoming_calls']++;
+                    break;
+                case 'Outgoing Call':
+                    $userStats[$activity->user_id]['outgoing_calls']++;
+                    break;
+            }
+        }
+        
+        $qualityScores = $this->getQualityScores($userIds, $filters);
+        
+        foreach ($users as &$user) {
+            $userId = $user['id'];
+            if(isset($userStats[$userId])) {
+                $user = array_merge($user, $userStats[$userId]);
+            }
+
+            $user['quality_score'] = $qualityScores[$userId]['quality_score'] ?? 0;
+            $user['total_reviews'] = $qualityScores[$userId]['total_reviews'] ?? 0;
+        }
+        unset($user);
+
+        $summaryStats = [
+             'normal_tickets' => array_sum(array_column($userStats, 'normal_tickets')),
+             'vip_tickets' => array_sum(array_column($userStats, 'vip_tickets')),
+             'incoming_calls' => array_sum(array_column($userStats, 'incoming_calls')),
+             'outgoing_calls' => array_sum(array_column($userStats, 'outgoing_calls')),
+             'total_points' => array_sum(array_column($userStats, 'total_points')),
+             'total_quality_score' => array_sum(array_column($qualityScores, 'quality_score')),
+             'total_reviews' => array_sum(array_column($qualityScores, 'total_reviews')),
+        ];
+
+        return [
+            'users' => $users,
+            'summary_stats' => $summaryStats
+        ];
+    }
+    
     public function getUsersReport($filters)
     {
-        $mainParams = [];
         $mainConditions = [];
+        $mainParams = [];
 
-        $outgoingCallSubParams = [];
-        $outgoingCallSubConditions = "1=1";
-
-        $incomingCallSubParams = [];
-        $incomingCallSubConditions = "1=1";
-
-        $assignmentSubParams = [];
-        $assignmentSubConditions = "1=1";
-
-        // Handle date filters for all relevant subqueries
-        if (!empty($filters['date_from'])) {
-            $dateFrom = $filters['date_from'] . ' 00:00:00';
-            
-            $outgoingCallSubConditions .= " AND dc.created_at >= :date_from_outgoing";
-            $outgoingCallSubParams[':date_from_outgoing'] = $dateFrom;
-
-            $incomingCallSubConditions .= " AND ic.call_started_at >= :date_from_incoming";
-            $incomingCallSubParams[':date_from_incoming'] = $dateFrom;
-
-            $assignmentSubConditions .= " AND da.created_at >= :date_from_assign";
-            $assignmentSubParams[':date_from_assign'] = $dateFrom;
-        }
-        if (!empty($filters['date_to'])) {
-            $dateTo = $filters['date_to'] . ' 23:59:59';
-
-            $outgoingCallSubConditions .= " AND dc.created_at <= :date_to_outgoing";
-            $outgoingCallSubParams[':date_to_outgoing'] = $dateTo;
-            
-            $incomingCallSubConditions .= " AND ic.call_started_at <= :date_to_incoming";
-            $incomingCallSubParams[':date_to_incoming'] = $dateTo;
-
-            $assignmentSubConditions .= " AND da.created_at <= :date_to_assign";
-            $assignmentSubParams[':date_to_assign'] = $dateTo;
-        }
-
-        // Handle main query filters
         if (!empty($filters['role_id'])) {
             $mainConditions[] = 'u.role_id = :role_id';
             $mainParams[':role_id'] = $filters['role_id'];
@@ -85,442 +164,131 @@ class UsersReport
             $mainConditions[] = 'u.status = :status';
             $mainParams[':status'] = $filters['status'];
         }
-        if (!empty($filters['team_id'])) {
-            $mainConditions[] = 't.id = :team_id';
-            $mainParams[':team_id'] = $filters['team_id'];
-        }
         if (!empty($filters['user_id'])) {
             $mainConditions[] = 'u.id = :user_id';
             $mainParams[':user_id'] = $filters['user_id'];
         }
-
-        // Construct the main WHERE clause
+        if (!empty($filters['team_id'])) {
+            $mainConditions[] = "u.id IN (SELECT user_id FROM team_members WHERE team_id = :team_id)";
+            $mainParams[':team_id'] = $filters['team_id'];
+        }
+        
         $mainWhereClause = !empty($mainConditions) ? 'WHERE ' . implode(' AND ', $mainConditions) : '';
-
-        // Base query with placeholders for subquery conditions
+        
         $sql = "SELECT 
                     u.id, u.username, u.email, u.status, u.is_online,
-                    r.name as role_name, t.name as team_name, t.id as team_id,
-                    COALESCE(outgoing_cs.total_calls, 0) as total_outgoing_calls,
-                    COALESCE(outgoing_cs.answered, 0) as answered_outgoing,
-                    COALESCE(outgoing_cs.no_answer, 0) as no_answer_outgoing,
-                    COALESCE(outgoing_cs.busy, 0) as busy_outgoing,
-                    COALESCE(incoming_cs.total_calls, 0) as total_incoming_calls,
-                    COALESCE(cs_today.total_calls, 0) as today_total,
-                    COALESCE(cs_today.answered, 0) as today_answered,
-                    COALESCE(asg.assignments_count, 0) as assignments_count
+                    r.name as role_name,
+                    t.id as team_id,
+                    t.name as team_name
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
-                LEFT JOIN (
-                    SELECT dc.call_by, COUNT(*) as total_calls,
-                           SUM(CASE WHEN dc.call_status = 'answered' THEN 1 ELSE 0 END) as answered,
-                           SUM(CASE WHEN dc.call_status = 'no_answer' THEN 1 ELSE 0 END) as no_answer,
-                           SUM(CASE WHEN dc.call_status = 'busy' THEN 1 ELSE 0 END) as busy
-                    FROM driver_calls dc
-                    WHERE {$outgoingCallSubConditions}
-                    GROUP BY dc.call_by
-                ) outgoing_cs ON u.id = outgoing_cs.call_by
-                LEFT JOIN (
-                    SELECT ic.call_received_by, COUNT(*) as total_calls
-                    FROM incoming_calls ic
-                    WHERE {$incomingCallSubConditions}
-                    GROUP BY ic.call_received_by
-                ) incoming_cs ON u.id = incoming_cs.call_received_by
-                LEFT JOIN (
-                    SELECT call_by, COUNT(*) as total_calls, SUM(CASE WHEN call_status = 'answered' THEN 1 ELSE 0 END) as answered
-                    FROM driver_calls
-                    WHERE DATE(created_at) = CURDATE()
-                    GROUP BY call_by
-                ) cs_today ON u.id = cs_today.call_by
-                LEFT JOIN (
-                    SELECT da.from_user_id, COUNT(*) as assignments_count
-                    FROM driver_assignments da
-                    WHERE {$assignmentSubConditions}
-                    GROUP BY da.from_user_id
-                ) asg ON u.id = asg.from_user_id
                 LEFT JOIN team_members tm ON u.id = tm.user_id
                 LEFT JOIN teams t ON tm.team_id = t.id
                 {$mainWhereClause}
+                GROUP BY u.id
                 ORDER BY u.created_at DESC";
 
-        // Combine all parameters
-        $finalParams = array_merge($mainParams, $outgoingCallSubParams, $incomingCallSubParams, $assignmentSubParams);
-
-        // Execute user data query
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($finalParams);
+        $stmt->execute($mainParams);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Process results to add rates
-        foreach ($users as &$user) {
-            $total_outgoing = (int)$user['total_outgoing_calls'];
-            $user['call_stats'] = [
-                'total_outgoing_calls' => $total_outgoing,
-                'answered_outgoing' => (int)$user['answered_outgoing'],
-                'no_answer_outgoing' => (int)$user['no_answer_outgoing'],
-                'busy_outgoing' => (int)$user['busy_outgoing'],
-                'answered_rate' => $total_outgoing > 0 ? ((int)$user['answered_outgoing'] / $total_outgoing) * 100 : 0,
-                'no_answer_rate' => $total_outgoing > 0 ? ((int)$user['no_answer_outgoing'] / $total_outgoing) * 100 : 0,
-                'busy_rate' => $total_outgoing > 0 ? ((int)$user['busy_outgoing'] / $total_outgoing) * 100 : 0,
-                'total_incoming_calls' => (int)$user['total_incoming_calls'],
-                'today_total' => (int)$user['today_total'],
-                'today_answered' => (int)$user['today_answered'],
-            ];
-            // Unset raw stats
-            unset($user['total_outgoing_calls'], $user['answered_outgoing'], $user['no_answer_outgoing'], $user['busy_outgoing'], $user['total_incoming_calls']);
-            unset($user['today_total'], $user['today_answered']);
-        }
-        unset($user);
-        
-        // No need for separate summary queries. We can calculate from the filtered $users array.
-        $summaryStats = [
-            'total_outgoing_calls' => array_sum(array_column(array_column($users, 'call_stats'), 'total_outgoing_calls')),
-            'answered_outgoing' => array_sum(array_column(array_column($users, 'call_stats'), 'answered_outgoing')),
-            'no_answer_outgoing' => array_sum(array_column(array_column($users, 'call_stats'), 'no_answer_outgoing')),
-            'busy_outgoing' => array_sum(array_column(array_column($users, 'call_stats'), 'busy_outgoing')),
-            'total_incoming_calls' => array_sum(array_column(array_column($users, 'call_stats'), 'total_incoming_calls')),
-            'assignments_count' => array_sum(array_column($users, 'assignments_count'))
-        ];
-        
-        $totalOutgoingCalls = (int)($summaryStats['total_outgoing_calls'] ?? 0);
-        $summaryStats['answered_rate'] = $totalOutgoingCalls > 0 ? (($summaryStats['answered_outgoing'] ?? 0) / $totalOutgoingCalls) * 100 : 0;
-        $summaryStats['no_answer_rate'] = $totalOutgoingCalls > 0 ? (($summaryStats['no_answer_outgoing'] ?? 0) / $totalOutgoingCalls) * 100 : 0;
-        $summaryStats['busy_rate'] = $totalOutgoingCalls > 0 ? (($summaryStats['busy_outgoing'] ?? 0) / $totalOutgoingCalls) * 100 : 0;
-
-        return [
-            'users' => $users,
-            'summary_stats' => $summaryStats
-        ];
-    }
-    
-    public function getUsersReportWithPoints($filters)
-    {
-        // Get base user data using the existing filtered query
-        $reportData = $this->getUsersReport($filters);
-        $users = $reportData['users'];
-        $summaryStats = $reportData['summary_stats'];
-    
-        if (empty($users)) {
-            $summaryStats['normal_tickets'] = 0;
-            $summaryStats['vip_tickets'] = 0;
-            $summaryStats['total_points'] = 0;
-            return [
-                'users' => [],
-                'summary_stats' => $summaryStats,
-            ];
-        }
-    
-        $userIds = array_column($users, 'id');
-        $from = $filters['date_from'] ?? null;
-        $to = $filters['date_to'] ?? null;
-    
-        // Initialize ticket and call counts for all users
-        $userStats = array_fill_keys($userIds, [
-            'incoming_calls' => 0, 
-            'other_tickets' => 0, 
-            'vip_tickets' => 0, // Keep this for VIP tickets that are NOT incoming calls
-        ]);
-
-        // 1. Get tickets and aggregate counts
-        $incomingCallPlatformIds = $this->getIncomingCallPlatformIds();
-        $tickets = $this->getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformIds);
-        
-        foreach ($tickets as $ticket) {
-            $userId = $ticket['created_by'];
-            if (isset($userStats[$userId])) {
-                // Count all tickets regardless of platform.
-                // Points are handled separately.
-                if ($ticket['is_vip']) {
-                    $userStats[$userId]['vip_tickets']++;
-                } else {
-                    $userStats[$userId]['other_tickets']++;
-                }
-            }
-        }
-        
-        // 1. Get base points from tickets and calls, aggregated by user and month
-        $monthlyBasePoints = [];
-        // Calculate points only for tickets that are NOT from incoming calls
-        $ticketPointsData = $this->getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformIds);
-        foreach ($ticketPointsData as $ticket) {
-            $userId = $ticket['created_by'];
-            $year = $ticket['year'];
-            $month = $ticket['month'];
-            $points = $ticket['points'] ?? 0;
-            $monthlyBasePoints[$userId][$year][$month] = ($monthlyBasePoints[$userId][$year][$month] ?? 0) + $points;
-        }
-
-        $calls = $this->getCallsForUsers($userIds, $from, $to);
-        foreach ($calls as $call) {
-            $userId = $call['user_id'];
-            $year = $call['year'];
-            $month = $call['month'];
-            $points = (float)($call['points'] ?? 0);
-            $monthlyBasePoints[$userId][$year][$month] = ($monthlyBasePoints[$userId][$year][$month] ?? 0) + $points;
-        }
-
-        // 2. Get bonuses for users
-        $bonuses = $this->getBonusesForUsers($userIds, $from, $to);
-        $userBonuses = [];
-        foreach ($bonuses as $bonus) {
-            $userBonuses[$bonus['user_id']][] = $bonus;
-        }
-
-        // 3. Calculate final points for each user and add ticket counts
-        foreach ($users as &$user) {
-            $userId = $user['id'];
-            
-            // Add ticket counts to user object
-            $user['incoming_calls'] = $userStats[$userId]['incoming_calls'] ?? 0;
-            $user['normal_tickets'] = $userStats[$userId]['other_tickets']; // Rename for consistency in the view
-            $user['vip_tickets'] = $userStats[$userId]['vip_tickets'];
-            $user['outgoing_calls'] = $user['call_stats']['total_outgoing_calls']; // This is from driver_calls
-
-            $totalBasePoints = 0;
-            if (isset($monthlyBasePoints[$userId])) {
-                foreach ($monthlyBasePoints[$userId] as $year => $months) {
-                    foreach ($months as $month => $basePoints) {
-                        $totalBasePoints += $basePoints;
-                    }
-                }
-            }
-
-            $userBonusAmount = 0;
-            $userBonusReasons = [];
-            if (isset($userBonuses[$userId])) {
-                foreach ($userBonuses[$userId] as $bonus) {
-                    $bonusPercent = (float)($bonus['bonus_percent'] ?? 0);
-                    if (!empty($bonus['reason'])) {
-                        $userBonusReasons[] = "{$bonus['reason']} ({$bonusPercent}%)";
-                    }
-                    $userBonusAmount += $totalBasePoints * ($bonusPercent / 100);
-                }
-            }
-
-            $finalPoints = $totalBasePoints + $userBonusAmount;
-            $pointsDetails = [
-                'total_base_points' => $totalBasePoints,
-                'total_bonus_amount' => $userBonusAmount,
-                'final_total_points' => $finalPoints,
-                'bonus_reasons' => $userBonusReasons
-            ];
-
-            $user['points_details'] = $pointsDetails;
-        }
-        unset($user);
-
-        // Update summary statistics with ticket counts and total points
-        $summaryStats['incoming_calls'] = array_sum(array_column($userStats, 'incoming_calls'));
-        $summaryStats['normal_tickets'] = array_sum(array_column($userStats, 'other_tickets'));
-        $summaryStats['vip_tickets'] = array_sum(array_column($userStats, 'vip_tickets'));
-        $summaryStats['outgoing_calls'] = $summaryStats['total_outgoing_calls']; // from driver_calls
-
-        $summaryStats['total_points'] = array_sum(array_map(function($u) {
-            return $u['points_details']['final_total_points'] ?? 0;
-        }, $users));
-
-        return [
-            'users' => $users,
-            'summary_stats' => $summaryStats
-        ];
+        return ['users' => $users];
     }
 
-    private function getTicketPointsForUsers($userIds, $from, $to, $incomingCallPlatformIds)
+    public function getAllUsersForFilter()
     {
-        if (empty($userIds)) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($incomingCallPlatformIds), '?'));
-
-        // Base query to get points for tickets, excluding those from incoming calls.
-        $sql = "
-            SELECT 
-                td.edited_by as created_by, 
-                YEAR(td.created_at) as year, 
-                MONTH(td.created_at) as month,
-                tcp.points
-            FROM ticket_details td
-            JOIN ticket_code_points tcp ON td.code_id = tcp.code_id AND td.is_vip = tcp.is_vip
-            WHERE 
-                td.edited_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")
-                AND td.platform_id NOT IN ({$placeholders}) -- Exclude tickets from incoming calls
-                AND td.created_at >= tcp.valid_from 
-                AND (td.created_at <= tcp.valid_to OR tcp.valid_to IS NULL)
-        ";
-        
-        $params = array_merge($userIds, $incomingCallPlatformIds);
-
-        if ($from) {
-            $sql .= " AND td.created_at >= ?";
-            $params[] = $from . ' 00:00:00';
-        }
-        if ($to) {
-            $sql .= " AND td.created_at <= ?";
-            $params[] = $to . ' 23:59:59';
-        }
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $stmt = $this->db->prepare("SELECT id, username FROM users ORDER BY username ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getTicketsForUsers($userIds, $from, $to, $incomingCallPlatformIds)
+    private function getQualityScores(array $userIds, array $filters)
     {
         if (empty($userIds)) {
             return [];
         }
 
-        $sql = "SELECT 
-                    td.edited_by as created_by,
-                    td.is_vip,
-                    td.platform_id
-                FROM ticket_details td
-                WHERE td.edited_by IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")";
-        
-        $params = $userIds;
-
-        if ($from) {
-            $sql .= " AND td.created_at >= ?";
-            $params[] = $from . ' 00:00:00';
-        }
-        if ($to) {
-            $sql .= " AND td.created_at <= ?";
-            $params[] = $to . ' 23:59:59';
-        }
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    private function getCallsForUsers($userIds, $from, $to)
-    {
-        if (empty($userIds)) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $params = $userIds;
-
-        // Build date conditions and params
-        $dateConditions = "";
+        $dateConditionsSql = "";
         $dateParams = [];
-        if ($from) {
-            $dateConditions .= " AND created_at >= ?";
-            $dateParams[] = $from . ' 00:00:00';
+
+        if (!empty($filters['date_from'])) {
+            $dateConditionsSql .= " AND r.reviewed_at >= ?";
+            $dateParams[] = $filters['date_from'] . ' 00:00:00';
         }
-        if ($to) {
-            $dateConditions .= " AND created_at <= ?";
-            $dateParams[] = $to . ' 23:59:59';
+        if (!empty($filters['date_to'])) {
+            $dateConditionsSql .= " AND r.reviewed_at <= ?";
+            $dateParams[] = $filters['date_to'] . ' 23:59:59';
         }
-        
-        $finalParams = array_merge($params, $dateParams);
+
+        $userIdsPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
 
         $sql = "
-            -- Outgoing Calls
-            SELECT 
-                dc.call_by as user_id, 
-                YEAR(dc.created_at) as year,
-                MONTH(dc.created_at) as month,
-                cp.points
-            FROM driver_calls dc
-            JOIN call_points cp ON cp.call_type = 'outgoing'
-                AND dc.created_at >= cp.valid_from 
-                AND (dc.created_at <= cp.valid_to OR cp.valid_to IS NULL)
-            WHERE dc.call_by IN ({$placeholders})
-            
-            UNION ALL
-
-            -- Incoming Calls
-            SELECT 
-                ic.call_received_by as user_id, 
-                YEAR(ic.call_started_at) as year,
-                MONTH(ic.call_started_at) as month,
-                cp.points
-            FROM incoming_calls ic
-            JOIN call_points cp ON cp.call_type = 'incoming'
-                AND ic.call_started_at >= cp.valid_from 
-                AND (ic.call_started_at <= cp.valid_to OR cp.valid_to IS NULL)
-            WHERE ic.call_received_by IN ({$placeholders})
-        ";
-        
-        // This is tricky because the date column names are different.
-        // It's cleaner to handle date filtering in PHP after fetching, 
-        // or to wrap the queries. Let's wrap them for a cleaner SQL.
-
-        $sqlWrapper = "
-            SELECT user_id, year, month, points FROM (
-                -- Outgoing Calls
+            SELECT
+                user_id,
+                AVG(rating) AS quality_score,
+                COUNT(rating) AS total_reviews
+            FROM (
                 SELECT 
-                    dc.call_by as user_id, 
-                    YEAR(dc.created_at) as year,
-                    MONTH(dc.created_at) as month,
-                    cp.points,
-                    dc.created_at as created_at
-                FROM driver_calls dc
-                JOIN call_points cp ON cp.call_type = 'outgoing'
-                    AND dc.created_at >= cp.valid_from 
-                    AND (dc.created_at <= cp.valid_to OR cp.valid_to IS NULL)
-                WHERE dc.call_by IN ({$placeholders})
-                
+                    td.edited_by AS user_id, 
+                    r.rating,
+                    r.reviewed_at
+                FROM reviews r
+                JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'ticket_detail'
+                WHERE td.edited_by IN ({$userIdsPlaceholders}) {$dateConditionsSql}
+
                 UNION ALL
 
-                -- Incoming Calls
                 SELECT 
-                    ic.call_received_by as user_id, 
-                    YEAR(ic.call_started_at) as year,
-                    MONTH(ic.call_started_at) as month,
-                    cp.points,
-                    ic.call_started_at as created_at
-                FROM incoming_calls ic
-                JOIN call_points cp ON cp.call_type = 'incoming'
-                    AND ic.call_started_at >= cp.valid_from 
-                    AND (ic.call_started_at <= cp.valid_to OR cp.valid_to IS NULL)
-                WHERE ic.call_received_by IN ({$placeholders})
-            ) as all_calls
-            WHERE 1=1 {$dateConditions}
+                    dc.call_by AS user_id, 
+                    r.rating,
+                    r.reviewed_at
+                FROM reviews r
+                JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type = 'driver_call'
+                WHERE dc.call_by IN ({$userIdsPlaceholders}) {$dateConditionsSql}
+            ) AS all_reviews
+            GROUP BY user_id
         ";
 
-        $finalParams = array_merge($userIds, $userIds, $dateParams);
+        $params = array_merge($userIds, $dateParams, $userIds, $dateParams);
 
-        $stmt = $this->db->prepare($sqlWrapper);
-        $stmt->execute($finalParams);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $scores = [];
+        foreach ($results as $row) {
+            $scores[$row['user_id']] = $row;
+        }
+        return $scores;
     }
-
+    
     private function getBonusesForUsers($userIds, $from, $to)
     {
-        if (empty($userIds)) return [];
-
-        $bonusSql = "SELECT user_id, bonus_percent, bonus_year, bonus_month, reason FROM user_monthly_bonus";
-        
-        $bonusConditions = ["user_id IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")"];
-        $bonusParams = $userIds;
-
-        if ($from) {
-            $bonusConditions[] = "LAST_DAY(STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d')) >= ?";
-            $bonusParams[] = $from;
-        }
-        if ($to) {
-            $bonusConditions[] = "STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d') <= ?";
-            $bonusParams[] = $to;
-        }
-
-        $bonusSql .= " WHERE " . implode(" AND ", $bonusConditions);
-        
-        $stmt = $this->db->prepare($bonusSql);
-        $stmt->execute($bonusParams);
-        $bonuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Filter out bonuses where user_id might be null or not set
-        return array_filter($bonuses, function($bonus) {
-            return isset($bonus['user_id']);
-        });
-    }
-
-    public function getTeamPerformanceReport($filters)
-    {
-        // ... existing code ...
+         if (empty($userIds)) return [];
+     
+         $sql = "SELECT user_id, bonus_percent, bonus_year, bonus_month 
+                 FROM user_monthly_bonus 
+                 WHERE user_id IN (" . implode(',', array_fill(0, count($userIds), '?')) . ")";
+         
+         $params = $userIds;
+  
+          if ($from) {
+             $sql .= " AND STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d') >= STR_TO_DATE(?, '%Y-%m-%d')";
+             $params[] = date('Y-m-01', strtotime($from));
+          }
+          if ($to) {
+             $sql .= " AND STR_TO_DATE(CONCAT(bonus_year, '-', bonus_month, '-01'), '%Y-%m-%d') <= STR_TO_DATE(?, '%Y-%m-%d')";
+             $params[] = date('Y-m-t', strtotime($to));
+          }
+  
+         $stmt = $this->db->prepare($sql);
+         $stmt->execute($params);
+ 
+         $bonuses = [];
+         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+             $bonuses[$row['user_id']][$row['bonus_year']][$row['bonus_month']] = $row['bonus_percent'];
+         }
+         return $bonuses;
     }
 }

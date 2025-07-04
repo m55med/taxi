@@ -15,58 +15,82 @@ class DiscussionsController extends Controller {
     }
 
     public function index() {
-        $userId = $_SESSION['user_id'];
-        $role = $_SESSION['role'];
-
-        $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role);
-        
-        $open_discussions_count = 0;
-        foreach($discussions as $d) {
-            if ($d['status'] === 'open') {
-                $open_discussions_count++;
-            }
-        }
-        
         $data = [
             'page_main_title' => 'My Discussions',
-            'discussions' => $discussions,
-            'open_discussions_count' => $open_discussions_count,
-            'currentUser' => ['id' => $userId, 'role' => $role]
         ];
 
         $this->view('discussions/index', $data);
     }
+    
+    public function getDiscussionsApi() {
+        header('Content-Type: application/json');
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Authentication required.']);
+            return;
+        }
+        
+        $role = $_SESSION['role'];
+        $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role);
+        $currentUser = ['id' => $userId, 'role' => $role];
+    
+        echo json_encode([
+            'discussions' => array_values($discussions),
+            'currentUser' => $currentUser
+        ]);
+    }
 
-    public function add($type, $id)
+    public function add($discussable_type, $discussable_id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('discussions'); // Or show an error
+        // 1. Handle POST request (form submission)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->authorize('Discussions/add');
+
+            $data = [
+                'reason' => trim($_POST['reason']),
+                'notes' => trim($_POST['notes']),
+            ];
+
+            // Basic validation
+            if (empty($data['reason']) || empty($data['notes'])) {
+                flash('discussion_error', 'Reason and notes cannot be empty.', 'alert alert-danger');
+                $this->safeRedirectBack($discussable_type, $discussable_id);
+                return;
+            }
+
+            $userId = Auth::getUserId();
+            $newDiscussionId = $this->discussionModel->addDiscussion($discussable_type, $discussable_id, $userId, $data);
+
+            if ($newDiscussionId) {
+                flash('discussion_success', 'Discussion opened successfully.', 'alert alert-success');
+                redirect('discussions#discussion-' . $newDiscussionId);
+            } else {
+                flash('discussion_error', 'Failed to add discussion. A database error occurred.', 'alert alert-danger');
+                $this->safeRedirectBack($discussable_type, $discussable_id);
+            }
+            return;
+        }
+
+        // 2. Handle GET request (displaying the form)
+        $this->authorize('Discussions/add');
+
+        $item_to_discuss = $this->discussionModel->getDiscussableItemDetails($discussable_type, $discussable_id);
+
+        if (!$item_to_discuss) {
+            flash('error', 'The item you are trying to discuss does not exist.', 'error');
+            redirect('/');
             return;
         }
 
         $data = [
-            'reason' => trim($_POST['reason']),
-            'notes' => trim($_POST['notes']),
+            'page_main_title' => 'Open Discussion',
+            'item' => $item_to_discuss,
+            'discussable_type' => $discussable_type,
+            'discussable_id' => $discussable_id,
         ];
 
-        // Basic validation
-        if (empty($data['reason']) || empty($data['notes'])) {
-            flash('discussion_error', 'Reason and notes cannot be empty.', 'alert alert-danger');
-            $this->safeRedirectBack($type, $id);
-            return;
-        }
-
-        $userId = $_SESSION['user_id'];
-        $newDiscussionId = $this->discussionModel->addDiscussion($type, $id, $userId, $data);
-
-        if ($newDiscussionId) {
-            flash('discussion_success', 'Discussion opened successfully.', 'alert alert-success');
-            // Redirect to the discussions page, anchoring to the new discussion
-            redirect('discussions#discussion-' . $newDiscussionId);
-        } else {
-            flash('discussion_error', 'Failed to add discussion. A database error occurred.', 'alert alert-danger');
-            $this->safeRedirectBack($type, $id);
-        }
+        $this->view('discussions/add', $data);
     }
 
     private function safeRedirectBack($type, $id) {
@@ -85,20 +109,32 @@ class DiscussionsController extends Controller {
     }
 
     public function close($id) {
+        header('Content-Type: application/json');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('discussions');
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
+            return;
         }
 
-        $userId = $_SESSION['user_id'];
-        $role = $_SESSION['role'];
+        $userId = Auth::getUserId();
+        $role = $_SESSION['role'] ?? ''; // Make sure role exists
+
+        // Authorization check
+        $canCloseRoles = ['admin', 'quality_manager', 'Team_leader'];
+        if (!in_array($role, $canCloseRoles)) {
+            http_response_code(403); // Forbidden
+            echo json_encode(['success' => false, 'message' => 'You do not have permission to close this discussion.']);
+            return;
+        }
 
         if ($this->discussionModel->closeDiscussion($id, $userId, $role)) {
-            flash('discussion_success', 'Discussion closed successfully.', 'alert alert-success');
+            http_response_code(200); // OK
+            echo json_encode(['success' => true, 'message' => 'Discussion closed successfully.']);
         } else {
-            flash('discussion_error', 'Failed to close discussion or no permission.', 'alert alert-danger');
+            http_response_code(500); // Internal Server Error
+            echo json_encode(['success' => false, 'message' => 'Failed to close the discussion due to a server error or it might be already closed.']);
         }
-
-        redirect('discussions');
     }
 
     public function addReply($discussionId) {
@@ -122,5 +158,61 @@ class DiscussionsController extends Controller {
         }
 
         redirect('discussions#discussion-' . $discussionId);
+    }
+
+    public function addReplyApi($discussionId) {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405); // Method Not Allowed
+            echo json_encode(['error' => 'Invalid request method.']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $message = trim($data['message'] ?? '');
+
+        if (empty($message)) {
+            http_response_code(400); // Bad Request
+            echo json_encode(['error' => 'Reply message cannot be empty.']);
+            return;
+        }
+
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'You must be logged in to reply.']);
+            return;
+        }
+        
+        $newReply = $this->discussionModel->addReply($discussionId, $userId, $message);
+
+        if ($newReply) {
+            http_response_code(201); // Created
+            echo json_encode(['reply' => $newReply]);
+        } else {
+            http_response_code(500); // Internal Server Error
+            echo json_encode(['error' => 'Failed to add reply due to a server error.']);
+        }
+    }
+
+    public function markAsReadApi($discussionId) {
+        header('Content-Type: application/json');
+        $userId = Auth::getUserId();
+
+        if (!$userId) {
+            http_response_code(401); // Unauthorized
+            echo json_encode(['error' => 'Authentication required.']);
+            return;
+        }
+
+        $success = $this->discussionModel->markDiscussionAsRead($discussionId, $userId);
+
+        if ($success) {
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to mark discussion as read.']);
+        }
     }
 } 

@@ -11,7 +11,7 @@ if (isset($_SESSION['telegram_message'])) {
 ?>
 <?php include_once __DIR__ . '/../../includes/header.php'; ?>
 
-<div x-data="telegramSettingsPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()">
+<body x-data="telegramSettingsPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()">
 
     <!-- Toast Notification -->
     <div x-show="toast.show" x-transition.opacity.duration.500ms class="fixed top-5 right-5 z-50">
@@ -84,11 +84,9 @@ if (isset($_SESSION['telegram_message'])) {
                                         <td class="px-6 py-4 whitespace-nowrap"><code><?= htmlspecialchars($setting['telegram_user_id']) ?></code></td>
                                         <td class="px-6 py-4 whitespace-nowrap"><code><?= htmlspecialchars($setting['telegram_chat_id']) ?></code></td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <form action="<?= BASE_PATH ?>/admin/telegram_settings/delete/<?= $setting['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this link?');">
-                                                <button type="submit" class="text-red-600 hover:text-red-800 focus:outline-none">
-                                                    <i class="fas fa-trash-alt mr-1"></i> Delete
-                                                </button>
-                                            </form>
+                                            <button @click="openDeleteModal(<?= $setting['id'] ?>, '<?= htmlspecialchars($setting['username']) ?>')" class="text-red-600 hover:text-red-800 focus:outline-none">
+                                                <i class="fas fa-trash-alt mr-1"></i> Delete
+                                            </button>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -100,12 +98,30 @@ if (isset($_SESSION['telegram_message'])) {
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Delete Confirmation Modal -->
+    <div x-show="deleteModal.open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @keydown.escape.window="closeDeleteModal()">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.away="closeDeleteModal()">
+            <h3 class="text-lg font-semibold mb-2">Confirm Deletion</h3>
+            <p class="text-gray-600 mb-4">Are you sure you want to delete the link for user <strong x-text="deleteModal.username"></strong>? This cannot be undone.</p>
+            <form :action="'<?= BASE_PATH ?>/admin/telegram_settings/delete/' + deleteModal.settingId" method="POST">
+                <div class="flex justify-end space-x-2">
+                    <button type="button" @click="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 <script>
 function telegramSettingsPage(flashMessage) {
     return {
         toast: { show: false, message: '', type: 'success' },
+        deleteModal: {
+            open: false,
+            settingId: null,
+            username: ''
+        },
         init() {
             if (flashMessage) {
                 this.showToast(flashMessage.message, flashMessage.type);
@@ -114,6 +130,16 @@ function telegramSettingsPage(flashMessage) {
         showToast(message, type = 'success') {
             this.toast = { show: true, message, type };
             setTimeout(() => this.toast.show = false, 4000);
+        },
+        openDeleteModal(settingId, username) {
+            this.deleteModal.settingId = settingId;
+            this.deleteModal.username = username;
+            this.deleteModal.open = true;
+        },
+        closeDeleteModal() {
+            this.deleteModal.open = false;
+            this.deleteModal.settingId = null;
+            this.deleteModal.username = '';
         }
     }
 }

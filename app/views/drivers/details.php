@@ -1,38 +1,9 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($page_main_title ?? 'Driver Details') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Roboto', sans-serif; }
-        .timeline-item:before {
-            content: '';
-            position: absolute;
-            left: 1.25rem;
-            top: 1.25rem;
-            bottom: -1.25rem;
-            width: 2px;
-            background-color: #e5e7eb;
-            transform: translateX(-50%);
-        }
-        .timeline-item:last-child:before {
-            display: none;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-    
-<?php include_once APPROOT . '/views/includes/nav.php'; ?>
+<?php include_once APPROOT . '/views/includes/header.php'; ?>
 
-<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+<main class="container mx-auto p-4 sm:p-6 lg:p-8">
 
     <!-- Driver Search Bar -->
-    <div x-data="driverSearch()" x-init="init()" class="mb-6 relative">
+    <div x-data="driverSearch()" class="mb-6 relative">
         <label for="driver-search" class="block text-sm font-medium text-gray-700 mb-1">Search for a driver by phone number:</label>
         <div class="relative">
             <input type="text"
@@ -123,9 +94,15 @@
         <div class="lg:col-span-2 space-y-6">
             <!-- Call History -->
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3 flex items-center">
-                    <i class="fas fa-history text-gray-400 mr-3"></i>
-                    Call History
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-3 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-history text-gray-400 mr-3"></i>
+                        Call History
+                    </div>
+                    <?php $activityCount = count($assignmentHistory ?? []); ?>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
+                        <?= $activityCount ?> Activities
+                    </span>
                 </h2>
                 <?php if (!empty($callHistory)): ?>
                     <div class="relative">
@@ -204,60 +181,116 @@
                     <p class="text-gray-500">No assignment history for this driver.</p>
                 <?php endif; ?>
             </div>
+
+            <!-- Documents Management Section -->
+            <?php if (isset($driver)): ?>
+            <div x-data="driverDetails" class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4 border-b pb-2">Manage Documents</h3>
+                <div class="mb-6 bg-gray-50 p-3 rounded-md">
+                    <span class="font-semibold">Missing Documents Status:</span>
+                    <span x-text="driver.has_missing_documents ? 'Yes' : 'No'" 
+                          :class="driver.has_missing_documents ? 'text-red-600 font-bold' : 'text-green-600 font-bold'"></span>
+                </div>
+
+                <!-- Add New Document Form -->
+                <div class="mb-6">
+                    <h4 class="font-semibold text-lg mb-2">Add New Document Requirement</h4>
+                    <div class="flex items-center space-x-2">
+                        <select x-model="newDocumentId" class="flex-grow p-2 border rounded-md">
+                            <option value="">-- Select a document to add --</option>
+                            <template x-for="doc in unassignedDocuments" :key="doc.id">
+                                <option :value="doc.id" x-text="doc.name"></option>
+                            </template>
+                        </select>
+                        <button @click="addDocument" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md">&plus; Add</button>
+                    </div>
+                </div>
+
+                <!-- Existing Documents List -->
+                <div>
+                    <h4 class="font-semibold text-lg mb-2">Current Documents</h4>
+                    <div class="space-y-4">
+                        <template x-for="doc in documents" :key="doc.id">
+                            <div class="p-4 border rounded-lg bg-white shadow-sm">
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                                    <div class="flex-1">
+                                        <p class="font-bold text-gray-800" x-text="doc.name"></p>
+                                        <p class="text-sm text-gray-500" x-show="doc.updated_by">
+                                            Last updated by <span x-text="doc.updated_by"></span> on <span x-text="new Date(doc.updated_at).toLocaleDateString()"></span>
+                                        </p>
+                                    </div>
+                                    <div class="flex-1 flex items-center space-x-2 mt-3 md:mt-0">
+                                        <input type="text" x-model="doc.note" placeholder="Add a note..." class="flex-grow p-2 border rounded-md text-sm">
+                                        <select x-model="doc.status" @change="updateDocument(doc)" class="p-2 border rounded-md text-sm">
+                                            <option value="missing">Missing</option>
+                                            <option value="uploaded">Uploaded</option>
+                                            <option value="approved">Approved</option>
+                                            <option value="rejected">Rejected</option>
+                                        </select>
+                                        <button @click="removeDocument(doc.id)" class="text-red-500 hover:text-red-700 p-2">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="documents.length === 0" class="text-center text-gray-500 py-4">
+                            No documents assigned to this driver.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deletion Confirmation Modal -->
+                <div x-show="isModalOpen" 
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                     style="display: none;">
+                    <div @click.away="closeModal" 
+                         x-show="isModalOpen"
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-200"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-auto">
+                        <div class="flex items-center justify-start">
+                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fas fa-exclamation-triangle text-red-600"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 ml-4">Delete Document</h3>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-500">
+                                Are you sure you want to remove this document requirement? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button @click="closeModal" type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Cancel
+                            </button>
+                            <button @click="confirmRemoveDocument" type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script>
-function driverSearch() {
-    return {
-        query: '',
-        results: [],
-        isOpen: false,
-        isLoading: false,
-        highlightedIndex: -1,
-        search() {
-            if (this.query.length < 3) {
-                this.results = [];
-                this.isOpen = false;
-                return;
-            }
-            this.isLoading = true;
-            this.isOpen = true;
-            fetch(`<?= URLROOT ?>/drivers/search?q=${encodeURIComponent(this.query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    this.results = data;
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                    this.highlightedIndex = -1;
-                });
-        },
-        highlightNext() {
-            if (this.highlightedIndex < this.results.length - 1) {
-                this.highlightedIndex++;
-            }
-        },
-        highlightPrev() {
-            if (this.highlightedIndex > 0) {
-                this.highlightedIndex--;
-            }
-        },
-        selectHighlighted() {
-            if (this.highlightedIndex > -1 && this.results[this.highlightedIndex]) {
-                window.location.href = `<?= URLROOT ?>/drivers/details/${this.results[this.highlightedIndex].id}`;
-            }
-        },
-        init() {
-            // Can be used for initialization if needed
-        }
-    }
-}
-</script>
+</main>
 
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
-</body>
-</html> 
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+    <?php if ($flash = get_flash_message()): ?>
+        toastr['<?= $flash['type'] ?>']('<?= $flash['message'] ?>');
+    <?php endif; ?>
+</script> 

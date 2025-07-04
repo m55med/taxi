@@ -33,7 +33,7 @@ class CallsController extends Controller
 
         if (!empty($searchPhone)) {
             // Priority 1: Search by phone number if provided
-            $driver = $callModel->findAndLockDriverByPhone($searchPhone);
+            $driver = $callModel->findAndLockDriverByPhone($searchPhone, $_SESSION['user_id']);
         } else {
             // Priority 2: Check for an unseen assignment.
             $unseenAssignment = $callModel->getUnseenAssignment($_SESSION['user_id']);
@@ -65,8 +65,8 @@ class CallsController extends Controller
             'users'                => $callModel->getUsers(),
             'countries'            => $countryModel ? $countryModel->getAll() : [],
             'car_types'            => $carTypeModel ? $carTypeModel->getAll() : [],
-            'document_types'       => $documentModel ? $documentModel->getAllTypes() : [],
-            'required_documents'   => $driver && $documentModel ? $documentModel->getDriverDocuments($driver['id'], true) : [],
+            'document_types'       => $documentModel ? $documentModel->getAllDocumentTypes() : [],
+            'required_documents'   => $driver && $documentModel ? $documentModel->getDriverDocuments($driver['id']) : [],
             'call_history'         => $driver ? $callModel->getCallHistory($driver['id']) : [],
             'today_calls_count'    => $callModel->getTodayCallsCount(),
             'total_pending_calls'  => $callModel->getTotalPendingCalls(),
@@ -185,65 +185,81 @@ class CallsController extends Controller
 
     public function updateDocuments()
     {
-        $this->authorize('calls.documents.update');
+        $this->authorize('Calls/updateDocuments');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(['success' => false, 'message' => 'طريقة طلب غير صحيحة'], 405);
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
 
-        $jsonData = file_get_contents('php://input');
-        $data = json_decode($jsonData, true);
+        $data = json_decode(file_get_contents('php://input'), true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-             $this->sendJsonResponse([
-                'success' => false, 
-                'message' => 'بيانات JSON غير صالحة',
-                'debug_info' => ['error' => json_last_error_msg()]
-            ], 400);
+            echo json_encode(['success' => false, 'message' => 'Invalid JSON data.']);
             return;
         }
 
-        if (!isset($data['driver_id']) || !isset($data['documents']) || !is_array($data['documents'])) {
-            $this->sendJsonResponse([
-                'success' => false, 
-                'message' => 'بيانات غير صحيحة',
-                'debug_info' => ['received_data' => $data]
-            ], 400);
+        $driverId = $data['driver_id'] ?? null;
+        $submittedDocs = $data['documents'] ?? null;
+    
+        if (!$driverId || !is_array($submittedDocs)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid data provided.']);
             return;
         }
 
-        $driverId = $data['driver_id'];
-        $documents = $data['documents'];
-
+        $documentModel = $this->model('Document/Document');
+        $db = \App\Core\Database::getInstance();
+    
         try {
-            $documentsModel = $this->model('Document/Document');
-            if (!$documentsModel) {
-                throw new \Exception('فشل تحميل نموذج المستندات.');
+            $db->beginTransaction();
+    
+            // Get IDs of documents currently in the DB for this driver
+            $currentDbDocs = $documentModel->getDriverDocuments($driverId);
+            $currentDbDocIds = array_column($currentDbDocs, 'id');
+    
+            // Get IDs of documents submitted from the frontend
+            $submittedDocIds = array_column($submittedDocs, 'id');
+    
+            // 1. Documents to REMOVE: In DB but not in submission
+            $docsToRemove = array_diff($currentDbDocIds, $submittedDocIds);
+            foreach ($docsToRemove as $docTypeId) {
+                $documentModel->removeDriverDocument($driverId, $docTypeId);
             }
+    
+            // 2. Documents to UPSERT: All submitted documents
+            foreach ($submittedDocs as $doc) {
+                $documentModel->upsertDriverDocument(
+                    $driverId,
+                    $doc['id'], // document_type_id
+                    $doc['status'] ?? 'submitted',
+                    $doc['note'] ?? ''
+                );
+            }
+    
+            // 3. Update the master flag for the driver based on the new state
+            $documentModel->updateDriverMissingDocsFlag($driverId);
+    
+            $db->commit();
+    
+            $updatedDocs = $documentModel->getDriverDocuments($driverId);
             
-            $result = $documentsModel->updateDriverDocuments($driverId, $documents);
-
-            if ($result) {
-                $updatedDocs = $documentsModel->getDriverDocuments($driverId, true);
-                $this->sendJsonResponse([
-                    'success' => true,
-                    'message' => 'تم تحديث المستندات بنجاح',
-                    'documents' => $updatedDocs
-                ]);
-            } else {
-                throw new \Exception('فشل تحديث المستندات في قاعدة البيانات.');
-            }
+            echo json_encode([
+                'success' => true,
+                'message' => 'Documents updated successfully!',
+                'documents' => $updatedDocs
+            ]);
+    
         } catch (\Exception $e) {
-            error_log("Error in updateDocuments: " . $e->getMessage());
-            $this->sendJsonResponse([
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error in CallsController::updateDocuments: " . $e->getMessage());
+            echo json_encode([
                 'success' => false, 
-                'message' => 'حدث خطأ في النظام',
-                'debug_info' => [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]
-            ], 500);
+                'message' => 'A server error occurred while updating documents.',
+                'debug' => ['error' => $e->getMessage()]
+            ]);
         }
     }
 }

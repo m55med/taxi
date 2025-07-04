@@ -88,7 +88,7 @@ const CallFormModule = {
                 submitButton.disabled = true;
                 const formData = new FormData(this.callForm);
                 
-                const response = await fetch(`${BASE_PATH}/calls/record`, {
+                const response = await fetch(`${URLROOT}/calls/record`, {
                     method: 'POST',
                     body: formData
                 });

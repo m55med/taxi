@@ -31,7 +31,7 @@ $driver = $data['driver'] ?? null;
             // Create a lookup map for faster access to submitted document details.
             $submitted_docs_map = [];
             foreach ($required_documents as $doc) {
-                $submitted_docs_map[$doc['document_type_id']] = $doc;
+                $submitted_docs_map[$doc['id']] = $doc;
             }
             ?>
             <?php foreach ($document_types as $doc_type): ?>
@@ -42,13 +42,18 @@ $driver = $data['driver'] ?? null;
                 ?>
                 <div class="document-item border rounded-lg overflow-hidden transition-all duration-300 <?= $isChecked ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' ?>" data-doc-id="<?= $doc_id ?>">
                     <!-- Header with Checkbox and Name -->
-                    <label class="flex items-center p-4 cursor-pointer bg-gray-50 border-b hover:bg-gray-100 transition-colors">
-                        <input type="checkbox"
-                               class="document-checkbox form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                               value="<?= $doc_id ?>"
-                               <?= $isChecked ? 'checked' : '' ?>>
-                        <span class="ml-4 text-gray-800 font-semibold"><?= htmlspecialchars($doc_type['name']) ?></span>
-                    </label>
+                    <div class="flex items-center justify-between p-4 bg-gray-50 border-b hover:bg-gray-100 transition-colors">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox"
+                                   class="document-checkbox form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                   value="<?= $doc_id ?>"
+                                   <?= $isChecked ? 'checked' : '' ?>>
+                            <span class="ml-4 text-gray-800 font-semibold"><?= htmlspecialchars($doc_type['name']) ?></span>
+                        </label>
+                        <button class="delete-document-btn text-gray-400 hover:text-red-500 transition-colors" data-doc-id="<?= $doc_id ?>" data-doc-name="<?= htmlspecialchars($doc_type['name']) ?>">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
                     
                     <!-- Details Section (Status, Note, etc.) -->
                     <div class="document-details p-4 space-y-4 <?= !$isChecked ? 'hidden' : '' ?>">
@@ -89,6 +94,18 @@ $driver = $data['driver'] ?? null;
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- Deletion Confirmation Modal -->
+<div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Confirm Deletion</h3>
+        <p class="text-gray-600 mb-6">Are you sure you want to remove the document requirement for "<span id="modal-doc-name" class="font-semibold"></span>"?</p>
+        <div class="flex justify-end gap-4">
+            <button id="cancel-delete-btn" class="px-4 py-2 rounded-lg text-gray-600 bg-gray-200 hover:bg-gray-300">Cancel</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 rounded-lg text-white bg-red-600 hover:bg-red-700">Delete</button>
+        </div>
     </div>
 </div>
 

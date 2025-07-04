@@ -81,16 +81,9 @@ class KnowledgeBaseController extends Controller
     {
         $this->requireAdmin();
 
-        $log_file = APPROOT . '/logs/kb_debug.log';
-        $timestamp = date('Y-m-d H:i:s');
-        file_put_contents($log_file, "[$timestamp] --- KB Store method initiated ---\n", FILE_APPEND);
-
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            file_put_contents($log_file, "[$timestamp] Request method was not POST. Redirecting.\n", FILE_APPEND);
             redirect('/knowledge_base');
         }
-
-        file_put_contents($log_file, "[$timestamp] POST data: " . print_r($_POST, true) . "\n", FILE_APPEND);
 
         $data = [
             'title' => isset($_POST['title']) ? trim($_POST['title']) : '',
@@ -100,20 +93,15 @@ class KnowledgeBaseController extends Controller
         
         // Basic validation
         if (empty($data['title']) || empty($data['content'])) {
-            file_put_contents($log_file, "[$timestamp] Validation failed: Title or content empty. Redirecting back.\n", FILE_APPEND);
             flash('kb_message', 'Title and Content are required.', 'error');
             redirect('/knowledge_base/create');
             return;
         }
 
-        file_put_contents($log_file, "[$timestamp] Data validated. Attempting to create article with data: " . print_r($data, true) . "\n", FILE_APPEND);
-
         if ($this->kbModel->create($data)) {
-            file_put_contents($log_file, "[$timestamp] Model create() returned true. Success.\n", FILE_APPEND);
             flash('kb_message', 'Article created successfully.', 'success');
             redirect('/knowledge_base');
         } else {
-            file_put_contents($log_file, "[$timestamp] Model create() returned false. Failure.\n", FILE_APPEND);
             flash('kb_message', 'Failed to create article.', 'error');
             redirect('/knowledge_base/create');
         }

@@ -67,6 +67,13 @@
             <button type="button" id="today-btn" class="px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">1d</button>
             <button type="button" id="week-btn" class="px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">7d</button>
             <button type="button" id="month-btn" class="px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">This Month</button>
+            <?php
+                $all_time_filters = $filters;
+                unset($all_time_filters['date_from']);
+                unset($all_time_filters['date_to']);
+                $all_time_query = http_build_query($all_time_filters);
+            ?>
+            <a href="<?= BASE_PATH ?>/logs?<?= $all_time_query ?>" class="px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">All Time</a>
         </div>
 
         <!-- Action Buttons -->

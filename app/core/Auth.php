@@ -63,14 +63,35 @@ class Auth
      */
     public static function hasPermission($permission)
     {
+        self::startSession();
+
         // Admins and developers have all permissions implicitly.
         if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'])) {
             return true;
         }
 
-        // Check against the user-specific permissions stored in the session.
         $userPermissions = $_SESSION['permissions'] ?? [];
-        return in_array($permission, $userPermissions);
+        if (is_string($userPermissions)) {
+            $userPermissions = array_map('trim', explode(',', $userPermissions));
+        }
+
+        $rolePermissions = $_SESSION['role_permissions'] ?? [];
+        if (is_string($rolePermissions)) {
+            $rolePermissions = array_map('trim', explode(',', $rolePermissions));
+        }
+
+        $permissions = array_unique(array_merge(
+            is_array($userPermissions) ? $userPermissions : [],
+            is_array($rolePermissions) ? $rolePermissions : []
+        ));
+
+        // If after all checks, it's not an array or it's empty, they don't have permission.
+        if (empty($permissions)) {
+            return false;
+        }
+        
+        // Use strict comparison to check if the permission exists.
+        return in_array($permission, $permissions, true);
     }
 
     /**

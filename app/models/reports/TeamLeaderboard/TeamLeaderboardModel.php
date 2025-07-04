@@ -13,8 +13,30 @@ class TeamLeaderboardModel {
     }
 
     public function getTeamLeaderboard($filters) {
-        // 1. Get detailed stats for all users using the existing, powerful model
-        // We pass a modified filter set that ignores specific users/teams to get a full dataset
+        // 1. Get all teams and initialize stats, including member count
+        $stmt = $this->db->prepare("SELECT t.id, t.name, COUNT(tm.user_id) as member_count 
+                                    FROM teams t
+                                    LEFT JOIN team_members tm ON t.id = tm.team_id
+                                    GROUP BY t.id, t.name
+                                    ORDER BY t.name ASC");
+        $stmt->execute();
+        $allTeams = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $teamStats = [];
+        foreach ($allTeams as $team) {
+            $teamStats[$team['id']] = [
+                'team_id' => $team['id'],
+                'team_name' => $team['name'],
+                'member_count' => (int)$team['member_count'],
+                'total_points' => 0,
+                'total_tickets' => 0,
+                'total_calls' => 0,
+                'sum_of_ratings' => 0,
+                'total_reviews' => 0,
+            ];
+        }
+
+        // 2. Get detailed stats for all users for the given date range
         $userReportFilters = [
             'date_from' => $filters['date_from'],
             'date_to' => $filters['date_to'],
@@ -22,33 +44,28 @@ class TeamLeaderboardModel {
         $usersData = $this->usersReportModel->getUsersReportWithPoints($userReportFilters);
         $allUsersWithStats = $usersData['users'];
 
-        // 2. Aggregate the results by team
-        $teamStats = [];
+        // 3. Aggregate the user stats into their respective teams
         foreach ($allUsersWithStats as $user) {
-            $teamId = $user['team_id'] ?? 'unassigned';
-            $teamName = $user['team_name'] ?? 'Unassigned';
-
-            // Initialize team if not exists
-            if (!isset($teamStats[$teamId])) {
-                $teamStats[$teamId] = [
-                    'team_id' => $teamId,
-                    'team_name' => $teamName,
-                    'total_points' => 0,
-                    'total_tickets' => 0,
-                    'total_calls' => 0,
-                ];
+            if (!empty($user['team_id']) && isset($teamStats[$user['team_id']])) {
+                $teamId = $user['team_id'];
+                
+                $teamStats[$teamId]['total_points'] += $user['total_points'] ?? 0;
+                $teamStats[$teamId]['total_tickets'] += ($user['normal_tickets'] ?? 0) + ($user['vip_tickets'] ?? 0);
+                $teamStats[$teamId]['total_calls'] += ($user['incoming_calls'] ?? 0) + ($user['outgoing_calls'] ?? 0);
+                
+                // Correctly calculate sum of ratings for an accurate team average
+                $teamStats[$teamId]['sum_of_ratings'] += ($user['quality_score'] ?? 0) * ($user['total_reviews'] ?? 0);
+                $teamStats[$teamId]['total_reviews'] += $user['total_reviews'] ?? 0;
             }
-            
-            // 3. Aggregate stats for the team
-            $teamStats[$teamId]['total_points'] += $user['points_details']['final_total_points'] ?? 0;
-            $teamStats[$teamId]['total_tickets'] += ($user['normal_tickets'] ?? 0) + ($user['vip_tickets'] ?? 0);
-            $teamStats[$teamId]['total_calls'] += ($user['call_stats']['total_incoming_calls'] ?? 0) + ($user['call_stats']['total_outgoing_calls'] ?? 0);
         }
 
-        // 4. Remove the 'Unassigned' group before sorting
-        if (isset($teamStats['unassigned'])) {
-            unset($teamStats['unassigned']);
+        // 4. Calculate final averages for each team
+        foreach ($teamStats as &$team) {
+            $team['avg_quality_score'] = ($team['total_reviews'] > 0)
+                ? ($team['sum_of_ratings'] / $team['total_reviews'])
+                : 0;
         }
+        unset($team);
 
         // 5. Sort teams by total points descending
         usort($teamStats, function($a, $b) {

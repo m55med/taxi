@@ -1,6 +1,8 @@
-RewriteEngine On
+Options -Indexes
 
-# إعادة توجيه جميع الطلبات إلى المجلد العام
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^(.*)$ public/$1 [L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/index.php?url=$1 [L,QSA]
+</IfModule>

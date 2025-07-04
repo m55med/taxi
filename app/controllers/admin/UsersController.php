@@ -6,20 +6,32 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Models\User\User;
 use App\Models\Admin\Role;
+use App\Models\Admin\Permission;
+use App\Services\ActiveUserService;
 
 class UsersController extends Controller {
     private $userModel;
     private $roleModel;
+    private $permissionModel;
+    private $activeUserService;
 
     public function __construct() {
         Auth::checkAdmin();
         parent::__construct();
         $this->userModel = new User();
         $this->roleModel = new Role();
+        $this->permissionModel = new Permission();
+        require_once APPROOT . '/services/ActiveUserService.php';
+        $this->activeUserService = new ActiveUserService();
     }
 
     public function index() {
         $users = $this->userModel->getAllUsers();
+        $onlineUserIds = $this->activeUserService->getOnlineUserIds();
+
+        foreach ($users as &$user) {
+            $user['is_online'] = in_array($user['id'], $onlineUserIds);
+        }
         
         $data = [
             'users' => $users,
@@ -29,7 +41,7 @@ class UsersController extends Controller {
         $this->view('admin/users/index', $data);
     }
 
-    public function add() {
+    public function create() {
         $data = [
             'roles' => $this->roleModel->getAll(),
             'title' => 'Add New User'
@@ -53,12 +65,22 @@ class UsersController extends Controller {
             } elseif ($this->userModel->isEmailExists($data['email'])) {
                 $_SESSION['user_message'] = 'Email already exists.';
                 $_SESSION['user_message_type'] = 'error';
-            } elseif ($this->userModel->createUser($data)) {
-                $_SESSION['user_message'] = 'User added successfully.';
-                $_SESSION['user_message_type'] = 'success';
             } else {
-                $_SESSION['user_message'] = 'Failed to add user.';
-                $_SESSION['user_message_type'] = 'error';
+                $newUserId = $this->userModel->createUser($data);
+                if ($newUserId) {
+                    // Assign default permissions for the role
+                    $roleId = $data['role_id'];
+                    $defaultPermissions = $this->permissionModel->getPermissionsByRole($roleId);
+                    if (!empty($defaultPermissions)) {
+                        $this->permissionModel->updateUserPermissions($newUserId, $defaultPermissions);
+                    }
+
+                    $_SESSION['user_message'] = 'User added successfully.';
+                    $_SESSION['user_message_type'] = 'success';
+                } else {
+                    $_SESSION['user_message'] = 'Failed to add user.';
+                    $_SESSION['user_message_type'] = 'error';
+                }
             }
         }
         header('Location: ' . BASE_PATH . '/admin/users');
@@ -108,7 +130,12 @@ class UsersController extends Controller {
         exit;
     }
 
-    public function delete($id) {
+    public function destroy() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id'])) {
+             redirect(BASE_PATH . '/admin/users');
+        }
+        $id = $_POST['id'];
+
         if ($this->userModel->deleteUser($id)) {
             $_SESSION['user_message'] = 'User deleted successfully.';
             $_SESSION['user_message_type'] = 'success';
@@ -116,6 +143,7 @@ class UsersController extends Controller {
             $_SESSION['user_message'] = 'Failed to delete user.';
             $_SESSION['user_message_type'] = 'error';
         }
+        // This should redirect to the index page which will show the flash message
         header('Location: ' . BASE_PATH . '/admin/users');
         exit;
     }

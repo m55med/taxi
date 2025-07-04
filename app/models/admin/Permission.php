@@ -171,6 +171,18 @@ class Permission
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
+    public function getPermissionsByRole(int $roleId): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT p.id 
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE rp.role_id = ?
+        ");
+        $stmt->execute([$roleId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
     /**
      * Updates the permissions for a specific user.
      */
@@ -208,6 +220,93 @@ class Permission
             } else {
                 $stmt = $this->db->prepare("DELETE FROM user_permissions WHERE user_id = ? AND permission_id = ?");
                 return $stmt->execute([$userId, $permissionId]);
+            }
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    public function toggleRolePermission(int $roleId, int $permissionId, bool $grant): bool
+    {
+        try {
+            if ($grant) {
+                $stmt = $this->db->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
+                return $stmt->execute([$roleId, $permissionId]);
+            } else {
+                $stmt = $this->db->prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission_id = ?");
+                return $stmt->execute([$roleId, $permissionId]);
+            }
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    public function syncRolePermissions(int $roleId, array $permissionIds, bool $grant): bool
+    {
+        // Ensure permissionIds are all integers to prevent SQL injection.
+        $permissionIds = array_filter($permissionIds, 'is_numeric');
+        if (empty($permissionIds)) {
+            // If we are revoking and the list is empty, there is nothing to do.
+            // If we are granting and the list is empty, also nothing to do.
+            return true;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($permissionIds), '?'));
+        
+        try {
+            if ($grant) {
+                $sql = "INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES ";
+                $values = [];
+                $params = [];
+                foreach ($permissionIds as $permissionId) {
+                    $values[] = "(?, ?)";
+                    $params[] = $roleId;
+                    $params[] = (int)$permissionId;
+                }
+                $sql .= implode(', ', $values);
+                $stmt = $this->db->prepare($sql);
+                return $stmt->execute($params);
+            } else {
+                $sql = "DELETE FROM role_permissions WHERE role_id = ? AND permission_id IN ($placeholders)";
+                $params = array_merge([$roleId], $permissionIds);
+                $stmt = $this->db->prepare($sql);
+                return $stmt->execute($params);
+            }
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    public function syncUserPermissions(int $userId, array $permissionIds, bool $grant): bool
+    {
+        $permissionIds = array_filter($permissionIds, 'is_numeric');
+        if (empty($permissionIds)) {
+            return true;
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($permissionIds), '?'));
+
+        try {
+            if ($grant) {
+                $sql = "INSERT IGNORE INTO user_permissions (user_id, permission_id) VALUES ";
+                $values = [];
+                $params = [];
+                foreach ($permissionIds as $permissionId) {
+                    $values[] = "(?, ?)";
+                    $params[] = $userId;
+                    $params[] = (int)$permissionId;
+                }
+                $sql .= implode(', ', $values);
+                $stmt = $this->db->prepare($sql);
+                return $stmt->execute($params);
+            } else {
+                $sql = "DELETE FROM user_permissions WHERE user_id = ? AND permission_id IN ($placeholders)";
+                $params = array_merge([$userId], $permissionIds);
+                $stmt = $this->db->prepare($sql);
+                return $stmt->execute($params);
             }
         } catch (\Exception $e) {
             error_log($e->getMessage());

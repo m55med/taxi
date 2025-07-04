@@ -40,7 +40,16 @@ if (!function_exists('getAppStatusInfo')) {
 ?>
 
 <!-- Driver Profile Card -->
-<div class="bg-white rounded-lg shadow p-6">
+<div class="bg-white rounded-lg shadow p-6 relative">
+    <?php if ($driver && $driver['hold'] && isset($driver['hold_by_username']) && $driver['hold_by'] != $_SESSION['user_id']): ?>
+        <div class="absolute inset-0 bg-yellow-400 bg-opacity-80 flex flex-col items-center justify-center z-10 rounded-lg p-4">
+            <i class="fas fa-lock text-4xl text-white mb-3"></i>
+            <h4 class="text-xl font-bold text-white text-center">Driver on Hold</h4>
+            <p class="text-sm text-white text-center">This driver is currently being handled by:</p>
+            <p class="font-bold text-lg text-white mt-1"><?= htmlspecialchars($driver['hold_by_username']) ?></p>
+        </div>
+    <?php endif; ?>
+
     <div class="flex items-center space-x-4 mb-4">
         <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
             <i class="fas fa-user text-3xl text-gray-400"></i>

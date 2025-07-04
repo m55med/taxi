@@ -33,27 +33,67 @@ const documentsModule = {
         this.driverId = this.sectionContainer.dataset.driverId;
         this.saveButton = document.getElementById('save-documents-btn');
         this.listContainer = document.getElementById('documents-list');
+        
+        // Modal elements
+        this.deleteModal = document.getElementById('delete-confirm-modal');
+        this.docNameSpan = document.getElementById('modal-doc-name');
+        this.confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        this.cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
-        if (!this.driverId || !this.saveButton || !this.listContainer) {
+        if (!this.driverId || !this.saveButton || !this.listContainer || !this.deleteModal) {
             console.error('Documents module: Required elements are missing.');
             return;
         }
 
-        // Add a single, delegated event listener for all inputs
-        this.listContainer.addEventListener('input', (e) => {
-            const target = e.target;
-            
-            if (target.classList.contains('document-checkbox')) {
-                this.toggleDetails(target);
-            }
-            
-            // Any change should enable the save button
-            this.saveButton.disabled = false;
-        });
+        // Delegated event listeners
+        this.listContainer.addEventListener('input', (e) => this.handleInput(e));
+        this.listContainer.addEventListener('click', (e) => this.handleClick(e));
 
         this.saveButton.addEventListener('click', () => this.handleSave());
+        this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
         
         console.log('Documents module initialized.');
+    },
+
+    handleInput(e) {
+        if (e.target.classList.contains('document-checkbox')) {
+            this.toggleDetails(e.target);
+        }
+        this.saveButton.disabled = false;
+    },
+
+    handleClick(e) {
+        const deleteButton = e.target.closest('.delete-document-btn');
+        if (deleteButton) {
+            const docId = deleteButton.dataset.docId;
+            const docName = deleteButton.dataset.docName;
+            this.openDeleteModal(docId, docName);
+        }
+    },
+    
+    openDeleteModal(docId, docName) {
+        this.docNameSpan.textContent = docName;
+        this.confirmDeleteBtn.dataset.docId = docId;
+        this.deleteModal.classList.remove('hidden');
+        
+        // Use a one-time event listener for the confirmation
+        this.confirmDeleteBtn.onclick = () => this.handleDelete(docId);
+    },
+
+    closeDeleteModal() {
+        this.deleteModal.classList.add('hidden');
+        this.confirmDeleteBtn.dataset.docId = '';
+        this.confirmDeleteBtn.onclick = null; // Clean up listener
+    },
+
+    handleDelete(docId) {
+        const checkbox = this.listContainer.querySelector(`.document-checkbox[value="${docId}"]`);
+        if (checkbox) {
+            checkbox.checked = false;
+            this.toggleDetails(checkbox);
+            this.saveButton.disabled = false;
+        }
+        this.closeDeleteModal();
     },
 
     // Toggles the visibility of the details section and updates card styles
@@ -91,7 +131,7 @@ const documentsModule = {
         });
 
         try {
-            const response = await fetch(`${BASE_PATH}/calls/updateDocuments`, {
+            const response = await fetch(`${URLROOT}/calls/updateDocuments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 body: JSON.stringify({

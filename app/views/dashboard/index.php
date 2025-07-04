@@ -8,7 +8,7 @@
         <p class="mt-2 text-gray-600">Your current role: <?= ucfirst(htmlspecialchars($_SESSION['role'])) ?></p>
     </div> -->
 
-    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin' && isset($data['quickStats'])): ?>
+    <?php if ($data['widgets']['show_quick_stats'] && isset($data['quickStats'])): ?>
     <!-- Admin Quick Stats -->
     <div class="mb-8">
         <h2 class="text-xl font-semibold text-gray-700 mb-4">Quick Stats</h2>
@@ -71,6 +71,7 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             
+            <?php if ($data['widgets']['show_call_center']): ?>
             <!-- Call Center -->
             <a href="<?= BASE_PATH ?>/calls" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -79,7 +80,9 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-2">Manage incoming and outgoing calls.</p>
             </a>
+            <?php endif; ?>
 
+            <?php if ($data['widgets']['show_ticket_management']): ?>
             <!-- Ticket Management -->
             <a href="<?= BASE_PATH ?>/create_ticket" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -88,7 +91,9 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-2">Track and resolve customer support tickets.</p>
             </a>
+            <?php endif; ?>
 
+            <?php if ($data['widgets']['show_discussions']): ?>
             <!-- Discussions -->
             <a href="<?= BASE_PATH ?>/discussions" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -97,8 +102,9 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-2">Follow up on open discussions.</p>
             </a>
+            <?php endif; ?>
 
-            <?php if (in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
+            <?php if ($data['widgets']['show_marketing']): ?>
             <!-- Marketing -->
             <a href="<?= BASE_PATH ?>/referral/dashboard" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-yellow-50 hover:border-yellow-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -109,7 +115,7 @@
             </a>
             <?php endif; ?>
 
-            <?php if (in_array($_SESSION['role'], ['admin'])): ?>
+            <?php if ($data['widgets']['show_reports']): ?>
             <!-- Reports Section -->
             <a href="<?= BASE_PATH ?>/reports/analytics" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-teal-50 hover:border-teal-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -118,7 +124,9 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-2">View detailed analytics and stats.</p>
             </a>
+            <?php endif; ?>
             
+            <?php if ($data['widgets']['show_user_management']): ?>
              <!-- User Management -->
             <a href="<?= BASE_PATH ?>/admin/users" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-300 transition-all duration-300">
                 <div class="flex justify-between items-center">
@@ -127,7 +135,9 @@
                 </div>
                 <p class="text-sm text-gray-500 mt-2">Add, edit, and manage users.</p>
             </a>
+            <?php endif; ?>
 
+            <?php if ($data['widgets']['show_settings']): ?>
             <!-- Settings -->
             <a href="<?= BASE_PATH ?>/admin/permissions" class="group block p-6 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-200 hover:border-gray-400 transition-all duration-300">
                 <div class="flex justify-between items-center">

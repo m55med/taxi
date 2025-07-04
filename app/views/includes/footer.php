@@ -78,8 +78,32 @@
     <!-- Quill Editor for Discussions -->
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-    <script src="<?= BASE_PATH ?>/js/quill-initializer.js"></script>
+    <script src="/taxi/public/js/quill-initializer.js"></script>
 
     <!-- Custom JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=<?= time() ?>"></script>
+    <script src="<?= URLROOT ?>/public/js/create_ticket/main.js?v=<?= time() ?>"></script>
+
+    <script>
+        // Initialize Toastr
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-bottom-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+    </script>
 </body>
 </html> 

@@ -1,0 +1,26 @@
+{
+  "name": "taxi",
+  "version": "1.0.0",
+  "description": "https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/getWebhookInfo\r https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/setWebhook?url=https://b730-154-239-158-2.ngrok-free.app/taxi/public/telegram/",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./public/css/app.css -o ./public/css/dist/style.css --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m55med/taxi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/m55med/taxi/issues"
+  },
+  "homepage": "https://github.com/m55med/taxi#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11"
+  }
+}

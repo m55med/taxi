@@ -250,58 +250,60 @@ class Review {
         }
     }
 
-    public function addReview($type, $reviewable_id, $userId, $data)
+    /**
+     * Adds a review to the database for a specific item.
+     *
+     * @param string $reviewable_type The type of entity being reviewed (e.g., 'driver_call').
+     * @param int $reviewable_id The ID of the entity being reviewed.
+     * @param int $userId The ID of the user submitting the review.
+     * @param array $data The review data (result and notes).
+     * @return bool True on success, false on failure.
+     */
+    public function addReview(string $reviewable_type, int $reviewable_id, int $userId, array $data): bool
     {
-        // Map simple type to fully qualified class name
-        $typeMap = [
-            'ticket_detail' => 'App\\Models\\Tickets\\TicketDetail',
-            'driver_call' => 'App\\Models\\Call\\DriverCall'
-            // Add other reviewable types here
-        ];
-
-        if (!array_key_exists($type, $typeMap)) {
-            error_log("Invalid reviewable type for addReview: " . $type);
-            return false;
-        }
-        $reviewable_type = $typeMap[$type];
-
-        $sql = "INSERT INTO reviews (reviewable_type, reviewable_id, reviewed_by, review_result, review_notes) 
-                VALUES (:reviewable_type, :reviewable_id, :reviewed_by, :review_result, :review_notes)";
+        $sql = "INSERT INTO reviews (reviewable_id, reviewable_type, reviewed_by, rating, review_notes)
+                VALUES (:reviewable_id, :reviewable_type, :reviewed_by, :rating, :review_notes)";
+        
         try {
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
-                ':reviewable_type' => $reviewable_type,
                 ':reviewable_id' => $reviewable_id,
+                ':reviewable_type' => $reviewable_type,
                 ':reviewed_by' => $userId,
-                ':review_result' => $data['review_result'],
+                ':rating' => $data['rating'],
                 ':review_notes' => $data['review_notes']
             ]);
-        } catch (PDOException $e) {
-            error_log("Error in addReview: " . $e->getMessage());
+        } catch (\PDOException $e) {
+            // Log the error
+            error_log("Error adding review: " . $e->getMessage());
             return false;
         }
     }
 
-    public function getEntityIdForRedirect($reviewable_type, $reviewable_id)
+    /**
+     * Gets the parent entity ID for redirecting after a review.
+     * For example, after reviewing a call, we want to redirect to the driver's detail page.
+     *
+     * @param string $type The type of the reviewed item (e.g., 'driver_call').
+     * @param int $id The ID of the reviewed item.
+     * @return array|null An array with the parent type and ID, or null.
+     */
+    public function getEntityIdForRedirect(string $type, int $id): ?array
     {
-        if ($reviewable_type === 'ticket_detail') {
-            $sql = "SELECT ticket_id FROM ticket_details WHERE id = :id";
+        if ($type === 'driver_call') {
+            $sql = "SELECT driver_id FROM driver_calls WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id' => $reviewable_id]);
-            $ticket_id = $stmt->fetchColumn();
-            return ['type' => 'ticket', 'id' => $ticket_id];
+            $stmt->execute([$id]);
+            $driverId = $stmt->fetchColumn();
+            return $driverId ? ['type' => 'driver', 'id' => $driverId] : null;
         }
         
-        if ($reviewable_type === 'driver_call') {
-            $sql = "SELECT driver_id FROM driver_calls WHERE id = :id";
+        if ($type === 'ticket_detail') {
+            $sql = "SELECT ticket_id FROM ticket_details WHERE id = ?";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':id' => $reviewable_id]);
-            $driver_id = $stmt->fetchColumn();
-            return ['type' => 'driver', 'id' => $driver_id];
-        }
-
-        if ($reviewable_type === 'ticket') {
-            return ['type' => 'ticket', 'id' => $reviewable_id];
+            $stmt->execute([$id]);
+            $ticketId = $stmt->fetchColumn();
+            return $ticketId ? ['type' => 'ticket', 'id' => $ticketId] : null;
         }
 
         return null;
@@ -381,4 +383,40 @@ class Review {
             return [];
         }
     }
-} 
+
+    /**
+     * Fetches the details of an item that can be reviewed.
+     *
+     * @param string $type The type of the reviewable item (e.g., 'driver_call').
+     * @param int $id The ID of the reviewable item.
+     * @return array|false The item details or false if not found.
+     */
+    public function getReviewableItemDetails(string $type, int $id)
+    {
+        if ($type === 'driver_call') {
+            $sql = "SELECT dc.*, u.username as staff_name
+                    FROM driver_calls dc
+                    JOIN users u ON dc.call_by = u.id
+                    WHERE dc.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        }
+
+        if ($type === 'ticket_detail') {
+            $sql = "SELECT 
+                        tdh.*,
+                        t.ticket_number,
+                        u.username as editor_name
+                    FROM ticket_details tdh
+                    JOIN tickets t ON tdh.ticket_id = t.id
+                    JOIN users u ON tdh.edited_by = u.id
+                    WHERE tdh.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        }
+        
+        return false;
+    }
+}

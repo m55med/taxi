@@ -12,6 +12,105 @@ class Controller
         // Constructor is now empty, enforcement is done in App.php
     }
 
+    private function getNavigationItems()
+    {
+        // Centralized navigation structure
+        return [
+            [
+                'title' => 'Dashboard',
+                'url' => URLROOT . '/dashboard',
+                'icon' => 'fas fa-tachometer-alt',
+                'permission' => 'dashboard/index'
+            ],
+            [
+                'title' => 'Discussions',
+                'url' => URLROOT . '/discussions',
+                'icon' => 'fas fa-comments',
+                'permission' => 'discussions/index'
+            ],
+            [
+                'title' => 'Tickets',
+                'url' => URLROOT . '/tickets/create',
+                'icon' => 'fas fa-ticket-alt',
+                'permission' => 'tickets/create'
+            ],
+            [
+                'title' => 'Admin',
+                'icon' => 'fas fa-cogs',
+                'permission' => 'admin/index', // A general permission to see the Admin dropdown
+                'children' => [
+                    [
+                        'title' => 'Users',
+                        'url' => URLROOT . '/admin/users',
+                        'icon' => 'fas fa-users-cog',
+                        'permission' => 'admin/users/index'
+                    ],
+                    [
+                        'title' => 'Teams',
+                        'url' => URLROOT . '/admin/teams',
+                        'icon' => 'fas fa-users',
+                        'permission' => 'admin/teams/index'
+                    ],
+                    [
+                        'title' => 'Permissions',
+                        'url' => URLROOT . '/admin/permissions',
+                        'icon' => 'fas fa-user-shield',
+                        'permission' => 'admin/permissions/index'
+                    ],
+                     [
+                        'title' => 'Telegram Settings',
+                        'url' => URLROOT . '/admin/telegram_settings',
+                        'icon' => 'fab fa-telegram-plane',
+                        'permission' => 'admin/telegram_settings/index'
+                    ],
+                ]
+            ],
+            [
+                'title' => 'Reports',
+                'icon' => 'fas fa-chart-pie',
+                'permission' => 'reports/index', // A general permission for the reports section
+                'children' => [
+                    [
+                        'title' => 'Drivers Report',
+                        'url' => URLROOT . '/reports/drivers',
+                        'icon' => 'fas fa-id-card',
+                        'permission' => 'reports/drivers/index'
+                    ],
+                    [
+                        'title' => 'Trips Report',
+                        'url' => URLROOT . '/reports/trips',
+                        'icon' => 'fas fa-route',
+                        'permission' => 'reports/trips/index'
+                    ],
+                ]
+            ]
+        ];
+    }
+    
+    private function filterNavigation($navItems)
+    {
+        $filteredNav = [];
+        foreach ($navItems as $item) {
+            // If the item has a permission key, check it
+            if (isset($item['permission']) && !Auth::hasPermission($item['permission'])) {
+                continue; // Skip this item if user doesn't have permission
+            }
+
+            // If the item has children, filter them recursively
+            if (isset($item['children'])) {
+                $item['children'] = $this->filterNavigation($item['children']);
+                // If after filtering, no children are left, don't show the parent dropdown
+                if (empty($item['children'])) {
+                    continue;
+                }
+            }
+            
+            $filteredNav[] = $item;
+        }
+        return $filteredNav;
+    }
+
+
     /**
      * Loads a model file.
      *
@@ -59,6 +158,10 @@ class Controller
             if ($notificationModel) {
                 $data['mandatory_notifications'] = $notificationModel->getMandatoryUnreadForUser($_SESSION['user_id']);
             }
+
+            // Prepare navigation
+            $allNavItems = $this->getNavigationItems();
+            $data['nav_items'] = $this->filterNavigation($allNavItems);
         }
 
         // Check for view file
@@ -79,7 +182,10 @@ class Controller
             ob_end_clean();
         }
         
-        http_response_code($statusCode);
+        // Ensure the status code is a valid integer before setting it.
+        $finalStatusCode = is_int($statusCode) && $statusCode >= 100 && $statusCode < 600 ? $statusCode : 500;
+        http_response_code($finalStatusCode);
+
         header('Content-Type: application/json; charset=utf-8');
         // Ensure Arabic characters are encoded correctly
         echo json_encode($data, JSON_UNESCAPED_UNICODE);

@@ -102,12 +102,32 @@ class Team
     public function update($id, $name, $team_leader_id)
     {
         try {
-            $stmt = $this->db->prepare("UPDATE teams SET name = :name, team_leader_id = :team_leader_id WHERE id = :id");
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':team_leader_id', $team_leader_id, PDO::PARAM_INT);
-            return $stmt->execute();
+            $sql_parts = [];
+            $params = [];
+
+            if ($name !== null) {
+                $sql_parts[] = "name = :name";
+                $params[':name'] = $name;
+            }
+
+            if ($team_leader_id !== null) {
+                $sql_parts[] = "team_leader_id = :team_leader_id";
+                $params[':team_leader_id'] = $team_leader_id;
+            }
+
+            if (empty($sql_parts)) {
+                return true; // No changes to be made
+            }
+
+            $sql = "UPDATE teams SET " . implode(', ', $sql_parts) . " WHERE id = :id";
+            $params[':id'] = $id;
+
+            $stmt = $this->db->prepare($sql);
+            
+            return $stmt->execute($params);
+
         } catch (PDOException $e) {
+            error_log($e->getMessage()); // Log error
             return false;
         }
     }

@@ -9,8 +9,8 @@
                 </div>
                 <!-- Desktop menu links (hidden on small screens) -->
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <?php if ($_SESSION['role'] === 'admin'): ?>
-                    <a href="<?= BASE_PATH ?>/dashboard/users" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Users/index')): ?>
+                    <a href="<?= BASE_PATH ?>/admin/users" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
                         <i class="fas fa-users-cog mr-1"></i>
                         User Management
                     </a>
@@ -27,15 +27,15 @@
                              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <a href="<?= BASE_PATH ?>/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a>
-                            <a href="<?= BASE_PATH ?>/create_ticket" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
-                            <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
+                            <?php if (\App\Core\Auth::hasPermission('Calls/index')): ?><a href="<?= BASE_PATH ?>/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('Create_ticket/index')): ?><a href="<?= BASE_PATH ?>/create_ticket" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('Referral/dashboard')): ?>
                             <a href="<?= BASE_PATH ?>/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
                             <?php endif; ?>
                         </div>
                     </div>
                     
-                    <?php if ($_SESSION['role'] === 'admin'): ?>
+                    <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index') || \App\Core\Auth::hasPermission('Reports/Users/index')): ?>
                     <!-- Reports Dropdown (Desktop) -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
@@ -55,9 +55,9 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'general'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'general'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Analytics</a>
-                                        <a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">System Logs</a>
-                                        <a href="<?= BASE_PATH ?>/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Notifications Report</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index')): ?><a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Analytics</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/SystemLogs/index')): ?><a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">System Logs</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Notifications/index')): ?><a href="<?= BASE_PATH ?>/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Notifications Report</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- User & Team Reports -->
@@ -67,9 +67,10 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'users'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'users'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Users</a>                                        <a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Leaderboard</a>
-                                        <a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Employee Score</a>
-                                        <a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">My Activity</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Users/index')): ?><a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Users</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TeamLeaderboard/index')): ?><a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Leaderboard</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/EmployeeActivityScore/index')): ?><a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Employee Score</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/MyActivity/index')): ?><a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">My Activity</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Driver Reports -->
@@ -79,10 +80,10 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'drivers'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'drivers'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Drivers</a>
-                                        <a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Assignments</a>
-                                        <a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Calls</a>
-                                        <a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Docs Compliance</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Drivers/index')): ?><a href="<?= BASE_PATH ?>/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Drivers</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverAssignments/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Assignments</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverCalls/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Calls</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverDocumentsCompliance/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Docs Compliance</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Trips Reports -->
@@ -92,7 +93,7 @@
                                         <i class="fas fa-route text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'trips'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'trips'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Detailed Trips Report</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TripsReport/index')): ?><a href="<?= BASE_PATH ?>/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Detailed Trips Report</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Tickets Reports -->
@@ -102,13 +103,13 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'tickets'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'tickets'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets</a>
-                                        <a href="<?= BASE_PATH ?>/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets</a>
-                                        <a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Reviews</a>
-                                        <a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Discussions</a>
-                                        <a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Coupons</a>
-                                        <a href="<?= BASE_PATH ?>/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Rework</a>
-                                        <a href="<?= BASE_PATH ?>/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Review Quality</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketsSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets Summary</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Tickets/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets Details</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketReviews/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Reviews</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketDiscussions/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Discussions</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketCoupons/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Coupons</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketRework/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Rework</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/ReviewQuality/index')): ?><a href="<?= BASE_PATH ?>/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Review Quality</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Marketing Reports -->
@@ -118,8 +119,8 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'marketing'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'marketing'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Marketer Summary</a>
-                                        <a href="<?= BASE_PATH ?>/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Referral Visits</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/MarketerSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Marketer Summary</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/ReferralVisits/index')): ?><a href="<?= BASE_PATH ?>/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Referral Visits</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Other Reports -->
@@ -129,17 +130,20 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'other'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'other'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Calls</a>
-                                        <a href="<?= BASE_PATH ?>/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Assignments</a>
-                                        <a href="<?= BASE_PATH ?>/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Documents</a>
-                                        <a href="<?= BASE_PATH ?>/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a>
-                                        <a href="<?= BASE_PATH ?>/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Custom Reports</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Calls/index')): ?><a href="<?= BASE_PATH ?>/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Calls</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Assignments/index')): ?><a href="<?= BASE_PATH ?>/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Assignments</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Documents/index')): ?><a href="<?= BASE_PATH ?>/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Documents</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Coupons/index')): ?><a href="<?= BASE_PATH ?>/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Reports/Custom/index')): ?><a href="<?= BASE_PATH ?>/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Custom Reports</a><?php endif; ?>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <?php endif; // End Reports Dropdown ?>
+
+                    <?php if (\App\Core\Auth::hasPermission('Upload/index') || \App\Core\Auth::hasPermission('Trips/upload')): ?>
                     <!-- Upload Center Dropdown (Desktop) -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
@@ -151,8 +155,8 @@
                              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                             <a href="<?= BASE_PATH ?>/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Drivers Data</a>
-                             <a href="<?= BASE_PATH ?>/trips/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Trips Data</a>
+                             <?php if (\App\Core\Auth::hasPermission('Upload/index')): ?><a href="<?= BASE_PATH ?>/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Drivers Data</a><?php endif; ?>
+                             <?php if (\App\Core\Auth::hasPermission('Trips/upload')): ?><a href="<?= BASE_PATH ?>/trips/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Trips Data</a><?php endif; ?>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -168,12 +172,12 @@
                              x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a>
-                            <a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>Discussions</a>
+                            <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>Discussions</a><?php endif; ?>
                         </div>
                     </div>
 
-                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index') || \App\Core\Auth::hasPermission('Admin/Roles/index')): ?>
                     <!-- Settings Dropdown (Desktop) -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
@@ -193,13 +197,13 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'system'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'system'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/admin/permissions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Permissions</a>
-                                        <a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Telegram Settings</a>
-                                        <a href="<?= BASE_PATH ?>/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Platforms</a>
-                                        <a href="<?= BASE_PATH ?>/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Roles</a>
-                                        <a href="<?= BASE_PATH ?>/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Car Types</a>
-                                        <a href="<?= BASE_PATH ?>/admin/countries" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Countries</a>
-                                        <a href="<?= BASE_PATH ?>/admin/document_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Document Types</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index')): ?><a href="<?= BASE_PATH ?>/admin/permissions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Permissions</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/TelegramSettings/index')): ?><a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Telegram Settings</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Platforms/index')): ?><a href="<?= BASE_PATH ?>/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Platforms</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Roles/index')): ?><a href="<?= BASE_PATH ?>/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Roles</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/CarTypes/index')): ?><a href="<?= BASE_PATH ?>/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Car Types</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Countries/index')): ?><a href="<?= BASE_PATH ?>/admin/countries" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Countries</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/DocumentTypes/index')): ?><a href="<?= BASE_PATH ?>/admin/document_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Document Types</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Points & Rewards -->
@@ -209,8 +213,8 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'points'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'points'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Point Weights</a>
-                                        <a href="<?= BASE_PATH ?>/admin/bonus" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Grant Monthly Bonus</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Points/index')): ?><a href="<?= BASE_PATH ?>/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Point Weights</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Bonus/index')): ?><a href="<?= BASE_PATH ?>/admin/bonus" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Grant Monthly Bonus</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Team Management -->
@@ -220,8 +224,8 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'team'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'team'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/admin/teams" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Teams</a>
-                                        <a href="<?= BASE_PATH ?>/admin/team_members" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Members</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Teams/index')): ?><a href="<?= BASE_PATH ?>/admin/teams" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Teams</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/TeamMembers/index')): ?><a href="<?= BASE_PATH ?>/admin/team_members" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Members</a><?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Ticket Settings -->
@@ -231,16 +235,16 @@
                                         <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'tickets'}"></i>
                                     </button>
                                     <div x-show="openSubmenu === 'tickets'" x-collapse class="bg-gray-50">
-                                        <a href="<?= BASE_PATH ?>/admin/ticket_categories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Categories</a>
-                                        <a href="<?= BASE_PATH ?>/admin/ticket_subcategories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Subcategories</a>
-                                        <a href="<?= BASE_PATH ?>/admin/ticket_codes" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Codes</a>
-                                        <a href="<?= BASE_PATH ?>/admin/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketCategories/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_categories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Categories</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketSubCategories/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_subcategories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Subcategories</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketCodes/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_codes" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Codes</a><?php endif; ?>
+                                        <?php if (\App\Core\Auth::hasPermission('Admin/Coupons/index')): ?><a href="<?= BASE_PATH ?>/admin/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a><?php endif; ?>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <?php endif; ?>
+                    <?php endif; // End Settings Dropdown ?>
                 </div>
             </div>
             
@@ -326,8 +330,8 @@
          x-transition:leave-end="opacity-0 scale-95"
          class="sm:hidden" id="mobile-menu">
         <div class="pt-2 pb-3 space-y-1">
-            <?php if ($_SESSION['role'] === 'admin'): ?>
-            <a href="<?= BASE_PATH ?>/dashboard/users" class="block py-2 px-4 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-indigo-600">
+            <?php if (\App\Core\Auth::hasPermission('Admin/Users/index')): ?>
+            <a href="<?= BASE_PATH ?>/admin/users" class="block py-2 px-4 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-indigo-600">
                 <i class="fas fa-users-cog mr-1"></i> User Management
             </a>
             <?php endif; ?>
@@ -339,39 +343,41 @@
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                 </button>
                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <a href="<?= BASE_PATH ?>/calls" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-headset mr-2"></i>Call Center</a>
+                    <?php if (\App\Core\Auth::hasPermission('Calls/index')): ?><a href="<?= BASE_PATH ?>/calls" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-headset mr-2"></i>Call Center</a><?php endif; ?>
                     <a href="<?= BASE_PATH ?>/call_log" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-phone-alt mr-2"></i>Log Incoming Call</a>
-                    <a href="<?= BASE_PATH ?>/create_ticket" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
-                    <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'marketer'])): ?>
+                    <?php if (\App\Core\Auth::hasPermission('Create_ticket/index')): ?><a href="<?= BASE_PATH ?>/create_ticket" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Referral/dashboard')): ?>
                     <a href="<?= BASE_PATH ?>/referral/dashboard" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
+            <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index') || \App\Core\Auth::hasPermission('Reports/Users/index')): ?>
             <div class="px-4 py-2" x-data="{ open: false }">
                 <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
                     <span><i class="fas fa-chart-bar mr-2"></i> Reports</span>
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                 </button>
                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <a href="<?= BASE_PATH ?>/reports/analytics" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Analytics</a>
-                    <a href="<?= BASE_PATH ?>/reports/users" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Users</a>
-                    <a href="<?= BASE_PATH ?>/reports/drivers" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Drivers</a>
+                    <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index')): ?><a href="<?= BASE_PATH ?>/reports/analytics" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Analytics</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Reports/Users/index')): ?><a href="<?= BASE_PATH ?>/reports/users" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Users</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Reports/Drivers/index')): ?><a href="<?= BASE_PATH ?>/reports/drivers" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Drivers</a><?php endif; ?>
                      <a href="<?= BASE_PATH ?>/reports/trips" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Trips</a>
-                    <a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Tickets</a>
+                    <?php if (\App\Core\Auth::hasPermission('Reports/TicketsSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Tickets</a><?php endif; ?>
                     <!-- Add other report links if needed -->
                 </div>
             </div>
+            <?php endif; ?>
 
+            <?php if (\App\Core\Auth::hasPermission('Upload/index') || \App\Core\Auth::hasPermission('Trips/upload')): ?>
             <div class="px-4 py-2" x-data="{ open: false }">
                 <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
                     <span><i class="fas fa-upload mr-2"></i> Upload Center</span>
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                 </button>
                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <a href="<?= BASE_PATH ?>/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Drivers Data</a>
-                    <a href="<?= BASE_PATH ?>/trips/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Trips Data</a>
+                    <?php if (\App\Core\Auth::hasPermission('Upload/index')): ?><a href="<?= BASE_PATH ?>/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Drivers Data</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Trips/upload')): ?><a href="<?= BASE_PATH ?>/trips/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Trips Data</a><?php endif; ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -382,23 +388,23 @@
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                 </button>
                  <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <a href="<?= BASE_PATH ?>/logs" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a>
-                    <a href="<?= BASE_PATH ?>/discussions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-comments mr-2"></i>Discussions</a>
+                    <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-comments mr-2"></i>Discussions</a><?php endif; ?>
                 </div>
             </div>
 
-            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
+            <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index') || \App\Core\Auth::hasPermission('Admin/Roles/index')): ?>
              <div class="px-4 py-2" x-data="{ open: false }">
                  <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
                     <span><i class="fas fa-cogs mr-2"></i> Settings</span>
                     <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
                 </button>
                  <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <a href="<?= BASE_PATH ?>/admin/permissions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Permissions</a>
-                    <a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Telegram Settings</a>
-                    <a href="<?= BASE_PATH ?>/admin/platforms" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Platforms</a>
-                    <a href="<?= BASE_PATH ?>/admin/roles" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Roles</a>
-                    <a href="<?= BASE_PATH ?>/admin/teams" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Teams</a>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index')): ?><a href="<?= BASE_PATH ?>/admin/permissions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Permissions</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/TelegramSettings/index')): ?><a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Telegram Settings</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Platforms/index')): ?><a href="<?= BASE_PATH ?>/admin/platforms" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Platforms</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Roles/index')): ?><a href="<?= BASE_PATH ?>/admin/roles" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Roles</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Admin/Teams/index')): ?><a href="<?= BASE_PATH ?>/admin/teams" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Teams</a><?php endif; ?>
                  </div>
             </div>
             <?php endif; ?>

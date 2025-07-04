@@ -2,19 +2,18 @@
 
 namespace App\Models\Discussion;
 
-use App\Core\Database;
-use App\Models\Notifications\Notification;
 use PDO;
 use PDOException;
+use App\Core\Model;
+use App\Models\Notifications\Notification;
 
-class Discussion
+class Discussion extends Model
 {
-    private $db;
     private $notificationModel;
 
     public function __construct()
     {
-        $this->db = Database::getInstance();
+        parent::__construct();
         $this->notificationModel = new Notification();
     }
 
@@ -26,103 +25,113 @@ class Discussion
      */
     public function getDiscussionsForUser($userId, $role)
     {
-        $logFile = APPROOT . '/logs/discussion_reply_debug.log';
-        $log_entry = "========== [" . date('Y-m-d H:i:s') . "] getDiscussionsForUser Attempt ==========\n";
-        $log_entry .= "User ID: $userId, Role: $role\n";
-
-        // Base query to get discussions and join with the user who opened it.
-        $sql = "
+        $baseQuery = "
             SELECT 
-                d.id, d.reason, d.notes, d.status, d.created_at,
-                d.discussable_type, d.discussable_id,
-                opener.id as opener_id,
-                opener.username as opener_name,
-                
-                -- Context-specific fields, populated based on the type of discussion
-                COALESCE(t_from_review.ticket_number, t_direct.ticket_number) as ticket_number,
-                COALESCE(td.ticket_id, t_direct.id) as ticket_id,
-                dr.name as driver_name,
-                dc.driver_id as driver_id,
-                creator.username as created_by_name -- The agent whose work is being discussed
-
+                d.id, d.discussable_type, d.discussable_id, d.reason, d.notes, d.status, d.created_at,
+                opener.username AS opener_name,
+                d.opened_by,
+                COALESCE(last_reply.username, 'N/A') as last_replier_name,
+                COALESCE(last_reply.created_at, d.created_at) as last_activity_at,
+                t.ticket_number,
+                t.id as ticket_id,
+                r.rating as review_score,
+                reviewer.username as reviewer_name,
+                r.reviewable_type,
+                dc.driver_id,
+                (
+                    SELECT COUNT(*) 
+                    FROM discussion_replies dr 
+                    WHERE dr.discussion_id = d.id 
+                      AND dr.user_id != ?
+                      AND dr.id > (
+                          SELECT COALESCE(MAX(udrs.last_read_reply_id), 0)
+                          FROM user_discussion_read_status udrs
+                          WHERE udrs.user_id = ? AND udrs.discussion_id = d.id
+                      )
+                ) AS unread_count
             FROM discussions d
             JOIN users opener ON d.opened_by = opener.id
-            
-            -- Join to find the related review, if any
-            LEFT JOIN reviews r ON d.discussable_type = 'App\\\\Models\\\\Review\\\\Review' AND d.discussable_id = r.id
-            
-            -- Join for Ticket-related context
-            LEFT JOIN ticket_details td ON r.reviewable_type IN ('ticket_detail', 'App\\\\Models\\\\Tickets\\\\TicketDetail') AND r.reviewable_id = td.id
-            LEFT JOIN tickets t_from_review ON td.ticket_id = t_from_review.id
-            
-            -- Join for Call-related context
-            LEFT JOIN driver_calls dc ON r.reviewable_type IN ('driver_call', 'App\\\\Models\\\\Call\\\\DriverCall') AND r.reviewable_id = dc.id
-            LEFT JOIN drivers dr ON dc.driver_id = dr.id
-
-            -- Join for direct Ticket discussions
-            LEFT JOIN tickets t_direct ON d.discussable_type = 'App\\\\Models\\\\Tickets\\\\Ticket' AND d.discussable_id = t_direct.id
-
-            -- Join to find the agent who did the work (the creator of the reviewed item)
-            LEFT JOIN users creator ON creator.id = (
-                CASE
-                    WHEN td.edited_by IS NOT NULL THEN td.edited_by
-                    WHEN dc.call_by IS NOT NULL THEN dc.call_by
-                    WHEN t_direct.created_by IS NOT NULL THEN t_direct.created_by
-                    ELSE NULL
-                END
-            )
+            LEFT JOIN (
+                SELECT 
+                    dr.discussion_id, 
+                    u.username, 
+                    dr.created_at
+                FROM discussion_replies dr
+                JOIN users u ON dr.user_id = u.id
+                WHERE dr.id IN (
+                    SELECT MAX(id) 
+                    FROM discussion_replies 
+                    GROUP BY discussion_id
+                )
+            ) AS last_reply ON d.id = last_reply.discussion_id
+            LEFT JOIN reviews r ON d.discussable_id = r.id AND d.discussable_type = 'App\\\\Models\\\\Review\\\\Review'
+            LEFT JOIN users reviewer ON r.reviewed_by = reviewer.id
+            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'ticket_detail'
+            LEFT JOIN tickets t ON td.ticket_id = t.id
+            LEFT JOIN driver_calls dc on r.reviewable_id = dc.id and r.reviewable_type = 'driver_call'
         ";
-
-        $params = [];
+        
         $conditions = [];
+        $params = [$userId, $userId];
 
-        // Role-based filtering
-        if (!in_array($role, ['admin', 'developer', 'quality_manager'])) {
-            if ($role === 'Team_leader') {
-                // Team leaders see discussions related to their team members' work OR opened by their team members
-                $team_members_subquery = "SELECT user_id FROM team_members WHERE team_id IN (SELECT team_id FROM team_members WHERE user_id = :user_id)";
-                $conditions[] = "creator.id IN ($team_members_subquery) OR d.opened_by IN ($team_members_subquery)";
-                $params[':user_id'] = $userId;
-            } else { // Agent or any other non-admin role
-                // Agents see discussions about their work OR discussions they opened themselves.
-                $conditions[] = "creator.id = :creator_id OR d.opened_by = :opener_id";
-                $params[':creator_id'] = $userId;
-                $params[':opener_id'] = $userId;
+        if ($role !== 'admin' && $role !== 'developer' && $role !== 'quality_control' && $role !== 'Team_leader') {
+            // Agent should see discussions they opened, discussions on their work (tickets/calls), 
+            // or discussions they have replied to.
+            $conditions[] = "(
+                d.opened_by = ? 
+                OR t.created_by = ? 
+                OR dc.call_by = ?
+                OR EXISTS (
+                    SELECT 1 
+                    FROM discussion_replies dr 
+                    WHERE dr.discussion_id = d.id AND dr.user_id = ?
+                )
+            )";
+            array_push($params, $userId, $userId, $userId, $userId);
+        } elseif ($role === 'Team_leader') {
+            // Team Leader sees discussions for their team members
+            $teamMembers = $this->getTeamMemberIds($userId); // This method must exist and return an array of user IDs
+            if (!empty($teamMembers)) {
+                $teamMemberCount = count($teamMembers);
+                $placeholders = implode(',', array_fill(0, $teamMemberCount, '?'));
+                
+                // Build the condition with separate placeholder sets for each column
+                $conditions[] = "(d.opened_by IN ($placeholders) OR t.created_by IN ($placeholders) OR dc.call_by IN ($placeholders))";
+                
+                // The parameters must be repeated for each placeholder set
+                $team_params = array_merge($teamMembers, $teamMembers, $teamMembers);
+                $params = array_merge($params, $team_params);
+            } else {
+                // If team leader has no members, they can only see discussions they opened.
+                $conditions[] = "d.opened_by = ?";
+                $params[] = $userId;
             }
         }
-        // Admins, QMs, Devs see everything, so no conditions are added.
 
+        $sql = $baseQuery;
         if (!empty($conditions)) {
-            $sql .= " WHERE " . implode(" OR ", $conditions);
+            $sql .= " WHERE " . implode(" AND ", $conditions);
         }
+        $sql .= " ORDER BY last_activity_at DESC";
 
-        $sql .= " ORDER BY d.status ASC, d.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $log_entry .= "Final SQL Query:\n" . $sql . "\n";
-        $log_entry .= "Parameters: " . json_encode($params) . "\n";
-
-        try {
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            $discussions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            $log_entry .= "Query executed successfully. Number of discussions found: " . count($discussions) . "\n";
-
-            // For each discussion, fetch its replies
-            foreach ($discussions as $key => $discussion) {
-                $discussions[$key]['replies'] = $this->getReplies($discussion['id']);
+        // Fetch all replies in one go for efficiency
+        $discussionIds = array_column($discussions, 'id');
+        if (!empty($discussionIds)) {
+            $replies = $this->getRepliesForDiscussions($discussionIds);
+            $repliesByDiscussion = [];
+            foreach ($replies as $reply) {
+                $repliesByDiscussion[$reply['discussion_id']][] = $reply;
             }
-
-            file_put_contents($logFile, $log_entry . "========== End of Attempt ==========\n\n", FILE_APPEND);
-            return $discussions;
-
-        } catch (PDOException $e) {
-            $log_entry .= "!!!!!!!!!! EXCEPTION CAUGHT !!!!!!!!!!\n";
-            $log_entry .= "Exception Message: " . $e->getMessage() . "\n";
-            error_log("Error in getDiscussionsForUser: " . $e->getMessage());
-            file_put_contents($logFile, $log_entry . "========== End of Attempt (FAILED) ==========\n\n", FILE_APPEND);
-            return [];
+            foreach ($discussions as &$discussion) {
+                $discussion['replies'] = $repliesByDiscussion[$discussion['id']] ?? [];
+            }
         }
+
+        return $discussions;
     }
 
     public function getDiscussions($discussable_type, $discussable_id)
@@ -205,24 +214,41 @@ class Discussion
         try {
             $this->db->beginTransaction();
 
+            // Check if discussion is open before adding a reply
+            $status_stmt = $this->db->prepare("SELECT status FROM discussions WHERE id = :id");
+            $status_stmt->execute([':id' => $discussionId]);
+            if ($status_stmt->fetchColumn() !== 'open') {
+                error_log("Attempted to reply to a closed discussion (ID: $discussionId)");
+                $this->db->rollBack();
+                return false;
+            }
+
             $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
             $stmt = $this->db->prepare($sql);
-            $success = $stmt->execute([
+            $stmt->execute([
                 ':discussion_id' => $discussionId,
                 ':user_id' => $userId,
-                ':message' => $message,
+                ':message' => $message
             ]);
+            $replyId = $this->db->lastInsertId();
 
-            if (!$success) {
-                throw new PDOException("Failed to insert the reply.");
+            if (!$replyId) {
+                throw new PDOException("Failed to get last insert ID for new reply.");
             }
-            
+
             // --- Notification Logic ---
             $this->notifyUsersOnNewReply($discussionId, $userId, $message);
 
             $this->db->commit();
 
-            return true;
+            // Fetch the newly created reply to return it
+            $fetch_sql = "SELECT dr.*, u.username 
+                          FROM discussion_replies dr
+                          JOIN users u ON dr.user_id = u.id
+                          WHERE dr.id = :reply_id";
+            $fetch_stmt = $this->db->prepare($fetch_sql);
+            $fetch_stmt->execute([':reply_id' => $replyId]);
+            return $fetch_stmt->fetch(PDO::FETCH_ASSOC);
 
         } catch (PDOException $e) {
             $this->db->rollBack();
@@ -408,11 +434,13 @@ class Discussion
         }
 
         $placeholders = implode(',', array_fill(0, count($discussionIds), '?'));
-        $sql = "SELECT dr.*, u.username 
+        
+        $sql = "SELECT dr.*, u.username as user_name
                 FROM discussion_replies dr
                 JOIN users u ON dr.user_id = u.id
                 WHERE dr.discussion_id IN ($placeholders)
                 ORDER BY dr.created_at ASC";
+
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($discussionIds);
@@ -420,6 +448,58 @@ class Discussion
         } catch (PDOException $e) {
             error_log("Error in getRepliesForDiscussions: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Fetches the details of an item that can be discussed.
+     *
+     * @param string $type The type of the discussable item (e.g., 'review').
+     * @param int $id The ID of the discussable item.
+     * @return array|false The item details or false if not found.
+     */
+    public function getDiscussableItemDetails(string $type, int $id)
+    {
+        if ($type === 'review') {
+            $sql = "SELECT r.*, u.username as reviewer_name
+                    FROM reviews r
+                    JOIN users u ON r.reviewed_by = u.id
+                    WHERE r.id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$id]);
+            return $stmt->fetch(\PDO::FETCH_ASSOC);
+        }
+        // Add other discussable types here in the future
+        
+        return false;
+    }
+
+    public function markDiscussionAsRead($discussionId, $userId)
+    {
+        try {
+            // Find the ID of the latest reply in this discussion.
+            $latestReplyStmt = $this->db->prepare("SELECT MAX(id) FROM discussion_replies WHERE discussion_id = ?");
+            $latestReplyStmt->execute([$discussionId]);
+            $latestReplyId = $latestReplyStmt->fetchColumn();
+
+            // If there are no replies, there's nothing to mark as read.
+            if (!$latestReplyId) {
+                return true; 
+            }
+
+            // Use INSERT...ON DUPLICATE KEY UPDATE to efficiently update or create the read status.
+            $sql = "
+                INSERT INTO user_discussion_read_status (user_id, discussion_id, last_read_reply_id)
+                VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE last_read_reply_id = VALUES(last_read_reply_id)
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$userId, $discussionId, $latestReplyId]);
+            
+        } catch (PDOException $e) {
+            error_log("Error in markDiscussionAsRead: " . $e->getMessage());
+            return false;
         }
     }
 } 

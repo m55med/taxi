@@ -4,6 +4,8 @@ namespace App\Controllers\Api;
 
 use App\Core\Controller;
 use App\Models\Referral\ProfileModel;
+use App\Services\ActiveUserService;
+use App\Core\Auth;
 
 class ApiController extends Controller
 {
@@ -67,5 +69,23 @@ class ApiController extends Controller
             }
         }
         return $formatted;
+    }
+    
+    public function heartbeat()
+    {
+        header('Content-Type: application/json');
+        
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+            return;
+        }
+
+        require_once APPROOT . '/services/ActiveUserService.php';
+        $activeUserService = new ActiveUserService();
+        $activeUserService->recordUserActivity($userId);
+        
+        echo json_encode(['status' => 'ok']);
     }
 } 

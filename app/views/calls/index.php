@@ -1,11 +1,11 @@
 <?php include_once __DIR__ . '/../includes/header.php'; ?>
-<link href="<?= BASE_PATH ?>/app/views/calls/css/styles.css?v=1.1" rel="stylesheet">
+<link href="<?= URLROOT ?>/public/css/calls/styles.css?v=1.1" rel="stylesheet">
 <style>
     /* Custom styles for this page */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 </style>
-<script> const BASE_PATH = '<?= BASE_PATH ?>'; </script>
+<script> const URLROOT = '<?= URLROOT ?>'; </script>
 
 <div class="container mx-auto px-4 py-8">
     <!-- Notification Placeholder -->
@@ -16,7 +16,7 @@
         <h1 class="text-2xl font-bold text-gray-800">Call Center</h1>
         
         <!-- Search Form -->
-        <form action="<?= BASE_PATH ?>/calls" method="GET" class="flex-grow md:max-w-xs">
+        <form action="<?= URLROOT ?>/calls" method="GET" class="flex-grow md:max-w-xs">
             <div class="relative">
                 <input type="search" name="phone" placeholder="Search by phone number..."
                        class="w-full pl-10 pr-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -72,10 +72,16 @@
                             <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="call-history">
                                 <i class="fas fa-history mr-2"></i>
                                 <span>Call History</span>
+                                <?php if (!empty($data['call_history'])): ?>
+                                    <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"><?= count($data['call_history']) ?></span>
+                                <?php endif; ?>
                             </button>
                             <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="documents">
                                 <i class="fas fa-file-alt mr-2"></i>
                                 <span>Documents</span>
+                                <?php if (!empty($data['required_documents'])): ?>
+                                    <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"><?= count($data['required_documents']) ?></span>
+                                <?php endif; ?>
                             </button>
                         </nav>
                     </div>
@@ -102,13 +108,14 @@
 <?php include __DIR__ . '/sections/transfer-modal.php'; ?>
 
 <!-- Core & Module Scripts -->
-<script src="<?= BASE_PATH ?>/public/js/utils.js?v=1.1"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/shared.js?v=1.1"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/driver-profile.js?v=1.2"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/driver-info.js?v=1.4"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/documents.js?v=1.1"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/transfer.js?v=1.1"></script>
-<script src="<?= BASE_PATH ?>/app/views/calls/js/call-form.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/utils.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/calls/shared.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/calls/driver-profile.js?v=1.3"></script>
+<script src="<?= URLROOT ?>/public/js/calls/driver-info.js?v=1.6"></script>
+<script src="<?= URLROOT ?>/public/js/calls/documents.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/calls/transfer.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/calls/call-form.js?v=1.3"></script>
+<script src="<?= URLROOT ?>/public/js/calls/search-autocomplete.js?v=1.0"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Tab switching logic
@@ -158,7 +165,7 @@
     window.addEventListener('beforeunload', function () {
         if (navigator.sendBeacon) {
             // Use an empty body as we just need to trigger the server-side script
-            navigator.sendBeacon('<?= BASE_PATH ?>/calls/releaseHold', new Blob());
+            navigator.sendBeacon('<?= URLROOT ?>/calls/releaseHold', new Blob());
         }
     });
 </script>

@@ -1,0 +1,390 @@
+/* 
+    Custom Styles for the Discussions Chat Interface (v4 - UI Polish)
+*/
+
+/* We don't need body overflow hidden anymore since the card controls the height */
+/* body { overflow: hidden; } */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.chat-container {
+    display: flex;
+    height: 85vh; /* Fixed height to prevent page stretching */
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    overflow: hidden; /* Hide anything that spills out */
+}
+
+/* Sidebar Styles */
+.conversation-list {
+    flex: 0 0 380px;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column; /* Allow header/footer and list to stack */
+}
+.conversation-list-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.conversation-list .list-group {
+    flex-grow: 1; /* Allow list to take up available space */
+    overflow-y: auto; /* This will now work correctly */
+    border-radius: 0;
+    border: none;
+}
+.conversation-list .list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: none;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem;
+}
+
+.conversation-list .list-group-item:hover {
+    background-color: #f1f3f5;
+}
+
+.conversation-list .list-group-item.active {
+    background-color: #e7f5ff; /* A light, distinct blue for active chat */
+    color: #333;
+    font-weight: bold;
+}
+
+.conversation-list .list-group-item.active:hover {
+    background-color: #dbeffd;
+}
+
+/* Main Chat Area Styles */
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa; /* Lighter background for the chat area */
+}
+
+.chat-header {
+    padding: 1rem;
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    z-index: 10;
+}
+.chat-header .text-primary {
+    text-decoration: none;
+}
+.chat-header .text-primary:hover {
+    text-decoration: underline;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.chat-footer {
+    padding: 1rem;
+    background-color: #fff;
+    border-top: 1px solid #dee2e6;
+}
+.chat-footer .form-control {
+    background-color: #f1f3f5;
+    border: 1px solid #dee2e6;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.chat-footer .form-control:focus {
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+.btn-send-icon {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    transition: transform 0.2s;
+}
+
+.btn-send-icon:hover {
+    transform: scale(1.1);
+}
+
+.message {
+    margin-bottom: 1.5rem;
+    display: flex;
+}
+
+/* Styles for individual message bubbles */
+.message-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+
+/* User's sent messages (on the right) */
+.message.sent {
+    justify-content: flex-end;
+}
+.message.sent .message-bubble {
+    background-color: #007bff;
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+}
+.message.sent .message-meta {
+    text-align: right;
+}
+
+/* Received messages (on the left) */
+.message.received {
+    justify-content: flex-start;
+}
+.message.received .message-bubble {
+    background-color: #fff;
+    color: #333;
+    border: 1px solid #e9ecef;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 767.98px) {
+    .conversation-list {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #fff;
+        z-index: 1000;
+        transition: transform 0.3s ease-in-out;
+        transform: translateX(-100%);
+    }
+
+    .conversation-list.active {
+        transform: translateX(0);
+    }
+
+    .chat-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        z-index: 999;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .chat-area.active {
+        transform: translateX(100%);
+    }
+
+    /* Logic is handled by Alpine now, we just define the states */
+}
+
+/* 
+  Main container for the two-column chat-like layout 
+*/
+.discussions-container {
+    display: flex;
+    height: calc(100vh - 200px); /* Adjusted height */
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    position: relative; /* For mobile view positioning */
+}
+
+/* 
+  Left sidebar for the list of discussions 
+*/
+.discussions-sidebar {
+    width: 35%;
+    min-width: 320px;
+    max-width: 450px;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #fff;
+    flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.discussions-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: #fff;
+}
+
+/* 
+  Individual discussion item in the sidebar 
+*/
+.discussion-item {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.discussion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.discussion-item.active {
+    background-color: #e3f2fd; /* Light blue */
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.item-reason {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    white-space: normal;
+}
+
+.item-time {
+    font-size: 0.75rem;
+    color: #718096;
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.item-meta {
+    font-size: 0.875rem;
+    color: #4a5568;
+}
+
+/* 
+  Right content area for the selected discussion 
+*/
+.discussion-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+}
+
+.content-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.content-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background-color: #f1f7fe;
+}
+
+.content-footer {
+    padding: 1rem;
+    background-color: #fff;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+/* Messages/Replies */
+.message-bubble {
+    max-width: 75%;
+    padding: 0.75rem 1rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1rem;
+    word-wrap: break-word;
+}
+
+.message-bubble.sent {
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.message-bubble.received {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    margin-right: auto;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.message-meta {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.sent .message-meta {
+    text-align: right;
+    color: #dbeafe;
+}
+
+.welcome-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    color: #718096;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .discussions-sidebar {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 20;
+        transform: translateX(0);
+    }
+    .discussions-sidebar.mobile-hidden {
+        transform: translateX(-100%);
+    }
+    .discussion-content {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        transform: translateX(100%);
+    }
+    .discussion-content.mobile-visible {
+        transform: translateX(0);
+    }
+} 

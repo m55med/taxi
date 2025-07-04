@@ -29,15 +29,14 @@ if (isset($add_review_url)) {
     </div>
 
     <!-- Review Form -->
-    <div x-show="openReviewForm" x-transition class="bg-gray-50 p-4 rounded-lg border mb-4" id="review-form-<?= $review_unique_id_suffix ?>">
+    <div x-show="openReviewForm" x-transition class="bg-gray-50 p-4 rounded-lg border mb-4" id="review-form-<?= $review_unique_id_suffix ?>" x-data="{ rating: 50 }">
         <form action="<?= isset($add_review_url) ? $add_review_url : '' ?>" method="POST">
             <div class="mb-3">
-                <label for="review_result_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Result</label>
-                <select name="review_result" id="review_result_<?= $review_unique_id_suffix ?>" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-200" required>
-                    <option value="accepted">Accepted</option>
-                    <option value="return_to_agent">Return to Agent</option>
-                    <option value="rejected">Rejected</option>
-                </select>
+                <label for="rating_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                <div class="flex items-center space-x-3">
+                    <input type="range" id="rating_<?= $review_unique_id_suffix ?>" name="rating" min="0" max="100" x-model="rating" class="w-full">
+                    <span x-text="rating" class="font-semibold text-blue-700"></span>
+                </div>
             </div>
             <div class="mb-3">
                 <label for="review_notes_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
@@ -54,17 +53,19 @@ if (isset($add_review_url)) {
     <?php if (!empty($reviews)) : ?>
         <ul class="space-y-4">
             <?php foreach ($reviews as $review) : ?>
-                <li class="p-4 rounded-lg <?=
-                                            $review['review_result'] == 'accepted' ? 'bg-green-50 border-l-4 border-green-400' :
-                                                ($review['review_result'] == 'rejected' ? 'bg-red-50 border-l-4 border-red-400' : 'bg-yellow-50 border-l-4 border-yellow-400')
-                                            ?>">
+                <?php
+                    $bgColor = 'bg-yellow-50 border-yellow-400'; // Default for mid-range
+                    if ($review['rating'] >= 80) {
+                        $bgColor = 'bg-green-50 border-green-400';
+                    } elseif ($review['rating'] < 50) {
+                        $bgColor = 'bg-red-50 border-red-400';
+                    }
+                ?>
+                <li class="p-4 rounded-lg border-l-4 <?= $bgColor ?>">
                     <div class="flex justify-between items-center">
                         <p class="font-bold">
                             Reviewed by: <?= htmlspecialchars($review['reviewer_name']) ?>
-                            - <span class="capitalize font-normal <?=
-                                                                    $review['review_result'] == 'accepted' ? 'text-green-700' :
-                                                                        ($review['review_result'] == 'rejected' ? 'text-red-700' : 'text-yellow-700')
-                                                                    ?>"><?= str_replace('_', ' ', htmlspecialchars($review['review_result'])) ?></span>
+                            - <span class="font-bold text-lg"><?= htmlspecialchars($review['rating']) ?>/100</span>
                         </p>
                         <span class="text-xs text-gray-500"><?= date('Y-m-d H:i', strtotime($review['reviewed_at'])) ?></span>
                     </div>

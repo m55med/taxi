@@ -121,22 +121,31 @@ class Call extends Model
         }
     }
 
-    public function findAndLockDriverByPhone($phone)
+    public function findAndLockDriverByPhone($phone, $currentUserId)
     {
-        $sql = "SELECT d.*, da.has_many_trips 
+        // First, find the driver and who is holding them, if anyone.
+        $sql = "SELECT d.*, u.username as hold_by_username
                 FROM drivers d
-                LEFT JOIN driver_attributes da ON d.id = da.driver_id
-                WHERE d.phone = :phone AND d.is_active = 1";
+                LEFT JOIN users u ON d.hold_by = u.id
+                WHERE d.phone = :phone
+                LIMIT 1";
         
-        $this->db->query($sql);
-        $this->db->bind(':phone', $phone);
-        $driver = $this->db->single();
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':phone' => $phone]);
+        $driver = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($driver) {
-            // Lock the driver to prevent others from accessing it
-            $this->setDriverHold($driver['id'], true);
-            return $driver;
+            // If the driver is on hold by someone else, return the driver data with the holder's name.
+            if ($driver['hold'] && $driver['hold_by'] != $currentUserId) {
+                return $driver; // Return immediately, do not lock.
+            }
+            
+            // Otherwise, lock the driver for the current user.
+            $this->setDriverHold($driver['id'], true, $currentUserId);
+            // Re-fetch to get the full, most recent data after locking.
+            return $this->getDriverById($driver['id']);
         }
+        
         return null;
     }
 
@@ -181,14 +190,18 @@ class Call extends Model
 
     public function releaseDriverHold($driverId)
     {
-        return $this->setDriverHold($driverId, false);
+        return $this->setDriverHold($driverId, false, null);
     }
 
-    public function setDriverHold($driverId, $isHeld)
+    public function setDriverHold($driverId, $isHeld, $userId = null)
     {
-        $sql = "UPDATE drivers SET hold = :is_held WHERE id = :driver_id";
+        $sql = "UPDATE drivers SET hold = :is_held, hold_by = :user_id WHERE id = :driver_id";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':is_held' => (int) $isHeld, ':driver_id' => $driverId]);
+        return $stmt->execute([
+            ':is_held' => (int) $isHeld, 
+            ':user_id' => $userId,
+            ':driver_id' => $driverId
+        ]);
     }
 
     // =================================================================
@@ -212,14 +225,20 @@ class Call extends Model
 
     public function getDriverById($driverId)
     {
-        $sql = "SELECT d.*, da.has_many_trips 
-                FROM drivers d 
-                LEFT JOIN driver_attributes da ON d.id = da.driver_id
-                WHERE d.id = :driver_id";
-        
-        $this->db->query($sql);
-        $this->db->bind(':driver_id', $driverId);
-        return $this->db->single();
+        try {
+            $sql = "SELECT d.*, da.has_many_trips, u.username as hold_by_username
+                    FROM drivers d 
+                    LEFT JOIN driver_attributes da ON d.id = da.driver_id
+                    LEFT JOIN users u ON d.hold_by = u.id
+                    WHERE d.id = :driver_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':driver_id' => $driverId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in Call::getDriverById for ID {$driverId}: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function getCallHistory($driverId)

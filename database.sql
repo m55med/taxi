@@ -85,9 +85,9 @@ CREATE TABLE drivers (
     phone VARCHAR(20) UNIQUE NOT NULL,
     email VARCHAR(100),
     gender ENUM('male', 'female') DEFAULT NULL,
-    country_id INT DEFAULT NULL,  -- ربط الدولة بجدول countries
-    car_type_id INT DEFAULT 1,
-    rating DECIMAL(3,2) DEFAULT 0.0,
+    country_id INT DEFAULT NULL,           -- مفتاح خارجي لجدول countries
+    car_type_id INT DEFAULT 1,             -- نوع السيارة
+    rating DECIMAL(3,2) DEFAULT 0.0,       -- تقييم السائق
     app_status ENUM('active', 'inactive', 'banned') DEFAULT 'inactive',
     main_system_status ENUM(
         'pending', 
@@ -101,20 +101,34 @@ CREATE TABLE drivers (
     ) DEFAULT 'pending',
     registered_at TEXT,
     data_source ENUM('form', 'referral', 'telegram', 'staff', 'excel') NOT NULL,
-    added_by INT DEFAULT NULL,
-    hold BOOLEAN DEFAULT 0,
+    added_by INT DEFAULT NULL,             -- المستخدم الذي أضاف السائق
+    hold BOOLEAN DEFAULT 0,                -- هل السائق محجوز الآن
+    hold_by INT(11) DEFAULT NULL,          -- معرف المستخدم الذي حجز السائق
     has_missing_documents BOOLEAN DEFAULT 0,
     notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
+    -- المفاتيح الخارجية
     FOREIGN KEY (car_type_id) REFERENCES car_types(id),
     FOREIGN KEY (added_by) REFERENCES users(id),
     FOREIGN KEY (country_id) REFERENCES countries(id),
+    FOREIGN KEY (hold_by) REFERENCES users(id) 
+        ON DELETE SET NULL 
+        ON UPDATE CASCADE,
+
+    -- الفهارس (Indexes)
     INDEX idx_hold (hold),
     INDEX idx_status_hold (main_system_status, hold)
 );
 
+
+CREATE TABLE `driver_attributes` (
+  `driver_id` int(11) NOT NULL,
+  `has_many_trips` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`driver_id`),
+  CONSTRAINT `driver_attributes_ibfk_1` FOREIGN KEY (`driver_id`) REFERENCES `drivers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 --جدول لتخزين مكالمات السائقين
@@ -286,7 +300,7 @@ CREATE TABLE reviews (
     reviewable_id INT(11) NOT NULL,
     reviewable_type VARCHAR(50) NOT NULL,
     reviewed_by INT NOT NULL,
-    review_result ENUM('return_to_agent', 'accepted', 'rejected') NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Review rating from 0 to 100',
     review_notes TEXT,
     reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
@@ -706,3 +720,25 @@ CREATE TABLE `knowledge_base` (
   CONSTRAINT `knowledge_base_ticket_code_id_foreign` FOREIGN KEY (`ticket_code_id`) REFERENCES `ticket_codes` (`id`) ON DELETE SET NULL,
   CONSTRAINT `knowledge_base_updated_by_foreign` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+
+CREATE TABLE `role_permissions` (
+  `id` int(11) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  `permission_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+CREATE TABLE user_discussion_read_status (
+    user_id INT NOT NULL,
+    discussion_id INT NOT NULL,
+    last_read_reply_id INT NOT NULL,
+    last_read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, discussion_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (discussion_id) REFERENCES discussions(id) ON DELETE CASCADE
+);

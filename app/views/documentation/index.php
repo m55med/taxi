@@ -71,14 +71,93 @@
                 <section id="developer-docs" class="scroll-mt-24">
                     <div class="bg-white p-8 rounded-xl shadow-sm transition-shadow duration-300 hover:shadow-lg">
                         <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Developer Docs</h2>
-                        <div class="prose prose-lg max-w-none text-gray-600">
-                            <p>Technical documentation for developers, including API information, database schema, and coding standards.</p>
-                            <h3 class="font-semibold">Project Structure</h3>
-                            <p>An overview of the main folders and files in the project.</p>
-                            <h3 class="font-semibold">Database Schema</h3>
-                            <p>A description of the main database tables and their relationships.</p>
-                            <h3 class="font-semibold">API Endpoints</h3>
-                            <p>A list of available API endpoints and how to use them.</p>
+                        <div class="prose prose-lg max-w-none text-gray-600 space-y-8">
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800">New Routing System (July 2025 Refactor)</h3>
+                                <p>The application has been updated to use a new, more robust routing system. All route definitions have been moved from the legacy <code>App.php</code> file to a centralized routing file.</p>
+                                <ul>
+                                    <li><strong>Core Router:</strong> The main logic is handled by <code>app/core/Router.php</code>.</li>
+                                    <li><strong>Route Definitions:</strong> All web routes must be defined in <code>app/routes/web.php</code>.</li>
+                                </ul>
+                                <p>To define a route, use the <code>$router</code> variable available in the file:</p>
+                                <pre><code class="language-php">// To handle a GET request:
+$router->get('your/uri', 'ControllerFolder/ControllerName@methodName');
+
+// To handle a POST request:
+$router->post('your/uri', 'ControllerFolder/ControllerName@methodName');
+
+// Example with dynamic parameters:
+$router->get('users/{id}', 'Users/UsersController@show');
+</code></pre>
+                            </div>
+
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800">Server Configuration</h3>
+                                <p>For the new routing system to work correctly, the web server must redirect all non-file requests to the main entry point of the application.</p>
+                                <ul>
+                                    <li><strong>Apache:</strong> Ensure <code>mod_rewrite</code> is enabled in your Apache configuration. The root <code>.htaccess</code> file handles the redirection logic. You might also need to set <code>AllowOverride All</code> for the project directory in your <code>httpd.conf</code> file.</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800">Composer Commands</h3>
+                                <p>When you create a new class file (like a new Controller or Model), you must update Composer's autoloader map. Otherwise, the application will not be able to find your class.</p>
+                                <p>Run the following command from the project root:</p>
+                                <pre><code class="language-bash">composer dump-autoload</code></pre>
+                            </div>
+
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800">Permissions System: Batch Updates</h3>
+                                <p>To improve performance on the Admin Permissions page, a batch update system was implemented. This avoids sending one API request for every single permission change when using the "Toggle All" or group toggle switches.</p>
+                                
+                                <h4 class="font-semibold text-lg text-gray-800 mt-4">The Problem</h4>
+                                <p>The previous implementation triggered an individual `fetch` request for each checkbox changed by a master toggle. For a role with 50+ permissions, this meant 50+ separate HTTP requests and database transactions, causing significant UI lag and high server load.</p>
+
+                                <h4 class="font-semibold text-lg text-gray-800 mt-4">The Solution: Batch Processing</h4>
+                                <p>The new system gathers all affected permission IDs on the frontend and sends them in a single request to a new, dedicated backend endpoint. The backend then processes all these changes in a single, efficient database transaction.</p>
+
+                                <h5 class="font-semibold text-md text-gray-800 mt-4">Backend Implementation</h5>
+                                <ul>
+                                    <li><strong>Controller:</strong> `app/controllers/admin/PermissionsController.php` now has two new methods:
+                                        <ul class="list-disc ml-6">
+                                            <li>`batchUpdateRolePermissions()`</li>
+                                            <li>`batchUpdateUserPermissions()`</li>
+                                        </ul>
+                                        These methods expect a JSON payload with a list of permission IDs and a grant status.
+                                    </li>
+                                    <li><strong>Model:</strong> `app/models/admin/Permission.php` contains the core logic in:
+                                        <ul class="list-disc ml-6">
+                                            <li>`syncRolePermissions()`</li>
+                                            <li>`syncUserPermissions()`</li>
+                                        </ul>
+                                        These methods use efficient SQL (`INSERT IGNORE` for adding multiple rows, and `DELETE ... WHERE IN (...)` for removing multiple rows) to perform the update in one query.
+                                    </li>
+                                </ul>
+
+                                <h5 class="font-semibold text-md text-gray-800 mt-4">API Endpoints</h5>
+                                <p>The following `POST` routes were added to `app/routes/web.php`:</p>
+                                <pre><code class="language-php">$router->post("admin/permissions/batchUpdateRolePermissions", ...);
+$router->post("admin/permissions/batchUpdateUserPermissions", ...);
+</code></pre>
+                                <p>The expected JSON payload for these endpoints is:</p>
+                                <pre><code class="language-json">{
+    "role_id": 123, // or "user_id": 456
+    "permission_ids": [1, 2, 3, 5, 8],
+    "grant": true // or false
+}</code></pre>
+
+                                <h5 class="font-semibold text-md text-gray-800 mt-4">Frontend Implementation</h5>
+                                 <p>The JavaScript in `app/views/admin/permissions/index.php` was refactored. The event listeners for the group and master toggles now call a new `handleBatchUpdate` function, which constructs the JSON payload and sends the single `fetch` request.</p>
+                            </div>
+
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Project Structure (Legacy)</h3>
+                                <p>An overview of the main folders and files in the project.</p>
+                                <h3 class="font-semibold mt-4 text-xl text-gray-800">Database Schema (Legacy)</h3>
+                                <p>A description of the main database tables and their relationships.</p>
+                                <h3 class="font-semibold mt-4 text-xl text-gray-800">API Endpoints (Legacy)</h3>
+                                <p>A list of available API endpoints and how to use them.</p>
+                            </div>
                         </div>
                     </div>
                 </section>

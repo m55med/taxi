@@ -71,14 +71,10 @@ class Driver
     public function updateStatus($driverId, $status)
     {
         try {
-            error_log("\n=== Driver Status Update Started ===");
-            error_log("Updating status for driver ID: {$driverId} to {$status}");
-
             // التحقق من وجود السائق
             $checkStmt = $this->db->prepare("SELECT id FROM drivers WHERE id = :id");
             $checkStmt->execute([':id' => $driverId]);
             if (!$checkStmt->fetch()) {
-                error_log("Error: Driver with ID {$driverId} not found");
                 return false;
             }
 
@@ -88,59 +84,37 @@ class Driver
                     updated_at = NOW()
                 WHERE id = :id
             ";
-            error_log("Prepared SQL: " . $sql);
 
             $stmt = $this->db->prepare($sql);
-            error_log("Statement prepared successfully");
 
             $params = [
                 ':id' => $driverId,
                 ':status' => $status
             ];
-            error_log("Parameters: " . json_encode($params));
 
             try {
                 $this->db->beginTransaction();
-                error_log("Transaction started");
-
                 $result = $stmt->execute($params);
-                error_log("Execute result: " . ($result ? "true" : "false"));
-
                 if ($result) {
                     $rowCount = $stmt->rowCount();
-                    error_log("Rows affected: " . $rowCount);
-
                     if ($rowCount > 0) {
                         $this->db->commit();
-                        error_log("Transaction committed");
-                        error_log("=== Driver Status Update Completed Successfully ===\n");
                         return true;
                     } else {
                         $this->db->rollBack();
-                        error_log("No rows were updated - rolling back");
-                        error_log("=== Driver Status Update Failed ===\n");
                         return false;
                     }
                 } else {
                     $this->db->rollBack();
-                    $error = $stmt->errorInfo();
-                    error_log("Database error: " . json_encode($error));
-                    error_log("=== Driver Status Update Failed ===\n");
                     return false;
                 }
             } catch (PDOException $e) {
                 $this->db->rollBack();
-                error_log("PDO Exception in execute:");
-                error_log("Message: " . $e->getMessage());
-                error_log("Code: " . $e->getCode());
-                error_log("=== Driver Status Update Failed ===\n");
+                error_log("PDO Exception in execute:" . $e->getMessage());
                 return false;
             }
         } catch (PDOException $e) {
-            error_log("PDO Exception in prepare:");
-            error_log("Message: " . $e->getMessage());
-            error_log("Code: " . $e->getCode());
-            error_log("=== Driver Status Update Failed ===\n");
+            error_log("PDO Exception in prepare:" . $e->getMessage());
             return false;
         }
     }
@@ -151,7 +125,6 @@ class Driver
             $this->db->beginTransaction();
 
             // 1. Clear all existing document entries for this driver.
-            // This is the simplest way to handle additions, updates, and removals.
             $deleteStmt = $this->db->prepare("DELETE FROM driver_documents_required WHERE driver_id = :driver_id");
             $deleteStmt->execute([':driver_id' => $driverId]);
 
@@ -161,7 +134,6 @@ class Driver
                 VALUES (:driver_id, :doc_id, 'submitted', :note, :user_id, NOW())
             ");
 
-            // 3. Loop through ONLY the submitted document IDs and insert them.
             if (!empty($submittedDocIds)) {
                 foreach ($submittedDocIds as $docId) {
                     $note = isset($notes[$docId]) ? trim($notes[$docId]) : null;
@@ -174,22 +146,18 @@ class Driver
                 }
             }
             
-            // 4. Get all required document types to check for missing ones.
             $requiredTypesStmt = $this->db->prepare("SELECT id FROM document_types WHERE is_required = 1");
             $requiredTypesStmt->execute();
             $requiredDocTypes = $requiredTypesStmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // 5. Determine if the driver has any missing *required* documents.
             $hasMissing = false;
             if (!empty($requiredDocTypes)) {
-                // Find which required docs are missing from the submitted list.
                 $missingDocs = array_diff($requiredDocTypes, $submittedDocIds);
                 if (!empty($missingDocs)) {
                     $hasMissing = true;
                 }
             }
 
-            // 6. Update the has_missing_documents flag in the main drivers table.
             $updateFlagStmt = $this->db->prepare("
                 UPDATE drivers 
                 SET has_missing_documents = :has_missing,
@@ -233,7 +201,6 @@ class Driver
             ];
 
             foreach ($drivers as $driver) {
-                // التحقق من وجود رقم الهاتف
                 if ($this->isPhoneExists($driver['phone'])) {
                     $stats['skipped']++;
                     $stats['skipped_phones'][] = $driver['phone'];
@@ -258,7 +225,6 @@ class Driver
 
             $this->db->commit();
 
-            // تحضير رسالة النجاح
             $message = sprintf(
                 'تم إضافة %d من %d سائق. تم تخطي %d سائق لوجود أرقام هواتفهم مسبقاً.',
                 $stats['added'],
@@ -389,19 +355,26 @@ class Driver
     public function getById($driverId)
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT d.*, c.name as country_name, ct.name as car_type_name, u.username as added_by_username
+            $sql = "
+                SELECT 
+                    d.*,
+                    c.name AS country_name,
+                    ct.name AS car_type_name,
+                    da.has_many_trips
                 FROM drivers d
                 LEFT JOIN countries c ON d.country_id = c.id
                 LEFT JOIN car_types ct ON d.car_type_id = ct.id
-                LEFT JOIN users u ON d.added_by = u.id
+                LEFT JOIN driver_attributes da ON d.id = da.driver_id
                 WHERE d.id = :driver_id
-            ");
+            ";
+            
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([':driver_id' => $driverId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
+
         } catch (PDOException $e) {
-            error_log("Error in getById: " . $e->getMessage());
-            return null;
+            error_log("ERROR in DriverModel::getById for ID {$driverId}: " . $e->getMessage());
+            return false;
         }
     }
 
@@ -461,9 +434,6 @@ class Driver
                 ':note' => $note,
             ]);
 
-            // $updateStmt = $this->db->prepare("UPDATE drivers SET assigned_to = :to_user_id WHERE id = :driver_id");
-            // $updateStmt->execute([':to_user_id' => $toUserId, ':driver_id' => $driverId]);
-
             $this->db->commit();
             return true;
         } catch (PDOException $e) {
@@ -473,7 +443,6 @@ class Driver
         }
     }
 
-    // الموديل المسؤل عن تحرير الهولد في النظام بعد 5 دقائق من اخر تحديث علي الصف في الصفوف المعلقة
     public function releaseHeldDrivers()
     {
         try {
@@ -495,7 +464,18 @@ class Driver
     public function searchByPhone($phoneQuery)
     {
         try {
-            $sql = "SELECT id, name, phone FROM drivers WHERE phone LIKE CONCAT(:query, '%') LIMIT 10";
+            $sql = "
+                SELECT 
+                    d.id, 
+                    d.name, 
+                    d.phone,
+                    d.hold,
+                    u.username as held_by_username
+                FROM drivers d
+                LEFT JOIN users u ON d.hold_by = u.id
+                WHERE d.phone LIKE CONCAT(:query, '%') 
+                LIMIT 10
+            ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':query' => $phoneQuery]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -511,19 +491,29 @@ class Driver
     }
 
     public function updateCoreInfo($driverId, $data) {
-        $sql = 'UPDATE drivers SET name = :name, email = :email, gender = :gender, country_id = :country_id, app_status = :app_status, car_type_id = :car_type_id, notes = :notes WHERE id = :id';
+        $sql = 'UPDATE drivers SET name = :name, email = :email, gender = :gender, country_id = :country_id, app_status = :app_status, car_type_id = :car_type_id, notes = :notes, updated_at = NOW() WHERE id = :id';
+        
+        $country_id = !empty($data['country_id']) ? $data['country_id'] : null;
+        $car_type_id = !empty($data['car_type_id']) ? $data['car_type_id'] : null;
+
         $params = [
             ':name' => $data['name'],
             ':email' => $data['email'],
             ':gender' => $data['gender'],
-            ':country_id' => $data['country_id'],
+            ':country_id' => $country_id,
             ':app_status' => $data['app_status'],
-            ':car_type_id' => $data['car_type_id'],
+            ':car_type_id' => $car_type_id,
             ':notes' => $data['notes'],
             ':id' => $driverId
         ];
-        $this->db->query($sql);
-        return $this->db->execute($params);
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            error_log("ERROR in DriverModel::updateCoreInfo for ID {$driverId}: " . $e->getMessage());
+            return false;
+        }
     }
     
     public function updateTripAttribute($driverId, $hasManyTrips) {
@@ -532,7 +522,13 @@ class Driver
             ':driver_id' => $driverId,
             ':has_many_trips' => (int)(bool)($hasManyTrips ?? 0)
         ];
-        $this->db->query($sql);
-        return $this->db->execute($params);
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            error_log("ERROR in DriverModel::updateTripAttribute for ID {$driverId}: " . $e->getMessage());
+            return false;
+        }
     }
-} 
+}

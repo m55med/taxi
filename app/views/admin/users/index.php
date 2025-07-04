@@ -26,7 +26,7 @@ if (isset($_SESSION['user_message'])) {
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
-                <a href="<?= BASE_PATH ?>/admin/users/add" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <a href="<?= BASE_PATH ?>/admin/users/create" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     <i class="fas fa-user-plus mr-1"></i>
                     Add New User
                 </a>
@@ -164,7 +164,8 @@ if (isset($_SESSION['user_message'])) {
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.away="closeDeleteModal()">
             <h3 class="text-lg font-semibold mb-2">Confirm Deletion</h3>
             <p class="text-gray-600 mb-4">Are you sure you want to delete user <span class="font-bold" x-text="deleteModal.username"></span>? This action cannot be undone.</p>
-            <form @submit.prevent="submitDelete">
+            <form @submit.prevent="submitDelete" method="POST" action="<?= BASE_PATH ?>/admin/users/destroy">
+                <input type="hidden" name="id" x-model="deleteModal.userId">
                 <div class="flex justify-end space-x-2">
                     <button type="button" @click="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm Delete</button>
@@ -247,7 +248,7 @@ function usersPage(flashMessage) {
             this.deleteModal.username = '';
         },
         submitDelete() {
-            window.location.href = `<?= BASE_PATH ?>/admin/users/delete/${this.deleteModal.userId}`;
+            this.$event.target.submit();
         }
     }
 }

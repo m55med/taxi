@@ -1,7 +1,4 @@
 <?php
-$log_file = dirname(__DIR__, 4) . '/view_debug.log';
-file_put_contents($log_file, "--- New Page Load ---\n", FILE_APPEND);
-file_put_contents($log_file, "Entering history_section.php at " . date('Y-m-d H:i:s') . "\n", FILE_APPEND);
 ?>
 
 <?php if (!empty($data['ticketHistory'])) : ?>
@@ -12,7 +9,6 @@ file_put_contents($log_file, "Entering history_section.php at " . date('Y-m-d H:
     </h3>
     <div class="space-y-6">
         <?php foreach ($data['ticketHistory'] as $index => $history) : ?>
-            <?php file_put_contents($log_file, "Processing history item ID: " . $history['id'] . "\n", FILE_APPEND); ?>
             <div class="bg-white p-6 rounded-lg shadow-md border-l-4 <?= $index === 0 ? 'border-green-500' : 'border-blue-500' ?>">
                 <!-- History Item Header -->
                 <div class="flex justify-between items-center mb-4 border-b pb-3">
@@ -106,6 +102,4 @@ file_put_contents($log_file, "Entering history_section.php at " . date('Y-m-d H:
     </div>
 
 </div>
-<?php endif; ?>
-
-<?php file_put_contents($log_file, "--- Successfully finished history_section.php ---\n\n", FILE_APPEND); ?> 
+<?php endif; ?> 

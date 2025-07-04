@@ -59,11 +59,13 @@
     <?php require_once APPROOT . '/views/includes/flash_messages.php'; ?>
 
     <!-- Summary Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
         <?php 
+            $average_quality = ($summary_stats['total_reviews'] ?? 0) > 0 ? ($summary_stats['total_quality_score'] / $summary_stats['total_reviews']) : 0;
             $stats = [
                 ['label' => 'Total Points', 'value' => number_format($summary_stats['total_points'] ?? 0, 2), 'icon' => 'fa-star', 'color' => 'text-indigo-500'],
-                ['label' => 'Total Calls', 'value' => number_format(($summary_stats['total_incoming_calls'] ?? 0) + ($summary_stats['total_outgoing_calls'] ?? 0)), 'icon' => 'fa-phone-alt', 'color' => 'text-blue-500'],
+                ['label' => 'Avg Quality', 'value' => number_format($average_quality, 2) . '%', 'icon' => 'fa-gem', 'color' => 'text-teal-500'],
+                ['label' => 'Total Calls', 'value' => number_format(($summary_stats['incoming_calls'] ?? 0) + ($summary_stats['outgoing_calls'] ?? 0)), 'icon' => 'fa-phone-alt', 'color' => 'text-blue-500'],
                 ['label' => 'Total Tickets', 'value' => number_format(($summary_stats['normal_tickets'] ?? 0) + ($summary_stats['vip_tickets'] ?? 0)), 'icon' => 'fa-ticket-alt', 'color' => 'text-green-500'],
                 ['label' => 'VIP Tickets', 'value' => number_format($summary_stats['vip_tickets'] ?? 0), 'icon' => 'fa-crown', 'color' => 'text-yellow-500'],
                 ['label' => 'Assignments', 'value' => number_format($summary_stats['assignments_count'] ?? 0), 'icon' => 'fa-exchange-alt', 'color' => 'text-red-500']
@@ -212,13 +214,14 @@
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Calls (In/Out)</th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tickets (N/V)</th>
-                        <th scope="col"  class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Points</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Points</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Quality</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200 md:divide-y-0">
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-16 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-16 text-center text-gray-500">
                                 <div class="flex flex-col items-center">
                                     <i class="fas fa-search fa-4x text-gray-300 mb-4"></i>
                                     <h3 class="text-xl font-medium">No Data Found</h3>
@@ -265,60 +268,68 @@
                                         <?= htmlspecialchars(ucfirst($user['status'])) ?>
                                     </span>
                                 </td>
-                                <td data-label="Calls (In/Out)" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-center">
-                                    <div class="font-semibold"><?= number_format(($user['call_stats']['total_incoming_calls'] ?? 0) + ($user['call_stats']['total_outgoing_calls'] ?? 0)) ?></div>
-                                    <div class="text-xs text-gray-500">
-                                        <?= number_format($user['call_stats']['total_incoming_calls'] ?? 0) ?> / <?= number_format($user['call_stats']['total_outgoing_calls'] ?? 0) ?>
-                                    </div>
+                                <td data-label="Calls (In/Out)" class="px-6 py-4 whitespace-nowrap text-center">
+                                    <div class="text-sm text-gray-800"><?= ($user['incoming_calls'] ?? 0) + ($user['outgoing_calls'] ?? 0) ?></div>
+                                    <div class="text-xs text-gray-500">(<?= $user['incoming_calls'] ?? 0 ?>/<?= $user['outgoing_calls'] ?? 0 ?>)</div>
                                 </td>
-                                <td data-label="Tickets (N/V)" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-center">
-                                     <div class="font-semibold"><?= number_format(($user['normal_tickets'] ?? 0) + ($user['vip_tickets'] ?? 0)) ?></div>
-                                     <div class="text-xs text-gray-500">
-                                        <?= number_format($user['normal_tickets'] ?? 0) ?> / <?= number_format($user['vip_tickets'] ?? 0) ?>
-                                    </div>
+                                <td data-label="Tickets (N/V)" class="px-6 py-4 whitespace-nowrap text-center">
+                                    <div class="text-sm text-gray-800"><?= ($user['normal_tickets'] ?? 0) + ($user['vip_tickets'] ?? 0) ?></div>
+                                    <div class="text-xs text-gray-500">(<?= $user['normal_tickets'] ?? 0 ?>/<?= $user['vip_tickets'] ?? 0 ?>)</div>
                                 </td>
                                 <td data-label="Points" class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="flex items-center justify-center">
-                                        <span class="text-lg font-bold text-indigo-600"><?= number_format($user['points_details']['final_total_points'] ?? 0, 2) ?></span>
-                                        <?php if (!empty($user['points_details']['bonus_reasons'])): ?>
-                                            <div x-data="{ tooltip: false }" @click.away="tooltip = false" class="relative z-10 ml-2">
-                                                <i @click="tooltip = !tooltip" class="fas fa-gift text-blue-500 cursor-pointer"></i>
-                                                <div x-show="tooltip" class="absolute z-20 bottom-full right-0 mb-2 p-3 w-max max-w-xs bg-gray-800 text-white text-xs rounded-lg shadow-xl md:left-1/2 md:-translate-x-1/2 md:right-auto" x-transition style="display:none;">
-                                                    <h4 class="font-bold border-b border-gray-600 pb-1 mb-2">Bonus Details:</h4>
-                                                    <ul class="list-disc list-inside space-y-1">
-                                                        <?php foreach($user['points_details']['bonus_reasons'] as $reason): ?>
-                                                            <li><?= htmlspecialchars($reason) ?></li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
-                                                    <div class="mt-2 border-t border-gray-600 pt-2 font-mono">
-                                                        <div class="flex justify-between"><span>Base:</span> <span><?= number_format($user['points_details']['total_base_points'] ?? 0, 2) ?></span></div>
-                                                        <div class="flex justify-between"><span>Bonus:</span> <span class="text-green-400">+<?= number_format($user['points_details']['total_bonus_amount'] ?? 0, 2) ?></span></div>
+                                    <div class="text-sm font-semibold text-indigo-600"><?= number_format($user['total_points'] ?? 0, 2) ?></div>
+                                </td>
+                                <td data-label="Quality" class="px-6 py-4 whitespace-nowrap text-center">
+                                    <?php
+                                        $quality = $user['quality_score'] ?? 0;
+                                        $reviews_count = $user['total_reviews'] ?? 0;
+                                        $quality_bg = 'bg-gray-200';
+                                        if ($quality >= 90) $quality_bg = 'bg-green-500';
+                                        elseif ($quality >= 75) $quality_bg = 'bg-yellow-500';
+                                        elseif ($quality > 0) $quality_bg = 'bg-red-500';
+                                    ?>
+                                    <?php if ($reviews_count > 0): ?>
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                <div class="<?= $quality_bg ?> h-2.5 rounded-full" style="width: <?= $quality ?>%"></div>
                                                     </div>
-                                                </div>
+                                            <div class="text-sm font-semibold text-gray-700 mt-1">
+                                                <?= number_format($quality, 2) ?>%
+                                                <span class="text-xs text-gray-500 font-normal">(<?= $reviews_count ?>)</span>
                                             </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-xs text-gray-400">N/A</span>
                                         <?php endif; ?>
-                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
+                        
+                        <!-- Summary Row -->
+                        <tr class="bg-gray-100 font-bold text-gray-800">
+                            <td data-label="Total" colspan="4" class="px-6 py-4 text-left text-sm">Grand Total</td>
+                            <td data-label="Total Calls" class="px-6 py-4 text-center text-sm">
+                                <?= number_format(($summary_stats['incoming_calls'] ?? 0) + ($summary_stats['outgoing_calls'] ?? 0)) ?>
+                                (<?= number_format($summary_stats['incoming_calls'] ?? 0) ?>/<?= number_format($summary_stats['outgoing_calls'] ?? 0) ?>)
+                            </td>
+                            <td data-label="Total Tickets" class="px-6 py-4 text-center text-sm">
+                                <?= number_format(($summary_stats['normal_tickets'] ?? 0) + ($summary_stats['vip_tickets'] ?? 0)) ?>
+                                (<?= number_format($summary_stats['normal_tickets'] ?? 0) ?>/<?= number_format($summary_stats['vip_tickets'] ?? 0) ?>)
+                            </td>
+                            <td data-label="Total Points" class="px-6 py-4 text-center text-sm">
+                                <?= number_format($summary_stats['total_points'] ?? 0, 2) ?>
+                            </td>
+                            <td data-label="Avg Quality" class="px-6 py-4 text-center text-sm">
+                                <?php if (($summary_stats['total_reviews'] ?? 0) > 0): ?>
+                                    <?= number_format(($summary_stats['total_quality_score'] / $summary_stats['total_reviews']), 2) ?>%
+                                    <span class="text-xs font-normal text-gray-500">(<?= $summary_stats['total_reviews'] ?>)</span>
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
-                 <?php if (!empty($users)): ?>
-                <tfoot class="bg-gray-100 hidden md:table-footer-group">
-                    <tr class="font-bold text-gray-800">
-                        <td class="px-6 py-4 text-sm" colspan="4">Grand Total</td>
-                        <td class="px-6 py-4 text-center text-sm">
-                            <?= number_format(($summary_stats['total_incoming_calls'] ?? 0) + ($summary_stats['total_outgoing_calls'] ?? 0)) ?>
-                        </td>
-                         <td class="px-6 py-4 text-center text-sm">
-                            <?= number_format(($summary_stats['normal_tickets'] ?? 0) + ($summary_stats['vip_tickets'] ?? 0)) ?>
-                        </td>
-                        <td class="px-6 py-4 text-center text-sm font-bold text-indigo-700">
-                            <?= number_format($summary_stats['total_points'] ?? 0, 2) ?>
-                        </td>
-                    </tr>
-                </tfoot>
-                <?php endif; ?>
             </table>
         </div>
     </div>

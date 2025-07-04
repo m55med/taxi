@@ -11,15 +11,16 @@ function createTicketForm(platforms, marketers) {
             subcategory_id: '',
             code_id: '',
             coupons: [], // Array to hold coupon objects {id, code, value}
-            notes: ''
+            notes: '',
+            couponInput: ''
         },
         initialFormData: {}, // To store the initial state for resetting
         platforms: platforms || [],
         marketers: marketers || [],
         subcategories: [],
         codes: [],
-        couponInput: '',
         availableCoupons: [],
+        noCouponsAvailable: false,
         isSubmitting: false,
         couponsLoading: false,
         codesLoading: false,
@@ -135,7 +136,7 @@ function createTicketForm(platforms, marketers) {
                 return;
             }
             try {
-                const response = await fetch(`${URLROOT}/create_ticket/getSubcategories/${this.formData.category_id}`);
+                const response = await fetch(`${URLROOT}/create_ticket/subcategories/${this.formData.category_id}`);
                 this.subcategories = await response.json();
             } catch (error) {
                 toastr.error('Failed to load subcategories.');
@@ -151,7 +152,7 @@ function createTicketForm(platforms, marketers) {
                 return;
             }
             try {
-                const response = await fetch(`${URLROOT}/create_ticket/getCodes/${this.formData.subcategory_id}`);
+                const response = await fetch(`${URLROOT}/create_ticket/codes/${this.formData.subcategory_id}`);
                 this.codes = await response.json();
             } catch (error) {
                 toastr.error('Failed to load codes.');
@@ -211,13 +212,21 @@ function createTicketForm(platforms, marketers) {
         
         async fetchAvailableCoupons() {
             this.availableCoupons = [];
+            this.noCouponsAvailable = false;
             if (!this.formData.country_id) return;
 
             this.couponsLoading = true;
             try {
-                const response = await fetch(`${URLROOT}/create_ticket/getAvailableCoupons/${this.formData.country_id}`);
+                const response = await fetch(`${URLROOT}/create_ticket/coupons/${this.formData.country_id}`);
                 if (!response.ok) throw new Error('Server error');
-                this.availableCoupons = await response.json();
+                
+                const data = await response.json();
+                this.availableCoupons = data;
+                if (data.length === 0) {
+                    this.noCouponsAvailable = true;
+                }
+
+                this.$dispatch('coupons-updated', this.availableCoupons);
             } catch (error) {
                 toastr.error('Could not load coupons for the selected country.');
             } finally {
@@ -227,9 +236,9 @@ function createTicketForm(platforms, marketers) {
 
         // Coupon Management
         async addSelectedCoupon() {
-            if (!this.couponInput) return;
+            if (!this.formData.couponInput) return;
 
-            const couponId = this.couponInput;
+            const couponId = this.formData.couponInput;
             
             // Check if coupon already added
             if (this.formData.coupons.some(c => c.id == couponId)) {
@@ -250,7 +259,8 @@ function createTicketForm(platforms, marketers) {
                     this.formData.coupons.push(result.coupon);
                     // Remove the added coupon from the available list
                     this.availableCoupons = this.availableCoupons.filter(c => c.id != couponId);
-                    this.couponInput = ''; // Reset dropdown
+                    this.formData.couponInput = ''; // Reset dropdown
+                    this.$dispatch('coupons-updated', this.availableCoupons);
                     toastr.success('Coupon added and reserved for 5 minutes.');
                 } else {
                     toastr.error(result.message || 'Coupon could not be added.');
@@ -332,8 +342,9 @@ function createTicketForm(platforms, marketers) {
             this.formData = JSON.parse(JSON.stringify(this.initialFormData)); // Deep copy to reset
             this.subcategories = [];
             this.codes = [];
-            this.couponInput = '';
             this.availableCoupons = [];
+            this.noCouponsAvailable = false;
+            this.$dispatch('coupons-updated', []);
             document.getElementById('ticket-exists-warning').classList.add('hidden');
 
             // Manually dispatch events to reset searchable selects

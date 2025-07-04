@@ -136,45 +136,82 @@ class ReviewController extends Controller
         exit;
     }
 
-    public function add($type, $id)
+    public function add($reviewable_type, $reviewable_id)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect(''); // Redirect home or show error
-            return;
+        $allowed_roles = ['quality_manager', 'Team_leader', 'admin', 'developer'];
+        if (!in_array(Auth::getUserRole(), $allowed_roles)) {
+            http_response_code(403);
+            
+            // Forcing a 403 Forbidden page, consistent with Controller::authorize()
+            $debug_info = [
+                'required_permission' => 'Role must be one of: ' . implode(', ', $allowed_roles),
+                'user_role' => $_SESSION['role'] ?? 'Not Set',
+                'user_permissions' => '(Not checked, role check failed)'
+            ];
+            
+            // Pass debug info to the view
+            $data['debug_info'] = $debug_info;
+
+            // Use a path relative to the project's entry point (public/index.php)
+            require_once __DIR__ . '/../../views/errors/403.php';
+            exit;
         }
 
-        // Basic validation
-        if (empty($_POST['review_result'])) {
-            flash('review_error', 'Review result is required.', 'alert alert-danger');
-            redirect($_SERVER['HTTP_REFERER'] ?? '');
+        // 1. Handle POST request (form submission)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Basic validation for the new rating system
+            if (!isset($_POST['rating']) || !is_numeric($_POST['rating']) || $_POST['rating'] < 0 || $_POST['rating'] > 100) {
+                flash('review_error', 'A valid rating between 0 and 100 is required.', 'alert alert-danger');
+                redirect($_SERVER['HTTP_REFERER'] ?? '/');
+                return;
+            }
+
+            $data = [
+                'rating' => (int)$_POST['rating'],
+                'review_notes' => trim($_POST['review_notes'])
+            ];
+
+            $userId = Auth::getUserId();
+            $result = $this->reviewModel->addReview($reviewable_type, $reviewable_id, $userId, $data);
+
+            if ($result) {
+                flash('review_success', 'Review added successfully.', 'alert alert-success');
+            } else {
+                flash('review_error', 'Failed to add review.', 'alert alert-danger');
+            }
+
+            // Redirect back to the original entity's page
+            $redirectInfo = $this->reviewModel->getEntityIdForRedirect($reviewable_type, $reviewable_id);
+            if ($redirectInfo) {
+                 if ($redirectInfo['type'] === 'driver') {
+                    redirect('drivers/details/' . $redirectInfo['id']);
+                } elseif ($redirectInfo['type'] === 'ticket') {
+                    redirect('tickets/view/' . $redirectInfo['id']);
+                }
+            }
+            
+            // Fallback redirect
+            redirect('');
+            return; // Stop execution after POST handling
+        }
+
+        // 2. Handle GET request (displaying the form)
+        $item_to_review = $this->reviewModel->getReviewableItemDetails($reviewable_type, $reviewable_id);
+
+        if (!$item_to_review) {
+            // Optionally, set a flash message
+            flash('error', 'The item you are trying to review does not exist.', 'error');
+            redirect('/'); 
             return;
         }
 
         $data = [
-            'review_result' => $_POST['review_result'],
-            'review_notes' => trim($_POST['review_notes'])
+            'page_main_title' => 'Add Review',
+            'item' => $item_to_review,
+            'reviewable_type' => $reviewable_type,
+            'reviewable_id' => $reviewable_id,
         ];
 
-        $userId = $_SESSION['user_id'];
-        $result = $this->reviewModel->addReview($type, $id, $userId, $data);
-
-        if ($result) {
-            flash('review_success', 'Review added successfully.', 'alert alert-success');
-        } else {
-            flash('review_error', 'Failed to add review.', 'alert alert-danger');
-        }
-
-        // Redirect back to the original entity's page (ticket or driver)
-        $redirectInfo = $this->reviewModel->getEntityIdForRedirect($type, $id);
-        if ($redirectInfo) {
-            if ($redirectInfo['type'] === 'ticket') {
-                redirect('tickets/view/' . $redirectInfo['id']);
-            } elseif ($redirectInfo['type'] === 'driver') {
-                redirect('drivers/details/' . $redirectInfo['id']);
-            }
-        }
-        
-        // Fallback redirect
-        redirect('');
+        $this->view('review/add', $data);
     }
 } 

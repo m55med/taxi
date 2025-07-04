@@ -98,21 +98,26 @@ class TeamsController extends Controller {
     public function update()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'];
-            $name = trim($_POST['name'] ?? '');
-            $team_leader_id = filter_input(INPUT_POST, 'team_leader_id', FILTER_VALIDATE_INT);
+            $id = filter_input(INPUT_POST, 'id', FILTER_SANITIZE_NUMBER_INT);
+            $name = trim(htmlspecialchars($_POST['name'] ?? ''));
             
-            if (!empty($name) && $team_leader_id) {
+            // Team leader is optional on update
+            $team_leader_id = filter_input(INPUT_POST, 'team_leader_id', FILTER_VALIDATE_INT);
+            if ($team_leader_id === false || $team_leader_id === 0) {
+                $team_leader_id = null; // Set to null if not provided or empty
+            }
+
+            if (!empty($name) && !empty($id)) {
                 $teamModel = new Team();
                 if ($teamModel->update($id, $name, $team_leader_id)) {
                     $_SESSION['team_message'] = 'Team updated successfully.';
                     $_SESSION['team_message_type'] = 'success';
                 } else {
-                    $_SESSION['team_message'] = 'Error updating the team.';
+                    $_SESSION['team_message'] = 'Error updating the team or no changes were made.';
                     $_SESSION['team_message_type'] = 'error';
                 }
             } else {
-                $_SESSION['team_message'] = 'Team name and team leader are required.';
+                $_SESSION['team_message'] = 'Team name and ID are required.';
                 $_SESSION['team_message_type'] = 'error';
             }
         }

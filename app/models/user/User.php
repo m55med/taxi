@@ -116,13 +116,18 @@ class User
     {
         $sql = "INSERT INTO users (username, email, password, role_id, status) VALUES (?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $success = $stmt->execute([
             $userData['username'],
             $userData['email'],
             $userData['password'],
             $userData['role_id'],
             $userData['status']
         ]);
+
+        if ($success) {
+            return $this->db->lastInsertId();
+        }
+        return false;
     }
 
     // تحديث حالة المستخدم
@@ -463,5 +468,17 @@ class User
             error_log("Error in setForceLogout: " . $e->getMessage());
             return false;
         }
+    }
+
+    public function getRolePermissions(int $roleId): array
+    {
+        $sql = "SELECT p.permission_key
+                FROM role_permissions rp
+                JOIN permissions p ON rp.permission_id = p.id
+                WHERE rp.role_id = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$roleId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }

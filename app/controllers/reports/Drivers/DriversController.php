@@ -12,7 +12,7 @@ class DriversController extends Controller
     {
         parent::__construct();
         if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager'])) {
-            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
+            $_SESSION['error'] = 'You are not authorized to access this page.';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
