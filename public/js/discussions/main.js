@@ -65,14 +65,18 @@ function discussionsComponent() {
 
         get filteredDiscussions() {
             return this.discussions.filter(d => {
-                const searchMatch = this.searchTerm.toLowerCase() === '' ||
-                                    d.reason.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                                    (d.ticket_number && d.ticket_number.toString().includes(this.searchTerm.toLowerCase())) ||
-                                    d.opener_name.toLowerCase().includes(this.searchTerm.toLowerCase());
+                const search = this.searchTerm.toLowerCase();
+                if (!search) return true; // No search term, return all
 
                 const statusMatch = this.filterStatus === 'all' || d.status === this.filterStatus;
+                if (!statusMatch) return false;
 
-                return searchMatch && statusMatch;
+                // Enhanced Search Logic
+                return (d.reason && d.reason.toLowerCase().includes(search)) ||
+                       (d.ticket_number && d.ticket_number.toString().includes(search)) ||
+                       (d.opener_name && d.opener_name.toLowerCase().includes(search)) ||
+                       (d.reviewer_name && d.reviewer_name.toLowerCase().includes(search)) ||
+                       (d.replies.some(r => r.message.toLowerCase().includes(search)));
             });
         },
         

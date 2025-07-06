@@ -58,6 +58,8 @@ class CallsController extends Controller
         $documentModel = $this->model('Document/Document');
         $countryModel = $this->model('Admin/Country');
         $carTypeModel = $this->model('Admin/CarType');
+        $ticketCategoryModel = $this->model('Tickets/Category');
+
 
         $data = [
             'driver'               => $driver,
@@ -70,6 +72,7 @@ class CallsController extends Controller
             'call_history'         => $driver ? $callModel->getCallHistory($driver['id']) : [],
             'today_calls_count'    => $callModel->getTodayCallsCount(),
             'total_pending_calls'  => $callModel->getTotalPendingCalls(),
+            'ticket_categories'    => $ticketCategoryModel ? $ticketCategoryModel->getAll() : [],
             'call_status_text'     => [
                 'no_answer'     => 'لم يتم الرد',
                 'answered'      => 'تم الرد',
@@ -89,65 +92,57 @@ class CallsController extends Controller
     
     public function record()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
-            return;
-        }
-        
-        $callModel = $this->model('Calls/Call');
-        if (!$callModel) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error loading call model.']);
-            return;
-        }
-        
-        $driverId = filter_input(INPUT_POST, 'driver_id', FILTER_VALIDATE_INT);
-        $rawCallStatus = $_POST['call_status'] ?? '';
-        $allowedStatuses = ['answered', 'no_answer', 'busy', 'not_available', 'wrong_number', 'rescheduled'];
-        $callStatus = in_array($rawCallStatus, $allowedStatuses) ? $rawCallStatus : null;
-        
-        if (!$driverId || !$callStatus) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Driver ID and Call Status are required.']);
-            return;
-        }
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            // Load the model
+            $callModel = $this->model('Calls/Call');
 
-        try {
-            $callModel->getDb()->beginTransaction();
+            // Sanitize POST data
+            $_POST = filter_input_array(INPUT_POST, FILTER_SANITIZE_STRING);
 
-            $callData = [
-                'driver_id' => $driverId,
+            $data = [
+                'driver_id' => trim($_POST['driver_id']),
                 'call_by' => $_SESSION['user_id'],
-                'call_status' => $callStatus,
-                'notes' => $_POST['notes'] ?? '',
-                'next_call_at' => (in_array($callStatus, ['no_answer', 'rescheduled', 'busy', 'not_available'])) ? ($_POST['next_call_at'] ?? null) : null
+                'call_status' => trim($_POST['call_status']),
+                'notes' => trim($_POST['notes']),
+                'next_call_at' => !empty($_POST['next_call_at']) ? trim($_POST['next_call_at']) : null,
+                'ticket_category_id' => !empty($_POST['ticket_category_id']) ? trim($_POST['ticket_category_id']) : null,
+                'ticket_subcategory_id' => !empty($_POST['ticket_subcategory_id']) ? trim($_POST['ticket_subcategory_id']) : null,
+                'ticket_code_id' => !empty($_POST['ticket_code_id']) ? trim($_POST['ticket_code_id']) : null,
             ];
-            
-            $callModel->recordCall($callData);
-            $callModel->updateDriverStatusBasedOnCall($driverId, $callStatus);
-            $callModel->releaseDriverHold($driverId);
-            unset($_SESSION['locked_driver_id']);
 
-            // Fetch the next driver
-            $skippedDrivers = $_SESSION['skipped_drivers'] ?? [];
-            $result = $callModel->findAndLockNextDriver($_SESSION['user_id'], $skippedDrivers);
-            $nextDriver = $result['driver'];
-            
-            if ($nextDriver) {
-                $_SESSION['locked_driver_id'] = $nextDriver['id'];
+            // Basic validation
+            if (empty($data['driver_id']) || empty($data['call_status'])) {
+                $this->sendJsonResponse(['success' => false, 'message' => 'Driver ID and Call Status are required.']);
+                return;
             }
 
-            $callModel->getDb()->commit();
-
-            header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'message' => 'Call recorded successfully.', 'next_driver' => $nextDriver]);
-
-        } catch (\Exception $e) {
-            $callModel->getDb()->rollBack();
-            error_log("Call Record Error: " . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'A server error occurred.']);
+            try {
+                if ($callModel->recordCall($data)) {
+                    // Also release the driver hold upon successful recording
+                    if (!empty($data['driver_id'])) {
+                        $callModel->releaseDriverHold($data['driver_id']);
+                        if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $data['driver_id']) {
+                            unset($_SESSION['locked_driver_id']);
+                        }
+                    }
+                    $this->sendJsonResponse(['success' => true, 'message' => 'Call recorded successfully.']);
+                } else {
+                    $this->sendJsonResponse(['success' => false, 'message' => 'Failed to record call.']);
+                }
+            } catch (\Exception $e) {
+                // Log the full exception details
+                $logMessage = "Error in CallsController::record()\n";
+                $logMessage .= "Message: " . $e->getMessage() . "\n";
+                $logMessage .= "File: " . $e->getFile() . "\n";
+                $logMessage .= "Line: " . $e->getLine() . "\n";
+                $logMessage .= "Trace: " . $e->getTraceAsString() . "\n\n";
+                error_log($logMessage, 3, APPROOT . '/log/php_errors.log');
+                
+                $this->sendJsonResponse(['success' => false, 'message' => 'An internal server error occurred. The issue has been logged.']);
+            }
+        } else {
+            // Prevent GET requests to this endpoint
+            $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
         }
     }
     
@@ -181,6 +176,20 @@ class CallsController extends Controller
 
         // Redirect to get the next driver
         redirect('calls');
+    }
+
+    public function getSubcategories($categoryId)
+    {
+        $categoryModel = $this->model('Tickets/Category');
+        $subcategories = $categoryModel->getSubcategoriesByCategoryId((int)$categoryId);
+        $this->sendJsonResponse($subcategories);
+    }
+
+    public function getCodes($subcategoryId)
+    {
+        $categoryModel = $this->model('Tickets/Category');
+        $codes = $categoryModel->getCodesBySubcategoryId((int)$subcategoryId);
+        $this->sendJsonResponse($codes);
     }
 
     public function updateDocuments()

@@ -2,58 +2,15 @@ function searchableSelect(options) {
     return {
         open: false,
         searchTerm: '',
+        options: [],
         selected: null,
-        options: options,
         modelName: '',
-        placeholder: 'Select an option', // Default placeholder
+        placeholder: 'Select an option...',
 
         init() {
+            this.options = Array.isArray(options) ? options : [];
             this.modelName = this.$el.dataset.modelName;
-            const initialValue = this.$el.dataset.initialValue;
-            
-            if (this.$el.dataset.placeholder) {
-                this.placeholder = this.$el.dataset.placeholder;
-            }
-
-            if (initialValue) {
-                this.selected = this.options.find(opt => opt.id == initialValue) || null;
-            }
-            
-            this.$watch('searchTerm', () => {
-                if (this.open && this.searchTerm) {
-                    this.$refs.search.focus();
-                }
-            });
-        },
-
-        toggle() {
-            this.open = !this.open;
-            if (this.open) {
-                this.$nextTick(() => {
-                    if (this.$refs.search) {
-                        this.$refs.search.focus();
-                    }
-                });
-            }
-        },
-
-        selectOption(option) {
-            this.selected = option;
-            this.open = false;
-            this.$dispatch('option-selected', {
-                model: this.modelName,
-                value: option.id,
-            });
-        },
-
-        get filteredOptions() {
-            if (!this.options) return [];
-            if (this.searchTerm === '') {
-                return this.options;
-            }
-            return this.options.filter(option => {
-                return option.name.toLowerCase().includes(this.searchTerm.toLowerCase());
-            });
+            this.placeholder = this.$el.dataset.placeholder;
         },
 
         get selectedLabel() {
@@ -63,15 +20,44 @@ function searchableSelect(options) {
             return this.placeholder;
         },
 
-        updateOptions(newOptions) {
-            this.options = newOptions;
-            this.reset();
+        get filteredOptions() {
+            if (this.searchTerm === '') {
+                return this.options;
+            }
+            return this.options.filter(option => {
+                return option.name.toLowerCase().includes(this.searchTerm.toLowerCase());
+            });
+        },
+
+        toggle() {
+            this.open = !this.open;
+            if (this.open) {
+                this.$nextTick(() => this.$refs.search.focus());
+            }
+        },
+
+        selectOption(option) {
+            if (this.selected && this.selected.id === option.id) {
+                this.selected = null;
+            } else {
+                this.selected = option;
+            }
+            this.open = false;
+            
+            this.$dispatch('option-selected', {
+                value: this.selected ? this.selected.id : null,
+                model: this.modelName
+            });
         },
         
         reset() {
             this.selected = null;
             this.searchTerm = '';
-            this.open = false;
+        },
+        
+        updateOptions(newOptions) {
+            this.options = Array.isArray(newOptions) ? newOptions : [];
+            this.reset();
         }
     };
 } 

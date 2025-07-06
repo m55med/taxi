@@ -10,6 +10,7 @@ class ReviewController extends Controller
 {
     private $reviewModel;
     private $userModel;
+    private $categoryModel;
 
     public function __construct()
     {
@@ -17,6 +18,8 @@ class ReviewController extends Controller
         Auth::requireLogin();
         $this->reviewModel = $this->model('review/Review');
         $this->userModel = $this->model('user/User');
+        // Load the category model for use in the add method
+        $this->categoryModel = $this->model('Tickets/Category');
     }
 
     public function index($status = 'waiting_chat')
@@ -168,7 +171,10 @@ class ReviewController extends Controller
 
             $data = [
                 'rating' => (int)$_POST['rating'],
-                'review_notes' => trim($_POST['review_notes'])
+                'review_notes' => trim($_POST['review_notes']),
+                'ticket_category_id' => !empty($_POST['ticket_category_id']) ? (int)$_POST['ticket_category_id'] : null,
+                'ticket_subcategory_id' => !empty($_POST['ticket_subcategory_id']) ? (int)$_POST['ticket_subcategory_id'] : null,
+                'ticket_code_id' => !empty($_POST['ticket_code_id']) ? (int)$_POST['ticket_code_id'] : null,
             ];
 
             $userId = Auth::getUserId();
@@ -210,6 +216,7 @@ class ReviewController extends Controller
             'item' => $item_to_review,
             'reviewable_type' => $reviewable_type,
             'reviewable_id' => $reviewable_id,
+            'ticket_categories' => $this->categoryModel->getAll(), // Pass categories to the view
         ];
 
         $this->view('review/add', $data);

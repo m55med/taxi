@@ -42,7 +42,7 @@
         <!-- Review Form Column -->
         <div class="md:col-span-2">
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <form action="<?= URLROOT ?>/review/add/<?= $reviewable_type ?>/<?= $reviewable_id ?>" method="POST" x-data="{ rating: 50 }">
+                <form action="<?= URLROOT ?>/review/add/<?= $reviewable_type ?>/<?= $reviewable_id ?>" method="POST" x-data="reviewForm()">
                     
                     <!-- New Rating Slider -->
                     <div class="mb-6">
@@ -59,8 +59,55 @@
                         <textarea name="review_notes" id="review_notes" rows="6" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Provide detailed feedback here..."></textarea>
                     </div>
 
+                    <!-- Classification Section -->
+                    <div class="border-t pt-6">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4">Classify Review</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Category -->
+                            <div>
+                                <label for="ticket_category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select name="ticket_category_id" id="ticket_category_id" x-model="categoryId" @change="fetchSubcategories" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                    <option value="">Select Category</option>
+                                    <?php foreach ($ticket_categories as $category): ?>
+                                        <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <!-- Subcategory -->
+                            <div>
+                                <label for="ticket_subcategory_id" class="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
+                                <select name="ticket_subcategory_id" id="ticket_subcategory_id" x-model="subcategoryId" @change="fetchCodes" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!categoryId || subcategoriesLoading">
+                                    <template x-if="subcategoriesLoading">
+                                        <option>Loading...</option>
+                                    </template>
+                                    <template x-if="!subcategoriesLoading">
+                                        <option value="">Select Subcategory</option>
+                                    </template>
+                                    <template x-for="subcategory in subcategories" :key="subcategory.id">
+                                        <option :value="subcategory.id" x-text="subcategory.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <!-- Code -->
+                            <div>
+                                <label for="ticket_code_id" class="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                                <select name="ticket_code_id" id="ticket_code_id" x-model="codeId" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!subcategoryId || codesLoading">
+                                    <template x-if="codesLoading">
+                                        <option>Loading...</option>
+                                    </template>
+                                     <template x-if="!codesLoading">
+                                        <option value="">Select Code</option>
+                                    </template>
+                                    <template x-for="code in codes" :key="code.id">
+                                        <option :value="code.id" x-text="code.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Submit Button -->
-                    <div class="flex justify-end">
+                    <div class="flex justify-end mt-6 border-t pt-6">
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md flex items-center">
                             <i class="fas fa-check mr-2"></i>
                             Submit Review
@@ -71,5 +118,49 @@
         </div>
     </div>
 </main>
-
+<script>
+function reviewForm() {
+    return {
+        rating: 50,
+        categoryId: null,
+        subcategoryId: null,
+        codeId: null,
+        subcategories: [],
+        codes: [],
+        subcategoriesLoading: false,
+        codesLoading: false,
+        fetchSubcategories() {
+            if (!this.categoryId) {
+                this.subcategoryId = null;
+                this.subcategories = [];
+                return;
+            }
+            this.subcategoriesLoading = true;
+            this.subcategoryId = null;
+            this.codeId = null;
+            fetch(`<?= URLROOT ?>/calls/subcategories/${this.categoryId}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.subcategories = data;
+                    this.subcategoriesLoading = false;
+                });
+        },
+        fetchCodes() {
+            if (!this.subcategoryId) {
+                this.codeId = null;
+                this.codes = [];
+                return;
+            }
+            this.codesLoading = true;
+            this.codeId = null;
+            fetch(`<?= URLROOT ?>/calls/codes/${this.subcategoryId}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.codes = data;
+                    this.codesLoading = false;
+                });
+        }
+    }
+}
+</script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?> 

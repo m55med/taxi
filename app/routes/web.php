@@ -151,6 +151,8 @@ $router->get('notifications/history', 'Notifications/NotificationsController@his
 $router->get('calls', 'Calls/CallsController@index');
 $router->post('calls/record', 'Calls/CallsController@record');
 $router->get('calls/skip/{driverId}', 'Calls/CallsController@skip');
+$router->get('calls/subcategories/{categoryId}', 'Calls/CallsController@getSubcategories');
+$router->get('calls/codes/{subcategoryId}', 'Calls/CallsController@getCodes');
 $router->post('calls/updateDocuments', 'Calls/CallsController@updateDocuments');
 
 // Driver Routes
@@ -169,6 +171,22 @@ $router->post('review/add/{type}/{id}', 'Review/ReviewController@add');
 $router->get('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
 $router->post('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
 $router->post('discussions/close/{id}', 'Discussions/DiscussionsController@close');
+
+// Quality Management Routes
+$router->get('quality/reviews', 'Quality/QualityController@reviews');
+$router->get('quality/get_reviews_api', 'Quality/QualityController@get_reviews_api');
+$router->get('quality/discussions', 'Quality/QualityController@discussions');
+$router->get('quality/get_discussions_api', 'Quality/QualityController@get_discussions_api');
+
+// Listings (Tickets, Outgoing Calls, Incoming Calls)
+$router->get('listings/tickets', 'Listings/ListingsController@tickets');
+$router->get('listings/get_tickets_api', 'Listings/ListingsController@get_tickets_api');
+$router->get('listings/outgoing_calls', 'Listings/ListingsController@outgoing_calls');
+$router->get('listings/get_outgoing_calls_api', 'Listings/ListingsController@get_outgoing_calls_api');
+$router->get('listings/incoming_calls', 'Listings/ListingsController@incoming_calls');
+$router->get('listings/get_incoming_calls_api', 'Listings/ListingsController@get_incoming_calls_api');
+
+
 
 // API Routes
 $router->get('drivers/search', 'Driver/DriverController@search');

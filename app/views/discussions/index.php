@@ -99,16 +99,16 @@
                             <h2 class="text-lg font-bold" x-text="selectedDiscussion.reason"></h2>
                             <div class="text-sm text-gray-500 mt-2 flex items-center space-x-4">
                                 <!-- Link to related item -->
-                                <template x-if="selectedDiscussion.reviewable_type === 'ticket_detail' && selectedDiscussion.ticket_id">
+                                <template x-if="selectedDiscussion.reviewable_type_simple === 'ticket_detail' && selectedDiscussion.ticket_id">
                                     <a :href="`<?= URLROOT ?>/tickets/view/${selectedDiscussion.ticket_id}`" target="_blank" class="text-blue-600 hover:underline font-semibold flex items-center space-x-1">
                                         <i class="fas fa-ticket-alt"></i>
                                         <span x-text="`Ticket #${selectedDiscussion.ticket_number}`"></span>
                                     </a>
                                 </template>
-                                <template x-if="selectedDiscussion.reviewable_type === 'driver_call' && selectedDiscussion.driver_id">
+                                <template x-if="selectedDiscussion.reviewable_type_simple === 'driver_call' && selectedDiscussion.driver_id">
                                     <a :href="`<?= URLROOT ?>/drivers/details/${selectedDiscussion.driver_id}`" target="_blank" class="text-blue-600 hover:underline font-semibold flex items-center space-x-1">
                                         <i class="fas fa-headset"></i>
-                                        <span>Driver Call</span>
+                                        <span>View Call Context</span>
                                     </a>
                                 </template>
 

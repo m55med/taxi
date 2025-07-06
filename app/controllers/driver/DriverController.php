@@ -199,14 +199,15 @@ class DriverController extends Controller
         $driverDiscussions = $this->discussionModel->getDiscussions('App\\\\Models\\\\Driver\\\\Driver', $id);
 
         // Efficiently fetch reviews, discussions, and replies for all calls
-        $callIds = array_map(fn($call) => $call['id'], $callHistory);
-        
-        $allReviews = !empty($callIds) ? $this->reviewModel->getReviewsForMultipleItems('driver_call', $callIds) : [];
-        
-        $reviewIds = !empty($allReviews) ? array_map(fn($r) => $r['id'], $allReviews) : [];
-        $allDiscussions = !empty($reviewIds) ? $this->discussionModel->getDiscussionsForReviews($reviewIds) : [];
+        $callIds = array_column($callHistory, 'id');
+        $reviewsByCallId = !empty($callIds) ? $this->reviewModel->getReviewsForMultipleItems('driver_call', $callIds) : [];
 
-        $discussionIds = !empty($allDiscussions) ? array_map(fn($d) => $d['id'], $allDiscussions) : [];
+        // Flatten the reviews to get all review IDs and then fetch their discussions
+        $allReviewsFlat = array_merge(...array_values($reviewsByCallId));
+        $reviewIds = !empty($allReviewsFlat) ? array_column($allReviewsFlat, 'id') : [];
+        $allDiscussions = !empty($reviewIds) ? $this->discussionModel->getDiscussionsForReviews($reviewIds) : [];
+        
+        $discussionIds = !empty($allDiscussions) ? array_column($allDiscussions, 'id') : [];
         $allReplies = !empty($discussionIds) ? $this->discussionModel->getRepliesForDiscussions($discussionIds) : [];
 
         // Group replies by discussion ID
@@ -226,17 +227,23 @@ class DriverController extends Controller
             $discussionsByReviewId[$discussion['discussable_id']][] = $discussion;
         }
 
-        // Group reviews by call (reviewable) ID
-        $reviewsByCallId = [];
-        foreach ($allReviews as $review) {
-            $review['discussions'] = $discussionsByReviewId[$review['id']] ?? [];
-            $reviewsByCallId[$review['reviewable_id']][] = $review;
+        // Attach discussions to reviews within the grouped structure
+        foreach ($reviewsByCallId as &$reviews) {
+            foreach ($reviews as &$review) {
+                $review['discussions'] = $discussionsByReviewId[$review['id']] ?? [];
+            }
         }
-        
+        unset($review, $reviews); // Unset references
+
         // Attach the fully-loaded reviews to each call in the history
-        foreach ($callHistory as $key => $call) {
-            $callHistory[$key]['reviews'] = $reviewsByCallId[$call['id']] ?? [];
+        foreach ($callHistory as $key => &$call) {
+            $call['reviews'] = $reviewsByCallId[$call['id']] ?? [];
         }
+        unset($call); // Unset reference
+
+        // Load ticket categories for the review form partial
+        $categoryModel = $this->model('Tickets/Category');
+        $ticket_categories = $categoryModel->getAll();
 
         $data = [
             'page_main_title' => 'Driver Details',
@@ -248,7 +255,11 @@ class DriverController extends Controller
             'callReviews' => $callHistory,
             'driverDocuments' => $driverDocuments,
             'unassignedDocuments' => $unassignedDocuments,
-            'currentUser' => ['id' => $_SESSION['user_id'], 'role' => $_SESSION['role']]
+            'ticket_categories' => $ticket_categories, // Pass categories for review partial
+            'currentUser' => [
+                'id' => $_SESSION['user_id'],
+                'role' => $_SESSION['role']
+            ]
         ];
 
         $this->view('drivers/details', $data);

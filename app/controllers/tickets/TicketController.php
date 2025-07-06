@@ -126,12 +126,17 @@ class TicketController extends Controller
             $relatedTickets = $this->ticketModel->findByPhone($ticket['phone'], $id);
         }
 
+        // Load categories for the review form partial
+        $categoryModel = $this->model('Tickets/Category');
+        $ticket_categories = $categoryModel->getAll();
+
         $data = [
             'page_main_title' => 'تفاصيل التذكرة',
             'ticket' => $ticket,
             'ticketHistory' => $ticketHistory,
             'relatedTickets' => $relatedTickets,
             'ticketDiscussions' => $ticketDiscussions, // Pass the fully-loaded ticket discussions
+            'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
                 'id' => $_SESSION['user_id'],
                 'role' => $_SESSION['role']

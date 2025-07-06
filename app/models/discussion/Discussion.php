@@ -33,10 +33,15 @@ class Discussion extends Model
                 COALESCE(last_reply.username, 'N/A') as last_replier_name,
                 COALESCE(last_reply.created_at, d.created_at) as last_activity_at,
                 t.ticket_number,
-                t.id as ticket_id,
+                td.ticket_id,
                 r.rating as review_score,
                 reviewer.username as reviewer_name,
-                r.reviewable_type,
+                -- Simplify the reviewable_type for easier use in the frontend
+                CASE 
+                    WHEN r.reviewable_type LIKE '%TicketDetail' THEN 'ticket_detail'
+                    WHEN r.reviewable_type LIKE '%DriverCall' THEN 'driver_call'
+                    ELSE r.reviewable_type
+                END as reviewable_type_simple,
                 dc.driver_id,
                 (
                     SELECT COUNT(*) 
@@ -64,11 +69,11 @@ class Discussion extends Model
                     GROUP BY discussion_id
                 )
             ) AS last_reply ON d.id = last_reply.discussion_id
-            LEFT JOIN reviews r ON d.discussable_id = r.id AND d.discussable_type = 'App\\\\Models\\\\Review\\\\Review'
+            LEFT JOIN reviews r ON d.discussable_id = r.id AND d.discussable_type LIKE '%Review'
             LEFT JOIN users reviewer ON r.reviewed_by = reviewer.id
-            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'ticket_detail'
+            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
             LEFT JOIN tickets t ON td.ticket_id = t.id
-            LEFT JOIN driver_calls dc on r.reviewable_id = dc.id and r.reviewable_type = 'driver_call'
+            LEFT JOIN driver_calls dc on r.reviewable_id = dc.id and r.reviewable_type LIKE '%DriverCall'
         ";
         
         $conditions = [];

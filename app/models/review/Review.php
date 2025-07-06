@@ -230,9 +230,15 @@ class Review {
         }
         $reviewable_type_fqcn = $typeMap[$type];
 
-        $sql = "SELECT r.*, u.username as reviewer_name 
+        $sql = "SELECT r.*, u.username as reviewer_name,
+                       tc.name as category_name,
+                       tsc.name as subcategory_name,
+                       tco.name as code_name
                 FROM reviews r
                 JOIN users u ON r.reviewed_by = u.id
+                LEFT JOIN ticket_categories tc ON r.ticket_category_id = tc.id
+                LEFT JOIN ticket_subcategories tsc ON r.ticket_subcategory_id = tsc.id
+                LEFT JOIN ticket_codes tco ON r.ticket_code_id = tco.id
                 WHERE (r.reviewable_type = :reviewable_type_fqcn OR r.reviewable_type = :reviewable_type_simple)
                 AND r.reviewable_id = :reviewable_id
                 ORDER BY r.reviewed_at DESC";
@@ -251,30 +257,47 @@ class Review {
     }
 
     /**
-     * Adds a review to the database for a specific item.
+     * Adds a new review to the database.
      *
-     * @param string $reviewable_type The type of entity being reviewed (e.g., 'driver_call').
-     * @param int $reviewable_id The ID of the entity being reviewed.
-     * @param int $userId The ID of the user submitting the review.
-     * @param array $data The review data (result and notes).
-     * @return bool True on success, false on failure.
+     * @param string $reviewable_type The simple type of the item being reviewed (e.g., 'ticket_detail').
+     * @param integer $reviewable_id The ID of the item being reviewed.
+     * @param integer $userId The ID of the user submitting the review.
+     * @param array $data The review data, including 'rating' and 'review_notes'.
+     * @return boolean True on success, false on failure.
      */
     public function addReview(string $reviewable_type, int $reviewable_id, int $userId, array $data): bool
     {
-        $sql = "INSERT INTO reviews (reviewable_id, reviewable_type, reviewed_by, rating, review_notes)
-                VALUES (:reviewable_id, :reviewable_type, :reviewed_by, :rating, :review_notes)";
+        // Map simple type to fully qualified class name
+        $typeMap = [
+            'ticket_detail' => 'App\\Models\\Tickets\\TicketDetail',
+            'driver_call' => 'App\\Models\\Call\\DriverCall'
+             // Add other reviewable types here
+        ];
+
+        if (!array_key_exists($reviewable_type, $typeMap)) {
+            error_log("Invalid reviewable type provided for addReview: " . $reviewable_type);
+            return false;
+        }
+        $reviewable_type_fqcn = $typeMap[$reviewable_type];
+        
+        $sql = "INSERT INTO reviews (reviewable_id, reviewable_type, reviewed_by, rating, review_notes, ticket_category_id, ticket_subcategory_id, ticket_code_id, reviewed_at) 
+                VALUES (:reviewable_id, :reviewable_type, :reviewed_by, :rating, :review_notes, :ticket_category_id, :ticket_subcategory_id, :ticket_code_id, NOW())";
         
         try {
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
+            $stmt->execute([
                 ':reviewable_id' => $reviewable_id,
-                ':reviewable_type' => $reviewable_type,
+                ':reviewable_type' => $reviewable_type_fqcn,
                 ':reviewed_by' => $userId,
                 ':rating' => $data['rating'],
-                ':review_notes' => $data['review_notes']
+                ':review_notes' => $data['review_notes'],
+                ':ticket_category_id' => $data['ticket_category_id'],
+                ':ticket_subcategory_id' => $data['ticket_subcategory_id'],
+                ':ticket_code_id' => $data['ticket_code_id']
             ]);
-        } catch (\PDOException $e) {
-            // Log the error
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            // Log the error for debugging
             error_log("Error adding review: " . $e->getMessage());
             return false;
         }
@@ -364,9 +387,15 @@ class Review {
         $reviewable_type_fqcn = $typeMap[$type] ?? '';
 
         $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
-        $sql = "SELECT r.*, u.username as reviewer_name 
+        $sql = "SELECT r.*, u.username as reviewer_name,
+                       tc.name as category_name,
+                       tsc.name as subcategory_name,
+                       tco.name as code_name
                 FROM reviews r
                 JOIN users u ON r.reviewed_by = u.id
+                LEFT JOIN ticket_categories tc ON r.ticket_category_id = tc.id
+                LEFT JOIN ticket_subcategories tsc ON r.ticket_subcategory_id = tsc.id
+                LEFT JOIN ticket_codes tco ON r.ticket_code_id = tco.id
                 WHERE (r.reviewable_type = ? OR r.reviewable_type = ?)
                 AND r.reviewable_id IN ($placeholders)
                 ORDER BY r.reviewed_at DESC";
@@ -377,7 +406,16 @@ class Review {
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Group by reviewable_id for easy access
+            $groupedReviews = [];
+            foreach ($reviews as $review) {
+                $groupedReviews[$review['reviewable_id']][] = $review;
+            }
+            return $groupedReviews;
+
         } catch (PDOException $e) {
             error_log("Error in getReviewsForMultipleItems: " . $e->getMessage());
             return [];

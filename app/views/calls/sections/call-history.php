@@ -14,23 +14,27 @@ $call_status_text = $data['call_status_text'] ?? [];
         </div>
     <?php else: ?>
         <div class="relative border-l-2 border-gray-200 pl-8 space-y-8">
-            <?php foreach ($call_history as $event): ?>
+            <?php 
+            foreach ($call_history as $event):
+                $details = json_decode($event['details'], true) ?? [];
+            ?>
                 <div class="history-item relative">
-                    <?php if ($event['event_type'] === 'call'): ?>
+                    <?php if ($event['event_type'] === 'call'): 
+                        $status = $details['status'] ?? 'unknown';
+                    ?>
                         <!-- Call Event -->
                         <div class="timeline-icon bg-indigo-100 ring-4 ring-white">
                             <i class="fas fa-phone-alt text-sm text-indigo-500"></i>
                         </div>
                         <div class="flex justify-between items-start mb-1">
                             <div>
-                                <p class="font-semibold text-gray-800"><?= htmlspecialchars($event['actor_name'] ?? 'Unknown Staff') ?></p>
+                                <p class="font-semibold text-gray-800"><?= htmlspecialchars($event['created_by'] ?? 'Unknown Staff') ?></p>
                                 <p class="text-sm text-gray-500">
                                     <?= date('d M Y, H:i', strtotime($event['event_date'])) ?>
                                 </p>
                             </div>
                             <span class="px-2 py-1 rounded-full text-xs font-medium 
                                 <?php
-                                $status = $event['details'];
                                 switch($status) {
                                     case 'answered': echo 'bg-green-100 text-green-800'; break;
                                     case 'no_answer': echo 'bg-red-100 text-red-800'; break;
@@ -44,14 +48,39 @@ $call_status_text = $data['call_status_text'] ?? [];
                                 <?= $call_status_text[$status] ?? htmlspecialchars(ucfirst($status)) ?>
                             </span>
                         </div>
-                        <?php if (!empty($event['notes'])): ?>
-                            <p class="text-gray-700 bg-gray-50 p-3 rounded-md text-sm mt-2"><?= nl2br(htmlspecialchars($event['notes'])) ?></p>
+                        <?php if (!empty($details['notes'])): ?>
+                            <p class="text-gray-700 bg-gray-50 p-3 rounded-md text-sm mt-2"><?= nl2br(htmlspecialchars($details['notes'])) ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($event['next_call_at'])): ?>
+                        
+                        <!-- Classification Info -->
+                        <?php if (!empty($details['category']) || !empty($details['subcategory']) || !empty($details['code'])): ?>
+                        <div class="mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-md flex flex-wrap gap-x-4 gap-y-2">
+                            <?php if (!empty($details['category'])): ?>
+                                <div class="flex items-center">
+                                    <strong class="font-medium text-gray-800 mr-2">التصنيف:</strong>
+                                    <span><?= htmlspecialchars($details['category']) ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($details['subcategory'])): ?>
+                                <div class="flex items-center">
+                                    <strong class="font-medium text-gray-800 mr-2">الفرعي:</strong>
+                                    <span><?= htmlspecialchars($details['subcategory']) ?></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($details['code'])): ?>
+                                <div class="flex items-center">
+                                    <strong class="font-medium text-gray-800 mr-2">الكود:</strong>
+                                    <span><?= htmlspecialchars($details['code']) ?></span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($details['next_call_at'])): ?>
                             <div class="mt-2 text-sm text-indigo-600 font-medium flex items-center">
                                 <i class="far fa-clock mr-2"></i>
                                 <span>Next Call:</span>
-                                <span class="ml-2 font-mono tracking-wide"><?= date('d M Y, H:i', strtotime($event['next_call_at'])) ?></span>
+                                <span class="ml-2 font-mono tracking-wide"><?= date('d M Y, H:i', strtotime($details['next_call_at'])) ?></span>
                             </div>
                         <?php endif; ?>
 
@@ -69,10 +98,10 @@ $call_status_text = $data['call_status_text'] ?? [];
                             </div>
                         </div>
                         <div class="text-gray-700 bg-gray-50 p-3 rounded-md text-sm space-y-2 mt-2">
-                            <p>From: <strong class="font-medium text-gray-900"><?= htmlspecialchars($event['actor_name'] ?? 'Unknown') ?></strong></p>
-                            <p>To: <strong class="font-medium text-gray-900"><?= htmlspecialchars($event['recipient_name'] ?? 'Unknown') ?></strong></p>
-                            <?php if (!empty($event['notes'])): ?>
-                                <p class="pt-2 border-t border-gray-200 mt-2">Note: <?= nl2br(htmlspecialchars($event['notes'])) ?></p>
+                            <p>From: <strong class="font-medium text-gray-900"><?= htmlspecialchars($event['created_by'] ?? 'Unknown') ?></strong></p>
+                            <p>To: <strong class="font-medium text-gray-900"><?= htmlspecialchars($details['recipient_name'] ?? 'Unknown') ?></strong></p>
+                            <?php if (!empty($details['notes'])): ?>
+                                <p class="pt-2 border-t border-gray-200 mt-2">Note: <?= nl2br(htmlspecialchars($details['notes'])) ?></p>
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>

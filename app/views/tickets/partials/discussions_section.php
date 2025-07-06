@@ -70,19 +70,6 @@ if (isset($add_url)) {
                             <span class="ml-2">| Closed at: <?= date('Y-m-d H:i', strtotime($discussion['updated_at'])) ?></span>
                         <?php endif; ?>
                     </div>
-
-                    <!-- Replies Section -->
-                    <div class="mt-3 ml-4 pl-4 border-l-2 border-gray-200 space-y-3">
-                        <?php if (!empty($discussion['replies'])) : ?>
-                            <?php foreach ($discussion['replies'] as $reply) : ?>
-                                <div class="text-sm">
-                                    <p class="font-semibold text-gray-800"><?= htmlspecialchars($reply['username']) ?>:</p>
-                                    <p class="text-gray-600 bg-gray-100 p-2 rounded-md"><?= nl2br(htmlspecialchars($reply['message'])) ?></p>
-                                    <p class="text-xs text-gray-400 mt-1 text-right"><?= date('Y-m-d H:i', strtotime($reply['created_at'])) ?></p>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
                 </li>
             <?php endforeach; ?>
         </ul>

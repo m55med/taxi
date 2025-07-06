@@ -355,43 +355,47 @@ class Driver
     public function getById($driverId)
     {
         try {
-            $sql = "
-                SELECT 
-                    d.*,
-                    c.name AS country_name,
-                    ct.name AS car_type_name,
-                    da.has_many_trips
-                FROM drivers d
-                LEFT JOIN countries c ON d.country_id = c.id
-                LEFT JOIN car_types ct ON d.car_type_id = ct.id
-                LEFT JOIN driver_attributes da ON d.id = da.driver_id
-                WHERE d.id = :driver_id
-            ";
-            
+            $sql = "SELECT d.*, 
+                           c.name as country_name,
+                           ct.name as car_type_name,
+                           u.username as added_by_username,
+                           da.has_many_trips
+                    FROM drivers d
+                    LEFT JOIN countries c ON d.country_id = c.id
+                    LEFT JOIN car_types ct ON d.car_type_id = ct.id
+                    LEFT JOIN users u ON d.added_by = u.id
+                    LEFT JOIN driver_attributes da ON d.id = da.driver_id
+                    WHERE d.id = :driverId";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([':driver_id' => $driverId]);
+            $stmt->execute([':driverId' => $driverId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
-
         } catch (PDOException $e) {
-            error_log("ERROR in DriverModel::getById for ID {$driverId}: " . $e->getMessage());
-            return false;
+            error_log("Error in Driver->getById: " . $e->getMessage());
+            return null;
         }
     }
 
     public function getCallHistory($driverId)
     {
         try {
-            $stmt = $this->db->prepare("
-                SELECT dc.*, u.username as staff_name 
-                FROM driver_calls dc 
-                LEFT JOIN users u ON dc.call_by = u.id 
-                WHERE dc.driver_id = :driver_id 
-                ORDER BY dc.created_at DESC
-            ");
-            $stmt->execute([':driver_id' => $driverId]);
+            $sql = "SELECT 
+                        dc.*, 
+                        u.username as staff_name,
+                        tc.name as category_name,
+                        tsc.name as subcategory_name,
+                        tco.name as code_name
+                    FROM driver_calls dc
+                    JOIN users u ON dc.call_by = u.id
+                    LEFT JOIN ticket_categories tc ON dc.ticket_category_id = tc.id
+                    LEFT JOIN ticket_subcategories tsc ON dc.ticket_subcategory_id = tsc.id
+                    LEFT JOIN ticket_codes tco ON dc.ticket_code_id = tco.id
+                    WHERE dc.driver_id = :driverId
+                    ORDER BY dc.created_at DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':driverId' => $driverId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Error in getCallHistory: " . $e->getMessage());
+            error_log("Error fetching call history: " . $e->getMessage());
             return [];
         }
     }

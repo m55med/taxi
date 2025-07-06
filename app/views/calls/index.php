@@ -108,13 +108,15 @@
 <?php include __DIR__ . '/sections/transfer-modal.php'; ?>
 
 <!-- Core & Module Scripts -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="<?= URLROOT ?>/public/js/utils.js?v=1.2"></script>
+<script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=1.0"></script>
 <script src="<?= URLROOT ?>/public/js/calls/shared.js?v=1.2"></script>
 <script src="<?= URLROOT ?>/public/js/calls/driver-profile.js?v=1.3"></script>
 <script src="<?= URLROOT ?>/public/js/calls/driver-info.js?v=1.6"></script>
 <script src="<?= URLROOT ?>/public/js/calls/documents.js?v=1.2"></script>
 <script src="<?= URLROOT ?>/public/js/calls/transfer.js?v=1.2"></script>
-<script src="<?= URLROOT ?>/public/js/calls/call-form.js?v=1.3"></script>
+<script src="<?= URLROOT ?>/public/js/calls/call-form-alpine.js?v=1.0"></script>
 <script src="<?= URLROOT ?>/public/js/calls/search-autocomplete.js?v=1.0"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

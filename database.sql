@@ -141,10 +141,22 @@ CREATE TABLE driver_calls (
     next_call_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
+    -- الأعمدة الجديدة المضافة
+    ticket_category_id INT(11) NULL DEFAULT NULL,
+    ticket_subcategory_id INT(11) NULL DEFAULT NULL,
+    ticket_code_id INT(11) NULL DEFAULT NULL,
+
+    -- العلاقات
     FOREIGN KEY (driver_id) REFERENCES drivers(id),
     FOREIGN KEY (call_by) REFERENCES users(id),
-    INDEX idx_next_call_at (next_call_at) -- Index for filtering by call time
+    FOREIGN KEY (ticket_category_id) REFERENCES ticket_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (ticket_subcategory_id) REFERENCES ticket_subcategories(id) ON DELETE SET NULL,
+    FOREIGN KEY (ticket_code_id) REFERENCES ticket_codes(id) ON DELETE SET NULL,
+
+    -- الفهرس
+    INDEX idx_next_call_at (next_call_at)
 );
+
 --جدول لتخزين تحويلات المكالمات بين الموظفين
 CREATE TABLE driver_assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -304,8 +316,16 @@ CREATE TABLE reviews (
     review_notes TEXT,
     reviewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
+    -- New columns for classification
+    ticket_category_id INT(11) NULL DEFAULT NULL,
+    ticket_subcategory_id INT(11) NULL DEFAULT NULL,
+    ticket_code_id INT(11) NULL DEFAULT NULL,
+
     INDEX idx_reviewable (reviewable_id, reviewable_type),
-    FOREIGN KEY (reviewed_by) REFERENCES users(id)
+    FOREIGN KEY (reviewed_by) REFERENCES users(id),
+    FOREIGN KEY (ticket_category_id) REFERENCES ticket_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (ticket_subcategory_id) REFERENCES ticket_subcategories(id) ON DELETE SET NULL,
+    FOREIGN KEY (ticket_code_id) REFERENCES ticket_codes(id) ON DELETE SET NULL
 );
 
 --المناقشات

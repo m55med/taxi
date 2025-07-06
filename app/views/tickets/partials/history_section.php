@@ -92,7 +92,8 @@
                         'reviews' => $history['reviews'] ?? [],
                         'add_review_url' => BASE_PATH . "/review/add/ticket_detail/" . $history['id'],
                         'can_add_review' => in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']),
-                        'currentUser' => $data['currentUser']
+                        'currentUser' => $data['currentUser'],
+                        'ticket_categories' => $data['ticket_categories'] ?? [] // Pass categories down
                     ]);
                     ?>
                 </div>

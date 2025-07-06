@@ -1,24 +1,21 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
+import requests
 
-class TelegramDebugHandler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        body = self.rfile.read(content_length)
-        try:
-            data = json.loads(body)
-            print("\n📩 Received Telegram Request:")
-            print(json.dumps(data, indent=4))
-        except Exception as e:
-            print("⚠️ Error decoding JSON:", e)
-            print("Raw data:", body.decode())
+def get_btc_balance(address, testnet=False):
+    if testnet:
+        url = f"https://mempool.space/testnet/api/address/{address}"
+    else:
+        url = f"https://mempool.space/api/address/{address}"
 
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b'OK')
+    try:
+        response = requests.get(url)
+        data = response.json()
+        balance_sats = data.get("chain_stats", {}).get("funded_txo_sum", 0) - data.get("chain_stats", {}).get("spent_txo_sum", 0)
+        balance_btc = balance_sats / 1e8
+        print(f"📬 Address: {address}")
+        print(f"💰 Balance: {balance_btc} BTC")
+    except Exception as e:
+        print("❌ Error:", e)
 
-if __name__ == "__main__":
-    server_address = ('localhost', 5000)  # or 127.0.0.1
-    httpd = HTTPServer(server_address, TelegramDebugHandler)
-    print("🚀 Telegram Debug Server running at http://localhost:5000")
-    httpd.serve_forever()
+# ✅ استخدم عنوانك هنا
+address = "tb1qem90gx9zl2rjdzuddhpyksh9qtqhuq25vjz6hx"
+get_btc_balance(address, testnet=True)

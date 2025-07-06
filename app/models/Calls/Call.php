@@ -153,39 +153,63 @@ class Call extends Model
     // CALL & DRIVER STATUS MANAGEMENT
     // =================================================================
 
+    /**
+     * Records a call in the database.
+     *
+     * @param array $data The call data.
+     * @return bool True on success, false on failure.
+     */
     public function recordCall($data)
     {
-        $sql = "INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at) VALUES (:driver_id, :call_by, :call_status, :notes, :next_call_at)";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($data);
+        $isTransactionActive = $this->db->inTransaction();
+        if (!$isTransactionActive) {
+            $this->beginTransaction();
+        }
+
+        try {
+            // 1. Insert the call record
+            $this->query('INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at, ticket_category_id, ticket_subcategory_id, ticket_code_id) VALUES (:driver_id, :call_by, :call_status, :notes, :next_call_at, :ticket_category_id, :ticket_subcategory_id, :ticket_code_id)');
+            $this->bind(':driver_id', $data['driver_id']);
+            $this->bind(':call_by', $data['call_by']);
+            $this->bind(':call_status', $data['call_status']);
+            $this->bind(':notes', $data['notes']);
+            $this->bind(':next_call_at', $data['next_call_at']);
+            $this->bind(':ticket_category_id', $data['ticket_category_id']);
+            $this->bind(':ticket_subcategory_id', $data['ticket_subcategory_id']);
+            $this->bind(':ticket_code_id', $data['ticket_code_id']);
+            
+            if (!$this->execute()) {
+                throw new PDOException("Failed to insert call record.");
+            }
+
+            // 2. Update driver's main_system_status based on call status
+            $this->updateDriverStatusBasedOnCall($data['driver_id'], $data['call_status']);
+
+            if (!$isTransactionActive) {
+                $this->commit();
+            }
+            return true;
+
+        } catch (PDOException $e) {
+            if (!$isTransactionActive) {
+                $this->rollBack();
+            }
+            error_log("Error in recordCall transaction: " . $e->getMessage());
+            return false;
+        }
     }
 
-    public function updateDriverStatusBasedOnCall($driverId, $callStatus)
+    public function updateDriverStatusBasedOnCall($driver_id, $call_status)
     {
-        $newStatus = '';
-        switch ($callStatus) {
-            case 'answered':
-                $newStatus = 'waiting_chat';
-                break;
-            case 'no_answer':
-                $newStatus = 'no_answer';
-                break;
-            case 'rescheduled':
-            case 'busy':
-            case 'not_available':
-                $newStatus = 'rescheduled';
-                break;
-            case 'wrong_number':
-                $newStatus = 'blocked';
-                break;
+        // No update needed if call was answered, status is handled by other processes
+        if ($call_status === 'answered') {
+            return true; 
         }
 
-        if (!empty($newStatus)) {
-            $sql = "UPDATE drivers SET main_system_status = :status WHERE id = :driver_id";
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([':status' => $newStatus, ':driver_id' => $driverId]);
-        }
-        return true;
+        $this->query("UPDATE drivers SET main_system_status = :status WHERE id = :driver_id");
+        $this->bind(':status', $call_status); // Directly use call_status for simplicity
+        $this->bind(':driver_id', $driver_id);
+        return $this->execute();
     }
 
     public function releaseDriverHold($driverId)
@@ -199,7 +223,7 @@ class Call extends Model
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             ':is_held' => (int) $isHeld, 
-            ':user_id' => $userId,
+            ':user_id' => $isHeld ? $userId : null,
             ':driver_id' => $driverId
         ]);
     }
@@ -241,37 +265,38 @@ class Call extends Model
         }
     }
 
-    public function getCallHistory($driverId)
+    public function getCallHistory($driver_id)
     {
         $sql = "
             (SELECT 
                 'call' as event_type, 
                 dc.id as event_id, 
                 dc.created_at as event_date, 
-                dc.call_by as actor_id, 
-                u.username as actor_name, 
-                dc.call_status as details, 
-                dc.notes, 
-                dc.next_call_at,
-                NULL as recipient_id,
-                NULL as recipient_name
+                u.username as created_by,
+                JSON_OBJECT(
+                    'status', dc.call_status,
+                    'notes', dc.notes,
+                    'next_call_at', dc.next_call_at,
+                    'category', cat.name,
+                    'subcategory', subcat.name,
+                    'code', code.name
+                ) as details
             FROM driver_calls dc
             JOIN users u ON dc.call_by = u.id
+            LEFT JOIN ticket_categories cat ON dc.ticket_category_id = cat.id
+            LEFT JOIN ticket_subcategories subcat ON dc.ticket_subcategory_id = subcat.id
+            LEFT JOIN ticket_codes code ON dc.ticket_code_id = code.id
             WHERE dc.driver_id = :driver_id1)
-            
-            UNION
-            
+            UNION ALL
             (SELECT 
                 'assignment' as event_type, 
                 da.id as event_id, 
                 da.created_at as event_date, 
-                da.from_user_id as actor_id, 
-                u_from.username as actor_name,
-                NULL as details, 
-                da.note as notes, 
-                NULL as next_call_at,
-                da.to_user_id as recipient_id,
-                u_to.username as recipient_name
+                u_from.username as created_by,
+                JSON_OBJECT(
+                    'recipient_name', u_to.username,
+                    'notes', da.note
+                ) as details
             FROM driver_assignments da
             JOIN users u_from ON da.from_user_id = u_from.id
             JOIN users u_to ON da.to_user_id = u_to.id
@@ -279,9 +304,9 @@ class Call extends Model
             
             ORDER BY event_date DESC
         ";
-
+        
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':driver_id1' => $driverId, ':driver_id2' => $driverId]);
+        $stmt->execute([':driver_id1' => $driver_id, ':driver_id2' => $driver_id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -331,10 +356,10 @@ class Call extends Model
                 VALUES (:driver_id, :has_many_trips)
                 ON DUPLICATE KEY UPDATE has_many_trips = :has_many_trips";
         
-        $this->db->query($sql);
-        $this->db->bind(':driver_id', $driverId);
-        $this->db->bind(':has_many_trips', $hasManyTrips, \PDO::PARAM_BOOL);
+        $this->query($sql);
+        $this->bind(':driver_id', $driverId);
+        $this->bind(':has_many_trips', $hasManyTrips, \PDO::PARAM_BOOL);
         
-        return $this->db->execute();
+        return $this->execute();
     }
 }

@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`${URLROOT}/api/drivers/search?q=${query}`);
+            const response = await fetch(`${URLROOT}/drivers/search?q=${query}`);
             if (!response.ok) throw new Error('Network response was not ok.');
             
             const drivers = await response.json();

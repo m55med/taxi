@@ -173,7 +173,42 @@
                              x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
                              class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
                             <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>Discussions</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>My Discussions</a><?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Quality Management Dropdown (Desktop) -->
+                     <?php if (\App\Core\Auth::hasPermission('quality/reviews') || \App\Core\Auth::hasPermission('quality/discussions')): ?>
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-medal mr-2"></i>
+                            <span>Quality</span>
+                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" 
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                            <?php if (\App\Core\Auth::hasPermission('quality/reviews')): ?><a href="<?= BASE_PATH ?>/quality/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-star-half-alt mr-2"></i>All Reviews</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('quality/discussions')): ?><a href="<?= BASE_PATH ?>/quality/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments-dollar mr-2"></i>All Discussions</a><?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Listings Dropdown (Desktop) -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-list-ul mr-2"></i>
+                            <span>Listings</span>
+                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" 
+                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
+                            <?php if (\App\Core\Auth::hasPermission('listings/tickets')): ?><a href="<?= BASE_PATH ?>/listings/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt mr-2"></i>All Tickets</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('listings/outgoing_calls')): ?><a href="<?= BASE_PATH ?>/listings/outgoing_calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-alt mr-2"></i>Outgoing Calls</a><?php endif; ?>
+                            <?php if (\App\Core\Auth::hasPermission('listings/incoming_calls')): ?><a href="<?= BASE_PATH ?>/listings/incoming_calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-slash mr-2"></i>Incoming Calls</a><?php endif; ?>
                         </div>
                     </div>
 
@@ -389,9 +424,53 @@
                 </button>
                  <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
                     <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-comments mr-2"></i>Discussions</a><?php endif; ?>
+                    <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-comments mr-2"></i>My Discussions</a><?php endif; ?>
                 </div>
             </div>
+
+            <!-- Quality Management Dropdown (Mobile) -->
+            <?php if (\App\Core\Auth::hasPermission('quality/reviews') || \App\Core\Auth::hasPermission('quality/discussions')): ?>
+            <a href="#" class="mt-1 block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                <i class="fas fa-medal mr-2"></i>Quality Management
+            </a>
+            <div class="pl-4">
+                <?php if (\App\Core\Auth::hasPermission('quality/reviews')): ?>
+                <a href="<?= BASE_PATH ?>/quality/reviews" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                   <i class="fas fa-star-half-alt mr-2"></i>All Reviews
+                </a>
+                <?php endif; ?>
+                <?php if (\App\Core\Auth::hasPermission('quality/discussions')): ?>
+                <a href="<?= BASE_PATH ?>/quality/discussions" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                   <i class="fas fa-comments-dollar mr-2"></i>All Discussions
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Listings Dropdown (Mobile) -->
+            <?php if (\App\Core\Auth::hasPermission('listings/tickets') || \App\Core\Auth::hasPermission('listings/outgoing_calls') || \App\Core\Auth::hasPermission('listings/incoming_calls')): ?>
+            <a href="#" class="mt-1 block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                <i class="fas fa-list-ul mr-2"></i>Listings
+            </a>
+            <div class="pl-4">
+                <?php if (\App\Core\Auth::hasPermission('listings/tickets')): ?>
+                <a href="<?= BASE_PATH ?>/listings/tickets" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                   <i class="fas fa-ticket-alt mr-2"></i>All Tickets
+                </a>
+                <?php endif; ?>
+                <?php if (\App\Core\Auth::hasPermission('listings/outgoing_calls')): ?>
+                <a href="<?= BASE_PATH ?>/listings/outgoing_calls" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                   <i class="fas fa-phone-alt mr-2"></i>Outgoing Calls
+                </a>
+                <?php endif; ?>
+                <?php if (\App\Core\Auth::hasPermission('listings/incoming_calls')): ?>
+                <a href="<?= BASE_PATH ?>/listings/incoming_calls" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
+                   <i class="fas fa-phone-slash mr-2"></i>Incoming Calls
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
 
             <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index') || \App\Core\Auth::hasPermission('Admin/Roles/index')): ?>
              <div class="px-4 py-2" x-data="{ open: false }">

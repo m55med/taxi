@@ -122,8 +122,26 @@
                                             <?= date('Y-m-d H:i', strtotime($call['created_at'])) ?>
                                         </div>
                                     </div>
-                                    <p class="text-sm text-gray-600 mb-1"><strong>Status:</strong> <?= htmlspecialchars($call['call_status']) ?></p>
-                                    <p class="text-sm text-gray-600"><strong>Notes:</strong> <?= htmlspecialchars($call['notes'] ?: 'None') ?></p>
+                                    <p class="text-sm text-gray-600 mb-2"><strong>Status:</strong> <?= htmlspecialchars($call['call_status']) ?></p>
+                                    
+                                    <?php if (!empty($call['category_name'])): ?>
+                                    <div class="mt-2 flex items-center text-sm text-gray-600">
+                                        <i class="fas fa-sitemap text-gray-400 mr-3"></i>
+                                        <div class="flex flex-wrap items-center gap-x-2">
+                                            <span class="font-semibold"><?= htmlspecialchars($call['category_name']) ?></span>
+                                            <?php if (!empty($call['subcategory_name'])): ?>
+                                                <span class="text-gray-400 mx-1">&gt;</span>
+                                                <span><?= htmlspecialchars($call['subcategory_name']) ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($call['code_name'])): ?>
+                                                <span class="text-gray-400 mx-1">&gt;</span>
+                                                <span class="bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium"><?= htmlspecialchars($call['code_name']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                    
+                                    <p class="text-sm text-gray-600 mt-2"><strong>Notes:</strong> <?= htmlspecialchars($call['notes'] ?: 'None') ?></p>
                                      <?php if ($call['next_call_at']): ?>
                                         <p class="text-xs text-red-600 mt-2"><strong>Follow-up:</strong> <?= date('Y-m-d H:i', strtotime($call['next_call_at'])) ?></p>
                                     <?php endif; ?>
@@ -285,7 +303,7 @@
         </div>
     </div>
 </main>
-
+<script src="<?= URLROOT ?>/public/js/drivers/details.js?v=1.0"></script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
