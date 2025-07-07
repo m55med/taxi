@@ -3,7 +3,6 @@
 namespace App\Controllers\Dashboard;
 
 use App\Core\Controller;
-use App\Core\Database;
 
 class DashboardController extends Controller
 {
@@ -16,6 +15,7 @@ class DashboardController extends Controller
         parent::__construct();
         $this->userModel = $this->model('user/User');
         $this->driverModel = $this->model('driver/Driver');
+        $this->dashboardModel = $this->model('dashboard/Dashboard');
     }
 
     public function index()
@@ -26,32 +26,27 @@ class DashboardController extends Controller
         // Check for login
         \App\Core\Auth::requireLogin();
 
-        $data = [
-            'title' => 'Dashboard'
+        // Handle Date Filtering
+        $startDate = $_POST['start_date'] ?? date('Y-m-01');
+        $endDate = $_POST['end_date'] ?? date('Y-m-t');
+        
+        $quickFilterDates = [
+            'today' => date('Y-m-d'),
+            'last7days' => date('Y-m-d', strtotime('-6 days')),
+            'last30days' => date('Y-m-d', strtotime('-29 days')),
         ];
 
-        // Prepare widget visibility based on permissions
-        $data['widgets'] = [
-            'show_quick_stats'      => \App\Core\Auth::hasPermission('Admin/Users/index'),
-            'show_call_center'      => \App\Core\Auth::hasPermission('Calls/index'),
-            'show_ticket_management'=> \App\Core\Auth::hasPermission('Create_ticket/index'),
-            'show_discussions'      => \App\Core\Auth::hasPermission('Discussions/index'),
-            'show_marketing'        => \App\Core\Auth::hasPermission('Referral/dashboard'),
-            'show_reports'          => \App\Core\Auth::hasPermission('Reports/Analytics/index'),
-            'show_user_management'  => \App\Core\Auth::hasPermission('Admin/Users/index'),
-            'show_settings'         => \App\Core\Auth::hasPermission('Admin/Permissions/index'),
+        // Fetch all dashboard data using the new model method
+        $dashboardData = $this->dashboardModel->getDashboardData($startDate, $endDate);
+
+        $data = [
+            'title' => 'Dashboard',
+            'dashboardData' => $dashboardData,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'quickFilterDates' => $quickFilterDates,
         ];
         
-        // Only fetch stats if the user has permission to see the widget
-        if ($data['widgets']['show_quick_stats']) {
-            $data['quickStats'] = [
-                'total_users' => $this->userModel->countUsers(),
-                'active_users' => $this->userModel->countUsersByStatus('active'),
-                'online_users' => $this->userModel->countOnlineUsers(),
-                'blocked_users' => $this->userModel->countUsersByStatus('banned')
-            ];
-        }
-
         $this->view('dashboard/index', $data);
     }
 
@@ -291,7 +286,7 @@ class DashboardController extends Controller
     public function updateUserRole($userId, $roleId)
     {
         header('Content-Type: application/json');
-        
+
         if (!isset($_SESSION['user_id'])) {
             echo json_encode(['status' => false, 'message' => 'غير مصرح لك بهذا الإجراء']);
             return;
@@ -311,7 +306,7 @@ class DashboardController extends Controller
     public function updateUserStatus($userId, $status)
     {
         header('Content-Type: application/json');
-        
+
         if (!isset($_SESSION['user_id'])) {
             echo json_encode(['status' => false, 'message' => 'غير مصرح لك بهذا الإجراء']);
             return;
@@ -349,7 +344,7 @@ class DashboardController extends Controller
             header('Location: ' . BASE_PATH . '/auth/login');
             exit;
         }
-
+    
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $currentPassword = $_POST['current_password'] ?? '';
             $newPassword = $_POST['new_password'] ?? '';
@@ -361,10 +356,10 @@ class DashboardController extends Controller
                 header('Location: ' . BASE_PATH . '/dashboard/changePassword');
                 exit;
             }
-
+    
             // التحقق من كلمة المرور الحالية وتحديث كلمة المرور
             $result = $this->userModel->changePassword($_SESSION['user_id'], $currentPassword, $newPassword);
-
+    
             if ($result['status']) {
                 $_SESSION['success'] = 'تم تغيير كلمة المرور بنجاح';
                 header('Location: ' . BASE_PATH . '/dashboard/users');
