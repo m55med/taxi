@@ -33,6 +33,16 @@ $router->post('register', 'Auth/AuthController@register');
 $router->get('auth/register', 'Auth/AuthController@register');
 $router->post('auth/register', 'Auth/AuthController@register');
 
+// Password Reset Routes
+$router->get('forgot-password', 'Password/PasswordResetController@showRequestForm');
+$router->post('forgot-password', 'Password/PasswordResetController@handleRequestForm');
+$router->get('reset-password/{token}', 'Password/PasswordResetController@showResetForm');
+$router->post('reset-password', 'Password/PasswordResetController@handleReset');
+
+// Profile routes
+$router->get('profile', 'Auth/AuthController@profile');
+$router->post('profile/update', 'Auth/AuthController@updateProfile');
+
 $router->get('dashboard', 'Dashboard/DashboardController@index');
 $router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}');
 
@@ -113,6 +123,22 @@ $router->get("admin/teams/removeMember/{teamId}/{userId}", "Admin/TeamsControlle
 $router->get("admin/team_members", "Admin/TeamMembersController@index");
 $router->post("admin/team_members/store", "Admin/TeamMembersController@store");
 $router->post("admin/team_members/delete/{id}", "Admin/TeamMembersController@delete");
+
+// Custom routes for DelegationTypesController
+$router->get("delegation-types", "DelegationTypesController@index");
+$router->post("delegation-types/create", "DelegationTypesController@create");
+$router->post("delegation-types/update", "DelegationTypesController@update");
+$router->post("delegation-types/delete", "DelegationTypesController@delete");
+
+// Custom routes for UserDelegationsController
+$router->get("user-delegations", "UserDelegationsController@index");
+$router->post("user-delegations/create", "UserDelegationsController@create");
+$router->post("user-delegations/delete", "UserDelegationsController@delete");
+
+// Employee Evaluations
+$router->get('employee-evaluations', 'EmployeeEvaluationsController@index');
+$router->post('employee-evaluations/create', 'EmployeeEvaluationsController@create');
+$router->post('employee-evaluations/delete', 'EmployeeEvaluationsController@delete');
 
 // Custom routes for TicketCategoriesController
 $router->get("admin/ticket_categories", "Admin/TicketCategoriesController@index");
