@@ -28,6 +28,7 @@ class UsersController extends Controller {
     public function index() {
         $users = $this->userModel->getAllUsers();
         $onlineUserIds = $this->activeUserService->getOnlineUserIds();
+        $userStats = $this->userModel->getUserStats(); // Get user statistics
 
         foreach ($users as &$user) {
             $user['is_online'] = in_array($user['id'], $onlineUserIds);
@@ -35,6 +36,7 @@ class UsersController extends Controller {
         
         $data = [
             'users' => $users,
+            'stats' => $userStats, // Pass stats to the view
             'title' => 'User Management'
         ];
 

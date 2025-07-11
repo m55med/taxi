@@ -12,6 +12,9 @@ class DashboardController extends Controller
 
     public function __construct()
     {
+        // Require login for all methods in this controller
+        \App\Core\Auth::requireLogin();
+        
         parent::__construct();
         $this->userModel = $this->model('user/User');
         $this->driverModel = $this->model('driver/Driver');
@@ -21,10 +24,9 @@ class DashboardController extends Controller
     public function index()
     {
         // Release any drivers that have been on hold for more than 5 minutes
-        $this->driverModel->releaseHeldDrivers();
+        // $this->driverModel->releaseHeldDrivers();
 
-        // Check for login
-        \App\Core\Auth::requireLogin();
+        // Check for login is now in the constructor
 
         // Handle Date Filtering
         $startDate = $_POST['start_date'] ?? date('Y-m-01');

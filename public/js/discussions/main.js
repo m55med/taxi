@@ -7,6 +7,7 @@ function discussionsComponent() {
         filterStatus: 'all', // 'all', 'open', 'closed'
         newReplyMessage: '',
         showCloseConfirmation: false,
+        showReopenConfirmation: false, // For reopen modal
         canUserCloseDiscussion: false,
         isLoading: true,
 
@@ -16,15 +17,26 @@ function discussionsComponent() {
             this.$watch('selectedDiscussionId', () => {
                 this.$nextTick(() => {
                     this.scrollToBottom();
-                    this.updateCloseButtonVisibility();
+                    this.updateActionButtonsVisibility();
                 });
+            });
+
+            this.$watch('filterStatus', () => {
+                // If the currently selected discussion is no longer in the filtered list,
+                // select the first one from the new list.
+                const isSelectedVisible = this.filteredDiscussions.some(d => d.id == this.selectedDiscussionId);
+                if (!isSelectedVisible && this.filteredDiscussions.length > 0) {
+                    this.selectDiscussion(this.filteredDiscussions[0].id);
+                } else if (this.filteredDiscussions.length === 0) {
+                    this.selectedDiscussionId = null;
+                }
             });
         },
         
         async fetchDiscussions() {
             this.isLoading = true;
             try {
-                const response = await fetch('/taxi/api/discussions');
+                const response = await fetch('/taxi/discussions/get');
                 if (!response.ok) {
                     throw new Error('Network response was not ok.');
                 }
@@ -32,7 +44,6 @@ function discussionsComponent() {
                 this.discussions = data.discussions;
                 this.currentUser = data.currentUser;
                 
-                // After data is loaded, select the first discussion or one from the hash
                 if (this.filteredDiscussions.length > 0) {
                     const hash = window.location.hash;
                     if (hash && hash.startsWith('#discussion-')) {
@@ -40,21 +51,21 @@ function discussionsComponent() {
                         if (this.discussions.some(d => d.id === idFromHash)) {
                             this.selectedDiscussionId = idFromHash;
                         }
-                    } else {
+                    } 
+                    if (!this.selectedDiscussionId) {
                         this.selectedDiscussionId = this.filteredDiscussions[0].id;
                     }
                 }
-                this.updateCloseButtonVisibility();
+                this.updateActionButtonsVisibility();
 
             } catch (error) {
                 console.error('Failed to fetch discussions:', error);
-                // Optionally, show an error message in the UI
             } finally {
                 this.isLoading = false;
             }
         },
 
-        updateCloseButtonVisibility() {
+        updateActionButtonsVisibility() {
             if (!this.selectedDiscussion) {
                 this.canUserCloseDiscussion = false;
                 return;
@@ -64,37 +75,33 @@ function discussionsComponent() {
         },
 
         get filteredDiscussions() {
-            return this.discussions.filter(d => {
-                const search = this.searchTerm.toLowerCase();
-                if (!search) return true; // No search term, return all
-
+            const filtered = this.discussions.filter(d => {
                 const statusMatch = this.filterStatus === 'all' || d.status === this.filterStatus;
-                if (!statusMatch) return false;
-
-                // Enhanced Search Logic
-                return (d.reason && d.reason.toLowerCase().includes(search)) ||
-                       (d.ticket_number && d.ticket_number.toString().includes(search)) ||
-                       (d.opener_name && d.opener_name.toLowerCase().includes(search)) ||
-                       (d.reviewer_name && d.reviewer_name.toLowerCase().includes(search)) ||
-                       (d.replies.some(r => r.message.toLowerCase().includes(search)));
+                const search = this.searchTerm.toLowerCase().trim();
+                const searchMatch = !search ||
+                    (d.reason && d.reason.toLowerCase().includes(search)) ||
+                    (d.ticket_number && d.ticket_number.toString().includes(search)) ||
+                    (d.opener_name && d.opener_name.toLowerCase().includes(search)) ||
+                    (d.reviewer_name && d.reviewer_name.toLowerCase().includes(search)) ||
+                    (d.replies.some(r => r.message.toLowerCase().includes(search)));
+                return statusMatch && searchMatch;
             });
+            return filtered.sort((a, b) => new Date(b.last_activity_at) - new Date(a.last_activity_at));
         },
         
         get selectedDiscussion() {
-            if (!this.selectedDiscussionId) return this.filteredDiscussions.length > 0 ? this.filteredDiscussions[0] : null;
+            if (!this.selectedDiscussionId) return null;
             let discussion = this.discussions.find(d => d.id == this.selectedDiscussionId);
-            if (!discussion) return this.filteredDiscussions.length > 0 ? this.filteredDiscussions[0] : null;
-            return discussion;
+            return discussion || null;
         },
 
         selectDiscussion(id) {
             this.selectedDiscussionId = id;
             window.location.hash = 'discussion-' + id;
             
-            // Mark as read
             const discussion = this.discussions.find(d => d.id == id);
             if (discussion && discussion.unread_count > 0) {
-                fetch(`/taxi/api/discussions/${id}/mark-as-read`, { method: 'POST' })
+                fetch(`/taxi/discussions/${id}/mark-as-read`, { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         if(data.success) {
@@ -124,31 +131,24 @@ function discussionsComponent() {
             const message = this.newReplyMessage;
 
             try {
-                const response = await fetch(`/taxi/api/discussions/${discussionId}/replies`, {
+                const response = await fetch(`/taxi/discussions/${discussionId}/replies`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ message: message })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Network response was not ok.');
-                }
+                if (!response.ok) throw new Error('Network response was not ok.');
 
                 const newReply = await response.json();
                 
-                // Add reply to the discussion in the frontend state
                 const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
                 if (discussionIndex !== -1) {
                     this.discussions[discussionIndex].replies.push(newReply.reply);
-                    
-                    // Update last activity to bring discussion to top
                     this.discussions[discussionIndex].last_activity_at = newReply.reply.created_at; 
-                    
-                    // Sort discussions by last activity
                     this.discussions.sort((a, b) => new Date(b.last_activity_at) - new Date(a.last_activity_at));
                 }
                 
-                this.newReplyMessage = ''; // Clear input
+                this.newReplyMessage = '';
                 this.$nextTick(() => this.scrollToBottom());
 
             } catch (error) {
@@ -176,13 +176,11 @@ function discussionsComponent() {
                 const result = await response.json();
         
                 if (result.success) {
-                    // Find the discussion and update its status
                     const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
                     if (discussionIndex !== -1) {
                         this.discussions[discussionIndex].status = 'closed';
                     }
-                    // Re-evaluate computed properties
-                    this.updateCloseButtonVisibility();
+                    this.updateActionButtonsVisibility();
                 } else {
                     alert(result.message || 'Failed to close the discussion.');
                 }
@@ -192,6 +190,44 @@ function discussionsComponent() {
                 alert(error.message || 'An error occurred. Please try again.');
             } finally {
                 this.showCloseConfirmation = false;
+            }
+        },
+
+        async reopenDiscussion() {
+            if (!this.selectedDiscussion || this.selectedDiscussion.status !== 'closed') {
+                return;
+            }
+
+            const discussionId = this.selectedDiscussion.id;
+
+            try {
+                const response = await fetch(`/taxi/discussions/reopen/${discussionId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to reopen the discussion.');
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Find the discussion and update its status and get the new reply
+                    const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
+                    if (discussionIndex !== -1) {
+                       await this.fetchDiscussions(); // Refetch to get all updates
+                    }
+                } else {
+                    alert(result.message || 'Failed to reopen the discussion.');
+                }
+
+            } catch (error) {
+                console.error('Error reopening discussion:', error);
+                alert(error.message || 'An error occurred. Please try again.');
+            } finally {
+                this.showReopenConfirmation = false;
             }
         }
     };

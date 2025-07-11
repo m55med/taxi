@@ -137,6 +137,35 @@ class DiscussionsController extends Controller {
         }
     }
 
+    public function reopen($id) {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
+            return;
+        }
+
+        $userId = Auth::getUserId();
+        $role = $_SESSION['role'] ?? '';
+
+        // Allow reopening for a broader set of authorized roles, not just admin
+        $canReopenRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
+        if (!in_array($role, $canReopenRoles)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'You do not have permission to reopen this discussion.']);
+            return;
+        }
+
+        if ($this->discussionModel->reopenDiscussion($id, $userId)) {
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Discussion reopened successfully.']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to reopen the discussion.']);
+        }
+    }
+
     public function addReply($discussionId) {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('discussions');
@@ -179,40 +208,38 @@ class DiscussionsController extends Controller {
         }
 
         $userId = Auth::getUserId();
-        if (!$userId) {
-            http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'You must be logged in to reply.']);
-            return;
-        }
         
         $newReply = $this->discussionModel->addReply($discussionId, $userId, $message);
 
         if ($newReply) {
             http_response_code(201); // Created
-            echo json_encode(['reply' => $newReply]);
+            echo json_encode(['success' => true, 'reply' => $newReply]);
         } else {
             http_response_code(500); // Internal Server Error
-            echo json_encode(['error' => 'Failed to add reply due to a server error.']);
+            echo json_encode(['error' => 'Failed to add reply.']);
         }
     }
 
     public function markAsReadApi($discussionId) {
         header('Content-Type: application/json');
-        $userId = Auth::getUserId();
-
-        if (!$userId) {
-            http_response_code(401); // Unauthorized
-            echo json_encode(['error' => 'Authentication required.']);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
-
-        $success = $this->discussionModel->markDiscussionAsRead($discussionId, $userId);
-
-        if ($success) {
-            echo json_encode(['success' => true]);
+    
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+            return;
+        }
+    
+        if ($this->discussionModel->markRepliesAsRead($discussionId, $userId)) {
+            echo json_encode(['success' => true, 'message' => 'Discussion marked as read.']);
         } else {
             http_response_code(500);
-            echo json_encode(['error' => 'Failed to mark discussion as read.']);
+            echo json_encode(['success' => false, 'message' => 'Failed to mark as read.']);
         }
     }
 } 

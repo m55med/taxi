@@ -55,7 +55,7 @@ class EmployeeEvaluation {
                     ee.applicable_year DESC, ee.applicable_month DESC, u_employee.username ASC";
         
         $this->db->query($sql);
-        return $this->db->resultSet(PDO::FETCH_ASSOC);
+        return $this->db->resultSet();
     }
 
     /**
@@ -79,6 +79,6 @@ class EmployeeEvaluation {
     public function findById(int $id) {
         $this->db->query('SELECT * FROM employee_evaluations WHERE id = :id');
         $this->db->bind(':id', $id);
-        return $this->db->single(PDO::FETCH_ASSOC);
+        return $this->db->single();
     }
 } 

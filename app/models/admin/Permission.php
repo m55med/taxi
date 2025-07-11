@@ -44,7 +44,7 @@ class Permission
 
             // Add new ones
             if (!empty($toAdd)) {
-                $addStmt = $this->db->prepare("INSERT INTO permissions (permission_key, description) VALUES (?, ?)");
+                $addStmt = $this->db->prepare("INSERT IGNORE INTO permissions (permission_key, description) VALUES (?, ?)");
                 foreach ($toAdd as $key) {
                     $description = $this->createFriendlyPermissionName($key);
                     $addStmt->execute([$key, $description]);
@@ -153,7 +153,9 @@ class Permission
      */
     public function getAllPermissions()
     {
-        return $this->db->query("SELECT * FROM permissions ORDER BY permission_key ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare("SELECT * FROM permissions ORDER BY permission_key ASC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

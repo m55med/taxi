@@ -109,7 +109,11 @@ class Router
         $publicRoutes = [
             'Auth/login',
             'Auth/register',
-            'Referral/index'
+            'Referral/index',
+            'PasswordReset/showRequestForm',
+            'PasswordReset/handleRequestForm',
+            'PasswordReset/showResetForm',
+            'PasswordReset/handleReset'
         ];
 
         // Get the short name of the controller class

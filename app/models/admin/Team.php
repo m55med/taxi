@@ -18,12 +18,13 @@ class Team
     public function getAll()
     {
         try {
-            $stmt = $this->db->query("
+            $stmt = $this->db->prepare("
                 SELECT t.id, t.name, t.team_leader_id, u.username as team_leader_name 
                 FROM teams t
                 JOIN users u ON t.team_leader_id = u.id
                 ORDER BY t.name ASC
             ");
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return [];
@@ -35,7 +36,7 @@ class Team
         try {
             // This query joins users with user_roles and roles tables 
             // to find users who are designated as 'Team Leader'.
-            $stmt = $this->db->query("
+            $stmt = $this->db->prepare("
                 SELECT u.id, u.username
                 FROM users u
                 JOIN user_roles ur ON u.id = ur.user_id
@@ -43,6 +44,7 @@ class Team
                 WHERE r.role_name = 'Team Leader'
                 ORDER BY u.username ASC
             ");
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             // Log error and return empty array on failure

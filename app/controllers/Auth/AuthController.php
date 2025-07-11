@@ -4,6 +4,7 @@ namespace App\Controllers\Auth;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Services\ActiveUserService;
 
 class AuthController extends Controller
 {
@@ -20,11 +21,12 @@ class AuthController extends Controller
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // التحقق من البيانات المدخلة
             $username = trim($_POST['username'] ?? '');
+            $name = trim($_POST['name'] ?? '');
             $email = trim($_POST['email'] ?? '');
             $password = $_POST['password'] ?? '';
 
             // التحقق من صحة البيانات
-            if (empty($username) || empty($email) || empty($password)) {
+            if (empty($username) || empty($name) || empty($email) || empty($password)) {
                 $this->view('auth/register', ['error' => 'جميع الحقول مطلوبة']);
                 return;
             }
@@ -46,6 +48,7 @@ class AuthController extends Controller
 
             $data = [
                 'username' => $username,
+                'name' => $name,
                 'email' => $email,
                 'password' => $password
             ];
@@ -91,6 +94,10 @@ class AuthController extends Controller
                 $_SESSION['is_online'] = true;
                 $_SESSION['last_activity'] = time();
 
+                // Record user activity to mark them as online immediately
+                $activeUserService = new ActiveUserService();
+                $activeUserService->recordUserActivity($result['id']);
+
                 // Fetch and store permissions in the session
                 $permissions = $this->userModel->getUserPermissions($result['id']);
                 $_SESSION['permissions'] = $permissions;
@@ -114,8 +121,9 @@ class AuthController extends Controller
         if (isset($_SESSION['user_id'])) {
             $userId = $_SESSION['user_id'];
 
-            // تحديث حالة المستخدم إلى غير متصل
-            $this->userModel->logout($userId);
+            // Use ActiveUserService to handle logout
+            $activeUserService = new ActiveUserService();
+            $activeUserService->logoutUser($userId);
 
             // تحرير السائقين المحجوزين
             $callModel = $this->model('Calls/Call');
@@ -129,6 +137,79 @@ class AuthController extends Controller
         }
 
         header('Location: ' . BASE_PATH . '/auth/login');
+        exit();
+    }
+
+    public function profile()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ' . BASE_PATH . '/login');
+            exit();
+        }
+
+        $userId = $_SESSION['user_id'];
+        $user = $this->userModel->getUserById($userId);
+
+        if (!$user) {
+            // User not found, handle appropriately
+            session_unset();
+            session_destroy();
+            header('Location: ' . BASE_PATH . '/login');
+            exit();
+        }
+
+        $this->view('profile/index', ['user' => $user]);
+    }
+
+    public function updateProfile()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
+            header('Location: ' . BASE_PATH . '/profile');
+            exit();
+        }
+
+        $userId = $_SESSION['user_id'];
+        $data = [
+            'id' => $userId,
+            'name' => trim($_POST['name'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            // Password is optional
+            'password' => $_POST['password'] ?? ''
+        ];
+
+        // Basic validation
+        if (empty($data['name']) || empty($data['email'])) {
+            $_SESSION['error'] = 'Name and Email are required.';
+            header('Location: ' . BASE_PATH . '/profile');
+            exit();
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Invalid email format.';
+            header('Location: ' . BASE_PATH . '/profile');
+            exit();
+        }
+        
+        // If password is provided, it must meet length requirements
+        if (!empty($data['password']) && strlen($data['password']) < 6) {
+             $_SESSION['error'] = 'Password must be at least 6 characters long.';
+            header('Location: ' . BASE_PATH . '/profile');
+            exit();
+        }
+
+        $result = $this->userModel->updateUser($userId, $data);
+
+        if ($result['status']) {
+            $_SESSION['success'] = 'Profile updated successfully.';
+             // Update session with new name if it exists in the model response
+            if (isset($result['name'])) {
+                $_SESSION['name'] = $result['name'];
+            }
+        } else {
+            $_SESSION['error'] = $result['message'] ?? 'Failed to update profile.';
+        }
+
+        header('Location: ' . BASE_PATH . '/profile');
         exit();
     }
 }

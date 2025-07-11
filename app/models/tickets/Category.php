@@ -14,7 +14,8 @@ class Category extends Model
 
     public function getAll(): array
     {
-        $stmt = $this->db->query("SELECT id, name FROM ticket_categories ORDER BY name ASC");
+        $stmt = $this->db->prepare("SELECT id, name FROM ticket_categories ORDER BY name ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -43,9 +44,17 @@ class Category extends Model
     {
         try {
             // 1. Fetch all data in three separate queries
-            $categories = $this->db->query("SELECT id, name FROM ticket_categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
-            $subcategories = $this->db->query("SELECT id, name, category_id FROM ticket_subcategories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
-            $codes = $this->db->query("SELECT id, name, subcategory_id FROM ticket_codes ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $categoryStmt = $this->db->prepare("SELECT id, name FROM ticket_categories ORDER BY name ASC");
+            $categoryStmt->execute();
+            $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $subcategoryStmt = $this->db->prepare("SELECT id, name, category_id FROM ticket_subcategories ORDER BY name ASC");
+            $subcategoryStmt->execute();
+            $subcategories = $subcategoryStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $codeStmt = $this->db->prepare("SELECT id, name, subcategory_id FROM ticket_codes ORDER BY name ASC");
+            $codeStmt->execute();
+            $codes = $codeStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // 2. Index data for efficient lookup
             $indexedCategories = [];

@@ -27,7 +27,8 @@ if (isset($_SESSION['team_member_message'])) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="md:col-span-1">
                 <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Add Member to Team</h2>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Assign User to Team</h2>
+                    <p class="text-sm text-gray-600 mb-4">You can add a new user to a team or move an existing user to a different team.</p>
                     <form action="<?= BASE_PATH ?>/admin/team_members/store" method="POST">
                         <div class="mt-4">
                             <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>
@@ -48,8 +49,8 @@ if (isset($_SESSION['team_member_message'])) {
                             </select>
                         </div>
                         <button type="submit" class="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium">
-                            <i class="fas fa-plus mr-2"></i>
-                            Add Member
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Assign Member
                         </button>
                     </form>
                 </div>

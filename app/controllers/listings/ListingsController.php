@@ -52,53 +52,91 @@ class ListingsController extends Controller
     }
 
     /**
-     * Display the outgoing calls listing page.
+     * Display the main calls listing page.
      */
-    public function outgoing_calls()
+    public function calls()
     {
-        $this->authorize('listings/outgoing_calls');
+        $this->authorize('listings/calls');
 
         $data = [
-            'page_main_title' => 'Outgoing Calls',
+            'page_main_title' => 'All Calls',
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
-             'users' => $this->userModel->getAllUsers(),
-        ];
-
-        $this->view('listings/outgoing_calls', $data);
-    }
-
-    /**
-     * API endpoint to fetch filtered outgoing calls.
-     */
-    public function get_outgoing_calls_api()
-    {
-        header('Content-Type: application/json');
-        $this->authorize('listings/outgoing_calls');
-        echo json_encode($this->listingModel->getFilteredOutgoingCalls($_GET));
-    }
-
-    /**
-     * Display the incoming calls listing page.
-     */
-    public function incoming_calls()
-    {
-        $this->authorize('listings/incoming_calls');
-
-        $data = [
-            'page_main_title' => 'Incoming Calls',
             'users' => $this->userModel->getAllUsers(),
         ];
-        
-        $this->view('listings/incoming_calls', $data);
+
+        $this->view('listings/calls', $data);
     }
 
     /**
-     * API endpoint to fetch filtered incoming calls.
+     * API endpoint to fetch filtered calls.
      */
-    public function get_incoming_calls_api()
+    public function get_calls_api()
     {
         header('Content-Type: application/json');
-        $this->authorize('listings/incoming_calls');
-        echo json_encode($this->listingModel->getFilteredIncomingCalls($_GET));
+        $this->authorize('listings/calls');
+        echo json_encode($this->listingModel->getFilteredCalls($_GET));
+    }
+
+    /**
+     * Display the main drivers listing page.
+     */
+    public function drivers()
+    {
+        $this->authorize('listings/drivers');
+        
+        $driverModel = $this->model('driver/Driver');
+        $carTypeModel = $this->model('admin/CarType');
+
+        $data = [
+            'page_main_title' => 'All Drivers',
+            'stats' => $driverModel->getDriverStats(),
+            'car_types' => $carTypeModel->getAll(),
+        ];
+
+        $this->view('listings/drivers', $data);
+    }
+
+    /**
+     * API endpoint to fetch filtered drivers.
+     */
+    public function get_drivers_api()
+    {
+        header('Content-Type: application/json');
+        $this->authorize('listings/drivers');
+        $driverModel = $this->model('driver/Driver');
+        echo json_encode($driverModel->getFilteredDrivers($_GET));
+    }
+
+    /**
+     * API endpoint for bulk updating drivers.
+     */
+    public function bulk_update_drivers()
+    {
+        header('Content-Type: application/json');
+        $this->authorize('listings/drivers');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['status' => false, 'message' => 'Invalid request method.']);
+            return;
+        }
+
+        $postData = json_decode(file_get_contents('php://input'), true);
+        $driverIds = $postData['driver_ids'] ?? [];
+        $field = $postData['field'] ?? '';
+        $value = $postData['value'] ?? '';
+
+        if (empty($driverIds) || empty($field) || $value === '') {
+            echo json_encode(['status' => false, 'message' => 'Missing required parameters.']);
+            return;
+        }
+        
+        $driverModel = $this->model('driver/Driver');
+        $updatedCount = $driverModel->bulkUpdate($driverIds, $field, $value);
+
+        if ($updatedCount !== false) {
+            echo json_encode(['status' => true, 'message' => "Successfully updated {$updatedCount} drivers."]);
+        } else {
+            echo json_encode(['status' => false, 'message' => 'An error occurred during the update.']);
+        }
     }
 } 

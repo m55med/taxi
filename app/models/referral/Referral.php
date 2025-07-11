@@ -16,13 +16,15 @@ class Referral
 
     public function getCountries()
     {
-        $stmt = $this->db->query("SELECT id, name FROM countries ORDER BY name ASC");
+        $stmt = $this->db->prepare("SELECT id, name FROM countries ORDER BY name ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getCarTypes()
     {
-        $stmt = $this->db->query("SELECT id, name FROM car_types ORDER BY name ASC");
+        $stmt = $this->db->prepare("SELECT id, name FROM car_types ORDER BY name ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

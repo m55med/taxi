@@ -214,7 +214,7 @@
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Calls (In/Out)</th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tickets (N/V)</th>
-                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Points</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Final Points</th>
                         <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Quality</th>
                     </tr>
                 </thead>
@@ -277,7 +277,26 @@
                                     <div class="text-xs text-gray-500">(<?= $user['normal_tickets'] ?? 0 ?>/<?= $user['vip_tickets'] ?? 0 ?>)</div>
                                 </td>
                                 <td data-label="Points" class="px-6 py-4 whitespace-nowrap text-center">
-                                    <div class="text-sm font-semibold text-indigo-600"><?= number_format($user['total_points'] ?? 0, 2) ?></div>
+                                    <div x-data="{ tooltip: false }" class="relative">
+                                        <div @mouseenter="tooltip = true" @mouseleave="tooltip = false" class="inline-flex items-center">
+                                            <span class="text-sm font-semibold text-indigo-600"><?= number_format($user['total_points'] ?? 0, 2) ?></span>
+                                            <?php if ($user['delegation_applied']): ?>
+                                                <i class="fas fa-star text-yellow-400 ml-1"></i>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ($user['delegation_applied']): ?>
+                                            <div x-show="tooltip" 
+                                                 class="absolute z-10 w-64 p-3 -mt-24 text-sm leading-tight text-white transform -translate-x-1/2 bg-gray-800 rounded-lg shadow-lg"
+                                                 x-transition:enter="transition ease-out duration-200"
+                                                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                                                 x-transition:enter-end="opacity-100 transform translate-y-0">
+                                                <p class="font-bold">Delegation Applied</p>
+                                                <p><strong>Original:</strong> <?= number_format($user['delegation_details']['original_points'], 2) ?> pts</p>
+                                                <p><strong>Bonus:</strong> +<?= number_format($user['delegation_details']['percentage'], 2) ?>% (<?= number_format($user['delegation_details']['bonus_amount'], 2) ?> pts)</p>
+                                                <p><strong>Reason:</strong> <?= htmlspecialchars($user['delegation_details']['reason']) ?></p>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td data-label="Quality" class="px-6 py-4 whitespace-nowrap text-center">
                                     <?php

@@ -5,10 +5,16 @@
     <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($data['page_main_title']) ?></h1>
         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-            <a href="<?= BASE_PATH ?>/notifications" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-300">
-                <i class="fas fa-cog mr-2"></i> Manage Notifications
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="<?= BASE_PATH ?>/notifications/create" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+                <i class="fas fa-plus-circle mr-2"></i> Create New Notification
             </a>
-        <?php endif; ?>
+            <a href="<?= BASE_PATH ?>/notifications" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+                <i class="fas fa-cogs mr-2"></i> Manage Notifications
+            </a>
+        </div>
+    <?php endif; ?>
+
     </div>
     
     <div class="space-y-6">

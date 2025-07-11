@@ -3,6 +3,7 @@
 namespace App\Models\create_ticket;
 
 use App\Core\Model;
+use App\Models\Admin\TeamMember;
 
 class CreateTicketModel extends Model
 {
@@ -121,11 +122,14 @@ class CreateTicketModel extends Model
     public function createTicketDetails($data) {
         $this->beginTransaction();
         try {
+            // Get the user's current team ID at the time of action
+            $teamIdAtAction = TeamMember::getCurrentTeamIdForUser($data['user_id']);
+
             // Step 1: Find or create ticket
             $ticketId = $this->findOrCreateTicket($data);
 
             // Step 2: Create ticket details record
-            $ticketDetailId = $this->createTicketDetailEntry($ticketId, $data);
+            $ticketDetailId = $this->createTicketDetailEntry($ticketId, $data, $teamIdAtAction);
 
             // Step 3: Assign marketer if it's a VIP ticket
             if (!empty($data['is_vip']) && !empty($data['marketer_id'])) {
@@ -146,7 +150,10 @@ class CreateTicketModel extends Model
                     if (empty($data['phone'])) {
                         throw new \Exception('Phone number is required for an incoming call ticket.');
                     }
-                    $this->logIncomingCall($ticketDetailId, $data);
+                    $this->logIncomingCall($ticketDetailId, $data, $teamIdAtAction);
+                } else if (!empty($data['phone'])) {
+                    // This is an outgoing call made while creating the ticket
+                    $this->logOutgoingCallForTicket($ticketDetailId, $data, $teamIdAtAction);
                 }
             }
             
@@ -176,9 +183,9 @@ class CreateTicketModel extends Model
         return $this->lastInsertId();
     }
 
-    private function createTicketDetailEntry($ticketId, $data) {
-        $this->query("INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by)
-                      VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by)");
+    private function createTicketDetailEntry($ticketId, $data, $teamId) {
+        $this->query("INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, team_id_at_action)
+                      VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by, :team_id_at_action)");
         $this->bind(':ticket_id', $ticketId);
         $this->bind(':is_vip', (bool)($data['is_vip'] ?? false));
         $this->bind(':platform_id', $data['platform_id']);
@@ -190,16 +197,40 @@ class CreateTicketModel extends Model
         $this->bind(':country_id', $data['country_id']);
         $this->bind(':assigned_team_leader_id', $data['team_leader_id']);
         $this->bind(':edited_by', $data['user_id']);
+        $this->bind(':team_id_at_action', $teamId);
         $this->execute();
         return $this->lastInsertId();
     }
 
-    private function logIncomingCall($ticketDetailId, $data) {
-        $this->query("INSERT INTO incoming_calls (caller_phone_number, call_received_by, linked_ticket_detail_id, status)
-                      VALUES (:caller_phone_number, :call_received_by, :linked_ticket_detail_id, 'answered')");
+    private function logOutgoingCallForTicket($ticketDetailId, $data, $teamId) {
+        // First, find the driver_id based on the phone number
+        $this->query("SELECT id FROM drivers WHERE phone = :phone LIMIT 1");
+        $this->bind(':phone', $data['phone']);
+        $driver = $this->single();
+        $driverId = $driver ? $driver['id'] : null;
+
+        // If a driver exists, log the call. If not, we can't log an outgoing call.
+        if ($driverId) {
+            $this->query("INSERT INTO driver_calls (driver_id, call_by, call_status, notes, ticket_category_id, ticket_subcategory_id, ticket_code_id, team_id_at_action)
+                        VALUES (:driver_id, :call_by, 'answered', :notes, :ticket_category_id, :ticket_subcategory_id, :ticket_code_id, :team_id_at_action)");
+            $this->bind(':driver_id', $driverId);
+            $this->bind(':call_by', $data['user_id']);
+            $this->bind(':notes', "Call logged during ticket creation: " . ($data['notes'] ?? ''));
+            $this->bind(':ticket_category_id', $data['category_id']);
+            $this->bind(':ticket_subcategory_id', $data['subcategory_id']);
+            $this->bind(':ticket_code_id', $data['code_id']);
+            $this->bind(':team_id_at_action', $teamId);
+            $this->execute();
+        }
+    }
+
+    private function logIncomingCall($ticketDetailId, $data, $teamId) {
+        $this->query("INSERT INTO incoming_calls (caller_phone_number, call_received_by, linked_ticket_detail_id, status, team_id_at_action)
+                      VALUES (:caller_phone_number, :call_received_by, :linked_ticket_detail_id, 'answered', :team_id_at_action)");
         $this->bind(':caller_phone_number', $data['phone']);
         $this->bind(':call_received_by', $data['user_id']);
         $this->bind(':linked_ticket_detail_id', $ticketDetailId);
+        $this->bind(':team_id_at_action', $teamId);
         $this->execute();
     }
 

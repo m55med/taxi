@@ -95,6 +95,7 @@ class Notification extends Model {
                 FROM notifications n 
                 ORDER BY n.created_at DESC";
         $this->query($sql);
+        $this->execute();
         return $this->resultSet();
     }
 
@@ -110,6 +111,7 @@ class Notification extends Model {
                 ORDER BY n.created_at ASC";
         $this->query($sql);
         $this->bind(':user_id', $userId);
+        $this->execute();
         return $this->resultSet();
     }
     
@@ -130,7 +132,7 @@ class Notification extends Model {
         $this->query($sql);
         $this->bind(':user_id', $userId);
         $this->bind(':limit', $limit, PDO::PARAM_INT); // This should now work with the updated Model class
-        
+        $this->execute();
         return $this->resultSet();
     }
     
@@ -140,6 +142,7 @@ class Notification extends Model {
     public function getUnreadCountForUser($userId) {
         $this->query("SELECT COUNT(*) as unread_count FROM user_notifications WHERE user_id = :user_id AND is_read = 0");
         $this->bind(':user_id', $userId);
+        $this->execute();
         $result = $this->single();
         return $result ? (int)$result['unread_count'] : 0;
     }

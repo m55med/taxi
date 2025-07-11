@@ -125,7 +125,7 @@ class Log
                 td.created_at as activity_date, 
                 td.edited_by as user_id, 
                 u.username,
-                tm.team_id, 
+                td.team_id_at_action as team_id,
                 teams.name as team_name, 
                 t.id as link_id, 
                 'tickets/view' as link_prefix,
@@ -137,8 +137,7 @@ class Log
             JOIN users u ON td.edited_by = u.id
             JOIN platforms p ON td.platform_id = p.id
             JOIN countries c ON td.country_id = c.id
-            LEFT JOIN team_members tm ON u.id = tm.user_id
-            LEFT JOIN teams ON tm.team_id = teams.id
+            LEFT JOIN teams ON td.team_id_at_action = teams.id
         ";
         
         $outgoingCallsQuery = "
@@ -150,7 +149,7 @@ class Log
                 dc.created_at as activity_date, 
                 dc.call_by as user_id, 
                 u.username,
-                tm.team_id, 
+                dc.team_id_at_action as team_id,
                 teams.name as team_name, 
                 dc.driver_id as link_id, 
                 'drivers/details' as link_prefix,
@@ -160,8 +159,7 @@ class Log
             FROM driver_calls dc
             JOIN users u ON dc.call_by = u.id
             JOIN drivers d ON dc.driver_id = d.id
-            LEFT JOIN team_members tm ON u.id = tm.user_id
-            LEFT JOIN teams ON tm.team_id = teams.id
+            LEFT JOIN teams ON dc.team_id_at_action = teams.id
         ";
 
         $incomingCallsQuery = "
@@ -176,7 +174,7 @@ class Log
                 ic.call_started_at as activity_date,
                 ic.call_received_by as user_id,
                 u.username,
-                tm.team_id,
+                ic.team_id_at_action as team_id,
                 teams.name as team_name,
                 t.id as link_id,
                 'tickets/view' as link_prefix,
@@ -185,8 +183,7 @@ class Log
                 NULL as code_id
             FROM incoming_calls ic
             JOIN users u ON ic.call_received_by = u.id
-            LEFT JOIN team_members tm ON u.id = tm.user_id
-            LEFT JOIN teams ON tm.team_id = teams.id
+            LEFT JOIN teams ON ic.team_id_at_action = teams.id
             LEFT JOIN ticket_details td ON ic.linked_ticket_detail_id = td.id
             LEFT JOIN tickets t ON td.ticket_id = t.id
         ";

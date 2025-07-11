@@ -134,14 +134,5 @@
         </p>
     </div>
 
-    <?php if (isset($debug_info)): ?>
-    <div class="w-full max-w-md mt-4 p-4 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-xs">
-        <h3 class="font-bold text-sm mb-2 text-yellow-400">[DEBUG INFORMATION]</h3>
-        <p><strong class="text-green-400">Detected IP:</strong> <?php echo htmlspecialchars($debug_info['detected_ip']); ?></p>
-        <p class="mt-2"><strong class="text-green-400">IPinfo Raw Response:</strong></p>
-        <pre class="whitespace-pre-wrap bg-black p-2 rounded mt-1"><?php echo htmlspecialchars($debug_info['ipinfo_response']); ?></pre>
-    </div>
-    <?php endif; ?>
-
 </body>
 </html> 

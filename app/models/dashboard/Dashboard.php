@@ -198,14 +198,31 @@ class Dashboard
         $ticketQuery = "SELECT CASE WHEN is_vip = 1 THEN 'VIP' ELSE 'Normal' END as type, COUNT(*) as count FROM ticket_details WHERE created_at BETWEEN :startDate AND :endDate GROUP BY is_vip";
         $ticketStmt = $this->db->prepare($ticketQuery);
         $ticketStmt->execute($params);
-        $charts['ticket_types'] = $ticketStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        $charts['ticket_type'] = $ticketStmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        // User Status Breakdown
-        $charts['user_status'] = $this->db->query("SELECT status, COUNT(*) as count FROM users GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
+        // Daily Activity (Tickets and Calls)
+        $activityQuery = "
+            SELECT CAST(a.activity_date AS DATE) as 'date', SUM(a.ticket_count) as tickets, SUM(a.call_count) as calls
+            FROM (
+                SELECT created_at AS activity_date, 1 as ticket_count, 0 as call_count FROM ticket_details
+                WHERE created_at BETWEEN :startDate1 AND :endDate1
+                UNION ALL
+                SELECT created_at AS activity_date, 0 as ticket_count, 1 as call_count FROM driver_calls
+                WHERE created_at BETWEEN :startDate2 AND :endDate2
+            ) a
+            GROUP BY CAST(a.activity_date AS DATE)
+            ORDER BY date ASC
+        ";
+        $activityStmt = $this->db->prepare($activityQuery);
+        $activityParams = [
+            ':startDate1' => $startDate, 
+            ':endDate1' => $endDate,
+            ':startDate2' => $startDate,
+            ':endDate2' => $endDate
+        ];
+        $activityStmt->execute($activityParams);
+        $charts['daily_activity'] = $activityStmt->fetchAll(PDO::FETCH_ASSOC);
 
         return $charts;
     }
-
-    // Previous chart data methods will be refactored and integrated later
-    // For now, they are removed to simplify the model.
 } 

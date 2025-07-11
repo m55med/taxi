@@ -28,10 +28,10 @@ class TicketController extends Controller
         $this->reviewModel = $this->model('review/Review');
     }
 
-    public function show($id)
+    public function show($id = null)
     {
         if (empty($id)) {
-            redirect('ticket');
+            redirect('listings/tickets');
         }
 
         $ticket = $this->ticketModel->findById($id);

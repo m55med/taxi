@@ -43,6 +43,8 @@ $router->post('reset-password', 'Password/PasswordResetController@handleReset');
 $router->get('profile', 'Auth/AuthController@profile');
 $router->post('profile/update', 'Auth/AuthController@updateProfile');
 
+$router->get('logout', 'Auth/AuthController@logout');
+
 $router->get('dashboard', 'Dashboard/DashboardController@index');
 $router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}');
 
@@ -53,11 +55,12 @@ $router->get('documentation', 'Documentation/DocumentationController@index');
 $router->get('knowledge_base', 'knowledge_base/KnowledgeBaseController@index');
 $router->get('knowledge_base/create', 'knowledge_base/KnowledgeBaseController@create');
 $router->post('knowledge_base/store', 'knowledge_base/KnowledgeBaseController@store');
-$router->get('knowledge_base/{id}/show', 'knowledge_base/KnowledgeBaseController@show');
-$router->get('knowledge_base/{id}/edit', 'knowledge_base/KnowledgeBaseController@edit');
-$router->post('knowledge_base/{id}/update', 'knowledge_base/KnowledgeBaseController@update');
+$router->get('knowledge_base/show/{id}', 'knowledge_base/KnowledgeBaseController@show');
+$router->get('knowledge_base/edit/{id}', 'knowledge_base/KnowledgeBaseController@edit');
+$router->post('knowledge_base/update/{id}', 'knowledge_base/KnowledgeBaseController@update');
 $router->post('knowledge_base/destroy', 'knowledge_base/KnowledgeBaseController@destroy');
 $router->get('knowledge_base/findByCode/{ticketCodeId}', 'knowledge_base/KnowledgeBaseController@findByCode');
+$router->get('knowledge_base/search', 'knowledge_base/KnowledgeBaseController@searchApi');
 
 // Admin Routes
 $adminControllers = [
@@ -169,9 +172,13 @@ $router->post("admin/permissions/batchUpdateRolePermissions", "Admin/Permissions
 $router->post("admin/permissions/batchUpdateUserPermissions", "Admin/PermissionsController@batchUpdateUserPermissions");
 
 // Notification Routes
+$router->get('notifications', 'Notifications/NotificationsController@index');
+$router->get('notifications/create', 'Notifications/NotificationsController@create');
+$router->post('notifications/store', 'Notifications/NotificationsController@store');
 $router->get('notifications/getNavNotifications', 'Notifications/NotificationsController@getNavNotifications');
 $router->post('notifications/markRead', 'Notifications/NotificationsController@markRead');
 $router->get('notifications/history', 'Notifications/NotificationsController@history');
+$router->get('notifications/readers/{id}', 'Notifications/NotificationsController@readers');
 
 // Calls Routes
 $router->get('calls', 'Calls/CallsController@index');
@@ -180,6 +187,7 @@ $router->get('calls/skip/{driverId}', 'Calls/CallsController@skip');
 $router->get('calls/subcategories/{categoryId}', 'Calls/CallsController@getSubcategories');
 $router->get('calls/codes/{subcategoryId}', 'Calls/CallsController@getCodes');
 $router->post('calls/updateDocuments', 'Calls/CallsController@updateDocuments');
+$router->post('calls/releaseHold', 'Calls/CallsController@releaseHold');
 
 // Driver Routes
 $router->get('drivers', 'Driver/DriverController@index');
@@ -193,10 +201,21 @@ $router->get('drivers/search', 'Driver/DriverController@search');
 $router->get('review/add/{type}/{id}', 'Review/ReviewController@add');
 $router->post('review/add/{type}/{id}', 'Review/ReviewController@add');
 
+// Upload Routes
+$router->get('upload', 'Upload/UploadController@index');
+$router->post('upload/process', 'Upload/UploadController@process');
+
 // Discussion Routes
 $router->get('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
 $router->post('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
 $router->post('discussions/close/{id}', 'Discussions/DiscussionsController@close');
+$router->post('discussions/reopen/{id}', 'Discussions/DiscussionsController@reopen');
+$router->get('discussions/get', 'Discussions/DiscussionsController@getDiscussionsApi');
+$router->post('discussions/{id}/mark-as-read', 'Discussions/DiscussionsController@markAsReadApi');
+$router->post('discussions/{id}/replies', 'Discussions/DiscussionsController@addReplyApi');
+
+// Ticket search
+$router->get('tickets/ajaxSearch', 'Tickets/TicketController@ajaxSearch');
 
 // Quality Management Routes
 $router->get('quality/reviews', 'Quality/QualityController@reviews');
@@ -204,15 +223,22 @@ $router->get('quality/get_reviews_api', 'Quality/QualityController@get_reviews_a
 $router->get('quality/discussions', 'Quality/QualityController@discussions');
 $router->get('quality/get_discussions_api', 'Quality/QualityController@get_discussions_api');
 
-// Listings (Tickets, Outgoing Calls, Incoming Calls)
+// Referral Routes
+$router->get('referral/dashboard', 'Referral/ReferralController@dashboard');
+$router->get('referral/register', 'Referral/ReferralController@index');
+$router->post('referral/register', 'Referral/ReferralController@index');
+$router->get('referral/marketerDetails/{id}', 'Referral/ReferralController@marketerDetails');
+$router->get('referral/editProfile/{id}', 'Referral/ReferralController@editProfile');
+$router->post('referral/saveAgentProfile', 'Referral/ReferralController@saveAgentProfile');
+
+// Listings
 $router->get('listings/tickets', 'Listings/ListingsController@tickets');
 $router->get('listings/get_tickets_api', 'Listings/ListingsController@get_tickets_api');
-$router->get('listings/outgoing_calls', 'Listings/ListingsController@outgoing_calls');
-$router->get('listings/get_outgoing_calls_api', 'Listings/ListingsController@get_outgoing_calls_api');
-$router->get('listings/incoming_calls', 'Listings/ListingsController@incoming_calls');
-$router->get('listings/get_incoming_calls_api', 'Listings/ListingsController@get_incoming_calls_api');
-
-
+$router->get('listings/drivers', 'Listings/ListingsController@drivers');
+$router->get('listings/get_drivers_api', 'Listings/ListingsController@get_drivers_api');
+$router->post('listings/bulk_update_drivers', 'Listings/ListingsController@bulk_update_drivers');
+$router->get('listings/calls', 'Listings/ListingsController@calls');
+$router->get('listings/get_calls_api', 'Listings/ListingsController@get_calls_api');
 
 // API Routes
 $router->get('drivers/search', 'Driver/DriverController@search');
@@ -253,8 +279,6 @@ function mapReportRoutes($router, $uri, $controllerPath)
 // Mapping all report routes
 mapReportRoutes($router, 'users', 'Users/UsersController');
 mapReportRoutes($router, 'drivers', 'Drivers/DriversController');
-// mapReportRoutes($router, 'calls', 'Calls/CallsController');
-// mapReportRoutes($router, 'driver-calls', 'DriverCalls/DriverCallsController');
 mapReportRoutes($router, 'assignments', 'Assignments/AssignmentsController');
 mapReportRoutes($router, 'analytics', 'Analytics/AnalyticsController');
 mapReportRoutes($router, 'documents', 'Documents/DocumentsController');
@@ -396,3 +420,19 @@ $router->post('calls/updateDriverAttribute', 'Calls/CallsController@updateDriver
 // Auth Routes  
 $router->get('auth/logout', 'Auth/AuthController@logout');
 $router->post('auth/logout', 'Auth/AuthController@logout');
+
+$router->get('reports/referral-visits', 'Reports/ReferralVisits/ReferralVisitsController@index');
+$router->get('reports/referral-visits/export-excel', 'Reports/ReferralVisits/ReferralVisitsController@exportExcel');
+$router->get('reports/referral-visits/export-json', 'Reports/ReferralVisits/ReferralVisitsController@exportJson');
+
+// Tickets
+$router->get('tickets/create', 'CreateTicket/CreateTicketController@index');
+$router->post('tickets/store', 'CreateTicket/CreateTicketController@store');
+$router->get('ticket/{id}', 'Tickets/TicketController@show'); // Legacy Support
+$router->get('ticket', 'Tickets/TicketController@show'); // Legacy Support without ID
+$router->get('tickets/view/{id}', 'Tickets/TicketController@show');
+$router->get('tickets/view', 'Tickets/TicketController@show');
+
+// Discussions
+$router->get('discussions', 'Discussions/DiscussionsController@index');
+$router->get('api/discussions', 'Discussions/DiscussionsController@index');

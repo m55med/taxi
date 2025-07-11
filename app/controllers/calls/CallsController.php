@@ -4,6 +4,7 @@ namespace App\Controllers\Calls;
 
 use App\Core\Controller;
 use App\Core\Auth;
+use App\Models\Admin\TeamMember;
 
 class CallsController extends Controller
 {
@@ -108,6 +109,7 @@ class CallsController extends Controller
                 'ticket_category_id' => !empty($_POST['ticket_category_id']) ? trim($_POST['ticket_category_id']) : null,
                 'ticket_subcategory_id' => !empty($_POST['ticket_subcategory_id']) ? trim($_POST['ticket_subcategory_id']) : null,
                 'ticket_code_id' => !empty($_POST['ticket_code_id']) ? trim($_POST['ticket_code_id']) : null,
+                'team_id_at_action' => TeamMember::getCurrentTeamIdForUser($_SESSION['user_id'])
             ];
 
             // Basic validation
@@ -190,6 +192,32 @@ class CallsController extends Controller
         $categoryModel = $this->model('Tickets/Category');
         $codes = $categoryModel->getCodesBySubcategoryId((int)$subcategoryId);
         $this->sendJsonResponse($codes);
+    }
+
+    public function releaseHold()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
+            return;
+        }
+
+        $data = json_decode(file_get_contents("php://input"), true);
+        $driverId = $data['driver_id'] ?? null;
+
+        if (!$driverId) {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Driver ID is required.'], 400);
+            return;
+        }
+
+        $callModel = $this->model('Calls/Call');
+        if ($callModel->releaseDriverHold($driverId)) {
+            if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
+                unset($_SESSION['locked_driver_id']);
+            }
+            $this->sendJsonResponse(['success' => true, 'message' => 'Driver hold released.']);
+        } else {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Failed to release driver hold.'], 500);
+        }
     }
 
     public function updateDocuments()

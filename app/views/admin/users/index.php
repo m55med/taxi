@@ -23,6 +23,47 @@ if (isset($_SESSION['user_message'])) {
     </div>
 
     <div class="container mx-auto px-4 py-8">
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
+                <div class="bg-blue-500 text-white rounded-full h-12 w-12 flex items-center justify-center mr-4">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Total Users</p>
+                    <p class="text-2xl font-bold text-gray-800"><?= $data['stats']['total_users'] ?? 0 ?></p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
+                <div class="bg-green-500 text-white rounded-full h-12 w-12 flex items-center justify-center mr-4">
+                    <i class="fas fa-wifi text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Online Users</p>
+                    <p class="text-2xl font-bold text-gray-800"><?= $data['stats']['online_users'] ?? 0 ?></p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
+                <div class="bg-yellow-500 text-white rounded-full h-12 w-12 flex items-center justify-center mr-4">
+                    <i class="fas fa-user-check text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Active Users</p>
+                    <p class="text-2xl font-bold text-gray-800"><?= $data['stats']['active_users'] ?? 0 ?></p>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
+                <div class="bg-red-500 text-white rounded-full h-12 w-12 flex items-center justify-center mr-4">
+                    <i class="fas fa-user-slash text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Banned Users</p>
+                    <p class="text-2xl font-bold text-gray-800"><?= $data['stats']['banned_users'] ?? 0 ?></p>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">User Management</h1>

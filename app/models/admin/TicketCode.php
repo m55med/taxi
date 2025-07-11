@@ -18,7 +18,8 @@ class TicketCode
     public function getAll()
     {
         try {
-            $stmt = $this->db->query("SELECT tc.id, tc.name, ts.name as subcategory_name FROM ticket_codes tc JOIN ticket_subcategories ts ON tc.subcategory_id = ts.id ORDER BY ts.name, tc.name ASC");
+            $stmt = $this->db->prepare("SELECT tc.id, tc.name, ts.name as subcategory_name FROM ticket_codes tc JOIN ticket_subcategories ts ON tc.subcategory_id = ts.id ORDER BY ts.name, tc.name ASC");
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return [];

@@ -24,6 +24,11 @@ class DriverController extends Controller
         $this->documentModel = $this->model('document/Document');
     }
 
+    public function index()
+    {
+        redirect('listings/calls');
+    }
+
     public function update()
     {
         try {
@@ -176,10 +181,10 @@ class DriverController extends Controller
         }
     }
 
-    public function details($id)
+    public function details($id = null)
     {
         if (empty($id)) {
-            redirect('errors/notfound');
+            redirect('listings/calls');
         }
 
         $driver = $this->driverModel->getById($id);
@@ -245,6 +250,9 @@ class DriverController extends Controller
         $categoryModel = $this->model('Tickets/Category');
         $ticket_categories = $categoryModel->getAll();
 
+        // Ensure session helper is loaded for flash messages
+        require_once APPROOT . '/helpers/session_helper.php';
+
         $data = [
             'page_main_title' => 'Driver Details',
             'driver' => $driver,
@@ -267,16 +275,17 @@ class DriverController extends Controller
 
     public function search()
     {
-        // We expect a 'phone' query parameter, e.g., /drivers/search?phone=123
-        $query = $_GET['phone'] ?? '';
+        header('Content-Type: application/json');
 
-        if (empty($query) || !is_string($query)) {
-            $this->sendJsonResponse([]);
+        if (!isset($_GET['q']) || empty(trim($_GET['q']))) {
+            echo json_encode([]);
             return;
         }
 
-        $drivers = $this->driverModel->searchByPhone(trim($query));
-        $this->sendJsonResponse($drivers);
+        $query = trim($_GET['q']);
+        $results = $this->driverModel->searchByNameOrPhone($query);
+
+        echo json_encode($results);
     }
 
     public function manageDocument()

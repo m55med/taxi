@@ -43,12 +43,10 @@ class TeamMembersController extends Controller {
             if ($user_id && $team_id) {
                 $teamMemberModel = new TeamMember();
                 
-                if ($teamMemberModel->isUserInAnyTeam($user_id)) {
-                    flash('team_member_message', 'This user is already a member of another team.', 'error');
-                } elseif ($teamMemberModel->create($user_id, $team_id)) {
-                    flash('team_member_message', 'Team member added successfully.');
+                if ($teamMemberModel->assignUserToTeam($user_id, $team_id)) {
+                    flash('team_member_message', 'User has been successfully assigned to the team.');
                 } else {
-                    flash('team_member_message', 'Failed to add team member. They might already be in this team.', 'error');
+                    flash('team_member_message', 'Failed to assign user to the team.', 'error');
                 }
             } else {
                 flash('team_member_message', 'Invalid data provided. Please select a user and a team.', 'error');

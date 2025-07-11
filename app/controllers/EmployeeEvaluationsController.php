@@ -27,7 +27,7 @@ class EmployeeEvaluationsController extends Controller {
     public function index() {
         $this->authorize('EmployeeEvaluations/index');
 
-        $users = $this->userModel->findAll();
+        $users = $this->userModel->getAllUsers();
         $evaluations = $this->evaluationModel->findAllWithDetails();
 
         $this->view('admin/employee_evaluations/index', [

@@ -139,7 +139,7 @@ function callFormAlpine() {
 
                 if (result.success) {
                     showToast('Call logged successfully. Fetching next driver...', 'success');
-                    setTimeout(() => window.location.reload(), 1500);
+                    setTimeout(() => window.location.reload(), 100);
                 } else {
                     throw new Error(result.message || 'An unexpected error occurred.');
                 }

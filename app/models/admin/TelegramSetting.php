@@ -20,7 +20,9 @@ class TelegramSetting extends Model
             WHERE role_id = 1 AND id NOT IN (SELECT user_id FROM telegram_links)
             ORDER BY username ASC
         ";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
@@ -36,7 +38,9 @@ class TelegramSetting extends Model
             JOIN users u ON tl.user_id = u.id
             ORDER BY u.username
         ";
-        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

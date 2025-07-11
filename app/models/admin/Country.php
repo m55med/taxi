@@ -18,7 +18,8 @@ class Country
     public function getAll()
     {
         try {
-            $stmt = $this->db->query("SELECT * FROM countries ORDER BY name ASC");
+            $stmt = $this->db->prepare("SELECT * FROM countries ORDER BY name ASC");
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return [];

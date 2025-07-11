@@ -18,7 +18,8 @@ class Platform
     public function getAll()
     {
         try {
-            $stmt = $this->db->query("SELECT * FROM platforms ORDER BY name ASC");
+            $stmt = $this->db->prepare("SELECT * FROM platforms ORDER BY name ASC");
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             // Log error or handle it as needed

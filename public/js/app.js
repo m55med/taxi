@@ -10,28 +10,6 @@ document.addEventListener('alpine:init', () => {
         }).catch(error => console.error('Heartbeat failed:', error));
     }, 60000); // Send heartbeat every 60 seconds
 
-    // Component for global notifications
-    Alpine.data('notifications', () => ({
-        show: false,
-        count: 0,
-        items: [],
-        init() {
-            this.fetchNotifications();
-            setInterval(() => this.fetchNotifications(), 30000);
-        },
-        async fetchNotifications() {
-            try {
-                const response = await fetch('/taxi/notifications/get');
-                const data = await response.json();
-                this.items = data.notifications;
-                this.count = data.count;
-            } catch (error) {
-                console.error('Error fetching notifications:', error);
-            }
-        },
-        toggle() { this.show = !this.show; }
-    }));
-
     // Component for the driver search bar
     Alpine.data('driverSearch', () => ({
         query: '',

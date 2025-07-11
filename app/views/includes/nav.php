@@ -1,5 +1,8 @@
+<!-- 
+  This navigation bar has been simplified to remove all PHP permission logic.
+  It now displays all available links directly.
+-->
 <?php if (isset($_SESSION['user_id'])): ?>
-<!-- Using Alpine.js to manage mobile menu state -->
 <nav class="bg-white shadow" x-data="{ isMobileMenuOpen: false }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -7,279 +10,80 @@
                 <div class="flex-shrink-0 flex items-center">
                     <a href="<?= BASE_PATH ?>/dashboard" class="text-2xl font-bold text-indigo-600 hover:text-indigo-700">Taxi</a>
                 </div>
-                <!-- Desktop menu links (hidden on small screens) -->
-                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Users/index')): ?>
-                    <a href="<?= BASE_PATH ?>/admin/users" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-indigo-600">
-                        <i class="fas fa-users-cog mr-1"></i>
-                        User Management
-                    </a>
-                    <?php endif; ?>
+                <!-- Desktop menu links -->
+                <div class="hidden lg:ml-6 lg:flex lg:space-x-4 flex-wrap">
+                    
+                    <!-- Top Level Links -->
 
-                    <!-- Activities Dropdown (Desktop) -->
+                    <!-- Listings Dropdown -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-tasks mr-2"></i>
-                            <span>Activities</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                            <i class="fas fa-list-ul mr-2"></i><span>Listings</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
                         </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <?php if (\App\Core\Auth::hasPermission('Calls/index')): ?><a href="<?= BASE_PATH ?>/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('Create_ticket/index')): ?><a href="<?= BASE_PATH ?>/create_ticket" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('Referral/dashboard')): ?>
-                            <a href="<?= BASE_PATH ?>/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
-                            <?php endif; ?>
+                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
+                            <a href="<?= BASE_PATH ?>/listings/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt mr-2"></i>All Tickets</a>
+                            <a href="<?= BASE_PATH ?>/listings/drivers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-user-tie mr-2"></i>All Drivers</a>
+                            <a href="<?= BASE_PATH ?>/listings/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-alt mr-2"></i>All Calls</a>
                         </div>
                     </div>
                     
-                    <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index') || \App\Core\Auth::hasPermission('Reports/Users/index')): ?>
-                    <!-- Reports Dropdown (Desktop) -->
+                    <!-- Collaboration Dropdown -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-chart-bar mr-2"></i>
-                            <span>Reports</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                            <i class="fas fa-users-cog mr-2"></i><span>Collaboration</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
                         </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" 
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" 
-                             class="absolute top-full left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden" style="display: none;">
+                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
+                            <a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>Discussions</a>
+                            <a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-book mr-2"></i>System Logs</a>
+                        </div>
+                    </div>
+
+                    <!-- Activity Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-tasks mr-2"></i><span>Activity</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
+                            <a href="<?= BASE_PATH ?>/tickets/create" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
+                            <a href="<?= BASE_PATH ?>/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a>
+                            <a href="<?= BASE_PATH ?>/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-users mr-2"></i>Referral Dashboard</a>
+                        </div>
+                    </div>
+
+                    <!-- Reports Mega Dropdown -->
+                    <div class="relative flex items-center" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
+                            <i class="fas fa-chart-bar mr-2"></i><span>Reports</span><i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                        </button>
+                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden">
                             <div x-data="{ openSubmenu: '' }">
-                                <!-- General Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'general' ? '' : 'general')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>General Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'general'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'general'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index')): ?><a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Analytics</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/SystemLogs/index')): ?><a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">System Logs</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Notifications/index')): ?><a href="<?= BASE_PATH ?>/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Notifications Report</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- User & Team Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'users' ? '' : 'users')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>User & Team Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'users'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'users'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Users/index')): ?><a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Users</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TeamLeaderboard/index')): ?><a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Leaderboard</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/EmployeeActivityScore/index')): ?><a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Employee Score</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/MyActivity/index')): ?><a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">My Activity</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Driver Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'drivers' ? '' : 'drivers')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Driver Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'drivers'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'drivers'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Drivers/index')): ?><a href="<?= BASE_PATH ?>/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Drivers</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverAssignments/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Assignments</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverCalls/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Driver Calls</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/DriverDocumentsCompliance/index')): ?><a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Docs Compliance</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Trips Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'trips' ? '' : 'trips')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Trips Reports</span>
-                                        <i class="fas fa-route text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'trips'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'trips'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TripsReport/index')): ?><a href="<?= BASE_PATH ?>/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Detailed Trips Report</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Tickets Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'tickets' ? '' : 'tickets')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Tickets Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'tickets'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'tickets'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketsSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets Summary</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Tickets/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Tickets Details</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketReviews/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Reviews</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketDiscussions/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Discussions</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketCoupons/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Coupons</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/TicketRework/index')): ?><a href="<?= BASE_PATH ?>/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Ticket Rework</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/ReviewQuality/index')): ?><a href="<?= BASE_PATH ?>/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Review Quality</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Marketing Reports -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'marketing' ? '' : 'marketing')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Marketing Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'marketing'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'marketing'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/MarketerSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Marketer Summary</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/ReferralVisits/index')): ?><a href="<?= BASE_PATH ?>/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Referral Visits</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Other Reports -->
-                                <div>
-                                    <button @click="openSubmenu = (openSubmenu === 'other' ? '' : 'other')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Other Reports</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'other'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'other'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Calls/index')): ?><a href="<?= BASE_PATH ?>/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Calls</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Assignments/index')): ?><a href="<?= BASE_PATH ?>/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Assignments</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Documents/index')): ?><a href="<?= BASE_PATH ?>/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Documents</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Coupons/index')): ?><a href="<?= BASE_PATH ?>/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Reports/Custom/index')): ?><a href="<?= BASE_PATH ?>/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Custom Reports</a><?php endif; ?>
-                                    </div>
-                                </div>
+                                <!-- Report groups -->
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'general' ? '' : 'general')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>General</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'general'}"></i></button><div x-show="openSubmenu === 'general'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Analytics</a><a href="<?= BASE_PATH ?>/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">System Logs</a><a href="<?= BASE_PATH ?>/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Notifications</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'users' ? '' : 'users')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>User & Team</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'users'}"></i></button><div x-show="openSubmenu === 'users'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Users</a><a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Team Leaderboard</a><a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Employee Score</a><a href="<?= BASE_PATH ?>/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">My Activity</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'drivers' ? '' : 'drivers')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Drivers</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'drivers'}"></i></button><div x-show="openSubmenu === 'drivers'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Drivers</a><a href="<?= BASE_PATH ?>/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Driver Assignments</a><a href="<?= BASE_PATH ?>/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Driver Calls</a><a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Docs Compliance</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'trips' ? '' : 'trips')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Trips</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'trips'}"></i></button><div x-show="openSubmenu === 'trips'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Detailed Trips</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'tickets' ? '' : 'tickets')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Tickets</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'tickets'}"></i></button><div x-show="openSubmenu === 'tickets'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Summary</a><a href="<?= BASE_PATH ?>/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Details</a><a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Reviews</a><a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Discussions</a><a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Coupons</a><a href="<?= BASE_PATH ?>/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Rework</a><a href="<?= BASE_PATH ?>/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Review Quality</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'marketing' ? '' : 'marketing')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Marketing</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'marketing'}"></i></button><div x-show="openSubmenu === 'marketing'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Marketer Summary</a><a href="<?= BASE_PATH ?>/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Referral Visits</a></div></div>
+                                <div><button @click="openSubmenu = (openSubmenu === 'other' ? '' : 'other')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Other</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'other'}"></i></button><div x-show="openSubmenu === 'other'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Calls</a><a href="<?= BASE_PATH ?>/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Assignments</a><a href="<?= BASE_PATH ?>/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Documents</a><a href="<?= BASE_PATH ?>/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Coupons</a><a href="<?= BASE_PATH ?>/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Custom</a></div></div>
                             </div>
                         </div>
                     </div>
 
-                    <?php endif; // End Reports Dropdown ?>
-
-                    <?php if (\App\Core\Auth::hasPermission('Upload/index') || \App\Core\Auth::hasPermission('Trips/upload')): ?>
-                    <!-- Upload Center Dropdown (Desktop) -->
+                    <!-- Settings Mega Dropdown -->
                     <div class="relative flex items-center" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-upload mr-2"></i>
-                            <span>Upload Center</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
+                            <i class="fas fa-cogs mr-2"></i><span>Settings</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
                         </button>
-                        <div @click.away="open = false" x-show="open"
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                             <?php if (\App\Core\Auth::hasPermission('Upload/index')): ?><a href="<?= BASE_PATH ?>/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Drivers Data</a><?php endif; ?>
-                             <?php if (\App\Core\Auth::hasPermission('Trips/upload')): ?><a href="<?= BASE_PATH ?>/trips/upload" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Upload Trips Data</a><?php endif; ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Logs & Tracking Dropdown (Desktop) -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-history mr-2"></i>
-                            <span>Logs & Tracking</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>My Discussions</a><?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- Quality Management Dropdown (Desktop) -->
-                     <?php if (\App\Core\Auth::hasPermission('quality/reviews') || \App\Core\Auth::hasPermission('quality/discussions')): ?>
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-medal mr-2"></i>
-                            <span>Quality</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-56 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <?php if (\App\Core\Auth::hasPermission('quality/reviews')): ?><a href="<?= BASE_PATH ?>/quality/reviews" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-star-half-alt mr-2"></i>All Reviews</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('quality/discussions')): ?><a href="<?= BASE_PATH ?>/quality/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments-dollar mr-2"></i>All Discussions</a><?php endif; ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Listings Dropdown (Desktop) -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-list-ul mr-2"></i>
-                            <span>Listings</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                            <?php if (\App\Core\Auth::hasPermission('listings/tickets')): ?><a href="<?= BASE_PATH ?>/listings/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt mr-2"></i>All Tickets</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('listings/outgoing_calls')): ?><a href="<?= BASE_PATH ?>/listings/outgoing_calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-alt mr-2"></i>Outgoing Calls</a><?php endif; ?>
-                            <?php if (\App\Core\Auth::hasPermission('listings/incoming_calls')): ?><a href="<?= BASE_PATH ?>/listings/incoming_calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-slash mr-2"></i>Incoming Calls</a><?php endif; ?>
-                        </div>
-                    </div>
-
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index') || \App\Core\Auth::hasPermission('Admin/Roles/index')): ?>
-                    <!-- Settings Dropdown (Desktop) -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-cogs mr-2"></i>
-                            <span>Settings</span>
-                            <i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" 
-                             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 transform -translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" 
-                             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform -translate-y-2" 
-                             class="absolute top-full right-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden" style="display: none;">
-                            <div x-data="{ openSubmenu: '' }">
-                                <!-- System Settings -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'system' ? '' : 'system')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>System Settings</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'system'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'system'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index')): ?><a href="<?= BASE_PATH ?>/admin/permissions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Permissions</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/TelegramSettings/index')): ?><a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Telegram Settings</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Platforms/index')): ?><a href="<?= BASE_PATH ?>/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Platforms</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Roles/index')): ?><a href="<?= BASE_PATH ?>/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Roles</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/CarTypes/index')): ?><a href="<?= BASE_PATH ?>/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Car Types</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Countries/index')): ?><a href="<?= BASE_PATH ?>/admin/countries" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Countries</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/DocumentTypes/index')): ?><a href="<?= BASE_PATH ?>/admin/document_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Document Types</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Points & Rewards -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'points' ? '' : 'points')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Points & Rewards</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'points'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'points'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Points/index')): ?><a href="<?= BASE_PATH ?>/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Point Weights</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Bonus/index')): ?><a href="<?= BASE_PATH ?>/admin/bonus" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Grant Monthly Bonus</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Team Management -->
-                                <div class="border-b border-gray-200">
-                                    <button @click="openSubmenu = (openSubmenu === 'team' ? '' : 'team')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Team Management</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'team'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'team'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Teams/index')): ?><a href="<?= BASE_PATH ?>/admin/teams" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Teams</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/TeamMembers/index')): ?><a href="<?= BASE_PATH ?>/admin/team_members" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Team Members</a><?php endif; ?>
-                                    </div>
-                                </div>
-                                <!-- Ticket Settings -->
-                                <div>
-                                    <button @click="openSubmenu = (openSubmenu === 'tickets' ? '' : 'tickets')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus:outline-none">
-                                        <span>Ticket Settings</span>
-                                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': openSubmenu === 'tickets'}"></i>
-                                    </button>
-                                    <div x-show="openSubmenu === 'tickets'" x-collapse class="bg-gray-50">
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketCategories/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_categories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Categories</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketSubCategories/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_subcategories" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Subcategories</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/TicketCodes/index')): ?><a href="<?= BASE_PATH ?>/admin/ticket_codes" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Codes</a><?php endif; ?>
-                                        <?php if (\App\Core\Auth::hasPermission('Admin/Coupons/index')): ?><a href="<?= BASE_PATH ?>/admin/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900">Coupons</a><?php endif; ?>
-                                    </div>
-                                </div>
+                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full right-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden">
+                             <div x-data="{ openSubmenu: '' }">
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'system' ? '' : 'system')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>System</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'system'}"></i></button><div x-show="openSubmenu === 'system'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/admin/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Users</a><a href="<?= BASE_PATH ?>/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Roles</a><a href="<?= BASE_PATH ?>/admin/permissions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Permissions</a><a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Telegram</a><a href="<?= BASE_PATH ?>/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Platforms</a><a href="<?= BASE_PATH ?>/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Car Types</a><a href="<?= BASE_PATH ?>/admin/countries" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Countries</a><a href="<?= BASE_PATH ?>/admin/document_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Document Types</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'teams' ? '' : 'teams')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Teams</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'teams'}"></i></button><div x-show="openSubmenu === 'teams'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/admin/teams" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Manage Teams</a><a href="<?= BASE_PATH ?>/admin/team_members" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Team Members</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'rewards' ? '' : 'rewards')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Rewards & Evaluations</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'rewards'}"></i></button><div x-show="openSubmenu === 'rewards'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Points System</a><a href="<?= BASE_PATH ?>/admin/bonus/settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Bonus Settings</a><a href="<?= BASE_PATH ?>/delegation-types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Delegation Types</a><a href="<?= BASE_PATH ?>/user-delegations" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">User Delegations</a><a href="<?= BASE_PATH ?>/employee-evaluations" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Employee Evaluations</a></div></div>
+                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'uploads' ? '' : 'uploads')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Uploads</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'uploads'}"></i></button><div x-show="openSubmenu === 'uploads'" x-collapse x-cloak><a href="<?= BASE_PATH ?>/upload" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Upload Drivers</a><a href="<?= BASE_PATH ?>/trips/upload" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Upload Trips</a></div></div>
                             </div>
                         </div>
                     </div>
-                    <?php endif; // End Settings Dropdown ?>
+
                 </div>
             </div>
             
@@ -325,187 +129,90 @@
                     </div>
                 </div>
 
-                <div class="ml-3 relative">
-                    <div class="flex items-center space-x-3">
-                        <span class="text-sm text-gray-500">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
-                        <form method="POST" action="<?= BASE_PATH ?>/auth/logout" class="inline">
-                            <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <i class="fas fa-sign-out-alt mr-1"></i>
-                                Logout
-                            </button>
-                        </form>
+                <!-- Profile dropdown -->
+                <div class="ml-3 relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-sm border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-label="User menu" aria-haspopup="true">
+                        <?php
+                            $name = $_SESSION['username'] ?? 'U';
+                            $initials = '';
+                            $parts = explode(' ', $name);
+                            foreach ($parts as $part) {
+                                if (!empty($part)) {
+                                    $initials .= strtoupper($part[0]);
+                                }
+                                if (strlen($initials) >= 2) break;
+                            }
+                        ?>
+                        <span><?= htmlspecialchars($initials) ?></span>
+                    </button>
+                    <div x-show="open" @click.away="open = false" x-cloak
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                        <div class="px-4 py-3 border-b">
+                            <p class="text-sm font-semibold text-gray-900">Signed in as</p>
+                            <p class="text-sm text-gray-600 truncate" title="<?= htmlspecialchars($_SESSION['username'] ?? '') ?>"><?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></p>
+                        </div>
+                        <div class="py-1">
+                            <a href="<?= BASE_PATH ?>/profile" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-user-circle fa-fw mr-2 text-gray-500"></i>
+                                Your Profile
+                            </a>
+                            <form action="<?= BASE_PATH ?>/auth/logout" method="POST" class="w-full">
+                                <button type="submit" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt fa-fw mr-2 text-gray-500"></i>
+                                    Sign out
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Hamburger button -->
-            <div class="-mr-2 flex items-center sm:hidden">
-                <button @click="isMobileMenuOpen = !isMobileMenuOpen" type="button" class="bg-white inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-controls="mobile-menu" aria-expanded="false">
-                    <span class="sr-only">Open main menu</span>
-                    <!-- Icon when menu is closed -->
-                    <svg :class="{'hidden': isMobileMenuOpen, 'block': !isMobileMenuOpen }" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    <!-- Icon when menu is open -->
-                    <svg :class="{'block': isMobileMenuOpen, 'hidden': !isMobileMenuOpen }" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+            <!-- Mobile menu button -->
+            <div class="-mr-2 flex items-center lg:hidden">
+                <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
+                    <svg :class="{'hidden': isMobileMenuOpen, 'block': !isMobileMenuOpen }" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <svg :class="{'hidden': !isMobileMenuOpen, 'block': isMobileMenuOpen }" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Mobile menu, show/hide based on menu state. -->
-    <div x-show="isMobileMenuOpen" 
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 scale-100"
-         x-transition:leave-end="opacity-0 scale-95"
-         class="sm:hidden" id="mobile-menu">
+    <!-- Mobile menu -->
+    <div :class="{'block': isMobileMenuOpen, 'hidden': !isMobileMenuOpen}" class="lg:hidden" x-cloak>
         <div class="pt-2 pb-3 space-y-1">
-            <?php if (\App\Core\Auth::hasPermission('Admin/Users/index')): ?>
-            <a href="<?= BASE_PATH ?>/admin/users" class="block py-2 px-4 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-indigo-600">
-                <i class="fas fa-users-cog mr-1"></i> User Management
-            </a>
-            <?php endif; ?>
-            
-            <!-- Mobile dropdowns -->
-            <div class="px-4 py-2" x-data="{ open: false }">
-                <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
-                    <span><i class="fas fa-tasks mr-2"></i> Activities</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                </button>
-                <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <?php if (\App\Core\Auth::hasPermission('Calls/index')): ?><a href="<?= BASE_PATH ?>/calls" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-headset mr-2"></i>Call Center</a><?php endif; ?>
-                    <a href="<?= BASE_PATH ?>/call_log" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-phone-alt mr-2"></i>Log Incoming Call</a>
-                    <?php if (\App\Core\Auth::hasPermission('Create_ticket/index')): ?><a href="<?= BASE_PATH ?>/create_ticket" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Referral/dashboard')): ?>
-                    <a href="<?= BASE_PATH ?>/referral/dashboard" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-bullhorn mr-2"></i>Marketing</a>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index') || \App\Core\Auth::hasPermission('Reports/Users/index')): ?>
-            <div class="px-4 py-2" x-data="{ open: false }">
-                <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
-                    <span><i class="fas fa-chart-bar mr-2"></i> Reports</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                </button>
-                <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <?php if (\App\Core\Auth::hasPermission('Reports/Analytics/index')): ?><a href="<?= BASE_PATH ?>/reports/analytics" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Analytics</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Reports/Users/index')): ?><a href="<?= BASE_PATH ?>/reports/users" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Users</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Reports/Drivers/index')): ?><a href="<?= BASE_PATH ?>/reports/drivers" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Drivers</a><?php endif; ?>
-                     <a href="<?= BASE_PATH ?>/reports/trips" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Trips</a>
-                    <?php if (\App\Core\Auth::hasPermission('Reports/TicketsSummary/index')): ?><a href="<?= BASE_PATH ?>/reports/tickets-summary" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Tickets</a><?php endif; ?>
-                    <!-- Add other report links if needed -->
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <?php if (\App\Core\Auth::hasPermission('Upload/index') || \App\Core\Auth::hasPermission('Trips/upload')): ?>
-            <div class="px-4 py-2" x-data="{ open: false }">
-                <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
-                    <span><i class="fas fa-upload mr-2"></i> Upload Center</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                </button>
-                <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <?php if (\App\Core\Auth::hasPermission('Upload/index')): ?><a href="<?= BASE_PATH ?>/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Drivers Data</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Trips/upload')): ?><a href="<?= BASE_PATH ?>/trips/upload" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Upload Trips Data</a><?php endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <div class="px-4 py-2" x-data="{ open: false }">
-                 <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
-                    <span><i class="fas fa-history mr-2"></i> Logs & Tracking</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                </button>
-                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <?php if (\App\Core\Auth::hasPermission('Logs/index')): ?><a href="<?= BASE_PATH ?>/logs" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-clipboard-list mr-2"></i>Activity Log</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Discussions/index')): ?><a href="<?= BASE_PATH ?>/discussions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md"><i class="fas fa-comments mr-2"></i>My Discussions</a><?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Quality Management Dropdown (Mobile) -->
-            <?php if (\App\Core\Auth::hasPermission('quality/reviews') || \App\Core\Auth::hasPermission('quality/discussions')): ?>
-            <a href="#" class="mt-1 block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                <i class="fas fa-medal mr-2"></i>Quality Management
-            </a>
-            <div class="pl-4">
-                <?php if (\App\Core\Auth::hasPermission('quality/reviews')): ?>
-                <a href="<?= BASE_PATH ?>/quality/reviews" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                   <i class="fas fa-star-half-alt mr-2"></i>All Reviews
-                </a>
-                <?php endif; ?>
-                <?php if (\App\Core\Auth::hasPermission('quality/discussions')): ?>
-                <a href="<?= BASE_PATH ?>/quality/discussions" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                   <i class="fas fa-comments-dollar mr-2"></i>All Discussions
-                </a>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
-
-            <!-- Listings Dropdown (Mobile) -->
-            <?php if (\App\Core\Auth::hasPermission('listings/tickets') || \App\Core\Auth::hasPermission('listings/outgoing_calls') || \App\Core\Auth::hasPermission('listings/incoming_calls')): ?>
-            <a href="#" class="mt-1 block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                <i class="fas fa-list-ul mr-2"></i>Listings
-            </a>
-            <div class="pl-4">
-                <?php if (\App\Core\Auth::hasPermission('listings/tickets')): ?>
-                <a href="<?= BASE_PATH ?>/listings/tickets" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                   <i class="fas fa-ticket-alt mr-2"></i>All Tickets
-                </a>
-                <?php endif; ?>
-                <?php if (\App\Core\Auth::hasPermission('listings/outgoing_calls')): ?>
-                <a href="<?= BASE_PATH ?>/listings/outgoing_calls" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                   <i class="fas fa-phone-alt mr-2"></i>Outgoing Calls
-                </a>
-                <?php endif; ?>
-                <?php if (\App\Core\Auth::hasPermission('listings/incoming_calls')): ?>
-                <a href="<?= BASE_PATH ?>/listings/incoming_calls" class="mt-1 block px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                   <i class="fas fa-phone-slash mr-2"></i>Incoming Calls
-                </a>
-                <?php endif; ?>
-            </div>
-            <?php endif; ?>
-
-
-            <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index') || \App\Core\Auth::hasPermission('Admin/Roles/index')): ?>
-             <div class="px-4 py-2" x-data="{ open: false }">
-                 <button @click="open = !open" class="w-full flex justify-between items-center text-base font-medium text-gray-700 hover:text-indigo-600">
-                    <span><i class="fas fa-cogs mr-2"></i> Settings</span>
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                </button>
-                 <div x-show="open" x-collapse class="mt-2 space-y-1 pl-4">
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Permissions/index')): ?><a href="<?= BASE_PATH ?>/admin/permissions" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Permissions</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Admin/TelegramSettings/index')): ?><a href="<?= BASE_PATH ?>/admin/telegram_settings" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Telegram Settings</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Platforms/index')): ?><a href="<?= BASE_PATH ?>/admin/platforms" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Platforms</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Roles/index')): ?><a href="<?= BASE_PATH ?>/admin/roles" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Roles</a><?php endif; ?>
-                    <?php if (\App\Core\Auth::hasPermission('Admin/Teams/index')): ?><a href="<?= BASE_PATH ?>/admin/teams" class="block py-2 px-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Teams</a><?php endif; ?>
-                 </div>
-            </div>
-            <?php endif; ?>
+            <!-- Mobile Dropdowns -->
+            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Listings</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="<?= BASE_PATH ?>/listings/tickets" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Tickets</a><a href="<?= BASE_PATH ?>/listings/drivers" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Drivers</a><a href="<?= BASE_PATH ?>/listings/calls" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Calls</a></div></div>
+            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Collaboration</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="<?= BASE_PATH ?>/discussions" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Discussions</a><a href="<?= BASE_PATH ?>/logs" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">System Logs</a></div></div>
+            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Activity</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="<?= BASE_PATH ?>/tickets/create" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Create Ticket</a><a href="<?= BASE_PATH ?>/calls" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Call Center</a><a href="<?= BASE_PATH ?>/referral/dashboard" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Referral Dashboard</a></div></div>
+            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Reports</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="<?= BASE_PATH ?>/reports/main" class="block py-2 text-sm">Main Reports</a><a href="<?= BASE_PATH ?>/reports/referral-visits" class="block py-2 text-sm">Referral Visits</a></div></div>
+            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Settings</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="<?= BASE_PATH ?>/admin/users" class="block py-2 text-sm">Users</a><a href="<?= BASE_PATH ?>/admin/roles" class="block py-2 text-sm">Roles</a><a href="<?= BASE_PATH ?>/admin/teams" class="block py-2 text-sm">Teams</a></div></div>
         </div>
-        <!-- User info and logout in mobile menu -->
         <div class="pt-4 pb-3 border-t border-gray-200">
             <div class="flex items-center px-4">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-gray-200 flex items-center justify-center rounded-full">
+                        <i class="fas fa-user text-gray-600 text-lg"></i>
+                    </div>
+                </div>
                 <div class="ml-3">
-                    <div class="text-base font-medium text-gray-800">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></div>
+                    <div class="text-base font-medium text-gray-800"><?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></div>
+                    <div class="text-sm font-medium text-gray-500"><?= htmlspecialchars($_SESSION['email'] ?? 'user@example.com') ?></div>
                 </div>
             </div>
             <div class="mt-3 space-y-1">
-                 <form method="POST" action="<?= BASE_PATH ?>/auth/logout">
-                    <button type="submit" class="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">
-                        <i class="fas fa-sign-out-alt mr-1"></i> Logout
-                    </button>
-                </form>
+                <a href="<?= BASE_PATH ?>/profile" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-50">Your Profile</a>
+                <form action="<?= BASE_PATH ?>/auth/logout" method="POST"><button type="submit" class="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-50">Sign out</button></form>
             </div>
         </div>
     </div>
-
-    <script>
+</nav>
+<script>
     function navNotifications() {
         return {
             open: false,
@@ -532,7 +239,22 @@
         }
     }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<?php else: ?>
+<nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex">
+                <div class="flex-shrink-0 flex items-center">
+                    <a href="<?= BASE_PATH ?>/" class="text-xl font-bold text-indigo-600">Taxi</a>
+                </div>
+            </div>
+            <div class="hidden sm:flex sm:items-center sm:ml-6">
+                <a href="<?= BASE_PATH ?>/login" class="text-sm font-medium text-gray-700 hover:text-indigo-600">Login</a>
+                <a href="<?= BASE_PATH ?>/register" class="ml-4 text-sm font-medium text-gray-700 hover:text-indigo-600">Register</a>
+            </div>
+        </div>
+    </div>
 </nav>
 <?php endif; ?>

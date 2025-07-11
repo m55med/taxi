@@ -11,18 +11,22 @@
     <label for="ticket_code_id" class="block text-gray-700 text-sm font-bold mb-2">Link to Ticket Code (Optional):</label>
     <select id="ticket_code_id" name="ticket_code_id" class="shadow border rounded w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
         <option value="">-- None --</option>
-        <?php foreach ($data['ticket_codes'] as $code) : ?>
-            <option value="<?= $code['id'] ?>" <?= (isset($data['article']['ticket_code_id']) && $data['article']['ticket_code_id'] == $code['id']) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($code['name']) ?>
-            </option>
-        <?php endforeach; ?>
+        <?php if (!empty($data['ticket_codes'])): ?>
+            <?php foreach ($data['ticket_codes'] as $code) : ?>
+                <option value="<?= $code['id'] ?>" <?= (isset($data['article']['ticket_code_id']) && $data['article']['ticket_code_id'] == $code['id']) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($code['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <option value="" disabled>No ticket codes available</option>
+        <?php endif; ?>
     </select>
 </div>
 
 <div class="mb-6">
     <label for="editor" class="block text-gray-700 text-sm font-bold mb-2">Content:</label>
     <input name="content" type="hidden">
-    <div id="editor" class="bg-white rounded-lg">
+    <div id="editor" class="bg-white rounded-lg" style="height: 300px;">
         <?= $data['article']['content'] ?? '' ?>
     </div>
 </div>

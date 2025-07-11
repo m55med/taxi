@@ -27,6 +27,10 @@ class QualityModel extends Model
                 r.reviewable_id,
                 reviewer.username as reviewer_name,
                 
+                -- Agent being reviewed
+                COALESCE(agent_ticket.username, agent_call.username) as agent_name,
+                COALESCE(td.edited_by, dc.call_by) as agent_id,
+
                 -- Classification Info
                 cat.name as category_name,
                 sub.name as subcategory_name,
@@ -62,10 +66,30 @@ class QualityModel extends Model
             
             LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
             LEFT JOIN drivers dr ON dc.driver_id = dr.id
+            
+            -- Joins to find the agent being reviewed
+            LEFT JOIN users agent_ticket ON td.edited_by = agent_ticket.id
+            LEFT JOIN users agent_call ON dc.call_by = agent_call.id
         ";
         
         $whereClauses = [];
         $params = [];
+
+        // --- AUTHORIZATION LOGIC ---
+        $role = $_SESSION['role'] ?? 'guest';
+        $userId = $_SESSION['user_id'] ?? 0;
+        
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
+
+        if ($role === 'agent') {
+            // Agent can only see reviews of their own work
+            $whereClauses[] = "(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)";
+            $params[':agent_review_user_id_ticket'] = $userId;
+            $params[':agent_review_user_id_call'] = $userId;
+        } elseif (!in_array($role, $highAccessRoles)) {
+            // If user is not an agent and not a high-access role, return nothing.
+            return []; 
+        }
 
         // --- FILTERING LOGIC ---
 
@@ -133,6 +157,10 @@ class QualityModel extends Model
                 opener.username as opener_name,
                 (SELECT COUNT(*) FROM discussion_replies dr WHERE dr.discussion_id = d.id) as replies_count,
                 
+                -- Agent being discussed
+                COALESCE(agent_ticket.username, agent_call.username) as agent_name,
+                COALESCE(td.edited_by, dc.call_by) as agent_id,
+
                 -- Context Info
                 r.reviewable_type,
                 td.ticket_id,
@@ -149,10 +177,30 @@ class QualityModel extends Model
             LEFT JOIN tickets t ON td.ticket_id = t.id
             LEFT JOIN driver_calls dc on r.reviewable_id = dc.id and r.reviewable_type LIKE '%DriverCall'
             LEFT JOIN drivers dr ON dc.driver_id = dr.id
+            
+            -- Joins to find the agent being discussed
+            LEFT JOIN users agent_ticket ON td.edited_by = agent_ticket.id
+            LEFT JOIN users agent_call ON dc.call_by = agent_call.id
         ";
 
         $whereClauses = [];
         $params = [];
+
+        // --- AUTHORIZATION LOGIC ---
+        $role = $_SESSION['role'] ?? 'guest';
+        $userId = $_SESSION['user_id'] ?? 0;
+        
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
+
+        if ($role === 'agent') {
+            // Agent can only see discussions about their work
+            $whereClauses[] = "(td.edited_by = :agent_discussion_user_id_ticket OR dc.call_by = :agent_discussion_user_id_call)";
+            $params[':agent_discussion_user_id_ticket'] = $userId;
+            $params[':agent_discussion_user_id_call'] = $userId;
+        } elseif (!in_array($role, $highAccessRoles)) {
+            // If user is not an agent and not a high-access role, return nothing.
+            return [];
+        }
         
         // --- FILTERING LOGIC ---
 

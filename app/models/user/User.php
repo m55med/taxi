@@ -43,9 +43,10 @@ class User
             }
 
             // إضافة المستخدم الجديد
-            $stmt = $this->db->prepare("INSERT INTO users (username, email, password, status, role_id) VALUES (:username, :email, :password, :status, :role_id)");
+            $stmt = $this->db->prepare("INSERT INTO users (username, name, email, password, status, role_id) VALUES (:username, :name, :email, :password, :status, :role_id)");
             $result = $stmt->execute([
                 ':username' => $data['username'],
+                ':name' => $data['name'],
                 ':email' => $data['email'],
                 ':password' => password_hash($data['password'], PASSWORD_DEFAULT),
                 ':status' => $data['status'] ?? 'pending',
@@ -331,21 +332,33 @@ class User
     public function updateUser($id, $data)
     {
         try {
-            $fields = [];
-            $params = [];
-            
-            if (isset($data['username'])) {
-                $fields[] = 'username = :username';
-                $params[':username'] = $data['username'];
-            }
+            // Check if email already exists for another user
             if (isset($data['email'])) {
+                $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email AND id != :id");
+                $stmt->execute([':email' => $data['email'], ':id' => $id]);
+                if ($stmt->fetch()) {
+                    return ['status' => false, 'message' => 'This email address is already in use by another account.'];
+                }
+            }
+
+            $fields = [];
+            $params = [':id' => $id];
+            
+            if (!empty($data['name'])) {
+                $fields[] = 'name = :name';
+                $params[':name'] = $data['name'];
+            }
+            if (!empty($data['email'])) {
                 $fields[] = 'email = :email';
                 $params[':email'] = $data['email'];
             }
-            if (isset($data['password'])) {
+            // Only update password if a new one is provided
+            if (!empty($data['password'])) {
                 $fields[] = 'password = :password';
-                $params[':password'] = $data['password'];
+                $params[':password'] = password_hash($data['password'], PASSWORD_DEFAULT);
             }
+            
+            // The original method allowed updating these, keeping them for compatibility
             if (isset($data['role_id'])) {
                 $fields[] = 'role_id = :role_id';
                 $params[':role_id'] = $data['role_id'];
@@ -359,21 +372,28 @@ class User
                 $params[':force_logout'] = $data['force_logout'];
             }
 
+
             if (empty($fields)) {
-                return false; // لا يوجد شيء لتحديثه
+                return ['status' => true, 'message' => 'No changes were made.']; 
             }
 
-            // إضافة وقت التحديث
             $fields[] = 'updated_at = CURRENT_TIMESTAMP';
-            $params[':id'] = $id;
 
             $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
             
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute($params);
+            $result = $stmt->execute($params);
+            
+            if ($result) {
+                // Return the updated name for session update
+                return ['status' => true, 'message' => 'Profile updated successfully.', 'name' => $data['name']];
+            } else {
+                return ['status' => false, 'message' => 'Failed to update profile.'];
+            }
+
         } catch (PDOException $e) {
             error_log("Error updating user: " . $e->getMessage());
-            return false;
+            return ['status' => false, 'message' => 'A database error occurred.'];
         }
     }
 
@@ -470,6 +490,29 @@ class User
         }
     }
 
+    /**
+     * Updates a user's password based on their email address.
+     *
+     * @param string $email
+     * @param string $newPassword
+     * @return bool
+     */
+    public function updatePasswordByEmail(string $email, string $newPassword): bool
+    {
+        try {
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $sql = "UPDATE users SET password = :password, updated_at = CURRENT_TIMESTAMP WHERE email = :email";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':password' => $hashedPassword,
+                ':email' => $email
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error updating password by email: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function getRolePermissions(int $roleId): array
     {
         $sql = "SELECT p.permission_key
@@ -480,5 +523,41 @@ class User
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$roleId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+    
+    public function getUserStats() {
+        try {
+            $stats = [];
+
+            // Total users
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM users");
+            $stmt->execute();
+            $stats['total_users'] = $stmt->fetchColumn();
+
+            // Online users
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE is_online = 1");
+            $stmt->execute();
+            $stats['online_users'] = $stmt->fetchColumn();
+
+            // Status breakdown
+            $stmt = $this->db->prepare("SELECT status, COUNT(*) as count FROM users GROUP BY status");
+            $stmt->execute();
+            $statusCounts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            $stats['active_users'] = $statusCounts['active'] ?? 0;
+            $stats['banned_users'] = $statusCounts['banned'] ?? 0;
+            $stats['pending_users'] = $statusCounts['pending'] ?? 0;
+
+            return $stats;
+        } catch (PDOException $e) {
+            error_log("Error in getUserStats: " . $e->getMessage());
+            return [
+                'total_users' => 0,
+                'online_users' => 0,
+                'active_users' => 0,
+                'banned_users' => 0,
+                'pending_users' => 0,
+            ];
+        }
     }
 }

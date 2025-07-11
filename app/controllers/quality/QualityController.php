@@ -26,8 +26,9 @@ class QualityController extends Controller
      */
     public function reviews()
     {
-        // Authorization check (example: only admin and quality_manager can access)
-        $this->authorize(['admin', 'quality_manager', 'Team_leader']);
+        // Authorization check: allow all relevant roles to access the page.
+        // The model will handle filtering the data based on the specific role.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
 
         // Fetch data needed for filters, like categories
         $ticket_categories = $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes();
@@ -46,7 +47,8 @@ class QualityController extends Controller
     public function get_reviews_api()
     {
         header('Content-Type: application/json');
-        $this->authorize(['admin', 'quality_manager', 'Team_leader']);
+        // Authorization check: allow all relevant roles. The model handles the logic.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
         
         $filters = $_GET; // Using GET parameters for filtering
         
@@ -60,8 +62,8 @@ class QualityController extends Controller
      */
     public function discussions()
     {
-        // Authorization check
-        $this->authorize(['admin', 'quality_manager', 'Team_leader']);
+        // Authorization check: allow all relevant roles. The model handles the logic.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
 
         // Fetch data needed for filters, just like the reviews page
         $ticket_categories = $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes();
@@ -80,7 +82,8 @@ class QualityController extends Controller
     public function get_discussions_api()
     {
         header('Content-Type: application/json');
-        $this->authorize(['admin', 'quality_manager', 'Team_leader']);
+        // Authorization check: allow all relevant roles. The model handles the logic.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
 
         $filters = $_GET;
 

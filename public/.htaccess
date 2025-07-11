@@ -1,9 +1,10 @@
+<IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteBase /taxi/public/
 
-# Allow direct access to index.php
-RewriteRule ^index\.php$ - [L]
-
+    # If a directory or a file exists, serve it directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . index.php [L]
+
+    # Otherwise, redirect all requests to index.php with the URL parameter
+    RewriteRule ^(.*)$ /taxi/public/index.php?url=$1 [QSA,L]
+</IfModule>

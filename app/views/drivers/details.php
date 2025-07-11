@@ -1,4 +1,14 @@
-<?php include_once APPROOT . '/views/includes/header.php'; ?>
+<?php
+
+require_once APPROOT . '/helpers/session_helper.php';
+
+// Load the main layout
+include_once APPROOT . '/views/includes/header.php';
+?>
+
+<script>
+    const URLROOT = '<?= BASE_PATH ?>';
+</script>
 
 <main class="container mx-auto p-4 sm:p-6 lg:p-8">
 
@@ -59,7 +69,8 @@
     </div>
 
     <!-- Flash Messages -->
-    <?php include_once APPROOT . '/views/includes/flash_messages.php'; ?>
+    <?php flash('driver_assignment_success'); ?>
+    <?php flash('driver_assignment_error'); ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content (Driver Details & Assignment) -->
@@ -202,7 +213,7 @@
 
             <!-- Documents Management Section -->
             <?php if (isset($driver)): ?>
-            <div x-data="driverDetails" class="bg-white p-6 rounded-lg shadow-md">
+            <div x-data="driverDetails(<?= htmlspecialchars(json_encode($data)) ?>)" class="bg-white p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-semibold mb-4 border-b pb-2">Manage Documents</h3>
                 <div class="mb-6 bg-gray-50 p-3 rounded-md">
                     <span class="font-semibold">Missing Documents Status:</span>
@@ -308,7 +319,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
-    <?php if ($flash = get_flash_message()): ?>
-        toastr['<?= $flash['type'] ?>']('<?= $flash['message'] ?>');
+    <?php if ($flash = flash('driver_assignment_success')): ?>
+        toastr['success']('<?= $flash['message'] ?>');
+    <?php endif; ?>
+    <?php if ($flash = flash('driver_assignment_error')): ?>
+        toastr['error']('<?= $flash['message'] ?>');
     <?php endif; ?>
 </script> 

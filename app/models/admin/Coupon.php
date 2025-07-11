@@ -252,33 +252,27 @@ class Coupon {
                         COUNT(id) as total,
                         SUM(CASE WHEN is_used = 1 THEN 1 ELSE 0 END) as used,
                         SUM(CASE WHEN is_used = 0 THEN 1 ELSE 0 END) as unused
-                     FROM coupons";
+                     FROM coupons WHERE 1=1";
         
-        $where_clauses = [];
         $params = [];
-
         if (!empty($filters['search'])) {
-            $where_clauses[] = "code LIKE :search";
+            $base_sql .= " AND code LIKE :search";
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (isset($filters['is_used']) && $filters['is_used'] !== '') {
-            $where_clauses[] = "is_used = :is_used";
+            $base_sql .= " AND is_used = :is_used";
             $params[':is_used'] = $filters['is_used'];
         }
         if (!empty($filters['country_id'])) {
-            $where_clauses[] = "country_id = :country_id";
+            $base_sql .= " AND country_id = :country_id";
             $params[':country_id'] = $filters['country_id'];
-        }
-
-        if (!empty($where_clauses)) {
-            $base_sql .= " WHERE " . implode(" AND ", $where_clauses);
         }
 
         $stmt = $this->pdo->prepare($base_sql);
         $stmt->execute($params);
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Ensure stats are always integers
+        // Ensure we always return numbers
         return [
             'total' => (int)($stats['total'] ?? 0),
             'used' => (int)($stats['used'] ?? 0),

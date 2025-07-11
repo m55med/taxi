@@ -214,18 +214,20 @@ class Discussion extends Model
         }
     }
 
-    public function addReply($discussionId, $userId, $message)
+    public function addReply($discussionId, $userId, $message, $isSystemMessage = false)
     {
         try {
             $this->db->beginTransaction();
 
-            // Check if discussion is open before adding a reply
-            $status_stmt = $this->db->prepare("SELECT status FROM discussions WHERE id = :id");
-            $status_stmt->execute([':id' => $discussionId]);
-            if ($status_stmt->fetchColumn() !== 'open') {
-                error_log("Attempted to reply to a closed discussion (ID: $discussionId)");
-                $this->db->rollBack();
-                return false;
+            // Allow adding system messages even to closed discussions
+            if (!$isSystemMessage) {
+                $status_stmt = $this->db->prepare("SELECT status FROM discussions WHERE id = :id");
+                $status_stmt->execute([':id' => $discussionId]);
+                if ($status_stmt->fetchColumn() !== 'open') {
+                    error_log("Attempted to reply to a closed discussion (ID: $discussionId)");
+                    $this->db->rollBack();
+                    return false;
+                }
             }
 
             $sql = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
@@ -242,7 +244,9 @@ class Discussion extends Model
             }
 
             // --- Notification Logic ---
-            $this->notifyUsersOnNewReply($discussionId, $userId, $message);
+            if (!$isSystemMessage) {
+                 $this->notifyUsersOnNewReply($discussionId, $userId, $message);
+            }
 
             $this->db->commit();
 
@@ -359,6 +363,54 @@ class Discussion extends Model
         }
 
         return false; // No permission
+    }
+    
+    /**
+     * Reopens a discussion by setting its status to 'open'.
+     * This operation is transactional, ensuring that both the status update
+     * and the creation of a system message reply occur successfully.
+     *
+     * @param int $discussionId The ID of the discussion to reopen.
+     * @param int $userId The ID of the user reopening the discussion.
+     * @return bool True on success, false on failure.
+     */
+    public function reopenDiscussion($discussionId, $userId)
+    {
+        $this->db->beginTransaction();
+        try {
+            // Step 1: Update discussion status from 'closed' to 'open'
+            $sql_update = "UPDATE discussions SET status = 'open' WHERE id = :id AND status = 'closed'";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->execute([':id' => $discussionId]);
+
+            // If no rows were affected, it means the discussion was not closed or doesn't exist.
+            if ($stmt_update->rowCount() === 0) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            // Step 2: Add a system message reply indicating the discussion was reopened
+            $message = "This discussion was reopened by a moderator.";
+            $sql_insert_reply = "INSERT INTO discussion_replies (discussion_id, user_id, message) VALUES (:discussion_id, :user_id, :message)";
+            $stmt_insert_reply = $this->db->prepare($sql_insert_reply);
+            $stmt_insert_reply->execute([
+                ':discussion_id' => $discussionId,
+                ':user_id' => $userId,
+                ':message' => $message
+            ]);
+
+            $this->db->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error in reopenDiscussion: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function markRepliesAsRead($discussionId, $userId) {
+        // This is a placeholder for the actual implementation
+        return true;
     }
 
     public function getEntityForRedirect($type, $discussable_id)

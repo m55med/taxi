@@ -124,6 +124,14 @@ class UsersReport
         
         $qualityScores = $this->getQualityScores($userIds, $filters);
         
+        // Fetch delegations for the given month
+        $delegations = [];
+        if (!empty($filters['date_from'])) {
+            $reportMonth = date('n', strtotime($filters['date_from']));
+            $reportYear = date('Y', strtotime($filters['date_from']));
+            $delegations = $this->getDelegationsForUsers($userIds, $reportMonth, $reportYear);
+        }
+
         foreach ($users as &$user) {
             $userId = $user['id'];
             if(isset($userStats[$userId])) {
@@ -132,6 +140,25 @@ class UsersReport
 
             $user['quality_score'] = $qualityScores[$userId]['quality_score'] ?? 0;
             $user['total_reviews'] = $qualityScores[$userId]['total_reviews'] ?? 0;
+
+            // Apply delegation bonus if exists
+            $user['delegation_applied'] = false;
+            if (isset($delegations[$userId])) {
+                $delegation = $delegations[$userId];
+                $original_points = $user['total_points'];
+                $bonus_percentage = $delegation['percentage'];
+                $bonus_amount = ($original_points * $bonus_percentage) / 100;
+                $new_total_points = $original_points + $bonus_amount;
+
+                $user['total_points'] = $new_total_points;
+                $user['delegation_applied'] = true;
+                $user['delegation_details'] = [
+                    'original_points' => $original_points,
+                    'percentage' => $bonus_percentage,
+                    'bonus_amount' => $bonus_amount,
+                    'reason' => $delegation['reason']
+                ];
+            }
         }
         unset($user);
 
@@ -140,7 +167,7 @@ class UsersReport
              'vip_tickets' => array_sum(array_column($userStats, 'vip_tickets')),
              'incoming_calls' => array_sum(array_column($userStats, 'incoming_calls')),
              'outgoing_calls' => array_sum(array_column($userStats, 'outgoing_calls')),
-             'total_points' => array_sum(array_column($userStats, 'total_points')),
+             'total_points' => array_sum(array_column($users, 'total_points')), // Use the potentially modified points
              'total_quality_score' => array_sum(array_column($qualityScores, 'quality_score')),
              'total_reviews' => array_sum(array_column($qualityScores, 'total_reviews')),
         ];
@@ -193,6 +220,38 @@ class UsersReport
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return ['users' => $users];
+    }
+
+    private function getDelegationsForUsers(array $userIds, int $month, int $year): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+
+        $sql = "SELECT 
+                    ud.user_id,
+                    ud.reason,
+                    dt.percentage
+                FROM user_delegations ud
+                JOIN delegation_types dt ON ud.delegation_type_id = dt.id
+                WHERE ud.user_id IN ({$placeholders})
+                  AND ud.applicable_month = ?
+                  AND ud.applicable_year = ?";
+
+        $params = array_merge($userIds, [$month, $year]);
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $delegations = [];
+        foreach ($results as $row) {
+            $delegations[$row['user_id']] = $row;
+        }
+
+        return $delegations;
     }
 
     public function getAllUsersForFilter()

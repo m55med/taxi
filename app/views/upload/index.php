@@ -1,102 +1,167 @@
-</html> 
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<?php include_once APPROOT . '/views/includes/header.php'; ?>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رفع بيانات السائقين</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-        }
-    </style>
-</head>
+<div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full mx-auto">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800"><?= $data['page_main_title'] ?? 'Driver Bulk Upload' ?></h1>
+            <p class="text-gray-500 mt-2">Efficiently upload and process driver data from a file.</p>
+        </div>
 
-<body class="bg-gray-100">
-    <?php include __DIR__ . '/../includes/nav.php'; ?>
+        <?php include_once APPROOT . '/views/includes/flash_messages.php'; ?>
 
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-6">
-            <div class="flex items-center justify-between mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">رفع بيانات السائقين</h1>
-                <a href="<?= BASE_PATH ?>/dashboard" class="text-indigo-600 hover:text-indigo-900">
-                    <i class="fas fa-arrow-right ml-1"></i>
-                    العودة للوحة التحكم
-                </a>
-            </div>
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <form action="<?= URLROOT ?>/upload/process" method="post" enctype="multipart/form-data" class="space-y-12">
 
-            <?php if (isset($_SESSION['error'])): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span class="block sm:inline"><?= htmlspecialchars($_SESSION['error']) ?></span>
-                </div>
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['success'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                    <span class="block sm:inline"><?= htmlspecialchars($_SESSION['success']) ?></span>
-                </div>
-                <?php unset($_SESSION['success']); ?>
-            <?php endif; ?>
-
-            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-info-circle text-yellow-400"></i>
-                    </div>
-                    <div class="mr-3">
-                        <p class="text-sm text-yellow-700">
-                            يجب أن يحتوي الملف على الأعمدة التالية:
-                            <br>
-                            fullName, phone, email, rating, vehicleType, status
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <form action="<?= BASE_PATH ?>/upload/process" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <!-- Step 1: File Upload -->
                 <div>
-                    <label for="file" class="block text-sm font-medium text-gray-700 mb-2">اختر ملف CSV/Excel</label>
-                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div class="space-y-1 text-center">
-                            <i class="fas fa-file-excel text-gray-400 text-3xl mb-3"></i>
-                            <div class="flex text-sm text-gray-600">
-                                <label for="file" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                    <span>اختر ملف</span>
-                                    <input id="file" name="file" type="file" accept=".csv,.xlsx,.xls" class="sr-only" required>
-                                </label>
-                            </div>
-                            <p class="text-xs text-gray-500">CSV, XLSX أو XLS</p>
+                    <h2 class="flex items-center text-xl font-semibold text-gray-700 border-b-2 border-gray-200 pb-3 mb-6">
+                        <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">1</span>
+                        <span>Upload Your File</span>
+                    </h2>
+                    <div id="file-drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+                        <input type="file" name="file" id="file" class="hidden" required>
+                        <div id="file-info" class="text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-2"><span class="font-semibold text-blue-600">Click to upload</span> or drag and drop</p>
+                            <p class="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</p>
+                            <p class="text-xs text-gray-500 mt-1">Required columns: `fullname`, `phone`, `email`</p>
                         </div>
                     </div>
                 </div>
 
+                <!-- Step 2: Set Common Attributes -->
                 <div>
-                    <label for="data_source" class="block text-sm font-medium text-gray-700">مصدر البيانات</label>
-                    <select name="data_source" id="data_source" required
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <option value="excel">Excel/CSV</option>
-                        <option value="form">نموذج</option>
-                        <option value="referral">إحالة</option>
-                        <option value="telegram">تيليجرام</option>
-                        <option value="staff">موظف</option>
-                    </select>
+                    <h2 class="flex items-center text-xl font-semibold text-gray-700 border-b-2 border-gray-200 pb-3 mb-6">
+                        <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">2</span>
+                        <span>Configure Driver Settings</span>
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="country_id" class="form-label">Country</label>
+                            <div class="relative">
+                                <select name="country_id" id="country_id" class="form-select appearance-none" required>
+                                    <option value="">Select Country</option>
+                                    <?php foreach ($data['countries'] as $country): ?>
+                                        <option value="<?= $country['id'] ?>"><?= htmlspecialchars($country['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="app_status" class="form-label">Application Status</label>
+                            <div class="relative">
+                                <select name="app_status" id="app_status" class="form-select appearance-none" required>
+                                    <option value="inactive" selected>Inactive</option>
+                                    <option value="active">Active</option>
+                                    <option value="banned">Banned</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="data_source" class="form-label">Data Source</label>
+                             <div class="relative">
+                                <select name="data_source" id="data_source" class="form-select appearance-none">
+                                    <option value="excel" selected>From Excel File</option>
+                                    <option value="form">From Manual Form</option>
+                                    <option value="referral">From Referral</option>
+                                    <option value="telegram">From Telegram</option>
+                                    <option value="staff">Added by Staff</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="notes" class="form-label">Common Notes</label>
+                            <textarea name="notes" id="notes" rows="3" class="form-textarea" placeholder="Add a note that will apply to all drivers in this upload..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="flex justify-end">
-                    <button type="submit"
-                        class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <i class="fas fa-upload ml-1"></i>
-                        رفع البيانات
+                <!-- Step 3: Required Documents -->
+                <div>
+                     <h2 class="flex items-center text-xl font-semibold text-gray-700 border-b-2 border-gray-200 pb-3 mb-6">
+                        <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">3</span>
+                        <span>Assign Required Documents</span>
+                    </h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                         <?php foreach ($data['document_types'] as $doc_type): ?>
+                            <div class="relative">
+                                <input type="checkbox" name="required_doc_ids[]" value="<?= $doc_type['id'] ?>" id="doc_<?= $doc_type['id'] ?>" class="hidden peer">
+                                <label for="doc_<?= $doc_type['id'] ?>" class="flex items-center justify-center text-center p-4 border rounded-lg cursor-pointer transition-all duration-300 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-lg peer-checked:scale-105 hover:bg-gray-50">
+                                    <span class="text-sm font-medium text-gray-800"><?= htmlspecialchars($doc_type['name']) ?></span>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- Submission -->
+                <div class="flex justify-end pt-6 border-t">
+                    <button type="submit" class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                        <i class="fas fa-cloud-upload-alt mr-2"></i>
+                        Upload and Process
                     </button>
                 </div>
             </form>
         </div>
     </div>
-</body>
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
-</html> 
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dropArea = document.getElementById('file-drop-area');
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('file-info');
+
+    if (dropArea) {
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('border-blue-500', 'bg-blue-50');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileInfo();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileInfo);
+
+        function updateFileInfo() {
+            if (fileInput.files.length > 0) {
+                fileInfo.innerHTML = `<p class="font-semibold text-green-600">File selected: ${fileInput.files[0].name}</p><p class="text-xs text-gray-500">${(fileInput.files[0].size / 1024).toFixed(2)} KB</p>`;
+            } else {
+                fileInfo.innerHTML = `<svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg><p class="mt-2"><span class="font-semibold text-blue-600">Click to upload</span> or drag and drop</p><p class="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</p>`;
+            }
+        }
+    }
+});
+</script>
+
+<style>
+.form-label { @apply block text-sm font-medium text-gray-600 mb-2; }
+.form-select, .form-textarea { @apply block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow; }
+.form-checkbox { @apply h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer; }
+</style>
+
+<?php include_once APPROOT . '/views/includes/footer.php'; ?> 

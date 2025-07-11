@@ -35,9 +35,13 @@ class KnowledgeBaseModel
             LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
             ORDER BY kb.updated_at DESC
         ";
-        $stmt = $this->db->query($sql);
+    
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+    
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
 
     /**
      * Find a single article by its ID.
@@ -142,24 +146,31 @@ class KnowledgeBaseModel
                 kb.updated_at,
                 u.username AS author_name,
                 tc.name AS ticket_code_name,
-                MATCH(kb.title, kb.content) AGAINST(:query IN BOOLEAN MODE) as relevance
+                MATCH(kb.title, kb.content) AGAINST(:query1 IN BOOLEAN MODE) as relevance
             FROM knowledge_base kb
             LEFT JOIN users u ON kb.updated_by = u.id
             LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
-            WHERE MATCH(kb.title, kb.content) AGAINST(:query IN BOOLEAN MODE)
+            WHERE MATCH(kb.title, kb.content) AGAINST(:query2 IN BOOLEAN MODE)
             ORDER BY relevance DESC
         ";
         $stmt = $this->db->prepare($sql);
         // Using boolean mode allows for more complex queries, like adding '+' for required words
-        $stmt->execute([':query' => $query . '*']);
+        $stmt->execute([
+            ':query1' => $query . '*',
+            ':query2' => $query . '*'
+        ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
     /**
      * Get all ticket codes for the dropdown in create/edit forms.
      */
-    public function getAllTicketCodes() {
-        $stmt = $this->db->query("SELECT id, name FROM ticket_codes ORDER BY name ASC");
+    public function getAllTicketCodes()
+    {
+        $sql = "SELECT id, name FROM ticket_codes ORDER BY name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
 } 

@@ -17,6 +17,7 @@ INSERT INTO roles (name) VALUES
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     is_online TINYINT(1) DEFAULT 0, -- 0 = offline, 1 = online
@@ -140,22 +141,25 @@ CREATE TABLE driver_calls (
     notes TEXT,
     next_call_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    -- الأعمدة الجديدة المضافة
+    
     ticket_category_id INT(11) NULL DEFAULT NULL,
     ticket_subcategory_id INT(11) NULL DEFAULT NULL,
     ticket_code_id INT(11) NULL DEFAULT NULL,
 
-    -- العلاقات
+    team_id_at_action INT NULL DEFAULT NULL,  -- العمود الجديد
+
+    -- العلاقات (FOREIGN KEYS)
     FOREIGN KEY (driver_id) REFERENCES drivers(id),
     FOREIGN KEY (call_by) REFERENCES users(id),
     FOREIGN KEY (ticket_category_id) REFERENCES ticket_categories(id) ON DELETE SET NULL,
     FOREIGN KEY (ticket_subcategory_id) REFERENCES ticket_subcategories(id) ON DELETE SET NULL,
     FOREIGN KEY (ticket_code_id) REFERENCES ticket_codes(id) ON DELETE SET NULL,
+    FOREIGN KEY (team_id_at_action) REFERENCES teams(id) ON DELETE SET NULL,  -- العلاقة الجديدة
 
-    -- الفهرس
+    -- الفهارس (INDEXES)
     INDEX idx_next_call_at (next_call_at)
 );
+
 
 --جدول لتخزين تحويلات المكالمات بين الموظفين
 CREATE TABLE driver_assignments (
@@ -218,10 +222,17 @@ CREATE TABLE incoming_calls (
     status ENUM('answered', 'missed') DEFAULT 'answered',
     linked_ticket_detail_id INT DEFAULT NULL,
     
+    team_id_at_action INT NULL DEFAULT NULL,  -- العمود الجديد
+    
+    -- العلاقات (FOREIGN KEYS)
     FOREIGN KEY (call_received_by) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (linked_ticket_detail_id) REFERENCES ticket_details(id) ON DELETE SET NULL,
+    FOREIGN KEY (team_id_at_action) REFERENCES teams(id) ON DELETE SET NULL,  -- العلاقة الجديدة
+
+    -- الفهارس (INDEXES)
     INDEX idx_caller_phone (caller_phone_number)
 );
+
 
 -- جدول الفرق
 CREATE TABLE teams (
@@ -291,10 +302,13 @@ CREATE TABLE ticket_details (
     country_id INT DEFAULT NULL,
     
     assigned_team_leader_id INT NOT NULL,
-    edited_by INT NOT NULL, -- الموظف الذي أجرى هذا التعديل (أو أنشأ الإصدار الأول)
+    edited_by INT NOT NULL,  -- الموظف الذي أجرى هذا التعديل (أو أنشأ الإصدار الأول)
+    
+    team_id_at_action INT NULL DEFAULT NULL,  -- العمود الجديد
     
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
+    -- العلاقات (FOREIGN KEYS)
     FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     FOREIGN KEY (platform_id) REFERENCES platforms(id),
     FOREIGN KEY (category_id) REFERENCES ticket_categories(id),
@@ -302,8 +316,10 @@ CREATE TABLE ticket_details (
     FOREIGN KEY (code_id) REFERENCES ticket_codes(id),
     FOREIGN KEY (country_id) REFERENCES countries(id),
     FOREIGN KEY (assigned_team_leader_id) REFERENCES users(id),
-    FOREIGN KEY (edited_by) REFERENCES users(id)
+    FOREIGN KEY (edited_by) REFERENCES users(id),
+    FOREIGN KEY (team_id_at_action) REFERENCES teams(id) ON DELETE SET NULL  -- العلاقة الجديدة
 );
+
 
 
 --جدول مراجعات التذاكر
@@ -761,4 +777,53 @@ CREATE TABLE user_discussion_read_status (
     PRIMARY KEY (user_id, discussion_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (discussion_id) REFERENCES discussions(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    otp VARCHAR(10) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE `delegation_types` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(255) NOT NULL,
+  `percentage` DECIMAL(5, 2) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `user_delegations` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `delegation_type_id` INT NOT NULL,
+  `reason` TEXT,
+  `applicable_month` INT NOT NULL,
+  `applicable_year` INT NOT NULL,
+  `assigned_by_user_id` INT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`delegation_type_id`) REFERENCES `delegation_types`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`assigned_by_user_id`) REFERENCES `users`(`id`),
+  UNIQUE KEY `user_month_year_delegation` (`user_id`, `applicable_month`, `applicable_year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE employee_evaluations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    evaluator_id INT NOT NULL,
+    score DECIMAL(4, 2) NOT NULL,
+    comment TEXT NULL,
+    applicable_month INT NOT NULL,
+    applicable_year INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (evaluator_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_score CHECK (score >= 0 AND score <= 10),
+    UNIQUE KEY uk_evaluation_period (user_id, applicable_month, applicable_year)
 );

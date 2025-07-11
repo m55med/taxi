@@ -3,6 +3,7 @@
 namespace App\Models\Calls;
 
 use App\Core\Model;
+use App\Models\Admin\TeamMember;
 use PDO;
 use PDOException;
 
@@ -163,22 +164,30 @@ class Call extends Model
     {
         $isTransactionActive = $this->db->inTransaction();
         if (!$isTransactionActive) {
-            $this->beginTransaction();
+            $this->db->beginTransaction();
         }
 
         try {
+            // Team ID is now passed directly from the controller
+            // $teamIdAtAction = TeamMember::getCurrentTeamIdForUser($data['call_by']);
+
             // 1. Insert the call record
-            $this->query('INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at, ticket_category_id, ticket_subcategory_id, ticket_code_id) VALUES (:driver_id, :call_by, :call_status, :notes, :next_call_at, :ticket_category_id, :ticket_subcategory_id, :ticket_code_id)');
-            $this->bind(':driver_id', $data['driver_id']);
-            $this->bind(':call_by', $data['call_by']);
-            $this->bind(':call_status', $data['call_status']);
-            $this->bind(':notes', $data['notes']);
-            $this->bind(':next_call_at', $data['next_call_at']);
-            $this->bind(':ticket_category_id', $data['ticket_category_id']);
-            $this->bind(':ticket_subcategory_id', $data['ticket_subcategory_id']);
-            $this->bind(':ticket_code_id', $data['ticket_code_id']);
+            $sql = 'INSERT INTO driver_calls (driver_id, call_by, call_status, notes, next_call_at, ticket_category_id, ticket_subcategory_id, ticket_code_id, team_id_at_action) 
+                    VALUES (:driver_id, :call_by, :call_status, :notes, :next_call_at, :ticket_category_id, :ticket_subcategory_id, :ticket_code_id, :team_id_at_action)';
             
-            if (!$this->execute()) {
+            $stmt = $this->db->prepare($sql);
+
+            $stmt->bindValue(':driver_id', $data['driver_id']);
+            $stmt->bindValue(':call_by', $data['call_by']);
+            $stmt->bindValue(':call_status', $data['call_status']);
+            $stmt->bindValue(':notes', $data['notes']);
+            $stmt->bindValue(':next_call_at', $data['next_call_at']);
+            $stmt->bindValue(':ticket_category_id', $data['ticket_category_id']);
+            $stmt->bindValue(':ticket_subcategory_id', $data['ticket_subcategory_id']);
+            $stmt->bindValue(':ticket_code_id', $data['ticket_code_id']);
+            $stmt->bindValue(':team_id_at_action', $data['team_id_at_action'] ?? null);
+            
+            if (!$stmt->execute()) {
                 throw new PDOException("Failed to insert call record.");
             }
 
@@ -186,13 +195,13 @@ class Call extends Model
             $this->updateDriverStatusBasedOnCall($data['driver_id'], $data['call_status']);
 
             if (!$isTransactionActive) {
-                $this->commit();
+                $this->db->commit();
             }
             return true;
 
         } catch (PDOException $e) {
-            if (!$isTransactionActive) {
-                $this->rollBack();
+            if (!$isTransactionActive && $this->db->inTransaction()) {
+                $this->db->rollBack();
             }
             error_log("Error in recordCall transaction: " . $e->getMessage());
             return false;
@@ -201,15 +210,32 @@ class Call extends Model
 
     public function updateDriverStatusBasedOnCall($driver_id, $call_status)
     {
-        // No update needed if call was answered, status is handled by other processes
-        if ($call_status === 'answered') {
-            return true; 
+        $new_status = null;
+        switch ($call_status) {
+            case 'answered':
+                $new_status = 'completed'; // Driver is now considered processed.
+                break;
+            case 'no_answer':
+            case 'busy':
+            case 'not_available':
+                $new_status = 'no_answer';
+                break;
+            case 'rescheduled':
+                $new_status = 'rescheduled';
+                break;
+            case 'wrong_number':
+                $new_status = 'blocked';
+                break;
+            default:
+                // For any other status, do not change the driver's main_system_status
+                return true;
         }
 
-        $this->query("UPDATE drivers SET main_system_status = :status WHERE id = :driver_id");
-        $this->bind(':status', $call_status); // Directly use call_status for simplicity
-        $this->bind(':driver_id', $driver_id);
-        return $this->execute();
+        $sql = "UPDATE drivers SET main_system_status = :status WHERE id = :driver_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':status', $new_status);
+        $stmt->bindValue(':driver_id', $driver_id);
+        return $stmt->execute();
     }
 
     public function releaseDriverHold($driverId)
@@ -320,15 +346,17 @@ class Call extends Model
 
     public function getTotalPendingCalls()
     {
-        $sql = "SELECT COUNT(*) FROM drivers WHERE hold = 0 AND main_system_status IN ('pending', 'reconsider', 'no_answer', 'rescheduled')";
-        $stmt = $this->db->query($sql);
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM drivers WHERE main_system_status IN ('pending', 'reconsider', 'no_answer', 'rescheduled') AND hold = 0");
+        $stmt->execute();
         return $stmt->fetchColumn();
     }
 
     public function getUsers()
     {
-        $sql = "SELECT id, username, is_online FROM users WHERE status = 'active' ORDER BY username ASC";
-        $stmt = $this->db->query($sql);
+        // Get users who have the permission to make calls.
+        // This is a simplified stand-in. A proper implementation would join with a permissions table.
+        $stmt = $this->db->prepare("SELECT id, username FROM users WHERE status = 'active' ORDER BY username ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

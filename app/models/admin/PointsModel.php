@@ -13,12 +13,13 @@ class PointsModel {
     }
 
     public function getAllTicketCodes() {
-        $stmt = $this->db->query("SELECT id, name FROM ticket_codes ORDER BY name ASC");
+        $stmt = $this->db->prepare("SELECT id, name FROM ticket_codes ORDER BY name ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getTicketCodePoints() {
-        $stmt = $this->db->query("
+        $stmt = $this->db->prepare("
             SELECT 
                 tcp.*,
                 tc.name as code_name
@@ -26,11 +27,13 @@ class PointsModel {
             JOIN ticket_codes tc ON tcp.code_id = tc.id
             ORDER BY tcp.valid_from DESC, tc.name
         ");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getCallPoints() {
-        $stmt = $this->db->query("SELECT * FROM call_points ORDER BY call_type, valid_from DESC");
+        $stmt = $this->db->prepare("SELECT * FROM call_points ORDER BY call_type, valid_from DESC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

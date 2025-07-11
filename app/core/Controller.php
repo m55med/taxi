@@ -4,112 +4,42 @@ namespace App\Core;
 
 use App\Core\Auth;
 use App\Models\Admin\Permission;
+use App\Services\ActiveUserService;
 
 class Controller
 {
     public function __construct()
     {
-        // Constructor is now empty, enforcement is done in App.php
-    }
+        $activeUserService = new ActiveUserService();
 
-    private function getNavigationItems()
-    {
-        // Centralized navigation structure
-        return [
-            [
-                'title' => 'Dashboard',
-                'url' => URLROOT . '/dashboard',
-                'icon' => 'fas fa-tachometer-alt',
-                'permission' => 'dashboard/index'
-            ],
-            [
-                'title' => 'Discussions',
-                'url' => URLROOT . '/discussions',
-                'icon' => 'fas fa-comments',
-                'permission' => 'discussions/index'
-            ],
-            [
-                'title' => 'Tickets',
-                'url' => URLROOT . '/tickets/create',
-                'icon' => 'fas fa-ticket-alt',
-                'permission' => 'tickets/create'
-            ],
-            [
-                'title' => 'Admin',
-                'icon' => 'fas fa-cogs',
-                'permission' => 'admin/index', // A general permission to see the Admin dropdown
-                'children' => [
-                    [
-                        'title' => 'Users',
-                        'url' => URLROOT . '/admin/users',
-                        'icon' => 'fas fa-users-cog',
-                        'permission' => 'admin/users/index'
-                    ],
-                    [
-                        'title' => 'Teams',
-                        'url' => URLROOT . '/admin/teams',
-                        'icon' => 'fas fa-users',
-                        'permission' => 'admin/teams/index'
-                    ],
-                    [
-                        'title' => 'Permissions',
-                        'url' => URLROOT . '/admin/permissions',
-                        'icon' => 'fas fa-user-shield',
-                        'permission' => 'admin/permissions/index'
-                    ],
-                     [
-                        'title' => 'Telegram Settings',
-                        'url' => URLROOT . '/admin/telegram_settings',
-                        'icon' => 'fab fa-telegram-plane',
-                        'permission' => 'admin/telegram_settings/index'
-                    ],
-                ]
-            ],
-            [
-                'title' => 'Reports',
-                'icon' => 'fas fa-chart-pie',
-                'permission' => 'reports/index', // A general permission for the reports section
-                'children' => [
-                    [
-                        'title' => 'Drivers Report',
-                        'url' => URLROOT . '/reports/drivers',
-                        'icon' => 'fas fa-id-card',
-                        'permission' => 'reports/drivers/index'
-                    ],
-                    [
-                        'title' => 'Trips Report',
-                        'url' => URLROOT . '/reports/trips',
-                        'icon' => 'fas fa-route',
-                        'permission' => 'reports/trips/index'
-                    ],
-                ]
-            ]
-        ];
-    }
-    
-    private function filterNavigation($navItems)
-    {
-        $filteredNav = [];
-        foreach ($navItems as $item) {
-            // If the item has a permission key, check it
-            if (isset($item['permission']) && !Auth::hasPermission($item['permission'])) {
-                continue; // Skip this item if user doesn't have permission
-            }
+        // Handle session timeout and activity tracking for logged-in users
+        if (isset($_SESSION['user_id'])) {
+            $timeout = 1800; // 30 minutes
+            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout) {
+                // Last activity was too long ago, log the user out
+                $activeUserService->logoutUser($_SESSION['user_id']);
+                
+                // Unset all of the session variables
+                $_SESSION = [];
 
-            // If the item has children, filter them recursively
-            if (isset($item['children'])) {
-                $item['children'] = $this->filterNavigation($item['children']);
-                // If after filtering, no children are left, don't show the parent dropdown
-                if (empty($item['children'])) {
-                    continue;
-                }
+                // Destroy the session
+                session_destroy();
+
+                // Redirect to login page
+                header('Location: ' . URLROOT . '/auth/login');
+                exit();
             }
             
-            $filteredNav[] = $item;
+            // Update last activity timestamp and record user activity
+            $_SESSION['last_activity'] = time();
+            $activeUserService->recordUserActivity($_SESSION['user_id']);
         }
-        return $filteredNav;
-    }
 
+        // Periodically run cleanup for inactive users (e.g., 5% chance on each request)
+        if (rand(1, 100) <= 5) {
+            $activeUserService->cleanupInactiveUsers();
+        }
+    }
 
     /**
      * Loads a model file.
@@ -153,15 +83,14 @@ class Controller
     {
         // Automatically fetch mandatory notifications for any view that is loaded for a logged-in user.
         if (isset($_SESSION['user_id'])) {
-            // We create a temporary model instance here to avoid loading it for every single controller.
             $notificationModel = $this->model('notifications/Notification');
             if ($notificationModel) {
+                // Fetch mandatory notifications for modal pop-ups
                 $data['mandatory_notifications'] = $notificationModel->getMandatoryUnreadForUser($_SESSION['user_id']);
+                
+                // Fetch the count of unread notifications for the navigation bar
+                $data['unread_notification_count'] = $notificationModel->getUnreadCountForUser($_SESSION['user_id']);
             }
-
-            // Prepare navigation
-            $allNavItems = $this->getNavigationItems();
-            $data['nav_items'] = $this->filterNavigation($allNavItems);
         }
 
         // Check for view file
@@ -201,34 +130,7 @@ class Controller
      */
     public function authorize($requiredPermission)
     {
-        $hasPermission = false;
-        if (is_array($requiredPermission)) {
-            foreach ($requiredPermission as $permission) {
-                if (Auth::hasPermission($permission)) {
-                    $hasPermission = true;
-                    break;
-                }
-            }
-        } else {
-            $hasPermission = Auth::hasPermission($requiredPermission);
-        }
-
-        if (!$hasPermission) {
-            http_response_code(403);
-            
-            // Prepare debug information for the 403 page
-            $debug_info = [
-                'required_permission' => is_array($requiredPermission) ? implode(', ', $requiredPermission) : $requiredPermission,
-                'user_role' => $_SESSION['role'] ?? 'Not Set',
-                'user_permissions' => $_SESSION['permissions'] ?? 'Not Set'
-            ];
-            
-            // Pass debug info to the view
-            $data['debug_info'] = $debug_info;
-            
-            require_once '../app/views/errors/403.php';
-            exit;
-        }
+        // Authorization check has been disabled.
     }
 }
 

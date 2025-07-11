@@ -2,17 +2,20 @@
 
 namespace App\Services;
 
+use App\Core\Database;
 use PDO;
 
 class ActiveUserService
 {
+    private $db;
     private $cacheFile;
     private $onlineThreshold; // in seconds
 
     public function __construct()
     {
         $this->cacheFile = APPROOT . '/cache/active_users.json';
-        $this->onlineThreshold = 90; // Users are considered online if active within the last 90 seconds
+        $this->onlineThreshold = 1800; // Users are considered online if active within the last 30 minutes
+        $this->db = Database::getInstance();
         
         // Ensure cache directory exists
         if (!file_exists(dirname($this->cacheFile))) {
@@ -21,7 +24,7 @@ class ActiveUserService
     }
 
     /**
-     * Updates the last seen timestamp for a given user.
+     * Updates the last seen timestamp for a given user and marks them as online.
      *
      * @param int $userId The ID of the user.
      */
@@ -30,6 +33,44 @@ class ActiveUserService
         $users = $this->readActiveUsers();
         $users[$userId] = time(); // Record current timestamp
         $this->writeActiveUsers($users);
+        $this->updateUserOnlineStatus($userId, 1);
+    }
+
+    /**
+     * Marks a user as offline.
+     *
+     * @param int $userId The ID of the user.
+     */
+    public function logoutUser(int $userId): void
+    {
+        $users = $this->readActiveUsers();
+        unset($users[$userId]);
+        $this->writeActiveUsers($users);
+        $this->updateUserOnlineStatus($userId, 0);
+    }
+    
+    /**
+     * Scans for inactive users and marks them as offline in the database.
+     * This is intended to be run periodically.
+     */
+    public function cleanupInactiveUsers(): void
+    {
+        $users = $this->readActiveUsers();
+        $now = time();
+        $inactiveUserIds = [];
+
+        foreach ($users as $userId => $timestamp) {
+            if (($now - $timestamp) > $this->onlineThreshold) {
+                $inactiveUserIds[] = $userId;
+                unset($users[$userId]); // Remove from active list
+            }
+        }
+
+        if (!empty($inactiveUserIds)) {
+            $this->db->query('UPDATE users SET is_online = 0 WHERE id IN (' . implode(',', $inactiveUserIds) . ')');
+            $this->db->execute();
+            $this->writeActiveUsers($users); // Save the cleaned list
+        }
     }
 
     /**
@@ -97,5 +138,19 @@ class ActiveUserService
         }
         // If lock fails, data is not written.
         fclose($fp);
+    }
+
+    /**
+     * Updates the online status of a user in the database.
+     *
+     * @param int $userId The ID of the user.
+     * @param int $status The online status (1 for online, 0 for offline).
+     */
+    private function updateUserOnlineStatus(int $userId, int $status): void
+    {
+        $this->db->query('UPDATE users SET is_online = :status WHERE id = :id');
+        $this->db->bind(':status', $status);
+        $this->db->bind(':id', $userId);
+        $this->db->execute();
     }
 } 

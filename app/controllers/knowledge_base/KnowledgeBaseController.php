@@ -182,6 +182,21 @@ class KnowledgeBaseController extends Controller
         $article = $this->kbModel->findByTicketCodeId($ticketCodeId);
         $this->sendJsonResponse($article ?: []);
     }
+
+    /**
+     * API endpoint for live search functionality.
+     */
+    public function searchApi() {
+        $searchQuery = $_GET['q'] ?? '';
+        
+        if (empty($searchQuery)) {
+            $articles = $this->kbModel->getAll();
+        } else {
+            $articles = $this->kbModel->search($searchQuery);
+        }
+
+        $this->sendJsonResponse($articles);
+    }
     
     /**
      * Helper function to check for admin privileges.

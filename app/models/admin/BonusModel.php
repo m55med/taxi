@@ -13,12 +13,13 @@ class BonusModel {
     }
 
     public function getAllUsers() {
-        $stmt = $this->db->query("SELECT id, username FROM users WHERE status = 'active' ORDER BY username ASC");
+        $stmt = $this->db->prepare("SELECT id, username FROM users WHERE status = 'active' ORDER BY username ASC");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getGrantedBonuses() {
-        $stmt = $this->db->query("
+        $stmt = $this->db->prepare("
             SELECT 
                 umb.*,
                 u.username,
@@ -28,6 +29,7 @@ class BonusModel {
             LEFT JOIN users g ON umb.granted_by = g.id
             ORDER BY umb.bonus_year DESC, umb.bonus_month DESC, u.username
         ");
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -64,7 +66,8 @@ class BonusModel {
 
     public function getBonusSettings() {
         // We assume there's only one row with ID 1
-        $stmt = $this->db->query("SELECT * FROM bonus_settings WHERE id = 1");
+        $stmt = $this->db->prepare("SELECT * FROM bonus_settings WHERE id = 1");
+        $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
