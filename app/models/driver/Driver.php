@@ -243,16 +243,13 @@ class Driver
 
             $this->db->commit();
 
-            $message = sprintf(
-                'Processed %d records. Added: %d, Skipped (duplicate phone): %d, Errors: %d.',
-                $stats['total'], $stats['added'], $stats['skipped'], $stats['errors']
-            );
-            return ['status' => true, 'message' => $message];
+            return ['status' => true, 'stats' => $stats];
 
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             $this->db->rollBack();
-            error_log("Bulk insert error: " . $e->getMessage());
-            return ['status' => false, 'message' => 'A database error occurred during the bulk insert process.'];
+            error_log("Error in bulkInsert: " . $e->getMessage());
+            $stats['errors'] = $stats['total'] - $stats['added'] - $stats['skipped'];
+            return ['status' => false, 'message' => 'A database error occurred during the bulk insert.', 'stats' => $stats];
         }
     }
 

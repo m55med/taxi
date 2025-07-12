@@ -98,9 +98,23 @@ class UploadController extends Controller
             $result = $this->driverModel->bulkInsert($driversToInsert, $commonData);
 
             if ($result['status']) {
-                flash('success', $result['message']);
+                $stats = $result['stats'];
+                $message = "تمت معالجة الملف بنجاح.";
+                $message .= " تمت إضافة " . $stats['added'] . " سائق جديد.";
+                if ($stats['skipped'] > 0) {
+                    $message .= " تم تخطي " . $stats['skipped'] . " سائق لوجود أرقام هواتف مكررة.";
+                }
+                if ($stats['errors'] > 0) {
+                    $message .= " حدث خطأ أثناء إضافة " . $stats['errors'] . " سائق.";
+                }
+                flash('success', $message);
             } else {
-                flash('error', $result['message']);
+                $message = $result['message'] ?? 'An unknown error occurred during bulk insert.';
+                if (isset($result['stats'])) {
+                    $stats = $result['stats'];
+                    $message .= " (Added: {$stats['added']}, Skipped: {$stats['skipped']}, Errors: {$stats['errors']})";
+                }
+                flash('error', $message);
             }
 
         } catch (Exception $e) {

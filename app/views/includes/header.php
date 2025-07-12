@@ -49,71 +49,10 @@
     </style>
     
     <script src="<?= URLROOT ?>/public/js/app.js" defer></script>
+    
+    <!-- Choices.js SCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
-    <!-- Alpine.js Component Definitions -->
-    <script>
-        document.addEventListener('alpine:init', () => {
-            <?php if (isset($driver)): ?>
-            // Component for the driver details page
-            Alpine.data('driverDetails', () => ({
-                driverId: <?= json_encode($driver['id'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
-                driver: <?= json_encode($driver, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
-                documents: <?= json_encode($driverDocuments ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
-                unassignedDocuments: <?= json_encode($unassignedDocuments ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>,
-                newDocumentId: '',
-                isModalOpen: false,
-                documentToDeleteId: null,
-                openModal(docId) {
-                    this.documentToDeleteId = docId;
-                    this.isModalOpen = true;
-                },
-                closeModal() {
-                    this.isModalOpen = false;
-                    this.documentToDeleteId = null;
-                },
-                confirmRemoveDocument() {
-                    if (this.documentToDeleteId) {
-                        this.manageDocument('remove', this.documentToDeleteId);
-                    }
-                    this.closeModal();
-                },
-                async manageDocument(action, docTypeId, status = '', note = null) {
-                    const formData = new FormData();
-                    formData.append('driver_id', this.driverId);
-                    formData.append('action', action);
-                    formData.append('doc_type_id', docTypeId);
-                    if (status) formData.append('status', status);
-                    if (note !== null) formData.append('note', note);
-                    try {
-                        const response = await fetch(`<?= URLROOT ?>/drivers/document/manage`, { method: 'POST', body: formData });
-                        const result = await response.json();
-                        if (result.success) {
-                            this.documents = result.documents;
-                            this.unassignedDocuments = result.unassigned;
-                            this.driver = result.driver;
-                            this.newDocumentId = '';
-                            toastr.success('Documents updated successfully!');
-                        } else {
-                            toastr.error(result.message || 'An error occurred.');
-                        }
-                    } catch (error) {
-                        toastr.error('A network error occurred.');
-                    }
-                },
-                addDocument() {
-                    if (!this.newDocumentId) return;
-                    this.manageDocument('upsert', this.newDocumentId, 'missing', '');
-                },
-                updateDocument(doc) {
-                    this.manageDocument('upsert', doc.id, doc.status, doc.note);
-                },
-                removeDocument(docId) {
-                    this.openModal(docId);
-                }
-            }));
-            <?php endif; ?>
-        });
-    </script>
 </head>
 <body class="bg-gray-100" dir="ltr">
     <?php 

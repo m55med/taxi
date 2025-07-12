@@ -25,6 +25,7 @@
                         <ul class="space-y-1">
                             <li><a href="#user-guide" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">User Guide</a></li>
                             <li><a href="#staff-procedures" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Staff Procedures</a></li>
+                            <li><a href="#reports" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Reports</a></li>
                             <li><a href="#developer-docs" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Developer Docs</a></li>
                         </ul>
                     </nav>
@@ -63,6 +64,151 @@
                                 <li>Accessing and interpreting performance reports.</li>
                                 <li>Guidelines for using the ticketing and support system.</li>
                             </ul>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Reports Section -->
+                <section id="reports" class="scroll-mt-24">
+                    <div class="bg-white p-8 rounded-xl shadow-sm transition-shadow duration-300 hover:shadow-lg">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Reports</h2>
+                        <div class="prose prose-lg max-w-none text-gray-600 space-y-8">
+                            
+                            <!-- Analytics Report -->
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800">Analytics Dashboard</h3>
+                                <p>Provides a high-level overview of system performance, including driver acquisition funnels, call center statistics, and ticketing trends. Ideal for managers and administrators to quickly gauge operational health.</p>
+                                <a href="<?= BASE_PATH ?>/reports/analytics" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Analytics Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- System Logs Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">System Event Logs</h3>
+                                <p>A detailed, filterable, and paginated report of events logged in the `discussions` table. Useful for developers and admins to trace system activities and debug issues. Supports filtering by event level, user, date range, and text search.</p>
+                                <a href="<?= BASE_PATH ?>/reports/system-logs" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to System Logs <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Team Leaderboard Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Team Leaderboard</h3>
+                                <p>Ranks teams based on a variety of performance metrics including points, call volume, and ticket counts. Features a chart for top team comparison and links to detailed user reports for each team.</p>
+                                <a href="<?= BASE_PATH ?>/reports/team-leaderboard" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Team Leaderboard <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Employee Activity Score Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Employee Activity Score</h3>
+                                <p>Ranks all employees based on their calculated activity points. This report is ideal for identifying top performers across the entire organization. Includes filters for team and role, and links to detailed activity logs for each user.</p>
+                                <a href="<?= BASE_PATH ?>/reports/employee-activity-score" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Activity Score Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- My Activity Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">My Activity / User Activity</h3>
+                                <p>A detailed dashboard showing the performance metrics and points breakdown for a single user. This is the page that "View Activity" links point to. Accessible by managers for their team members, and by employees to see their own stats.</p>
+                                <a href="<?= BASE_PATH ?>/reports/myactivity" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to My Activity <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Drivers Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Drivers Report</h3>
+                                <p>A master list of all drivers in the system. Includes advanced filtering by status, source, and date, along with charts visualizing the distribution of drivers. Links to detailed driver profiles.</p>
+                                <a href="<?= BASE_PATH ?>/reports/drivers" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Drivers Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Driver Assignments Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Driver Assignments</h3>
+                                <p>Provides a complete log of drivers being assigned from one user to another. Allows filtering by the driver, the user who assigned, and the user who received the assignment.</p>
+                                <a href="<?= BASE_PATH ?>/reports/driver-assignments" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Driver Assignments <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Driver Calls Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Driver Calls</h3>
+                                <p>A detailed log of all outbound calls made to drivers by system users. Supports filtering by driver, the user who made the call, their team, and the call status.</p>
+                                <a href="<?= BASE_PATH ?>/reports/driver-calls" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Driver Calls Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Driver Documents Compliance Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Driver Documents Compliance</h3>
+                                <p>Tracks the status of all required documents for all drivers. Allows filtering by driver, document type, and status (missing, submitted, rejected) to ensure compliance.</p>
+                                <a href="<?= BASE_PATH ?>/reports/driver-documents-compliance" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Documents Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Tickets Summary Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Tickets Summary</h3>
+                                <p>A dashboard of charts providing a high-level summary of ticket distribution by status (a proxy based on reviews), category, platform, and VIP status. Useful for quickly understanding ticketing trends.</p>
+                                <a href="<?= BASE_PATH ?>/reports/tickets-summary" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Tickets Summary <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Detailed Tickets Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Detailed Tickets Log</h3>
+                                <p>A comprehensive, paginated log of all individual tickets. This report provides deep filtering capabilities, allowing views by user, team, category, platform, and VIP status.</p>
+                                <a href="<?= BASE_PATH ?>/reports/tickets" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Detailed Tickets Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Ticket Reviews Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Ticket Reviews</h3>
+                                <p>A detailed log of all quality assurance reviews performed on tickets. Allows for filtering by the agent who created the ticket, the QA specialist who reviewed it, and the rating score.</p>
+                                <a href="<?= BASE_PATH ?>/reports/ticket-reviews" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Ticket Reviews Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Ticket Discussions Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Ticket Discussions</h3>
+                                <p>A log of all discussions initiated on tickets. Useful for quality control to review the reasons for disputes or re-evaluations. Filterable by user, status, and date.</p>
+                                <a href="<?= BASE_PATH ?>/reports/ticket-discussions" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Discussions Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Ticket Coupons Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Ticket-Coupon Links</h3>
+                                <p>Provides a log of every instance where a coupon was applied to a ticket. Filterable by the user who applied the coupon and searchable by ticket number or coupon code.</p>
+                                <a href="<?= BASE_PATH ?>/reports/ticket-coupons" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Ticket Coupons Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
+                            <!-- Trips Report -->
+                            <div class="border-t pt-8">
+                                <h3 class="font-semibold text-xl text-gray-800">Trips Report & Dashboard</h3>
+                                <p>A comprehensive two-part report. It features a high-level KPI dashboard for monitoring overall trip statistics and identifying suspicious driver/passenger activity, as well as a detailed, paginated log of every trip in the system.</p>
+                                <a href="<?= BASE_PATH ?>/reports/trips" class="inline-block mt-3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-base no-underline">
+                                    Go to Trips Report <span class="ml-2">&rarr;</span>
+                                </a>
+                            </div>
+
                         </div>
                     </div>
                 </section>

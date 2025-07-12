@@ -1,64 +1,91 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($data['title']) ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style> body { font-family: 'Cairo', sans-serif; } </style>
-</head>
-<body class="bg-gray-100">
-    <?php include __DIR__ . '/../../includes/nav.php'; ?>
+<?php require APPROOT . '/views/includes/header.php'; ?>
 
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-6"><?= htmlspecialchars($data['title']) ?></h1>
-
-        <!-- Filters -->
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <select name="opened_by" class="w-full px-4 py-2 border rounded-md">
-                    <option value="">كل المستخدمين</option>
-                    <?php foreach($data['users'] as $user): ?>
-                        <option value="<?= $user['id'] ?>" <?= ($data['filters']['opened_by'] ?? '') == $user['id'] ? 'selected' : '' ?>><?= htmlspecialchars($user['username']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                 <select name="status" class="w-full px-4 py-2 border rounded-md">
-                    <option value="">كل الحالات</option>
-                    <?php foreach(['open', 'closed'] as $status): ?>
-                        <option value="<?= $status ?>" <?= ($data['filters']['status'] ?? '') == $status ? 'selected' : '' ?>><?= htmlspecialchars($status) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <input type="text" name="ticket_id" placeholder="رقم التذكرة" value="<?= htmlspecialchars($data['filters']['ticket_id'] ?? '') ?>" class="w-full px-4 py-2 border rounded-md">
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md">بحث</button>
-            </form>
+<div class="container mx-auto p-6 bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800">Ticket Discussions Report</h1>
+            <p class="text-lg text-gray-600">A log of all discussions initiated on tickets.</p>
         </div>
+        <div class="flex items-center mt-4 md:mt-0">
+             <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'excel'])) ?>" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition mr-2">
+                <i class="fas fa-file-excel mr-2"></i>Excel
+            </a>
+            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'json'])) ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                <i class="fas fa-file-code mr-2"></i>JSON
+            </a>
+        </div>
+    </div>
 
-        <div class="bg-white rounded-lg shadow overflow-x-auto">
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-lg shadow-md mb-8">
+        <form action="" method="get" id="filter-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700">Search Reason/Notes</label>
+                    <input type="text" name="search" placeholder="Search..." value="<?= htmlspecialchars($data['filters']['search'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300">
+                </div>
+                <div>
+                    <label for="opened_by" class="block text-sm font-medium text-gray-700">Opened By</label>
+                    <select name="opened_by" class="mt-1 block w-full rounded-md border-gray-300">
+                        <option value="">All Users</option>
+                        <?php foreach($data['filter_options']['users'] as $user): ?>
+                            <option value="<?= $user['id'] ?>" <?= ($data['filters']['opened_by'] ?? '') == $user['id'] ? 'selected' : '' ?>><?= htmlspecialchars($user['username']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                     <select name="status" class="mt-1 block w-full rounded-md border-gray-300">
+                        <option value="">All Statuses</option>
+                        <option value="open" <?= ($data['filters']['status'] ?? '') == 'open' ? 'selected' : '' ?>>Open</option>
+                        <option value="closed" <?= ($data['filters']['status'] ?? '') == 'closed' ? 'selected' : '' ?>>Closed</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Discussions Table -->
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-100">
                     <tr>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم التذكرة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">السبب</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ملاحظات</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">فتح بواسطة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإنشاء</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Ticket #</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Opened By</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Reason</th>
+                        <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date Opened</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php foreach($data['discussions'] as $discussion): ?>
-                    <tr>
-                        <td class="px-6 py-4"><?= htmlspecialchars($discussion['ticket_number']) ?></td>
-                        <td class="px-6 py-4"><?= htmlspecialchars($discussion['reason']) ?></td>
-                        <td class="px-6 py-4"><?= htmlspecialchars($discussion['notes']) ?></td>
-                        <td class="px-6 py-4"><?= htmlspecialchars($discussion['status']) ?></td>
-                        <td class="px-6 py-4"><?= htmlspecialchars($discussion['opened_by_user']) ?></td>
-                        <td class="px-6 py-4"><?= date('Y-m-d H:i', strtotime($discussion['created_at'])) ?></td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php if (empty($data['discussions'])): ?>
+                        <tr><td colspan="5" class="text-center py-10">No discussions found.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($data['discussions'] as $item): ?>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4"><a href="<?= BASE_PATH ?>/tickets/view/<?= $item['ticket_id_val'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($item['ticket_number']) ?></a></td>
+                                <td class="px-6 py-4"><a href="<?= BASE_PATH ?>/reports/myactivity?user_id=<?= $item['user_id'] ?>" class="text-blue-500 hover:underline"><?= htmlspecialchars($item['opened_by_user']) ?></a></td>
+                                <td class="px-6 py-4 text-sm text-gray-800 font-medium"><?= htmlspecialchars($item['reason']) ?></td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        <?= ($item['status'] == 'open') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
+                                        <?= htmlspecialchars(ucfirst($item['status'])) ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm"><?= date('Y-m-d H:i', strtotime($item['created_at'])) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
+        <div class="p-4"><?php require APPROOT . '/views/includes/pagination_controls.php'; ?></div>
     </div>
-</body>
-</html> 
+</div>
+
+<?php require APPROOT . '/views/includes/footer.php'; ?> 

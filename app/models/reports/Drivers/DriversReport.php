@@ -16,91 +16,114 @@ class DriversReport
 
     private function getWhereClause($filters)
     {
-        $whereConditions = [];
+        $conditions = [];
         $params = [];
 
+        if (!empty($filters['search'])) {
+            $conditions[] = "(d.name LIKE :search OR d.phone LIKE :search)";
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
         if (!empty($filters['main_system_status'])) {
-            $whereConditions[] = "d.main_system_status = ?";
-            $params[] = $filters['main_system_status'];
+            $conditions[] = "d.main_system_status = :status";
+            $params[':status'] = $filters['main_system_status'];
         }
         if (!empty($filters['data_source'])) {
-            $whereConditions[] = "d.data_source = ?";
-            $params[] = $filters['data_source'];
+            $conditions[] = "d.data_source = :source";
+            $params[':source'] = $filters['data_source'];
         }
         if (isset($filters['has_missing_documents']) && $filters['has_missing_documents'] !== '') {
-            $whereConditions[] = "d.has_missing_documents = ?";
-            $params[] = $filters['has_missing_documents'];
+            $conditions[] = "d.has_missing_documents = :missing_docs";
+            $params[':missing_docs'] = $filters['has_missing_documents'];
         }
         if (!empty($filters['date_from'])) {
-            $whereConditions[] = "DATE(d.created_at) >= ?";
-            $params[] = $filters['date_from'];
+            $conditions[] = "DATE(d.created_at) >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
         }
         if (!empty($filters['date_to'])) {
-            $whereConditions[] = "DATE(d.created_at) <= ?";
-            $params[] = $filters['date_to'];
+            $conditions[] = "DATE(d.created_at) <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
         }
 
-        $whereClause = !empty($whereConditions) ? " WHERE " . implode(" AND ", $whereConditions) : "";
+        $whereClause = count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "";
         return ['clause' => $whereClause, 'params' => $params];
     }
 
     public function getDriversStats($filters = [])
     {
-        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
         $filterData = $this->getWhereClause($filters);
         
         $statsSql = "SELECT
-                        COUNT(*) as total_drivers,
+                        COUNT(d.id) as total_drivers,
                         SUM(CASE WHEN d.app_status = 'active' THEN 1 ELSE 0 END) as active_drivers,
-                        SUM(CASE WHEN d.main_system_status = 'pending' THEN 1 ELSE 0 END) as pending_drivers,
+                        SUM(CASE WHEN d.main_system_status = 'completed' THEN 1 ELSE 0 END) as completed_drivers,
                         SUM(CASE WHEN d.app_status = 'banned' THEN 1 ELSE 0 END) as banned_drivers,
-                        SUM(CASE WHEN d.hold = 1 THEN 1 ELSE 0 END) as on_hold_drivers,
-                        SUM(CASE WHEN d.has_missing_documents = 0 THEN 1 ELSE 0 END) as complete_docs,
-                        SUM(CASE WHEN d.has_missing_documents = 1 THEN 1 ELSE 0 END) as missing_docs,
-                        SUM(CASE WHEN d.data_source = 'form' THEN 1 ELSE 0 END) as source_form,
-                        SUM(CASE WHEN d.data_source = 'referral' THEN 1 ELSE 0 END) as source_referral,
-                        SUM(CASE WHEN d.data_source = 'telegram' THEN 1 ELSE 0 END) as source_telegram,
-                        SUM(CASE WHEN d.data_source = 'staff' THEN 1 ELSE 0 END) as source_staff,
-                        SUM(CASE WHEN d.main_system_status = 'waiting_chat' THEN 1 ELSE 0 END) as waiting_chat,
-                        SUM(CASE WHEN d.main_system_status = 'no_answer' THEN 1 ELSE 0 END) as no_answer,
-                        SUM(CASE WHEN d.main_system_status = 'rescheduled' THEN 1 ELSE 0 END) as rescheduled,
-                        SUM(CASE WHEN d.main_system_status = 'reconsider' THEN 1 ELSE 0 END) as reconsider
-                    {$baseQuery} {$filterData['clause']}";
+                        (SELECT COUNT(DISTINCT data_source) FROM drivers) as total_sources
+                    FROM drivers d
+                    {$filterData['clause']}";
 
         $stmtStats = $this->db->prepare($statsSql);
         $stmtStats->execute($filterData['params']);
         $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
-
-        $stats['docs_completion_rate'] = ($stats['total_drivers'] > 0) ? round(($stats['complete_docs'] / $stats['total_drivers']) * 100, 1) : 0;
+        
+        // Fetch source distribution for charts
+        $sourceSql = "SELECT data_source, COUNT(id) as count FROM drivers d {$filterData['clause']} GROUP BY data_source";
+        $stmtSource = $this->db->prepare($sourceSql);
+        $stmtSource->execute($filterData['params']);
+        $stats['source_distribution'] = $stmtSource->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        // Fetch status distribution for charts
+        $statusSql = "SELECT main_system_status, COUNT(id) as count FROM drivers d {$filterData['clause']} GROUP BY main_system_status";
+        $stmtStatus = $this->db->prepare($statusSql);
+        $stmtStatus->execute($filterData['params']);
+        $stats['status_distribution'] = $stmtStatus->fetchAll(PDO::FETCH_KEY_PAIR);
         
         return $stats;
     }
 
     public function countDrivers($filters = [])
     {
-        $baseQuery = "FROM drivers d";
         $filterData = $this->getWhereClause($filters);
-        $countSql = "SELECT COUNT(d.id) {$baseQuery} {$filterData['clause']}";
+        $countSql = "SELECT COUNT(d.id) FROM drivers d {$filterData['clause']}";
         
         $stmt = $this->db->prepare($countSql);
         $stmt->execute($filterData['params']);
-        return $stmt->fetchColumn();
+        return (int)$stmt->fetchColumn();
     }
 
     public function getPaginatedDrivers($limit, $offset, $filters = [])
     {
-        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
         $filterData = $this->getWhereClause($filters);
 
         $listSql = "SELECT 
                         d.id, d.name, d.phone, d.main_system_status, d.data_source, d.created_at,
-                        u.username AS added_by_name
-                    {$baseQuery} {$filterData['clause']} 
+                        d.app_status, d.has_missing_documents,
+                        u.username AS added_by_name,
+                        c.name as country_name
+                    FROM drivers d 
+                    LEFT JOIN users u ON d.added_by = u.id
+                    LEFT JOIN countries c ON d.country_id = c.id
+                    {$filterData['clause']} 
                     ORDER BY d.created_at DESC
-                    LIMIT {$limit} OFFSET {$offset}";
+                    LIMIT :limit OFFSET :offset";
         
         $stmtList = $this->db->prepare($listSql);
-        $stmtList->execute($filterData['params']);
+        $stmtList->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmtList->bindParam(':offset', $offset, PDO::PARAM_INT);
+        foreach ($filterData['params'] as $key => &$val) {
+            $stmtList->bindParam($key, $val);
+        }
+        
+        $stmtList->execute();
         return $stmtList->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getFilterOptions()
+    {
+        $status_options = $this->db->query("SELECT DISTINCT main_system_status FROM drivers ORDER BY main_system_status ASC")->fetchAll(PDO::FETCH_COLUMN);
+        $source_options = $this->db->query("SELECT DISTINCT data_source FROM drivers ORDER BY data_source ASC")->fetchAll(PDO::FETCH_COLUMN);
+        return [
+            'statuses' => $status_options,
+            'sources' => $source_options,
+        ];
     }
 } 

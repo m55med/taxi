@@ -1,150 +1,209 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تقرير التحليلات</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-<?php require_once __DIR__ . '/../../includes/header.php'; ?>
+<?php require APPROOT . '/views/includes/header.php'; ?>
 
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <h2 class="text-2xl font-bold mb-6">تقرير التحليلات</h2>
+<style>
+    .chart-container {
+        position: relative;
+        height: 350px;
+        width: 100%;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 
-        <!-- Filters -->
-        <form method="GET" class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2">من تاريخ</label>
-                <input type="date" name="date_from" value="<?= isset($_GET['date_from']) ? $_GET['date_from'] : '' ?>" class="shadow border rounded w-full py-2 px-3">
-            </div>
+<div class="container mx-auto p-6 bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800">Analytics Dashboard</h1>
+            <p class="text-lg text-gray-600">An overview of system performance and key metrics.</p>
+        </div>
+        <div class="flex items-center mt-4 md:mt-0">
+             <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'excel'])) ?>" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition mr-2">
+                <i class="fas fa-file-excel mr-2"></i>Export to Excel
+            </a>
+            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'json'])) ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                <i class="fas fa-file-code mr-2"></i>Export to JSON
+            </a>
+        </div>
+    </div>
 
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2">إلى تاريخ</label>
-                <input type="date" name="date_to" value="<?= isset($_GET['date_to']) ? $_GET['date_to'] : '' ?>" class="shadow border rounded w-full py-2 px-3">
-            </div>
-
-            <div class="flex items-end">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    تصفية
-                </button>
-                <a href="<?= BASE_PATH ?>/reports/analytics/export<?= !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '' ?>" 
-                   class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2">
-                    تصدير Excel
-                </a>
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-lg shadow-md mb-8">
+        <form action="" method="get" id="filter-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700">Date From</label>
+                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($data['filters']['date_from'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700">Date To</label>
+                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($data['filters']['date_to'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div class="flex-grow">
+                    <label for="period" class="block text-sm font-medium text-gray-700">Quick Period</label>
+                    <select name="period" id="period" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="custom" <?= ($data['filters']['period'] ?? 'custom') == 'custom' ? 'selected' : '' ?>>Custom Range</option>
+                        <option value="today" <?= ($data['filters']['period'] ?? '') == 'today' ? 'selected' : '' ?>>Today</option>
+                        <option value="7days" <?= ($data['filters']['period'] ?? '') == '7days' ? 'selected' : '' ?>>Last 7 Days</option>
+                        <option value="30days" <?= ($data['filters']['period'] ?? '') == '30days' ? 'selected' : '' ?>>Last 30 Days</option>
+                        <option value="all" <?= ($data['filters']['period'] ?? '') == 'all' ? 'selected' : '' ?>>All Time</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Apply Filters</button>
+                </div>
             </div>
         </form>
+    </div>
 
-        <!-- Conversion Rates -->
-        <?php if (!empty($data['conversion_rates'])): ?>
-        <div class="mb-8">
-            <h3 class="text-xl font-bold mb-4">معدلات التحويل حسب المصدر</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <?php foreach ($data['conversion_rates'] as $rate): ?>
-                <div class="bg-gray-100 p-4 rounded-lg">
-                    <h4 class="font-bold mb-2"><?= ucfirst($rate['data_source']) ?></h4>
-                    <p>إجمالي السائقين: <?= $rate['total_drivers'] ?></p>
-                    <p>السائقين المكتملين: <?= $rate['completed_drivers'] ?></p>
-                    <p>معدل التحويل: <?= $rate['conversion_rate'] ?>%</p>
-                </div>
-                <?php endforeach; ?>
+    <!-- Analytics Sections -->
+    <div class="space-y-8">
+        <!-- Driver Acquisition Analytics -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Driver Acquisition Analytics</h2>
+            <div class="chart-container">
+                <canvas id="driverConversionChart"></canvas>
             </div>
-        </div>
-        <?php endif; ?>
+        </section>
 
-        <!-- Call Analysis -->
-        <?php if (!empty($data['call_analysis'])): ?>
-        <div class="mb-8">
-            <h3 class="text-xl font-bold mb-4">تحليل المكالمات</h3>
-            
-            <!-- Call Outcomes -->
-            <div class="mb-8">
-                <h4 class="text-lg font-bold mb-4">نتائج المكالمات</h4>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">مهتم</h5>
-                        <p class="text-2xl text-green-600"><?= $data['call_analysis']['outcomes']['interested'] ?></p>
-                    </div>
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">غير مهتم</h5>
-                        <p class="text-2xl text-red-600"><?= $data['call_analysis']['outcomes']['not_interested'] ?></p>
-                    </div>
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">معاودة الاتصال</h5>
-                        <p class="text-2xl text-blue-600"><?= $data['call_analysis']['outcomes']['callback'] ?></p>
-                    </div>
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">لا يوجد رد</h5>
-                        <p class="text-2xl text-gray-600"><?= $data['call_analysis']['outcomes']['no_answer'] ?></p>
+        <!-- Call Center Analytics -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Call Center Analytics</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="chart-container">
+                    <canvas id="callOutcomesChart"></canvas>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Staff Performance</h3>
+                     <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="text-left py-2 px-3 font-semibold text-sm">Employee</th>
+                                    <th class="text-left py-2 px-3 font-semibold text-sm">Total Calls</th>
+                                    <th class="text-left py-2 px-3 font-semibold text-sm">Answered</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach($data['call_center_stats']['performance'] as $perf): ?>
+                                <tr class="border-b">
+                                    <td class="py-2 px-3"><a href="<?=BASE_PATH?>/reports/myactivity?user_id=<?= $perf['user_id'] ?>" class="text-blue-500 hover:underline"><?= htmlspecialchars($perf['user_name']) ?></a></td>
+                                    <td class="py-2 px-3"><?= $perf['total_calls'] ?></td>
+                                    <td class="py-2 px-3"><?= $perf['answered_calls'] ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Call Duration -->
-            <div class="mb-8">
-                <h4 class="text-lg font-bold mb-4">مدة المكالمات</h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">متوسط مدة المكالمة</h5>
-                        <p class="text-2xl"><?= round($data['call_analysis']['duration']['average'] / 60, 1) ?> دقيقة</p>
-                    </div>
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">أقصى مدة</h5>
-                        <p class="text-2xl"><?= round($data['call_analysis']['duration']['max'] / 60, 1) ?> دقيقة</p>
-                    </div>
-                    <div class="bg-gray-100 p-4 rounded-lg">
-                        <h5 class="font-bold mb-2">أدنى مدة</h5>
-                        <p class="text-2xl"><?= round($data['call_analysis']['duration']['min'] / 60, 1) ?> دقيقة</p>
-                    </div>
+        <!-- Ticketing System Analytics -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Ticketing System Analytics</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="chart-container">
+                    <canvas id="ticketsByPlatformChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ticketsByStatusChart"></canvas>
                 </div>
             </div>
-
-            <!-- Staff Performance -->
-            <div>
-                <h4 class="text-lg font-bold mb-4">أداء الموظفين</h4>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-white">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 border-b-2 border-gray-300 text-right text-sm leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                                    الموظف
-                                </th>
-                                <th class="px-6 py-3 border-b-2 border-gray-300 text-right text-sm leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                                    عدد المكالمات
-                                </th>
-                                <th class="px-6 py-3 border-b-2 border-gray-300 text-right text-sm leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                                    معدل التحويل
-                                </th>
-                                <th class="px-6 py-3 border-b-2 border-gray-300 text-right text-sm leading-4 font-medium text-gray-500 uppercase tracking-wider">
-                                    متوسط مدة المكالمة
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($data['call_analysis']['staff_performance'] as $staff): ?>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-500">
-                                    <?= $staff['name'] ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-500">
-                                    <?= $staff['total_calls'] ?>
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-500">
-                                    <?= $staff['conversion_rate'] ?>%
-                                </td>
-                                <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-500">
-                                    <?= round($staff['avg_duration'] / 60, 1) ?> دقيقة
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
+        </section>
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../includes/footer.php'; ?> 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Helper to generate random colors for charts
+    const randomColor = () => `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.7)`;
+    
+    // Quick period selector logic
+    document.getElementById('period').addEventListener('change', function() {
+        if (this.value !== 'custom') {
+            document.getElementById('filter-form').submit();
+        }
+    });
+
+    // 1. Driver Conversion Chart
+    const driverCtx = document.getElementById('driverConversionChart').getContext('2d');
+    const driverData = <?= json_encode($data['driver_conversion']) ?>;
+    new Chart(driverCtx, {
+        type: 'bar',
+        data: {
+            labels: driverData.map(d => d.data_source),
+            datasets: [{
+                label: 'Conversion Rate (%)',
+                data: driverData.map(d => parseFloat(d.conversion_rate).toFixed(2)),
+                backgroundColor: driverData.map(() => randomColor()),
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Driver Conversion Rate by Source' } },
+            scales: { y: { beginAtZero: true, max: 100 } }
+        }
+    });
+
+    // 2. Call Outcomes Chart
+    const callCtx = document.getElementById('callOutcomesChart').getContext('2d');
+    const callData = <?= json_encode($data['call_center_stats']['outcomes']) ?>;
+    new Chart(callCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(callData),
+            datasets: [{
+                data: Object.values(callData),
+                backgroundColor: Object.keys(callData).map(() => randomColor()),
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Call Outcomes' }, legend: { position: 'bottom'} }
+        }
+    });
+
+    // 3. Tickets by Platform Chart
+    const platformCtx = document.getElementById('ticketsByPlatformChart').getContext('2d');
+    const platformData = <?= json_encode($data['ticketing_stats']['by_platform']) ?>;
+    new Chart(platformCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(platformData),
+            datasets: [{
+                data: Object.values(platformData),
+                backgroundColor: Object.keys(platformData).map(() => randomColor()),
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Tickets by Platform' }, legend: { position: 'bottom'} }
+        }
+    });
+    
+    // 4. Tickets by Status Chart
+    const statusCtx = document.getElementById('ticketsByStatusChart').getContext('2d');
+    const statusData = <?= json_encode($data['ticketing_stats']['by_status']) ?>;
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(statusData),
+            datasets: [{
+                data: Object.values(statusData),
+                backgroundColor: [ 'rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Tickets by Status (Open/Closed)' }, legend: { position: 'bottom'} }
+        }
+    });
+});
+</script>
+
+<?php require APPROOT . '/views/includes/footer.php'; ?> 

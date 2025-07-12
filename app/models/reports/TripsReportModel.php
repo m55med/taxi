@@ -40,6 +40,30 @@ class TripsReportModel extends Model
         return $result;
     }
 
+    public function getTripsList(array $filters = [], int $limit = 25, int $offset = 0): array
+    {
+        list($whereClause, $params) = $this->buildWhereClause($filters);
+        $sql = "SELECT * FROM trips WHERE 1=1 " . $whereClause . " ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key + 1, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTripsCount(array $filters = []): int
+    {
+        list($whereClause, $params) = $this->buildWhereClause($filters);
+        $sql = "SELECT COUNT(*) FROM trips WHERE 1=1 " . $whereClause;
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    }
+
     private function buildWhereClause(array $filters): array
     {
         $sql = "";
@@ -139,5 +163,15 @@ class TripsReportModel extends Model
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getFilterOptions(): array
+    {
+        $statuses = $this->db->query("SELECT DISTINCT order_status FROM trips WHERE order_status IS NOT NULL ORDER BY order_status")->fetchAll(PDO::FETCH_COLUMN);
+        $paymentMethods = $this->db->query("SELECT DISTINCT payment_method FROM trips WHERE payment_method IS NOT NULL ORDER BY payment_method")->fetchAll(PDO::FETCH_COLUMN);
+        return [
+            'statuses' => $statuses,
+            'payment_methods' => $paymentMethods
+        ];
     }
 } 

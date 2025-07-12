@@ -14,30 +14,72 @@ class TicketsSummaryReport
         $this->db = Database::getInstance();
     }
 
-    public function getSummary()
+    public function getSummary($filters = [])
     {
-        $summary = [];
-
-        // Summary by Status - DISABLED as 'status' column does not exist in 'tickets' table
-        // $sqlStatus = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
-        // $stmtStatus = $this->db->query($sqlStatus);
-        // $summary['by_status'] = $stmtStatus->fetchAll(PDO::FETCH_ASSOC);
-        $summary['by_status'] = [];
-
-        // Summary by Priority - DISABLED as 'priority' column does not exist in 'tickets' table
-        // $sqlPriority = "SELECT priority, COUNT(*) as count FROM tickets GROUP BY priority";
-        // $stmtPriority = $this->db->query($sqlPriority);
-        // $summary['by_priority'] = $stmtPriority->fetchAll(PDO::FETCH_ASSOC);
-        $summary['by_priority'] = [];
+        $whereClause = $this->buildWhereClause($filters);
         
-        // Summary by Category
-        $sqlCategory = "SELECT tc.name, COUNT(t.id) as count 
-                        FROM tickets t 
-                        JOIN ticket_categories tc ON t.category_id = tc.id 
-                        GROUP BY tc.name";
-        $stmtCategory = $this->db->query($sqlCategory);
-        $summary['by_category'] = $stmtCategory->fetchAll(PDO::FETCH_ASSOC);
+        $summary = [
+            'by_status' => $this->getSummaryByStatus($whereClause['sql'], $whereClause['params']),
+            'by_category' => $this->getSummaryByCategory($whereClause['sql'], $whereClause['params']),
+            'by_platform' => $this->getSummaryByPlatform($whereClause['sql'], $whereClause['params']),
+            'by_vip_status' => $this->getSummaryByVipStatus($whereClause['sql'], $whereClause['params']),
+        ];
 
         return $summary;
+    }
+
+    private function buildWhereClause($filters)
+    {
+        $conditions = [];
+        $params = [];
+        if (!empty($filters['date_from'])) {
+            $conditions[] = "DATE(td.created_at) >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $conditions[] = "DATE(td.created_at) <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+        return [
+            'sql' => count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "",
+            'params' => $params
+        ];
+    }
+    
+    // As there's no status on tickets, we'll use a proxy: a ticket is "Closed" if it has a review.
+    private function getSummaryByStatus($where, $params) {
+        $sql = "SELECT CASE WHEN r.id IS NOT NULL THEN 'Closed' ELSE 'Open' END as status, COUNT(DISTINCT t.id) as count
+                FROM tickets t
+                JOIN ticket_details td ON t.id = td.ticket_id
+                LEFT JOIN reviews r ON r.reviewable_id = t.id AND r.reviewable_type = 'ticket'
+                {$where}
+                GROUP BY status";
+        return $this->db->prepare($sql)->execute($params)->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    }
+
+    private function getSummaryByCategory($where, $params) {
+        $sql = "SELECT tc.name, COUNT(td.id) as count 
+                FROM ticket_details td
+                JOIN ticket_categories tc ON td.category_id = tc.id 
+                {$where}
+                GROUP BY tc.name ORDER BY count DESC";
+        return $this->db->prepare($sql)->execute($params)->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    }
+    
+    private function getSummaryByPlatform($where, $params) {
+        $sql = "SELECT p.name, COUNT(td.id) as count 
+                FROM ticket_details td
+                JOIN platforms p ON td.platform_id = p.id 
+                {$where}
+                GROUP BY p.name ORDER BY count DESC";
+        return $this->db->prepare($sql)->execute($params)->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    }
+    
+    private function getSummaryByVipStatus($where, $params) {
+        $sql = "SELECT CASE WHEN td.is_vip = 1 THEN 'VIP' ELSE 'Standard' END as vip_status, COUNT(td.id) as count 
+                FROM ticket_details td
+                {$where}
+                GROUP BY vip_status";
+        return $this->db->prepare($sql)->execute($params)->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
     }
 } 

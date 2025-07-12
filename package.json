@@ -4,7 +4,7 @@
   "description": "https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/getWebhookInfo\r https://api.telegram.org/bot8115438056:AAFdIyMqgD0kyQDeS0QKWRjLDsgz2grrDSQ/setWebhook?url=https://b730-154-239-158-2.ngrok-free.app/taxi/public/telegram/",
   "main": "index.js",
   "scripts": {
-    "build:css": "tailwindcss -i ./public/css/app.css -o ./public/css/dist/style.css --watch",
+    "build:css": "npx tailwindcss -i ./public/css/app.css -o ./public/css/dist/style.css",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

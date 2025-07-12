@@ -1,5 +1,10 @@
 <?php include_once APPROOT . '/views/includes/header.php'; ?>
 
+<!-- Choices.js CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+<!-- Choices.js SCRIPT -->
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
 <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
     <div class="max-w-4xl w-full mx-auto">
         
@@ -38,53 +43,56 @@
                         <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">2</span>
                         <span>Configure Driver Settings</span>
                     </h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Standard Select for Country -->
                         <div>
                             <label for="country_id" class="form-label">Country</label>
-                            <div class="relative">
-                                <select name="country_id" id="country_id" class="form-select appearance-none" required>
-                                    <option value="">Select Country</option>
-                                    <?php foreach ($data['countries'] as $country): ?>
-                                        <option value="<?= $country['id'] ?>"><?= htmlspecialchars($country['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                </div>
-                            </div>
+                            <select name="country_id" id="country_id" class="form-select">
+                                <option value="">Select Country</option>
+                                <?php foreach ($data['countries'] as $country): ?>
+                                    <option value="<?= $country['id'] ?>"><?= htmlspecialchars($country['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
+
+                        <!-- Standard Select for Application Status -->
                         <div>
                             <label for="app_status" class="form-label">Application Status</label>
-                            <div class="relative">
-                                <select name="app_status" id="app_status" class="form-select appearance-none" required>
-                                    <option value="inactive" selected>Inactive</option>
-                                    <option value="active">Active</option>
-                                    <option value="banned">Banned</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                </div>
-                            </div>
+                            <select name="app_status" id="app_status" class="form-select">
+                                <option value="inactive" selected>Inactive</option>
+                                <option value="active">Active</option>
+                                <option value="banned">Banned</option>
+                            </select>
                         </div>
+                        
+                        <!-- Standard Select for Data Source -->
                         <div class="md:col-span-2">
                             <label for="data_source" class="form-label">Data Source</label>
-                             <div class="relative">
-                                <select name="data_source" id="data_source" class="form-select appearance-none">
-                                    <option value="excel" selected>From Excel File</option>
-                                    <option value="form">From Manual Form</option>
-                                    <option value="referral">From Referral</option>
-                                    <option value="telegram">From Telegram</option>
-                                    <option value="staff">Added by Staff</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                                </div>
-                            </div>
+                             <select name="data_source" id="data_source" class="form-select">
+                                <option value="excel" selected>From Excel File</option>
+                                <option value="form">From Manual Form</option>
+                                <option value="referral">From Referral</option>
+                                <option value="telegram">From Telegram</option>
+                                <option value="staff">Added by Staff</option>
+                            </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label for="notes" class="form-label">Common Notes</label>
-                            <textarea name="notes" id="notes" rows="3" class="form-textarea" placeholder="Add a note that will apply to all drivers in this upload..."></textarea>
-                        </div>
+    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+        Common Notes
+    </label>
+    <p class="text-xs text-gray-500 mb-2">Optional: Add general notes that apply to all drivers in this file.</p>
+    <div class="relative">
+        <textarea
+            name="notes"
+            id="notes"
+            rows="4"
+            class="w-full resize-y rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-800 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            placeholder="e.g. Added from recruitment campaign #4 or contacted via WhatsApp..."
+        ></textarea>
+        <div class="absolute bottom-2 right-3 text-xs text-gray-400" id="note-char-count">0/300</div>
+    </div>
+</div>
+
                     </div>
                 </div>
 
@@ -156,11 +164,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    new Choices('#country_id', {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search countries..."
+    });
+    new Choices('#app_status', {
+        removeItemButton: true,
+        searchEnabled: false,
+        itemSelectText: ''
+    });
+    new Choices('#data_source', {
+        removeItemButton: true,
+        searchEnabled: false,
+        itemSelectText: ''
+    });
+});
 </script>
 
 <style>
 .form-label { @apply block text-sm font-medium text-gray-600 mb-2; }
-.form-select, .form-textarea { @apply block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow; }
+.form-textarea { @apply block w-full bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow px-4 py-3; }
 .form-checkbox { @apply h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer; }
 </style>
 

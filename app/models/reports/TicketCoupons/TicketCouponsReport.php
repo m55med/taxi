@@ -13,49 +13,62 @@ class TicketCouponsReport
     {
         $this->db = Database::getInstance();
     }
-
-    public function getTicketCoupons($filters)
-    {
-        $sql = "SELECT 
-                    tc.id,
-                    t.ticket_number,
-                    c.code as coupon_code,
-                    u.username as created_by_user,
-                    tc.created_at
-                FROM ticket_coupons tc
-                JOIN tickets t ON tc.ticket_id = t.id
-                JOIN coupons c ON tc.coupon_id = c.id
-                JOIN users u ON t.created_by = u.id";
-
+    
+    private function buildQueryParts($filters) {
+        $baseSql = "FROM ticket_coupons tc
+                    JOIN tickets t ON tc.ticket_id = t.id
+                    JOIN coupons c ON tc.coupon_id = c.id
+                    JOIN users u ON t.created_by = u.id";
+        
         $conditions = [];
         $params = [];
 
-        if (!empty($filters['coupon_id'])) {
-            $conditions[] = "tc.coupon_id = :coupon_id";
-            $params[':coupon_id'] = $filters['coupon_id'];
-        }
-        if (!empty($filters['ticket_id'])) {
-            $conditions[] = "tc.ticket_id = :ticket_id";
-            $params[':ticket_id'] = $filters['ticket_id'];
-        }
+        if (!empty($filters['user_id'])) $conditions[] = "t.created_by = :user_id";
+        if (!empty($filters['search'])) $conditions[] = "(t.ticket_number LIKE :search OR c.code LIKE :search)";
+        if (!empty($filters['date_from'])) $conditions[] = "DATE(tc.created_at) >= :date_from";
+        if (!empty($filters['date_to'])) $conditions[] = "DATE(tc.created_at) <= :date_to";
 
-        if (count($conditions) > 0) {
-            $sql .= " WHERE " . implode(" AND ", $conditions);
+        foreach ($filters as $key => $value) {
+            if (!empty($value)) {
+                if ($key === 'search') $params[":$key"] = '%' . $value . '%';
+                else $params[":$key"] = $value;
+            }
         }
-
-        $sql .= " ORDER BY tc.created_at DESC";
         
+        $whereSql = count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "";
+        return ['base' => $baseSql, 'where' => $whereSql, 'params' => $params];
+    }
+
+    public function getTicketCoupons($filters, $limit, $offset)
+    {
+        $queryParts = $this->buildQueryParts($filters);
+        $sql = "SELECT tc.id, t.ticket_number, c.code as coupon_code, u.username as created_by_user,
+                       tc.created_at, t.id as ticket_id, c.id as coupon_id, u.id as user_id
+                " . $queryParts['base'] . $queryParts['where']
+                . " ORDER BY tc.created_at DESC LIMIT :limit OFFSET :offset";
+
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $ticket_coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $coupons = $this->db->query("SELECT id, code FROM coupons ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
-        $tickets = $this->db->query("SELECT id, ticket_number FROM tickets ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
-
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        foreach ($queryParts['params'] as $key => &$val) $stmt->bindParam($key, $val);
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getTicketCouponsCount($filters)
+    {
+        $queryParts = $this->buildQueryParts($filters);
+        $sql = "SELECT COUNT(tc.id) " . $queryParts['base'] . $queryParts['where'];
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($queryParts['params']);
+        return (int)$stmt->fetchColumn();
+    }
+    
+    public function getFilterOptions()
+    {
         return [
-            'ticket_coupons' => $ticket_coupons,
-            'coupons' => $coupons,
-            'tickets' => $tickets
+            'users' => $this->db->query("SELECT id, username FROM users ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC)
         ];
     }
 } 

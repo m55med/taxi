@@ -171,6 +171,9 @@ $router->post("admin/permissions/toggleRolePermission", "Admin/PermissionsContro
 $router->post("admin/permissions/batchUpdateRolePermissions", "Admin/PermissionsController@batchUpdateRolePermissions");
 $router->post("admin/permissions/batchUpdateUserPermissions", "Admin/PermissionsController@batchUpdateUserPermissions");
 
+// Reports
+$router->get("reports/myactivity", "Reports/MyActivity/MyActivityController@index");
+
 // Notification Routes
 $router->get('notifications', 'Notifications/NotificationsController@index');
 $router->get('notifications/create', 'Notifications/NotificationsController@create');
