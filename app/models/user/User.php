@@ -66,33 +66,28 @@ class User
 
     public function login($username, $password)
     {
-        $sql = "SELECT u.*, r.name as role FROM users u 
+        $sql = "SELECT u.*, r.name as role_name FROM users u 
                 LEFT JOIN roles r ON u.role_id = r.id 
                 WHERE u.username = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $stmt->fetch(PDO::FETCH_OBJ);
 
-        if ($user && password_verify($password, $user['password'])) {
-            if ($user['status'] === 'banned') {
-                return ['error' => 'تم حظر حسابك'];
-            } elseif ($user['status'] === 'pending') {
-                return ['error' => 'حسابك قيد المراجعة'];
+        if ($user && password_verify($password, $user->password)) {
+            if ($user->status === 'banned') {
+                return ['status' => false, 'message' => 'Your account has been banned.'];
+            }
+            if ($user->status === 'pending') {
+                return ['status' => false, 'message' => 'Your account is pending review.'];
             }
 
-            // تحديث حالة الاتصال
-            $this->updateOnlineStatus($user['id'], 1);
-
-            return [
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'role' => $user['role'],
-                'role_id' => $user['role_id'],
-                'status' => $user['status']
-            ];
+            // Update online status
+            $this->updateOnlineStatus($user->id, 1);
+            
+            return ['status' => true, 'user' => $user];
         }
 
-        return ['error' => 'اسم المستخدم أو كلمة المرور غير صحيحة'];
+        return ['status' => false, 'message' => 'Invalid username or password.'];
     }
 
     public function setOffline($userId)

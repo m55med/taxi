@@ -86,26 +86,31 @@ class AuthController extends Controller
 
             $result = $this->userModel->login($username, $password);
 
-            if (!isset($result['error'])) {
-                $_SESSION['user_id'] = $result['id'];
-                $_SESSION['username'] = $result['username'];
-                $_SESSION['role'] = $result['role'];
-                $_SESSION['role_id'] = $result['role_id'];
+            if ($result['status'] && isset($result['user'])) {
+                $user = $result['user'];
+                // Create a clean session
+                session_regenerate_id(true);
+                
+                // Store essential user data in the session
+                $_SESSION['user_id'] = $user->id;
+                $_SESSION['username'] = $user->username;
+                $_SESSION['user_name'] = $user->name; // Add user's full name
+                $_SESSION['role_name'] = $user->role_name; // Use role_name for clarity
                 $_SESSION['is_online'] = true;
                 $_SESSION['last_activity'] = time();
 
                 // Record user activity to mark them as online immediately
                 $activeUserService = new ActiveUserService();
-                $activeUserService->recordUserActivity($result['id']);
+                $activeUserService->recordUserActivity($user->id);
 
                 // Fetch and store permissions in the session
-                $permissions = $this->userModel->getUserPermissions($result['id']);
+                $permissions = $this->userModel->getUserPermissions($user->id);
                 $_SESSION['permissions'] = $permissions;
 
                 header('Location: ' . BASE_PATH . '/dashboard');
                 exit();
             } else {
-                $this->view('auth/login', ['error' => $result['error']]);
+                $this->view('auth/login', ['error' => $result['message'] ?? 'Invalid username or password.']);
             }
         } else {
             // احفظ رسالة الخطأ مؤقتاً وامسحها من الجلسة

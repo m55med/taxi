@@ -1,338 +1,293 @@
-<?php include_once __DIR__ . '/../includes/header.php'; ?>
+<?php require_once APPROOT . '/views/includes/header.php'; ?>
 
-<div dir="ltr" class="bg-gray-100 p-4 md:p-8">
-    <div class="max-w-7xl mx-auto">
+<?php
+// Make data easier to access and set defaults
+$d = $data['dashboardData'];
+$role = $d['user_role'] ?? 'agent';
+$isPrivileged = in_array($role, ['admin', 'developer', 'quality_manager', 'Team_leader']);
+?>
 
-        <!-- Header and Date Filters -->
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">Dashboard</h1>
-            
-            <form id="dateFilterForm" method="POST" action="<?= BASE_PATH ?>/dashboard" class="flex flex-wrap items-center gap-4 bg-white p-4 rounded-lg shadow-sm">
-                <div>
-                    <label for="start_date" class="text-sm font-medium text-gray-700">From</label>
-                    <input type="date" name="start_date" id="start_date" value="<?= htmlspecialchars($data['startDate']) ?>" class="mt-1 block w-full md:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-                <div>
-                    <label for="end_date" class="text-sm font-medium text-gray-700">To</label>
-                    <input type="date" name="end_date" id="end_date" value="<?= htmlspecialchars($data['endDate']) ?>" class="mt-1 block w-full md:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply Filter</button>
-                </div>
-                <div class="flex items-end gap-2">
-                    <button type="button" class="quick-filter-btn bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm" data-start="<?= $data['quickFilterDates']['today'] ?>" data-end="<?= $data['quickFilterDates']['today'] ?>">Today</button>
-                    <button type="button" class="quick-filter-btn bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm" data-start="<?= $data['quickFilterDates']['last7days'] ?>" data-end="<?= $data['quickFilterDates']['today'] ?>">Last 7 Days</button>
-                    <button type="button" class="quick-filter-btn bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm" data-start="<?= $data['quickFilterDates']['last30days'] ?>" data-end="<?= $data['quickFilterDates']['today'] ?>">Last 30 Days</button>
-                    <a href="<?= BASE_PATH ?>/dashboard" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm">This Month</a>
-                </div>
-            </form>
+<div class="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen font-sans">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-1">Welcome back, <?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?>!</p>
         </div>
+    </div>
 
-        <!-- Main Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <!-- Users Stats -->
-            <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500">Total Users</p>
-                        <p class="text-3xl font-bold"><?php echo $dashboardData['user_stats']['total'] ?? 0; ?></p>
-                    </div>
-                    <div class="bg-blue-100 text-blue-500 rounded-full w-12 h-12 flex items-center justify-center">
-                         <i class="fas fa-users text-2xl"></i>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-4">
-                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active: <?php echo $dashboardData['user_stats']['status_breakdown']['active'] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">Pending: <?php echo $dashboardData['user_stats']['status_breakdown']['pending'] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">Banned: <?php echo $dashboardData['user_stats']['status_breakdown']['banned'] ?? 0; ?></span>
+    <!-- Main Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+        
+        <!-- Tickets Stats -->
+        <div class="bg-white p-5 rounded-xl shadow-sm flex items-start justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-500">Tickets</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2"><?= $d['ticket_stats']['total_details'] ?? 0 ?></p>
+                <div class="text-xs text-gray-500 mt-1">
+                    <span class="font-semibold text-purple-600">VIP:</span> <?= $d['ticket_stats']['vip_details'] ?? 0 ?> | 
+                    <span class="font-semibold text-gray-600">Normal:</span> <?= $d['ticket_stats']['normal_details'] ?? 0 ?>
                 </div>
             </div>
-
-            <!-- Drivers Stats -->
-            <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500">Total Drivers</p>
-                        <p class="text-3xl font-bold"><?php echo $dashboardData['driver_stats']['total'] ?? 0; ?></p>
-                    </div>
-                    <div class="bg-green-100 text-green-500 rounded-full w-12 h-12 flex items-center justify-center">
-                        <i class="fas fa-id-card text-2xl"></i>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-4">
-                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">App Active: <?php echo $dashboardData['driver_stats']['app_status_breakdown']['active'] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Sys Active: <?php echo $dashboardData['driver_stats']['main_system_status_breakdown']['active'] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">On Hold: <?php echo $dashboardData['driver_stats']['on_hold'] ?? 0; ?></span>
-                </div>
-            </div>
-
-            <!-- Tickets Stats -->
-            <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500">Tickets This Period</p>
-                        <p class="text-3xl font-bold"><?php echo $dashboardData['ticket_stats']['total'] ?? 0; ?></p>
-                    </div>
-                    <div class="bg-purple-100 text-purple-500 rounded-full w-12 h-12 flex items-center justify-center">
-                        <i class="fas fa-ticket-alt text-2xl"></i>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-4">
-                    <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">VIP: <?php echo $dashboardData['ticket_stats']['vip_breakdown'][1] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">Normal: <?php echo $dashboardData['ticket_stats']['vip_breakdown'][0] ?? 0; ?></span>
-                </div>
-            </div>
-
-            <!-- Coupons Stats -->
-            <div class="bg-white rounded-lg shadow p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-gray-500">Coupons Usage</p>
-                        <p class="text-3xl font-bold"><?php echo ($dashboardData['coupon_stats']['used'] ?? 0) + ($dashboardData['coupon_stats']['unused'] ?? 0); ?></p>
-                    </div>
-                    <div class="bg-yellow-100 text-yellow-500 rounded-full w-12 h-12 flex items-center justify-center">
-                        <i class="fas fa-tags text-2xl"></i>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-2 mt-4">
-                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Used: <?php echo $dashboardData['coupon_stats']['used'] ?? 0; ?></span>
-                    <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">Unused: <?php echo $dashboardData['coupon_stats']['unused'] ?? 0; ?></span>
-                </div>
+            <div class="bg-blue-100 text-blue-600 p-3 rounded-full">
+                <i class="fas fa-ticket-alt fa-lg"></i>
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <!-- Driver Status Chart -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-xl font-bold mb-4">Driver Status Breakdown</h3>
-                <canvas id="driverStatusChart" style="max-height: 300px;"></canvas>
+        <!-- Call Stats -->
+        <div class="bg-white p-5 rounded-xl shadow-sm flex items-start justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-500">Calls</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2"><?= ($d['call_stats']['incoming'] ?? 0) + ($d['call_stats']['outgoing'] ?? 0) ?></p>
+                <div class="text-xs text-gray-500 mt-1">
+                    <span class="font-semibold text-green-600">Outgoing:</span> <?= $d['call_stats']['outgoing'] ?? 0 ?> | 
+                    <span class="font-semibold text-blue-600">Incoming:</span> <?= $d['call_stats']['incoming'] ?? 0 ?>
+                </div>
             </div>
-            <!-- Ticket Types Chart -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-xl font-bold mb-4">Ticket Types (Period)</h3>
-                <canvas id="ticketTypesChart" style="max-height: 300px;"></canvas>
-            </div>
-            <!-- User Status Chart -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-xl font-bold mb-4">User Status Breakdown</h3>
-                <canvas id="userStatusChart" style="max-height: 300px;"></canvas>
+            <div class="bg-green-100 text-green-600 p-3 rounded-full">
+                <i class="fas fa-phone-alt fa-lg"></i>
             </div>
         </div>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Rankings Column -->
-            <div class="lg:col-span-2 bg-white p-5 rounded-lg shadow-sm">
-                <h3 class="font-semibold text-gray-700 mb-4 text-xl">Rankings</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Top Employees -->
-                    <div>
-                        <h4 class="font-medium text-gray-600 mb-3">Top Employees</h4>
-                        <ol class="list-decimal list-inside space-y-2">
-                            <?php foreach($dashboardData['rankings']['top_employees'] ?? [] as $name => $score): ?>
-                                <li class="truncate"><?= htmlspecialchars($name) ?> <span class="text-sm text-gray-500 font-mono">(<?= $score ?>)</span></li>
-                            <?php endforeach; ?>
-                        </ol>
-                    </div>
-                    <!-- Top Teams -->
-                    <div>
-                        <h4 class="font-medium text-gray-600 mb-3">Top Teams</h4>
-                        <ol class="list-decimal list-inside space-y-2">
-                            <?php foreach($dashboardData['rankings']['top_teams'] ?? [] as $name => $score): ?>
-                                <li class="truncate"><?= htmlspecialchars($name) ?> <span class="text-sm text-gray-500 font-mono">(<?= $score ?>)</span></li>
-                            <?php endforeach; ?>
-                        </ol>
-                    </div>
-                    <!-- Top Marketers -->
-                    <div>
-                        <h4 class="font-medium text-gray-600 mb-3">Top Marketers</h4>
-                        <ol class="list-decimal list-inside space-y-2">
-                            <?php foreach($dashboardData['rankings']['top_marketers'] ?? [] as $name => $score): ?>
-                                <li class="truncate"><?= htmlspecialchars($name) ?> <span class="text-sm text-gray-500 font-mono">(<?= $score ?> visits)</span></li>
-                            <?php endforeach; ?>
-                        </ol>
-                    </div>
+        <!-- Driver Stats -->
+        <div class="bg-white p-5 rounded-xl shadow-sm flex items-start justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-500">Drivers</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2"><?= $d['driver_stats']['total'] ?? 0 ?></p>
+                <div class="text-xs text-gray-500 mt-1">
+                    <span class="font-semibold text-green-600">Active:</span> <?= $d['driver_stats']['active'] ?? 0 ?> | 
+                    <span class="font-semibold text-red-600">Missing Docs:</span> <?= $d['driver_stats']['missing_documents'] ?? 0 ?>
                 </div>
             </div>
+            <div class="bg-yellow-100 text-yellow-600 p-3 rounded-full">
+                <i class="fas fa-car fa-lg"></i>
+            </div>
+        </div>
 
-            <!-- Right Column -->
-            <div class="space-y-6">
-                <!-- Quick Actions -->
-                <div class="bg-white p-5 rounded-lg shadow-sm">
-                    <h3 class="font-semibold text-gray-700 mb-4 text-xl">Quick Actions</h3>
-                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 text-center">
-                        <?php $actions = [
-                            'New Employee' => ['icon' => 'fa-user-plus', 'link' => '#'],
-                            'New Driver' => ['icon' => 'fa-id-card', 'link' => '#'],
-                            'New Coupon' => ['icon' => 'fa-tags', 'link' => '#'],
-                            'Notification' => ['icon' => 'fa-bell', 'link' => '#'],
-                            'Financial Report' => ['icon' => 'fa-file-invoice-dollar', 'link' => '#'],
-                            'User Management' => ['icon' => 'fa-users-cog', 'link' => '#'],
-                            'Settings' => ['icon' => 'fa-cogs', 'link' => '#'],
-                            'View Tickets' => ['icon' => 'fa-ticket-alt', 'link' => '#'],
-                            'Marketing' => ['icon' => 'fa-bullhorn', 'link' => '#'],
-                            'Logout' => ['icon' => 'fa-sign-out-alt', 'link' => BASE_PATH . '/logout']
-                        ]; ?>
-                        <?php foreach ($actions as $title => $details) : ?>
-                            <a href="<?php echo $details['link']; ?>" class="group flex flex-col items-center justify-center p-2 text-center text-gray-600 hover:text-blue-600 transition-colors duration-200">
-                                <div class="flex items-center justify-center w-16 h-16 bg-gray-100 group-hover:bg-blue-100 rounded-full mb-2 transition-colors duration-200">
-                                    <i class="fas <?php echo $details['icon']; ?> text-2xl text-gray-500 group-hover:text-blue-500"></i>
-                                </div>
-                                <span class="text-sm font-semibold"><?php echo $title; ?></span>
-                            </a>
+        <!-- User Stats -->
+        <?php if ($isPrivileged && isset($d['user_stats'])): ?>
+        <div class="bg-white p-5 rounded-xl shadow-sm flex items-start justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-gray-500">Users</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2"><?= $d['user_stats']['total'] ?? 0 ?></p>
+                <div class="text-xs text-gray-500 mt-1">
+                    <span class="font-semibold text-green-600">Online:</span> <?= $d['user_stats']['online'] ?? 0 ?> | 
+                    <span class="font-semibold text-red-600">Banned:</span> <?= $d['user_stats']['banned'] ?? 0 ?>
+                </div>
+            </div>
+            <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full">
+                <i class="fas fa-users fa-lg"></i>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left/Main Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Activity Chart -->
+            <?php if ($isPrivileged && isset($d['daily_trends'])): ?>
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Activity Trend (Last 15 Days)</h3>
+                <div class="h-80">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Leaderboards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Top Ticket Creators -->
+                <div class="bg-white p-5 rounded-xl shadow-sm">
+                    <h3 class="font-semibold text-gray-700 mb-3">Top Ticket Creators</h3>
+                    <ul class="space-y-3">
+                        <?php foreach (array_slice($d['leaderboards']['tickets'] ?? [], 0, 5) as $i => $entry): ?>
+                        <li class="flex items-center">
+                            <span class="text-sm font-bold text-gray-400 w-6"><?= $i + 1 ?></span>
+                            <span class="text-sm font-medium text-gray-800 truncate"><?= htmlspecialchars($entry['name']) ?></span>
+                            <span class="ml-auto text-sm font-bold text-indigo-600"><?= $entry['count'] ?></span>
+                        </li>
                         <?php endforeach; ?>
-                    </div>
+                    </ul>
                 </div>
-
-                <!-- System Info -->
-                <div class="bg-white p-5 rounded-lg shadow-sm">
-                    <h3 class="font-semibold text-gray-700 mb-4 text-xl">System Info</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                        <div>
-                            <h4 class="font-medium text-gray-600 mb-2">Countries</h4>
-                            <div class="flex flex-wrap gap-2">
-                               <?php foreach($dashboardData['quick_info']['countries'] ?? [] as $item): ?>
-                                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><?= htmlspecialchars($item) ?></span>
-                               <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-600 mb-2 mt-3">Car Types</h4>
-                            <div class="flex flex-wrap gap-2">
-                               <?php foreach($dashboardData['quick_info']['car_types'] ?? [] as $item): ?>
-                                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><?= htmlspecialchars($item) ?></span>
-                               <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-600 mb-2 mt-3">Platforms</h4>
-                            <div class="flex flex-wrap gap-2">
-                               <?php foreach($dashboardData['quick_info']['platforms'] ?? [] as $item): ?>
-                                    <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><?= htmlspecialchars($item) ?></span>
-                               <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Top Outgoing Callers -->
+                <div class="bg-white p-5 rounded-xl shadow-sm">
+                    <h3 class="font-semibold text-gray-700 mb-3">Top Outgoing Callers</h3>
+                    <ul class="space-y-3">
+                         <?php foreach (array_slice($d['leaderboards']['outgoing_calls'] ?? [], 0, 5) as $i => $entry): ?>
+                        <li class="flex items-center">
+                            <span class="text-sm font-bold text-gray-400 w-6"><?= $i + 1 ?></span>
+                            <span class="text-sm font-medium text-gray-800 truncate"><?= htmlspecialchars($entry['name']) ?></span>
+                            <span class="ml-auto text-sm font-bold text-green-600"><?= $entry['count'] ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                 <!-- Top Incoming Call Handlers -->
+                <div class="bg-white p-5 rounded-xl shadow-sm">
+                    <h3 class="font-semibold text-gray-700 mb-3">Top Incoming Handlers</h3>
+                    <ul class="space-y-3">
+                        <?php foreach (array_slice($d['leaderboards']['incoming_calls'] ?? [], 0, 5) as $i => $entry): ?>
+                        <li class="flex items-center">
+                            <span class="text-sm font-bold text-gray-400 w-6"><?= $i + 1 ?></span>
+                            <span class="text-sm font-medium text-gray-800 truncate"><?= htmlspecialchars($entry['name']) ?></span>
+                            <span class="ml-auto text-sm font-bold text-blue-600"><?= $entry['count'] ?></span>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
             </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white p-5 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="<?= URLROOT ?>/create_ticket" class="quick-action-btn bg-blue-500">New Ticket</a>
+                    <a href="<?= URLROOT ?>/calls" class="quick-action-btn bg-green-500">New Call</a>
+                    <?php if ($isPrivileged): ?>
+                    <a href="<?= URLROOT ?>/quality/reviews" class="quick-action-btn bg-yellow-500">All Reviews</a>
+                    <?php endif; ?>
+                    <a href="<?= URLROOT ?>/discussions" class="quick-action-btn bg-indigo-500">Discussions</a>
+                     <?php if (in_array($role, ['admin', 'developer'])): ?>
+                        <a href="<?= URLROOT ?>/upload" class="quick-action-btn bg-gray-600">Upload Drivers</a>
+                        <a href="<?= URLROOT ?>/admin/users" class="quick-action-btn bg-gray-600">User Settings</a>
+                        <a href="<?= URLROOT ?>/admin/permissions" class="quick-action-btn bg-gray-600">Permissions</a>
+                        <a href="<?= URLROOT ?>/logs" class="quick-action-btn bg-gray-600">System Log</a>
+                    <?php endif; ?>
+                    <a href="<?= URLROOT ?>/profile" class="quick-action-btn bg-purple-500">Profile</a>
+                    <a href="<?= URLROOT ?>/logout" class="quick-action-btn bg-red-500">Logout</a>
+                </div>
+            </div>
+
+            <!-- Call Ratio Chart -->
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Call Ratio</h3>
+                <div class="h-48 w-48 mx-auto">
+                    <canvas id="callRatioChart"></canvas>
+                </div>
+            </div>
+            
+             <!-- Marketer Stats -->
+            <?php if (isset($d['marketer_stats'])): ?>
+            <div class="bg-white p-5 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Marketing</h3>
+                <div class="text-sm space-y-2">
+                    <p><strong>Visits:</strong> <span class="font-bold text-gray-700"><?= $d['marketer_stats']['visits'] ?></span></p>
+                    <p><strong>Registrations:</strong> <span class="font-bold text-green-600"><?= $d['marketer_stats']['registrations'] ?></span></p>
+                    <?php if(!empty($d['marketer_stats']['top_countries'])): ?>
+                    <div>
+                        <strong>Top Countries:</strong>
+                        <ul class="list-disc list-inside ml-4 mt-1">
+                            <?php foreach($d['marketer_stats']['top_countries'] as $country => $count): ?>
+                                <li><?= htmlspecialchars($country) ?>: <span class="font-semibold"><?= $count ?></span></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
+<style>
+.quick-action-btn {
+    @apply text-white p-3 rounded-lg text-center text-sm font-semibold transition-transform transform hover:scale-105;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Logic for quick filter buttons
-    const quickFilterButtons = document.querySelectorAll('.quick-filter-btn');
-    const startDateInput = document.getElementById('start_date');
-    const endDateInput = document.getElementById('end_date');
-    const filterForm = document.getElementById('dateFilterForm');
-
-    quickFilterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            startDateInput.value = this.dataset.start;
-            endDateInput.value = this.dataset.end;
-            filterForm.submit();
+    const-white p-4 rounded-lg shadow-md a
+    // Doughnut Chart for Call Ratio
+    const callRatioCtx = document.getElementById('callRatioChart')?.getContext('2d');
+    if (callRatioCtx) {
+        new Chart(callRatioCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Outgoing', 'Incoming'],
+                datasets: [{
+                    data: [<?= $d['call_ratio']['outgoing'] ?? 0 ?>, <?= $d['call_ratio']['incoming'] ?? 0 ?>],
+                    backgroundColor: ['#10B981', '#3B82F6'], // green-500, blue-500
+                    hoverBackgroundColor: ['#059669', '#2563EB'],
+                    borderColor: '#FFFFFF',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: (c) => `${c.label}: ${c.raw}%` }
+                    }
+                }
+            }
         });
-    });
+    }
+
+    // Bar Chart for Activity Trend
+    <?php if ($isPrivileged && isset($d['daily_trends'])): ?>
+    const activityCtx = document.getElementById('activityChart')?.getContext('2d');
+    if (activityCtx) {
+        const trendData = <?= json_encode($d['daily_trends']) ?>;
+        const labels = trendData.map(d => new Date(d.action_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        const ticketData = trendData.map(d => d.tickets);
+        const callData = trendData.map(d => d.calls);
+
+        new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Tickets',
+                        data: ticketData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)', // blue-500
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                    },
+                    {
+                        label: 'Calls',
+                        data: callData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.5)', // green-500
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: '#e5e7eb' } }
+                },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+            }
+        });
+    }
+    <?php endif; ?>
 });
 </script>
 
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const CHART_COLORS = {
-            red: 'rgb(255, 99, 132)',
-            orange: 'rgb(255, 159, 64)',
-            yellow: 'rgb(255, 205, 86)',
-            green: 'rgb(75, 192, 192)',
-            blue: 'rgb(54, 162, 235)',
-            purple: 'rgb(153, 102, 255)',
-            grey: 'rgb(201, 203, 207)'
-        };
-
-        const chartColors = Object.values(CHART_COLORS);
-
-        // --- Driver Status Chart ---
-        const driverStatusCtx = document.getElementById('driverStatusChart')?.getContext('2d');
-        if (driverStatusCtx) {
-            const driverData = <?php echo json_encode($dashboardData['chart_data']['driver_status'] ?? []); ?>;
-            new Chart(driverStatusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(driverData),
-                    datasets: [{
-                        label: 'Driver Status',
-                        data: Object.values(driverData),
-                        backgroundColor: chartColors,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
-        }
-        
-        // --- Ticket Types Chart ---
-        const ticketTypesCtx = document.getElementById('ticketTypesChart')?.getContext('2d');
-        if (ticketTypesCtx) {
-            const ticketData = <?php echo json_encode($dashboardData['chart_data']['ticket_types'] ?? []); ?>;
-            new Chart(ticketTypesCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(ticketData),
-                    datasets: [{
-                        label: 'Ticket Types',
-                        data: Object.values(ticketData),
-                        backgroundColor: [CHART_COLORS.purple, CHART_COLORS.grey],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
-        }
-
-        // --- User Status Chart ---
-        const userStatusCtx = document.getElementById('userStatusChart')?.getContext('2d');
-        if (userStatusCtx) {
-            const userData = <?php echo json_encode($dashboardData['chart_data']['user_status'] ?? []); ?>;
-            new Chart(userStatusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(userData),
-                    datasets: [{
-                        label: 'User Status',
-                        data: Object.values(userData),
-                        backgroundColor: [CHART_COLORS.green, CHART_COLORS.yellow, CHART_COLORS.red, CHART_COLORS.blue],
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
-        }
-
-    });
-</script>
-
-<?php include_once __DIR__ . '/../includes/footer.php'; ?>
+<?php require_once APPROOT . '/views/includes/footer.php'; ?>

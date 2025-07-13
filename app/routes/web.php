@@ -24,6 +24,8 @@
  *
  */
 
+$router->get('', 'HomeController@index');
+
 $router->get('login', 'Auth/AuthController@login');
 $router->get('auth/login', 'Auth/AuthController@login');
 $router->post('login', 'Auth/AuthController@login');

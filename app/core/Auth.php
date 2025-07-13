@@ -41,7 +41,7 @@ class Auth
     public static function getUserRole(): ?string
     {
         self::startSession();
-        return $_SESSION['role'] ?? null;
+        return $_SESSION['role_name'] ?? null;
     }
 
     /**
@@ -66,7 +66,7 @@ class Auth
         self::startSession();
 
         // Admins and developers have all permissions implicitly.
-        if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'])) {
+        if (isset($_SESSION['role_name']) && in_array($_SESSION['role_name'], ['admin', 'developer'])) {
             return true;
         }
 
