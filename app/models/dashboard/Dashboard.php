@@ -93,17 +93,23 @@ class Dashboard
     private function getUserStats()
     {
         $stats = $this->db->query("
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) as banned
-            FROM users
-        ")->fetch(PDO::FETCH_ASSOC);
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) as banned
+        FROM users
+    ")->fetch(PDO::FETCH_ASSOC);
 
+        // ✅ تحقق إذا لم تكن مصفوفة، عيّن مصفوفة فاضية
+        $stats = is_array($stats) ? $stats : [];
+
+        // أضف إحصائية الأونلاين
         $stats['online'] = $this->db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
+
         return $stats;
     }
+
 
     private function getDriverStats()
     {
@@ -122,7 +128,7 @@ class Dashboard
                 SUM(CASE WHEN has_many_trips = 0 THEN 1 ELSE 0 END) as less_than_10_trips
             FROM driver_attributes
         ")->fetch(PDO::FETCH_ASSOC);
-        
+
         // Ensure that the variables are arrays before merging to prevent errors
         $stats = is_array($stats) ? $stats : [];
         $tripCounts = is_array($tripCounts) ? $tripCounts : [];
@@ -209,7 +215,7 @@ class Dashboard
             'outgoing' => round(($stats['outgoing'] / $total) * 100, 2),
         ];
     }
-    
+
     private function getLeaderboards()
     {
         $leaderboards['tickets'] = $this->db->query("
@@ -241,4 +247,4 @@ class Dashboard
 
         return $leaderboards;
     }
-} 
+}

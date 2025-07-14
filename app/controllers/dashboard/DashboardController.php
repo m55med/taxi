@@ -24,7 +24,7 @@ class DashboardController extends Controller
     {
         // Fetch the full user object, which includes the role name
         $user = $this->userModel->getUserById($_SESSION['user_id']);
-        
+
         if (!$user) {
             // This case should ideally not happen if Auth::requireLogin() works
             redirect('logout');
@@ -33,10 +33,11 @@ class DashboardController extends Controller
 
         // The model expects an array with user details
         $userDataForModel = [
-            'id' => $user->id,
-            'role_name' => $user->role_name
+            'id' => $user['id'],
+            'role_name' => $user['role_name']
         ];
-        
+
+
         // Fetch all dashboard data using the centralized model method
         $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel);
 
@@ -45,7 +46,7 @@ class DashboardController extends Controller
             'title' => 'Dashboard',
             'dashboardData' => $dashboardData,
         ];
-        
+
         $this->view('dashboard/index', $data);
     }
 }

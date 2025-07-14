@@ -11,6 +11,9 @@ class App
 
     public function __construct()
     {
+        ini_set('display_errors', 1);
+        ini_set('display_startup_errors', 1);
+        error_reporting(E_ALL);
         // Session must be started to check for user_id
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -25,9 +28,9 @@ class App
             header('Location: ' . BASE_PATH . '/login');
             exit;
         }
-        
+
         // Update last activity time on each request
-        if(isset($_SESSION['user_id'])) {
+        if (isset($_SESSION['user_id'])) {
             $_SESSION['last_activity'] = time();
         }
 
@@ -43,11 +46,23 @@ class App
         $url = self::parseUrl();
 
         $uri = empty($url) ? '' : implode('/', $url);
-        
+
         // Load routes and dispatch the request.
         // The router will handle 404s, controller/method calling, and permissions.
-        $router = Router::load('../app/routes/web.php');
-        $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+        try {
+            $router = Router::load('../app/routes/web.php');
+            $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+        } catch (\Throwable $e) {
+            // في وقت التطوير نعرض الخطأ كاملًا
+            http_response_code(500);
+            echo "<h1>500 - Internal Server Error</h1>";
+            echo "<pre style='color: red; background: #f9f9f9; padding: 10px;'>";
+            echo $e->getMessage() . "\n\n";
+            echo $e->getFile() . ':' . $e->getLine() . "\n\n";
+            echo $e->getTraceAsString();
+            echo "</pre>";
+            exit;
+        }
     }
 
     /**
@@ -92,7 +107,7 @@ class App
         if (file_exists($refreshFile)) {
             $userModel = new \App\Models\User\User();
             $_SESSION['permissions'] = $userModel->getUserPermissions($userId);
-            
+
             unlink($refreshFile);
         }
     }

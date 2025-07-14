@@ -12,19 +12,22 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
-class LogsController extends Controller {
+class LogsController extends Controller
+{
     private $logModel;
     private $rolesWithPointsAccess = ['Admin', 'admin', 'Team_leader', 'Quality', 'quality'];
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct(); // It's good practice to call parent constructor
         // The login check is now handled by $this->authorize() in the methods.
         $this->logModel = $this->model('Logs/Log');
     }
 
-    public function index() {
+    public function index()
+    {
         $page_main_title = 'Activity Log';
-        
+
         // Default filters from GET request
         $filters = [
             'activity_type' => $_GET['activity_type'] ?? 'all',
@@ -36,7 +39,7 @@ class LogsController extends Controller {
         ];
 
         // Apply role-based restrictions
-        $userRole = $_SESSION['role'];
+        $userRole = $_SESSION['role'] ?? null;
         $userId = $_SESSION['user_id'];
 
         if ($userRole === 'agent' || $userRole === 'employee') {
@@ -53,7 +56,7 @@ class LogsController extends Controller {
                 $filters['user_id'] = $userId;
             }
         }
-        
+
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
         // Handle Export All
@@ -82,13 +85,13 @@ class LogsController extends Controller {
         // Data for filter dropdowns
         $users = $this->logModel->getUsers();
         $teams = $this->logModel->getTeams();
-        
+
         // Pagination logic
         $limitOptions = [20, 50, 100, 250, 500];
-        $limit = isset($_GET['limit']) && in_array($_GET['limit'], $limitOptions) ? (int)$_GET['limit'] : 50;
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) && in_array($_GET['limit'], $limitOptions) ? (int) $_GET['limit'] : 50;
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
         $offset = ($page - 1) * $limit;
-        
+
         // Get activities with pagination
         $result = $this->logModel->getActivities($filters, $limit, $offset);
         $activities = $result['activities'];
@@ -128,7 +131,8 @@ class LogsController extends Controller {
         $this->view('logs/index', $data);
     }
 
-    public function bulk_export() {
+    public function bulk_export()
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['activity_ids'])) {
             redirect('logs');
             return;
@@ -136,9 +140,9 @@ class LogsController extends Controller {
 
         $activity_ids = $_POST['activity_ids'];
         $export_type = $_POST['export_type'] ?? 'excel';
-        
+
         $activities = $this->logModel->getActivitiesByIds($activity_ids);
-        
+
         $userRole = $_SESSION['role'];
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
@@ -158,7 +162,8 @@ class LogsController extends Controller {
         }
     }
 
-    private function _exportToExcel($activities, $summary) {
+    private function _exportToExcel($activities, $summary)
+    {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Activity Log');
@@ -235,19 +240,19 @@ class LogsController extends Controller {
                 ['Total Assignments', $summary['Assignment'] ?? 0]
             ];
 
-            foreach($summaryData as $summary_row) {
+            foreach ($summaryData as $summary_row) {
                 if (empty($summary_row)) {
                     $row++;
                     continue;
                 }
                 $sheet->fromArray($summary_row, null, 'A' . $row);
-                
+
                 // Style main totals
                 if (strpos($summary_row[0], 'Total') === 0) {
                     $sheet->getStyle("A{$row}:B{$row}")->getFont()->setBold(true);
                     $sheet->getStyle("A{$row}:B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
                 }
-                
+
                 // Right align numbers
                 $sheet->getStyle("B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
@@ -275,7 +280,8 @@ class LogsController extends Controller {
         exit;
     }
 
-    private function _exportToJson($activities) {
+    private function _exportToJson($activities)
+    {
         $userRole = $_SESSION['role'];
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
@@ -290,4 +296,4 @@ class LogsController extends Controller {
         echo json_encode($activities, JSON_PRETTY_PRINT);
         exit;
     }
-} 
+}
