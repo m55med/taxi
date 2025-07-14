@@ -16,7 +16,7 @@ class MarketerSummaryController extends Controller
             header('Location: ' . BASE_PATH . '/auth/login');
             exit;
         }
-        if (!in_array($_SESSION['role'], ['admin', 'developer', 'marketing'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'marketing'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -43,4 +43,4 @@ class MarketerSummaryController extends Controller
 
         $this->view('reports/MarketerSummary/index', $data);
     }
-} 
+}

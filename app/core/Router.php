@@ -136,7 +136,7 @@ class Router
             header('Location: ' . BASE_PATH . '/login');
             exit;
         }
-        
+
         // Routes that require login but not a specific permission key.
         $loggedInButNoPermissionNeeded = [
             'Discussions/addReply',
@@ -151,7 +151,7 @@ class Router
             http_response_code(403);
             $debug_info = [
                 'required_permission' => $permissionKey,
-                'user_role' => $_SESSION['role'] ?? 'Not Set',
+                'user_role' => $_SESSION['role_name'] ?? 'Not Set',
                 'user_permissions' => $_SESSION['permissions'] ?? []
             ];
             $data['debug_info'] = $debug_info;
@@ -164,9 +164,9 @@ class Router
     {
         http_response_code(404);
         error_log("404 Not Found: " . $message);
-        
+
         // You might want to render a proper 404 view
         require_once '../app/views/errors/404.php';
         exit;
     }
-} 
+}

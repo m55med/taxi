@@ -90,12 +90,13 @@ class AuthController extends Controller
                 $user = $result['user'];
                 // Create a clean session
                 session_regenerate_id(true);
-                
+
                 // Store essential user data in the session
                 $_SESSION['user_id'] = $user->id;
                 $_SESSION['username'] = $user->username;
-                $_SESSION['user_name'] = $user->name; // Add user's full name
-                $_SESSION['role_name'] = $user->role_name; // Use role_name for clarity
+                $_SESSION['user_name'] = $user->name;
+                $_SESSION['role_name'] = $user->role_name;
+                $_SESSION['role_name'] = $user->role_name; // <-- السطر المهم
                 $_SESSION['is_online'] = true;
                 $_SESSION['last_activity'] = time();
 
@@ -194,10 +195,10 @@ class AuthController extends Controller
             header('Location: ' . BASE_PATH . '/profile');
             exit();
         }
-        
+
         // If password is provided, it must meet length requirements
         if (!empty($data['password']) && strlen($data['password']) < 6) {
-             $_SESSION['error'] = 'Password must be at least 6 characters long.';
+            $_SESSION['error'] = 'Password must be at least 6 characters long.';
             header('Location: ' . BASE_PATH . '/profile');
             exit();
         }
@@ -206,7 +207,7 @@ class AuthController extends Controller
 
         if ($result['status']) {
             $_SESSION['success'] = 'Profile updated successfully.';
-             // Update session with new name if it exists in the model response
+            // Update session with new name if it exists in the model response
             if (isset($result['name'])) {
                 $_SESSION['name'] = $result['name'];
             }

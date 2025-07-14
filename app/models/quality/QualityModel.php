@@ -71,14 +71,14 @@ class QualityModel extends Model
             LEFT JOIN users agent_ticket ON td.edited_by = agent_ticket.id
             LEFT JOIN users agent_call ON dc.call_by = agent_call.id
         ";
-        
+
         $whereClauses = [];
         $params = [];
 
         // --- AUTHORIZATION LOGIC ---
-        $role = $_SESSION['role'] ?? 'guest';
+        $role = $_SESSION['role_name'] ?? 'guest';
         $userId = $_SESSION['user_id'] ?? 0;
-        
+
         $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
 
         if ($role === 'agent') {
@@ -88,7 +88,7 @@ class QualityModel extends Model
             $params[':agent_review_user_id_call'] = $userId;
         } elseif (!in_array($role, $highAccessRoles)) {
             // If user is not an agent and not a high-access role, return nothing.
-            return []; 
+            return [];
         }
 
         // --- FILTERING LOGIC ---
@@ -108,10 +108,10 @@ class QualityModel extends Model
             if ($filters['context_type'] === 'Ticket') {
                 $whereClauses[] = "r.reviewable_type LIKE '%TicketDetail'";
             } elseif ($filters['context_type'] === 'Call') {
-                 $whereClauses[] = "r.reviewable_type LIKE '%DriverCall'";
+                $whereClauses[] = "r.reviewable_type LIKE '%DriverCall'";
             }
         }
-        
+
         // Classification filters
         if (!empty($filters['category_id'])) {
             $whereClauses[] = "r.ticket_category_id = :category_id";
@@ -142,7 +142,7 @@ class QualityModel extends Model
             return ['error' => 'Database query failed'];
         }
     }
-    
+
     /**
      * Get filtered discussions for the quality page.
      */
@@ -187,9 +187,9 @@ class QualityModel extends Model
         $params = [];
 
         // --- AUTHORIZATION LOGIC ---
-        $role = $_SESSION['role'] ?? 'guest';
+        $role = $_SESSION['role_name'] ?? 'guest';
         $userId = $_SESSION['user_id'] ?? 0;
-        
+
         $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
 
         if ($role === 'agent') {
@@ -201,7 +201,7 @@ class QualityModel extends Model
             // If user is not an agent and not a high-access role, return nothing.
             return [];
         }
-        
+
         // --- FILTERING LOGIC ---
 
         // Date range filter
@@ -219,10 +219,10 @@ class QualityModel extends Model
             if ($filters['context_type'] === 'Ticket') {
                 $whereClauses[] = "r.reviewable_type LIKE '%TicketDetail'";
             } elseif ($filters['context_type'] === 'Call') {
-                 $whereClauses[] = "r.reviewable_type LIKE '%DriverCall'";
+                $whereClauses[] = "r.reviewable_type LIKE '%DriverCall'";
             }
         }
-        
+
         // Status filter
         if (!empty($filters['status']) && in_array($filters['status'], ['open', 'closed'])) {
             $whereClauses[] = "d.status = :status";
@@ -250,7 +250,7 @@ class QualityModel extends Model
 
         $sql .= " ORDER BY d.created_at DESC";
 
-         try {
+        try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -259,4 +259,4 @@ class QualityModel extends Model
             return ['error' => 'Database query failed'];
         }
     }
-} 
+}

@@ -16,7 +16,7 @@ class TicketReworkController extends Controller
             header('Location: ' . BASE_PATH . '/auth/login');
             exit;
         }
-        if (!in_array($_SESSION['role'], ['admin', 'developer', 'quality_control'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_control'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -33,7 +33,7 @@ class TicketReworkController extends Controller
         ];
 
         $reworks = $this->reworkModel->getReworks($filters);
-        
+
         $data = [
             'title' => 'تقرير إعادة العمل على التذاكر',
             'reworks' => $reworks,
@@ -43,4 +43,4 @@ class TicketReworkController extends Controller
 
         $this->view('reports/TicketRework/index', $data);
     }
-} 
+}

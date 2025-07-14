@@ -64,7 +64,7 @@ class ReferralController extends Controller
                 $affiliate_id = null;
             }
         }
-        
+
         // Log the visit and get the visit ID
         // We will update this record upon registration attempt/success
         $visit_id = $this->referralModel->logVisit($affiliate_id, 'form_opened');
@@ -81,7 +81,7 @@ class ReferralController extends Controller
         // 4. Render the view
         $this->view('referral/register', $data);
     }
-    
+
     private function handleRegistration(&$data, $affiliate_id, $visit_id)
     {
         // Sanitize and retrieve POST data
@@ -93,7 +93,7 @@ class ReferralController extends Controller
         // Keep form values in case of error
         $data['form_full_name_value'] = $full_name;
         $data['form_phone_value'] = $phone;
-        
+
         $this->referralModel->updateVisitStatus($visit_id, 'attempted');
 
         // Validation
@@ -145,7 +145,7 @@ class ReferralController extends Controller
 
         $dashboardModel = $this->model('Referral/DashboardModel');
         $userId = $_SESSION['user_id'];
-        $userRole = $_SESSION['role'] ?? 'marketer'; // Default to marketer for safety
+        $userRole = $_SESSION['role_name'] ?? 'marketer'; // Default to marketer for safety
 
         if ($userRole === 'admin') {
             $this->adminDashboard($dashboardModel);
@@ -163,7 +163,7 @@ class ReferralController extends Controller
         ];
 
         $allMarketers = $this->model('Referral/ProfileModel')->getAllAgentsWithUsers();
-        
+
         // Calculate aggregate stats for summary cards
         $total_marketers = count($allMarketers);
         $total_visits = array_sum(array_column($allMarketers, 'total_visits'));
@@ -183,14 +183,14 @@ class ReferralController extends Controller
             'summary_stats' => $summary_stats,
             'filters' => $filters
         ];
-        
+
         $this->view('referral/dashboard/admin_dashboard', $data);
     }
 
     private function marketerDashboard($dashboardModel, $userId)
     {
         $profileModel = $this->model('Referral/ProfileModel');
-        
+
         $filters = [
             'marketer_id' => $userId, // Marketer can only see their own data
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
@@ -212,7 +212,7 @@ class ReferralController extends Controller
             'referral_link' => BASE_PATH . '/referral/register?ref=' . $_SESSION['username'],
             'user_role' => 'marketer'
         ];
-        
+
         $this->view('referral/dashboard/marketer_dashboard', $data);
     }
 
@@ -222,7 +222,7 @@ class ReferralController extends Controller
      */
     public function editProfile(int $userId)
     {
-        $this->authorize('Referral/editProfile'); 
+        $this->authorize('Referral/editProfile');
 
         $profileModel = $this->model('Referral/ProfileModel');
         $user = $this->referralModel->findUserById($userId);
@@ -234,7 +234,7 @@ class ReferralController extends Controller
         }
 
         $agentProfile = $profileModel->getAgentByUserId($userId);
-        
+
         // Always fetch or generate working hours structure.
         // If agent exists, get their hours. If not, get a default blank structure.
         $agentIdForHours = $agentProfile ? $agentProfile['id'] : 0; // Use 0 or null for non-existent agent
@@ -259,7 +259,7 @@ class ReferralController extends Controller
         $this->authorize('Referral/dashboard'); // Reuse admin dashboard permission
 
         // Use the ReferralModel which contains the findUserById method
-        $referralModel = $this->model('Referral/Referral'); 
+        $referralModel = $this->model('Referral/Referral');
         $dashboardModel = $this->model('Referral/DashboardModel');
 
         $marketer = $referralModel->findUserById($userId);
@@ -294,7 +294,7 @@ class ReferralController extends Controller
         // Determine which user's profile is being saved.
         $targetUserId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
         $currentUserId = $_SESSION['user_id'];
-        $currentUserRole = $_SESSION['role'];
+        $currentUserRole = $_SESSION['role_name'];
 
         // If no target user ID is provided, it's the current user editing their own profile.
         if (empty($targetUserId)) {
@@ -309,13 +309,13 @@ class ReferralController extends Controller
             redirect('referral/dashboard');
             return;
         }
-        
+
         // Authorize based on who is being edited
         // A marketer saving their own profile
-        if($targetUserId == $currentUserId) {
-             $this->authorize('Referral/saveAgentProfile');
+        if ($targetUserId == $currentUserId) {
+            $this->authorize('Referral/saveAgentProfile');
         } else { // An admin saving another profile
-             $this->authorize('Referral/editProfile');
+            $this->authorize('Referral/editProfile');
         }
 
         $agentModel = $this->model('Referral/ProfileModel');
@@ -334,15 +334,15 @@ class ReferralController extends Controller
                 $longitude = $coordinates['longitude'];
                 $map_url_to_save = $resolvedUrl;
             } else {
-                 $_SESSION['error'] = 'Could not extract coordinates from the link. Please check the link and try again.';
-                 // Redirect back to the correct page
-                 redirect($currentUserRole === 'admin' ? 'referral/editProfile/' . $targetUserId : 'referral/dashboard');
-                 return;
+                $_SESSION['error'] = 'Could not extract coordinates from the link. Please check the link and try again.';
+                // Redirect back to the correct page
+                redirect($currentUserRole === 'admin' ? 'referral/editProfile/' . $targetUserId : 'referral/dashboard');
+                return;
             }
         } elseif ($latitude && $longitude) {
             $map_url_to_save = "https://www.google.com/maps?q={$latitude},{$longitude}";
         }
-        
+
         $data = [
             'user_id' => $targetUserId,
             'state' => trim(htmlspecialchars($_POST['state'] ?? '')),
@@ -361,7 +361,7 @@ class ReferralController extends Controller
         }
 
         $profileSaved = $agentModel->createOrUpdateAgent($data);
-        
+
         $agentProfile = $agentModel->getAgentByUserId($targetUserId);
         if ($profileSaved && $agentProfile && isset($_POST['working_hours'])) {
             $agentModel->saveWorkingHours($agentProfile['id'], $_POST['working_hours']);
@@ -372,28 +372,30 @@ class ReferralController extends Controller
         } else {
             $_SESSION['error'] = 'An error occurred while updating the profile.';
         }
-        
+
         // Redirect back to the appropriate page
         redirect($currentUserRole === 'admin' ? 'referral/dashboard' : 'referral/dashboard');
     }
 
-    private function resolveGoogleMapsShortLink($shortUrl) {
+    private function resolveGoogleMapsShortLink($shortUrl)
+    {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $shortUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // يسمح بمتابعة التحويلات
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_NOBODY, true); // لا نحتاج لمحتوى الصفحة
-    
+
         curl_exec($ch);
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         curl_close($ch);
-    
+
         return $finalUrl;
     }
-    
+
     // دالة لاستخراج الإحداثيات من الرابط الكامل
-    private function extractCoordinates($url) {
+    private function extractCoordinates($url)
+    {
         // New pattern for /search/lat,lng and /place/name/@lat,lng
         if (preg_match('/@([\d\.-]+),([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
@@ -403,17 +405,17 @@ class ReferralController extends Controller
         if (preg_match('/\/search\/([\d\.-]+),\+?([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-        
+
         // From !3d and !4d parameters
         if (preg_match('/!3d([\d\.-]+)!4d([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-    
+
         // From q=lat,long parameter
         if (preg_match('/[?&]q=([\d\.-]+),([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-    
+
         return null;
     }
-} 
+}

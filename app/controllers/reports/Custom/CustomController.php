@@ -13,7 +13,7 @@ class CustomController extends Controller
     {
         parent::__construct();
         Auth::check();
-        if (!in_array($_SESSION['role'], ['admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -30,7 +30,7 @@ class CustomController extends Controller
             $table = $_POST['table'] ?? '';
             $columns = $_POST['columns'] ?? [];
             $filters = $_POST['filters'] ?? []; // Array of filter conditions
-            
+
             if ($table && !empty($columns)) {
                 list($reportData, $queryDetails) = $this->customModel->buildAndRunQuery($table, $columns, $filters);
             }
@@ -53,4 +53,4 @@ class CustomController extends Controller
             echo json_encode($columns);
         }
     }
-} 
+}

@@ -40,7 +40,7 @@ class DriverController extends Controller
             if (!$driverId) {
                 throw new Exception('Required driver_id is missing', 400);
             }
-            
+
             // Collect all data from POST
             $data = [
                 'name' => $_POST['name'] ?? '',
@@ -51,7 +51,7 @@ class DriverController extends Controller
                 'car_type_id' => filter_input(INPUT_POST, 'car_type_id', FILTER_VALIDATE_INT) ?: null,
                 'notes' => $_POST['notes'] ?? ''
             ];
-            
+
             $hasManyTrips = filter_var($_POST['has_many_trips'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
             // Execute updates as separate operations
@@ -66,16 +66,16 @@ class DriverController extends Controller
             }
 
             // Fetch fully updated driver data to return
-            $updatedDriver = $this->driverModel->getById($driverId); 
+            $updatedDriver = $this->driverModel->getById($driverId);
             if (!$updatedDriver) {
-                 throw new Exception('Failed to retrieve updated driver data', 500);
+                throw new Exception('Failed to retrieve updated driver data', 500);
             }
 
             ob_clean();
 
             $this->sendJsonResponse([
-                'success' => true, 
-                'message' => 'Data updated successfully', 
+                'success' => true,
+                'message' => 'Data updated successfully',
                 'driver' => $updatedDriver
             ]);
 
@@ -168,7 +168,7 @@ class DriverController extends Controller
             }
         } catch (Exception $e) {
             error_log("Driver assignment error: " . $e->getMessage());
-            
+
             if ($isAjax) {
                 // For AJAX, send a JSON error response
                 $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], $e->getCode() ?: 500);
@@ -196,7 +196,7 @@ class DriverController extends Controller
         $callHistory = $this->driverModel->getCallHistory($id);
         $assignmentHistory = $this->driverModel->getAssignmentHistory($id);
         $assignableUsers = $this->driverModel->getAssignableUsers(); // Fetch users for the form
-        
+
         $driverDocuments = $this->documentModel->getDriverDocuments($id);
         $unassignedDocuments = $this->documentModel->getUnassignedDocumentTypes($id);
 
@@ -211,7 +211,7 @@ class DriverController extends Controller
         $allReviewsFlat = array_merge(...array_values($reviewsByCallId));
         $reviewIds = !empty($allReviewsFlat) ? array_column($allReviewsFlat, 'id') : [];
         $allDiscussions = !empty($reviewIds) ? $this->discussionModel->getDiscussionsForReviews($reviewIds) : [];
-        
+
         $discussionIds = !empty($allDiscussions) ? array_column($allDiscussions, 'id') : [];
         $allReplies = !empty($discussionIds) ? $this->discussionModel->getRepliesForDiscussions($discussionIds) : [];
 
@@ -266,7 +266,7 @@ class DriverController extends Controller
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
                 'id' => $_SESSION['user_id'],
-                'role' => $_SESSION['role']
+                'role' => $_SESSION['role_name']
             ]
         ];
 
@@ -291,7 +291,7 @@ class DriverController extends Controller
     public function manageDocument()
     {
         $this->authorize('Driver/manageDocument');
-        
+
         $db = Database::getInstance(); // Get DB instance for transaction
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -309,14 +309,16 @@ class DriverController extends Controller
 
             if ($action === 'upsert') {
                 $docTypeId = filter_input(INPUT_POST, 'doc_type_id', FILTER_VALIDATE_INT);
-                if (!$docTypeId) throw new Exception('Missing document type ID.', 400);
+                if (!$docTypeId)
+                    throw new Exception('Missing document type ID.', 400);
                 $status = $_POST['status'] ?? 'missing';
                 $note = trim($_POST['note'] ?? '');
                 $this->documentModel->upsertDriverDocument($driverId, $docTypeId, $status, $note);
 
             } elseif ($action === 'remove') {
                 $docTypeId = filter_input(INPUT_POST, 'doc_type_id', FILTER_VALIDATE_INT);
-                if (!$docTypeId) throw new Exception('Missing document type ID.', 400);
+                if (!$docTypeId)
+                    throw new Exception('Missing document type ID.', 400);
                 $this->documentModel->removeDriverDocument($driverId, $docTypeId);
 
             } else {

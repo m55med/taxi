@@ -39,7 +39,7 @@ class LogsController extends Controller
         ];
 
         // Apply role-based restrictions
-        $userRole = $_SESSION['role'] ?? null;
+        $userRole = $_SESSION['role_name'] ?? null;
         $userId = $_SESSION['user_id'];
 
         if ($userRole === 'agent' || $userRole === 'employee') {
@@ -143,7 +143,7 @@ class LogsController extends Controller
 
         $activities = $this->logModel->getActivitiesByIds($activity_ids);
 
-        $userRole = $_SESSION['role'];
+        $userRole = $_SESSION['role_name'];
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
         // Calculate points for each activity
@@ -168,7 +168,7 @@ class LogsController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Activity Log');
 
-        $userRole = $_SESSION['role'];
+        $userRole = $_SESSION['role_name'];
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
         // Headers
@@ -282,7 +282,7 @@ class LogsController extends Controller
 
     private function _exportToJson($activities)
     {
-        $userRole = $_SESSION['role'];
+        $userRole = $_SESSION['role_name'];
         $showPoints = in_array($userRole, $this->rolesWithPointsAccess);
 
         if (!$showPoints) {

@@ -23,8 +23,8 @@ class MyActivityController extends Controller
     {
         // Determine the user to display. Admins can view others, otherwise view self.
         $user_id = $_SESSION['user_id'];
-        if (isset($_GET['user_id']) && in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
-            $user_id = (int)$_GET['user_id'];
+        if (isset($_GET['user_id']) && in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
+            $user_id = (int) $_GET['user_id'];
         }
 
         // Set up date filters
@@ -33,12 +33,12 @@ class MyActivityController extends Controller
             'date_from' => $_GET['date_from'] ?? date('Y-m-01'),
             'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
         ];
-        
+
         $reportData = $this->usersReportModel->getUsersReportWithPoints($filters);
         $user_activity_data = !empty($reportData['users']) ? $reportData['users'][0] : null;
 
         $user_info = $this->userModel->findById($user_id);
-        
+
         $data = [
             'title' => 'My Activity Report',
             'user_activity' => $user_activity_data,
@@ -48,4 +48,4 @@ class MyActivityController extends Controller
 
         $this->view('reports/MyActivity/index', $data);
     }
-} 
+}

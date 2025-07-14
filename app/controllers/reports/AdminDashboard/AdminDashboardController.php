@@ -15,7 +15,7 @@ class AdminDashboardController extends Controller
         Auth::check();
 
         // Authorization: Only Admins/Developers can access
-        if (!in_array($_SESSION['role'], ['admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -35,4 +35,4 @@ class AdminDashboardController extends Controller
 
         $this->view('reports/AdminDashboard/index', $data);
     }
-} 
+}

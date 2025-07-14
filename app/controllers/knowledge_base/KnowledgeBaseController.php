@@ -34,7 +34,7 @@ class KnowledgeBaseController extends Controller
             'page_main_title' => 'Knowledge Base',
             'articles' => $articles,
             'searchQuery' => $searchQuery,
-            'is_admin' => in_array($_SESSION['role'], ['admin', 'developer'])
+            'is_admin' => in_array($_SESSION['role_name'], ['admin', 'developer'])
         ];
 
         $this->view('knowledge_base/index', $data);
@@ -68,7 +68,10 @@ class KnowledgeBaseController extends Controller
             'page_main_title' => 'Add New Article',
             'ticket_codes' => $this->kbModel->getAllTicketCodes(),
             'article' => [
-                'id' => null, 'title' => '', 'content' => '', 'ticket_code_id' => null
+                'id' => null,
+                'title' => '',
+                'content' => '',
+                'ticket_code_id' => null
             ]
         ];
         $this->view('knowledge_base/create', $data);
@@ -90,7 +93,7 @@ class KnowledgeBaseController extends Controller
             'content' => isset($_POST['content']) ? trim($_POST['content']) : '',
             'ticket_code_id' => isset($_POST['ticket_code_id']) ? $_POST['ticket_code_id'] : null
         ];
-        
+
         // Basic validation
         if (empty($data['title']) || empty($data['content'])) {
             flash('kb_message', 'Title and Content are required.', 'error');
@@ -141,7 +144,7 @@ class KnowledgeBaseController extends Controller
             'content' => trim($_POST['content']),
             'ticket_code_id' => $_POST['ticket_code_id']
         ];
-        
+
         if (empty($data['title']) || empty($data['content'])) {
             flash('kb_message', 'Title and Content are required.', 'error');
             redirect('/knowledge_base/edit/' . $id);
@@ -155,16 +158,17 @@ class KnowledgeBaseController extends Controller
             redirect('/knowledge_base/edit/' . $id);
         }
     }
-    
+
     /**
      * Delete an article.
      */
-    public function destroy() {
+    public function destroy()
+    {
         $this->requireAdmin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-             redirect('/knowledge_base');
+            redirect('/knowledge_base');
         }
-        
+
         $id = $_POST['id'];
         if ($this->kbModel->delete($id)) {
             flash('kb_message', 'Article deleted successfully.', 'success');
@@ -178,7 +182,8 @@ class KnowledgeBaseController extends Controller
      * API endpoint to find an article by ticket code ID.
      * This will be used by the Create Ticket page.
      */
-    public function findByCode($ticketCodeId) {
+    public function findByCode($ticketCodeId)
+    {
         $article = $this->kbModel->findByTicketCodeId($ticketCodeId);
         $this->sendJsonResponse($article ?: []);
     }
@@ -186,9 +191,10 @@ class KnowledgeBaseController extends Controller
     /**
      * API endpoint for live search functionality.
      */
-    public function searchApi() {
+    public function searchApi()
+    {
         $searchQuery = $_GET['q'] ?? '';
-        
+
         if (empty($searchQuery)) {
             $articles = $this->kbModel->getAll();
         } else {
@@ -197,14 +203,14 @@ class KnowledgeBaseController extends Controller
 
         $this->sendJsonResponse($articles);
     }
-    
+
     /**
      * Helper function to check for admin privileges.
      */
     private function requireAdmin()
     {
-        if (!in_array($_SESSION['role'], ['admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer'])) {
             redirect('/unauthorized');
         }
     }
-} 
+}

@@ -11,7 +11,7 @@ class CallsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager'])) {
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -27,16 +27,16 @@ class CallsController extends Controller
             'date_to' => $_GET['date_to'] ?? ''
         ];
 
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 25;
         $offset = ($page - 1) * $limit;
-        
+
         $stats = $this->callsReportModel->getCallsStats($filters);
         $totalRecords = $this->callsReportModel->countCalls($filters);
         $totalPages = ceil($totalRecords / $limit);
-        
+
         $calls = $this->callsReportModel->getPaginatedCalls($limit, $offset, $filters);
-        
+
         $data = array_merge($stats, [
             'calls' => $calls,
             'pagination' => [
@@ -47,7 +47,7 @@ class CallsController extends Controller
             ],
             'filters' => $filters
         ]);
-        
+
         $this->view('reports/Calls/index', $data);
     }
-} 
+}

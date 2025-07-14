@@ -37,7 +37,7 @@ class TicketController extends Controller
         $ticket = $this->ticketModel->findById($id);
 
         if (!$ticket) {
-             die('Ticket not found.');
+            die('Ticket not found.');
         }
 
         // Get the full history of the ticket
@@ -54,7 +54,7 @@ class TicketController extends Controller
         }
 
         // Extract all history IDs to fetch reviews in one query
-        $historyIds = array_map(function($item) {
+        $historyIds = array_map(function ($item) {
             return $item['id'];
         }, $ticketHistory);
 
@@ -93,13 +93,13 @@ class TicketController extends Controller
         foreach ($all_reviews as $key => $review) {
             $all_reviews[$key]['discussions'] = $discussionsByReviewId[$review['id']] ?? [];
         }
-        
+
         // Group reviews by history ID
         $reviewsByHistoryId = [];
         foreach ($all_reviews as $review) {
             $reviewsByHistoryId[$review['reviewable_id']][] = $review;
         }
-        
+
         // Attach coupons and the structured reviews to each history item
         foreach ($ticketHistory as $key => $historyItem) {
             $historyId = $historyItem['id'];
@@ -139,7 +139,7 @@ class TicketController extends Controller
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
                 'id' => $_SESSION['user_id'],
-                'role' => $_SESSION['role']
+                'role' => $_SESSION['role_name']
             ]
         ];
 
@@ -160,7 +160,7 @@ class TicketController extends Controller
             if (!isset($_GET['country_id']) || empty($_GET['country_id'])) {
                 throw new \Exception('Country ID is required.');
             }
-            $countryId = (int)$_GET['country_id'];
+            $countryId = (int) $_GET['country_id'];
             $debug['country_id'] = $countryId;
 
             $excludeIds = [];
@@ -168,16 +168,16 @@ class TicketController extends Controller
                 $excludeIds = array_map('intval', explode(',', $_GET['exclude_ids']));
             }
             $debug['exclude_ids'] = $excludeIds;
-            
+
             $couponModel = $this->model('admin/Coupon');
 
             if (!is_object($couponModel)) {
-                 throw new \Exception('Coupon model is not a valid object.');
+                throw new \Exception('Coupon model is not a valid object.');
             }
             $debug['model_check'] = 'Coupon model is a valid object.';
 
             $result = $couponModel->getAvailableByCountry($countryId, $_SESSION['user_id'], $excludeIds);
-            
+
             $coupons = $result['coupons'];
             $debug = array_merge($debug, $result['debug']);
 
@@ -203,7 +203,7 @@ class TicketController extends Controller
             return;
         }
 
-        $couponId = (int)$data['coupon_id'];
+        $couponId = (int) $data['coupon_id'];
         $userId = $_SESSION['user_id'];
 
         if ($couponModel->hold($couponId, $userId)) {
@@ -224,11 +224,11 @@ class TicketController extends Controller
             return;
         }
 
-        $couponId = (int)$data['coupon_id'];
+        $couponId = (int) $data['coupon_id'];
         $userId = $_SESSION['user_id'];
-        
+
         $couponModel->release($couponId, $userId);
-        
+
         http_response_code(204); // No Content
     }
 
@@ -291,7 +291,7 @@ class TicketController extends Controller
                     $this->ticketModel->syncCoupons($ticketId, $ticketDetailId, $data['coupons']);
                 }
                 echo json_encode(['success' => true, 'message' => $message, 'ticket_id' => $ticketId]);
-        } else {
+            } else {
                 echo json_encode(['success' => false, 'message' => 'Failed to save ticket details.']);
             }
         } catch (\Exception $e) {
@@ -302,13 +302,13 @@ class TicketController extends Controller
 
     public function addObjection($ticketId, $discussionId)
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($_SESSION['role'], ['agent', 'Team_leader', 'admin', 'developer'])) {
-             redirect('tickets/details/' . $ticketId);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !in_array($_SESSION['role_name'], ['agent', 'Team_leader', 'admin', 'developer'])) {
+            redirect('tickets/details/' . $ticketId);
         }
-        
+
         $ticket = $this->ticketModel->findById($ticketId);
         // User must be the ticket creator, or a manager/leader to add an objection/reply.
-        if ($_SESSION['user_id'] != $ticket['created_by'] && !in_array($_SESSION['role'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
+        if ($_SESSION['user_id'] != $ticket['created_by'] && !in_array($_SESSION['role_name'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
             redirect('tickets/details/' . $ticketId);
         }
 
@@ -330,7 +330,7 @@ class TicketController extends Controller
     public function closeDiscussion($ticketId, $discussionId)
     {
         // Add authorization check to ensure only specific roles can close discussions
-        if (!in_array($_SESSION['role'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
             // Or use $this->authorize([...]) if you have it set up
             redirect('tickets/details/' . $ticketId);
         }
@@ -365,22 +365,22 @@ class TicketController extends Controller
     public function ajaxSearch()
     {
         header('Content-Type: application/json');
-        
+
         if (!isset($_GET['term']) || empty(trim($_GET['term']))) {
             echo json_encode([]);
             return;
         }
-        
+
         $searchTerm = trim($_GET['term']);
         $suggestions = $this->ticketModel->getSuggestions($searchTerm);
-        
+
         echo json_encode($suggestions);
     }
 
     public function checkTicket($ticketNumber = '')
     {
         header('Content-Type: application/json');
-        
+
         if (empty($ticketNumber)) {
             echo json_encode(['exists' => false]);
             return;
@@ -402,7 +402,7 @@ class TicketController extends Controller
         $categoryModel = $this->model('tickets/Category');
         $platformModel = $this->model('tickets/Platform');
         $teamModel = $this->model('admin/Team');
-        
+
         $data = [
             'countries' => $countryModel->getAll(),
             'categories' => $categoryModel->getAll(),
@@ -413,4 +413,4 @@ class TicketController extends Controller
 
         $this->view('tickets/index', $data);
     }
-} 
+}

@@ -1,7 +1,7 @@
 <?php
 
 // Set default timezone
-date_default_timezone_set('UTC'); 
+date_default_timezone_set('UTC');
 
 // Autoload vendor libraries
 require_once dirname(__DIR__) . '/vendor/autoload.php';
@@ -15,7 +15,7 @@ try {
 }
 
 // Configure error reporting based on environment
-if (getenv('APP_DEBUG') === 'true') {
+if ($_ENV['APP_DEBUG'] === 'true') {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
@@ -25,31 +25,39 @@ if (getenv('APP_DEBUG') === 'true') {
     error_reporting(0);
 }
 
-// Set up global exception handler
-set_exception_handler(function($exception) {
-    // Log the exception
-    error_log($exception);
+// إعدادات عرض الأخطاء حسب APP_DEBUG
+if ($_ENV['APP_DEBUG'] === 'true') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    error_reporting(0);
+}
 
-    // Show detailed errors in development, generic in production
-    if (getenv('APP_DEBUG') === 'true') {
-        // You can create a more detailed error view if you want
-        http_response_code(500);
-        echo "<h1>Fatal Error</h1>";
-        echo "<pre>";
-        echo "<strong>Message:</strong> " . $exception->getMessage() . "\n\n";
-        echo "<strong>Stack Trace:</strong>\n" . $exception->getTraceAsString();
-        echo "</pre>";
+// تسجيل وعرض الأخطاء بشكل مناسب
+set_exception_handler(function ($exception) {
+    error_log($exception->getMessage());
+    http_response_code(500);
+
+    $debug = isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true';
+
+    $data = [
+        'showDetails' => $debug,
+        'exception' => $exception
+    ];
+
+    $errorViewPath = dirname(__DIR__) . '/app/views/errors/500.php';
+    if (file_exists($errorViewPath)) {
+        require $errorViewPath;
     } else {
-        // On production, show a friendly error page.
-        // We'll create this view file next.
-        http_response_code(500);
-        if (file_exists(dirname(__DIR__) . '/app/views/errors/500.php')) {
-            require dirname(__DIR__) . '/app/views/errors/500.php';
-        } else {
-            echo "<h1>An unexpected error occurred.</h1><p>We are working to fix the problem. Please try again later.</p>";
-        }
+        echo "<h1>⚠️ حصل خطأ غير متوقع</h1><p>نحن نعمل على إصلاح المشكلة، شكرًا لصبرك.</p>";
     }
 });
+
+
+
 
 // Define application root directory
 define('APPROOT', dirname(__DIR__) . '/app');

@@ -13,7 +13,7 @@ class ReferralRegistrationsController extends Controller
     {
         parent::__construct();
         Auth::check();
-        if (!in_array($_SESSION['role'], ['admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -38,4 +38,4 @@ class ReferralRegistrationsController extends Controller
 
         $this->view('reports/ReferralRegistrations/index', $data);
     }
-} 
+}

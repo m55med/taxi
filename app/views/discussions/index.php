@@ -7,8 +7,8 @@
 
 <div class="bg-gray-100 min-h-screen py-8">
     <div class="max-w-screen-xl mx-auto">
-    <div class="font-sans antialiased text-gray-800 bg-white rounded-lg shadow-xl overflow-hidden"
-     x-data="discussionsComponent()" x-init="init()">
+        <div class="font-sans antialiased text-gray-800 bg-white rounded-lg shadow-xl overflow-hidden"
+            x-data="discussionsComponent()" x-init="init()">
 
 
             <!-- Loading State -->
@@ -165,16 +165,20 @@
                                         </template>
 
                                         <!-- Show Re-open Button for Authorized Roles on Closed Discussions -->
-                                        <template x-if="selectedDiscussion && selectedDiscussion.status === 'closed' && ['admin', 'quality_manager', 'Team_leader', 'developer'].includes(currentUser.role)">
-                                            <button @click="showReopenConfirmation = true" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm font-semibold flex items-center space-x-2">
+                                        <template
+                                            x-if="selectedDiscussion && selectedDiscussion.status === 'closed' && ['admin', 'quality_manager', 'Team_leader', 'developer'].includes(currentUser.role)">
+                                            <button @click="showReopenConfirmation = true"
+                                                class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm font-semibold flex items-center space-x-2">
                                                 <i class="fas fa-lock-open"></i>
                                                 <span>Re-open Discussion</span>
                                             </button>
                                         </template>
 
                                         <!-- Show Closed Badge for Unauthorized Roles on Closed Discussions -->
-                                        <template x-if="selectedDiscussion && selectedDiscussion.status === 'closed' && !['admin', 'quality_manager', 'Team_leader', 'developer'].includes(currentUser.role)">
-                                            <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2">
+                                        <template
+                                            x-if="selectedDiscussion && selectedDiscussion.status === 'closed' && !['admin', 'quality_manager', 'Team_leader', 'developer'].includes(currentUser.role)">
+                                            <div
+                                                class="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2">
                                                 <i class="fas fa-lock"></i>
                                                 <span>Closed</span>
                                             </div>
@@ -251,10 +255,12 @@
 
             <!-- Re-open Confirmation Modal -->
             <template x-if="showReopenConfirmation">
-                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="z-index: 9999;">
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+                    style="z-index: 9999;">
                     <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
                         <h3 class="text-lg font-bold">Confirm Re-opening</h3>
-                        <p class="text-gray-600 mt-2">Are you sure you want to re-open this discussion? It will become active again.
+                        <p class="text-gray-600 mt-2">Are you sure you want to re-open this discussion? It will become
+                            active again.
                         </p>
                         <div class="flex justify-end space-x-4 mt-6">
                             <button @click="showReopenConfirmation = false"

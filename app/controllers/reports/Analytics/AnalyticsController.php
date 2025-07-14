@@ -13,7 +13,7 @@ class AnalyticsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager'])) {
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager'])) {
             $_SESSION['error'] = 'You are not authorized to access this page.';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -88,7 +88,7 @@ class AnalyticsController extends Controller
             // For this example, we will export a simplified version.
             $export_data = [
                 'headers' => ['Source', 'Total Drivers', 'Completed Drivers', 'Conversion Rate (%)'],
-                'rows' => array_map(function($item) {
+                'rows' => array_map(function ($item) {
                     return [
                         $item['data_source'],
                         $item['total_drivers'],
@@ -107,4 +107,4 @@ class AnalyticsController extends Controller
             ExportHelper::exportToJson($export_data, 'analytics_full_report');
         }
     }
-} 
+}

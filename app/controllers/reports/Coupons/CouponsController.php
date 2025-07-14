@@ -13,7 +13,7 @@ class CouponsController extends Controller
     {
         parent::__construct();
         Auth::requireLogin();
-        if (!in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager'])) {
             $_SESSION['error'] = 'You are not authorized to access this page.';
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
@@ -25,7 +25,7 @@ class CouponsController extends Controller
     {
         // Pagination settings
         $records_per_page = 25;
-        $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $current_page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
         if ($current_page < 1) {
             $current_page = 1;
         }
@@ -41,7 +41,7 @@ class CouponsController extends Controller
         $stats = $this->couponModel->getCouponStats();
         $total_coupons = $this->couponModel->getTotalCouponsCount($filters);
         $coupons = $this->couponModel->getCouponsDetails($filters, $records_per_page, $offset);
-        
+
         $total_pages = ceil($total_coupons / $records_per_page);
 
         $data = [
@@ -55,4 +55,4 @@ class CouponsController extends Controller
 
         $this->view('reports/Coupons/index', $data);
     }
-} 
+}

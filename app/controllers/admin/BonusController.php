@@ -6,31 +6,35 @@ use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\Admin\BonusModel;
 
-class BonusController extends Controller {
+class BonusController extends Controller
+{
     private $bonusModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         // Broaden access control, will handle specific permissions in methods
         if (!Auth::isLoggedIn()) {
             redirect('/auth/login');
         }
-        
+
         $this->bonusModel = $this->model('admin/BonusModel');
     }
 
-    public function index() {
+    public function index()
+    {
         $data = [
             'users' => $this->bonusModel->getAllUsers(),
             'bonuses' => $this->bonusModel->getGrantedBonuses(),
             'settings' => $this->bonusModel->getBonusSettings(),
-            'is_admin' => ($_SESSION['role'] === 'admin') // Pass role info to the view
+            'is_admin' => ($_SESSION['role_name'] === 'admin') // Pass role info to the view
         ];
         $this->view('admin/bonus/index', $data);
     }
 
-    public function settings() {
+    public function settings()
+    {
         // Only admins can view the settings page
-        if ($_SESSION['role'] !== 'admin') {
+        if ($_SESSION['role_name'] !== 'admin') {
             redirect('/unauthorized');
         }
 
@@ -40,9 +44,10 @@ class BonusController extends Controller {
         $this->view('admin/bonus/settings', $data);
     }
 
-    public function updateSettings() {
+    public function updateSettings()
+    {
         // Only admins can update settings
-        if ($_SESSION['role'] !== 'admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+        if ($_SESSION['role_name'] !== 'admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('/admin/bonus');
         }
 
@@ -69,7 +74,7 @@ class BonusController extends Controller {
             redirect('/admin/bonus/settings');
             return;
         }
-        
+
         if ($this->bonusModel->updateBonusSettings($data)) {
             flash('bonus_settings_message', 'Bonus settings updated successfully.', 'success');
         } else {
@@ -78,7 +83,8 @@ class BonusController extends Controller {
         redirect('/admin/bonus/settings');
     }
 
-    public function grant() {
+    public function grant()
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Sanitize POST data
             $bonus_month_raw = filter_input(INPUT_POST, 'bonus_month', FILTER_UNSAFE_RAW);
@@ -95,8 +101,8 @@ class BonusController extends Controller {
 
             // --- New Validation Logic ---
             $settings = $this->bonusModel->getBonusSettings();
-            $is_admin = ($_SESSION['role'] === 'admin');
-            
+            $is_admin = ($_SESSION['role_name'] === 'admin');
+
             if ($is_admin) {
                 // Admin validation: check against min/max
                 if ($data['bonus_percent'] < $settings['min_bonus_percent'] || $data['bonus_percent'] > $settings['max_bonus_percent']) {
@@ -123,14 +129,14 @@ class BonusController extends Controller {
                 flash('bonus_message', 'Please fill out all required fields.', 'error');
                 redirect('/admin/bonus');
             }
-            
+
             // Check if bonus already exists for that month
             if ($this->bonusModel->bonusExists($data['user_id'], $data['bonus_year'], $data['bonus_month'])) {
                 flash('bonus_message', 'Failed to grant bonus. The employee has already received a bonus for this month.', 'error');
                 redirect('/admin/bonus');
                 return;
             }
-            
+
             if ($this->bonusModel->addBonus($data)) {
                 flash('bonus_message', 'Bonus granted successfully.', 'success');
                 redirect('/admin/bonus');
@@ -143,7 +149,8 @@ class BonusController extends Controller {
         }
     }
 
-    public function delete($id = null) {
+    public function delete($id = null)
+    {
         if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($id)) {
             if ($this->bonusModel->deleteBonus($id)) {
                 flash('bonus_message', 'Bonus entry deleted successfully.', 'success');
@@ -156,4 +163,4 @@ class BonusController extends Controller {
             redirect('/admin/bonus');
         }
     }
-} 
+}

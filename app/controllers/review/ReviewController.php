@@ -39,7 +39,7 @@ class ReviewController extends Controller
 
         // جلب السائقين
         $drivers = $this->reviewModel->getWaitingDrivers($filters);
-        
+
         // جلب المستخدمين لنموذج التحويل
         $users = $this->userModel->getActiveUsers();
 
@@ -62,14 +62,14 @@ class ReviewController extends Controller
     public function getDriverDetails($driverId)
     {
         header('Content-Type: application/json');
-        
+
         if (!isset($_SESSION['user_id'])) {
             echo json_encode(['error' => 'غير مصرح']);
             exit;
         }
 
         $details = $this->reviewModel->getDriverDetails($driverId);
-        
+
         if ($details) {
             echo json_encode($details);
         } else {
@@ -144,14 +144,14 @@ class ReviewController extends Controller
         $allowed_roles = ['quality_manager', 'Team_leader', 'admin', 'developer'];
         if (!in_array(Auth::getUserRole(), $allowed_roles)) {
             http_response_code(403);
-            
+
             // Forcing a 403 Forbidden page, consistent with Controller::authorize()
             $debug_info = [
                 'required_permission' => 'Role must be one of: ' . implode(', ', $allowed_roles),
-                'user_role' => $_SESSION['role'] ?? 'Not Set',
+                'user_role' => $_SESSION['role_name'] ?? 'Not Set',
                 'user_permissions' => '(Not checked, role check failed)'
             ];
-            
+
             // Pass debug info to the view
             $data['debug_info'] = $debug_info;
 
@@ -170,11 +170,11 @@ class ReviewController extends Controller
             }
 
             $data = [
-                'rating' => (int)$_POST['rating'],
+                'rating' => (int) $_POST['rating'],
                 'review_notes' => trim($_POST['review_notes']),
-                'ticket_category_id' => !empty($_POST['ticket_category_id']) ? (int)$_POST['ticket_category_id'] : null,
-                'ticket_subcategory_id' => !empty($_POST['ticket_subcategory_id']) ? (int)$_POST['ticket_subcategory_id'] : null,
-                'ticket_code_id' => !empty($_POST['ticket_code_id']) ? (int)$_POST['ticket_code_id'] : null,
+                'ticket_category_id' => !empty($_POST['ticket_category_id']) ? (int) $_POST['ticket_category_id'] : null,
+                'ticket_subcategory_id' => !empty($_POST['ticket_subcategory_id']) ? (int) $_POST['ticket_subcategory_id'] : null,
+                'ticket_code_id' => !empty($_POST['ticket_code_id']) ? (int) $_POST['ticket_code_id'] : null,
             ];
 
             $userId = Auth::getUserId();
@@ -189,13 +189,13 @@ class ReviewController extends Controller
             // Redirect back to the original entity's page
             $redirectInfo = $this->reviewModel->getEntityIdForRedirect($reviewable_type, $reviewable_id);
             if ($redirectInfo) {
-                 if ($redirectInfo['type'] === 'driver') {
+                if ($redirectInfo['type'] === 'driver') {
                     redirect('drivers/details/' . $redirectInfo['id']);
                 } elseif ($redirectInfo['type'] === 'ticket') {
                     redirect('tickets/view/' . $redirectInfo['id']);
                 }
             }
-            
+
             // Fallback redirect
             redirect('');
             return; // Stop execution after POST handling
@@ -207,7 +207,7 @@ class ReviewController extends Controller
         if (!$item_to_review) {
             // Optionally, set a flash message
             flash('error', 'The item you are trying to review does not exist.', 'error');
-            redirect('/'); 
+            redirect('/');
             return;
         }
 
@@ -221,4 +221,4 @@ class ReviewController extends Controller
 
         $this->view('review/add', $data);
     }
-} 
+}

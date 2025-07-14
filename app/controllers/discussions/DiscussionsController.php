@@ -5,41 +5,49 @@ namespace App\Controllers\Discussions;
 use App\Core\Controller;
 use App\Core\Auth;
 
-class DiscussionsController extends Controller {
+class DiscussionsController extends Controller
+{
     private $discussionModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         Auth::requireLogin(); // Ensure user is logged in
         $this->discussionModel = $this->model('discussion/Discussion');
     }
 
-    public function index() {
+    public function index()
+    {
         $data = [
             'page_main_title' => 'My Discussions',
         ];
 
         $this->view('discussions/index', $data);
     }
-    
-    public function getDiscussionsApi() {
+
+    public function getDiscussionsApi()
+    {
         header('Content-Type: application/json');
+
         $userId = Auth::getUserId();
-        if (!$userId) {
+
+        if (!$userId || !isset($_SESSION['role_name'])) {
             http_response_code(401); // Unauthorized
             echo json_encode(['error' => 'Authentication required.']);
             return;
         }
-        
-        $role = $_SESSION['role'];
+
+        $role = $_SESSION['role_name'];
         $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role);
+
         $currentUser = ['id' => $userId, 'role' => $role];
-    
+
         echo json_encode([
             'discussions' => array_values($discussions),
             'currentUser' => $currentUser
         ]);
     }
+
 
     public function add($discussable_type, $discussable_id)
     {
@@ -93,7 +101,8 @@ class DiscussionsController extends Controller {
         $this->view('discussions/add', $data);
     }
 
-    private function safeRedirectBack($type, $id) {
+    private function safeRedirectBack($type, $id)
+    {
         $redirectInfo = $this->discussionModel->getEntityForRedirect($type, $id);
         if ($redirectInfo) {
             if ($redirectInfo['type'] === 'ticket') {
@@ -108,7 +117,8 @@ class DiscussionsController extends Controller {
         redirect('');
     }
 
-    public function close($id) {
+    public function close($id)
+    {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -118,7 +128,7 @@ class DiscussionsController extends Controller {
         }
 
         $userId = Auth::getUserId();
-        $role = $_SESSION['role'] ?? ''; // Make sure role exists
+        $role = $_SESSION['role_name'] ?? ''; // Make sure role exists
 
         // Authorization check
         $canCloseRoles = ['admin', 'quality_manager', 'Team_leader'];
@@ -137,7 +147,8 @@ class DiscussionsController extends Controller {
         }
     }
 
-    public function reopen($id) {
+    public function reopen($id)
+    {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -147,7 +158,7 @@ class DiscussionsController extends Controller {
         }
 
         $userId = Auth::getUserId();
-        $role = $_SESSION['role'] ?? '';
+        $role = $_SESSION['role_name'] ?? '';
 
         // Allow reopening for a broader set of authorized roles, not just admin
         $canReopenRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
@@ -166,7 +177,8 @@ class DiscussionsController extends Controller {
         }
     }
 
-    public function addReply($discussionId) {
+    public function addReply($discussionId)
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('discussions');
         }
@@ -179,7 +191,7 @@ class DiscussionsController extends Controller {
         }
 
         $userId = $_SESSION['user_id'];
-        
+
         if ($this->discussionModel->addReply($discussionId, $userId, $message)) {
             flash('discussion_success', 'Reply added successfully.', 'alert alert-success');
         } else {
@@ -189,7 +201,8 @@ class DiscussionsController extends Controller {
         redirect('discussions#discussion-' . $discussionId);
     }
 
-    public function addReplyApi($discussionId) {
+    public function addReplyApi($discussionId)
+    {
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -208,7 +221,7 @@ class DiscussionsController extends Controller {
         }
 
         $userId = Auth::getUserId();
-        
+
         $newReply = $this->discussionModel->addReply($discussionId, $userId, $message);
 
         if ($newReply) {
@@ -220,21 +233,22 @@ class DiscussionsController extends Controller {
         }
     }
 
-    public function markAsReadApi($discussionId) {
+    public function markAsReadApi($discussionId)
+    {
         header('Content-Type: application/json');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
-    
+
         $userId = Auth::getUserId();
         if (!$userId) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
             return;
         }
-    
+
         if ($this->discussionModel->markRepliesAsRead($discussionId, $userId)) {
             echo json_encode(['success' => true, 'message' => 'Discussion marked as read.']);
         } else {
@@ -242,4 +256,4 @@ class DiscussionsController extends Controller {
             echo json_encode(['success' => false, 'message' => 'Failed to mark as read.']);
         }
     }
-} 
+}

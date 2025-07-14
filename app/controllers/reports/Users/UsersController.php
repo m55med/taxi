@@ -25,7 +25,7 @@ class UsersController extends Controller
         }
 
         // Specific permissions for this page
-        if (!in_array($_SESSION['role'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
+        if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
             flash('auth_error', 'You are not authorized to access this page.', 'error');
             redirect('dashboard');
         }
@@ -87,7 +87,8 @@ class UsersController extends Controller
         }
     }
 
-    private function flattenUserData($user) {
+    private function flattenUserData($user)
+    {
         return [
             'User' => $user['username'] ?? '',
             'Email' => $user['email'] ?? '',
@@ -110,7 +111,7 @@ class UsersController extends Controller
     {
         header('Content-Type: application/json; charset=UTF-8');
         header('Content-Disposition: attachment;filename="users_report_' . date('Y-m-d') . '.json"');
-        
+
         $processedData = array_map([$this, 'flattenUserData'], $data);
 
         echo json_encode($processedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
@@ -120,10 +121,10 @@ class UsersController extends Controller
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         $users = $reportData['users'];
         $summary = $reportData['summary_stats'];
-        
+
         if (empty($users)) {
             $sheet->setCellValue('A1', 'No data to export.');
         } else {
@@ -138,15 +139,20 @@ class UsersController extends Controller
             ];
             $sheet->fromArray($headers, null, 'A1');
             $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->applyFromArray($headerStyle);
-            
+
             // Add Data
             $sheet->fromArray($processedData, null, 'A2');
-            
+
             // Add Totals Row
             $lastRow = count($processedData) + 2;
             $average_quality = ($summary['total_reviews'] ?? 0) > 0 ? ($summary['total_quality_score'] / $summary['total_reviews']) : 0;
             $summaryRow = [
-                'Grand Total', '', '', '', '', '',
+                'Grand Total',
+                '',
+                '',
+                '',
+                '',
+                '',
                 ($summary['incoming_calls'] ?? 0) + ($summary['outgoing_calls'] ?? 0),
                 $summary['incoming_calls'] ?? 0,
                 $summary['outgoing_calls'] ?? 0,
