@@ -173,7 +173,7 @@
                     <button type="button" @click="setDateRange(30)" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition ml-2">30 Days</button>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="<?= BASE_PATH ?>/reports/users" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium flex items-center transition">
+                    <a href="/reports/users" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm font-medium flex items-center transition">
                         <i class="fas fa-times mr-2"></i>Reset
                     </a>
                     
@@ -185,10 +185,10 @@
                             <i class="fas fa-chevron-down ml-2 text-xs"></i>
                         </button>
                         <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20" style="display:none;">
-                            <a href="<?= BASE_PATH ?>/reports/users/export?export_type=excel&<?= http_build_query($filters) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                            <a href="/reports/users/export?export_type=excel&<?= http_build_query($filters) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
                                 <i class="fas fa-file-excel mr-2 text-green-500"></i>Export as Excel
                             </a>
-                            <a href="<?= BASE_PATH ?>/reports/users/export?export_type=json&<?= http_build_query($filters) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                            <a href="/reports/users/export?export_type=json&<?= http_build_query($filters) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
                                 <i class="fas fa-file-code mr-2 text-blue-500"></i>Export as JSON
                             </a>
                         </div>
@@ -240,7 +240,7 @@
                                         </div>
                                         <div class="ml-4">
                                             <div class="text-sm font-medium text-gray-900">
-                                                <a href="<?= BASE_PATH ?>/logs?user_id=<?= $user['id'] ?>" class="hover:underline text-indigo-600">
+                                                <a href="/logs?user_id=<?= $user['id'] ?>" class="hover:underline text-indigo-600">
                                                     <?= htmlspecialchars($user['username']) ?>
                                                 </a>
                                             </div>
@@ -253,7 +253,7 @@
                                 </td>
                                 <td data-label="Team" class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
                                     <?php if (!empty($user['team_id']) && !empty($user['team_name'])): ?>
-                                        <a href="<?= BASE_PATH ?>/logs?team_id=<?= $user['team_id'] ?>" class="hover:underline text-indigo-600">
+                                        <a href="/logs?team_id=<?= $user['team_id'] ?>" class="hover:underline text-indigo-600">
                                             <?= htmlspecialchars($user['team_name']) ?>
                                         </a>
                                     <?php else: ?>

@@ -136,7 +136,7 @@ if (isset($add_review_url)) {
                             // Ensure all required variables are passed to the partial
                             $discussion_partial_data = [
                                 'discussions' => $review['discussions'] ?? [],
-                                'add_url' => BASE_PATH . "/discussions/add/review/" . $review['id'],
+                                'add_url' => BASE_URL . "/discussions/add/review/" . $review['id'],
                                 'can_add_discussion' => in_array($currentUser['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']),
                                 'currentUser' => $currentUser // Pass the user context down
                             ];

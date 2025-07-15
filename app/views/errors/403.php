@@ -24,7 +24,7 @@
         <p class="mt-2 text-sm text-gray-500">
             إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع مسؤول النظام.
         </p>
-        <a href="<?php echo isset($_SESSION['user_id']) ? BASE_PATH . '/dashboard' : BASE_PATH . '/auth/login'; ?>" 
+        <a href="<?php echo isset($_SESSION['user_id']) ? BASE_URL . '/dashboard' : BASE_URL . '/login'; ?>" 
            class="inline-block w-full px-6 py-3 mt-8 text-lg font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
            <?php echo isset($_SESSION['user_id']) ? 'العودة إلى لوحة التحكم' : 'الذهاب إلى صفحة الدخول'; ?>
         </a>

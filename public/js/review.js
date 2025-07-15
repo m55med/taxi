@@ -25,7 +25,7 @@ function showDriverModal(driverId) {
     document.getElementById('driverModal').classList.remove('hidden');
     document.getElementById('reviewDriverId').value = driverId;
     
-    fetch(`${BASE_PATH}/review/getDriverDetails/${driverId}`)
+    fetch(`${BASE_URL}/review/getDriverDetails/${driverId}`)
         .then(response => response.json())
         .then(data => {
             if (data.error) {
@@ -147,7 +147,7 @@ document.getElementById('reviewForm').addEventListener('submit', async function(
     submitButton.disabled = true;
     
     try {
-        const response = await fetch(`${BASE_PATH}/review/updateDriver`, {
+        const response = await fetch(`${BASE_URL}/review/updateDriver`, {
             method: 'POST',
             body: formData
         });
@@ -177,7 +177,7 @@ document.getElementById('transferForm').addEventListener('submit', async functio
     submitButton.disabled = true;
     
     try {
-        const response = await fetch(`${BASE_PATH}/review/transferDriver`, {
+        const response = await fetch(`${BASE_URL}/review/transferDriver`, {
             method: 'POST',
             body: formData
         });

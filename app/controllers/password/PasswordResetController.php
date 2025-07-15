@@ -34,7 +34,7 @@ class PasswordResetController extends Controller
     public function handleRequestForm()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . BASE_PATH . '/forgot-password');
+            header('Location: ' . BASE_URL . '/forgot-password');
             exit;
         }
 
@@ -59,7 +59,7 @@ class PasswordResetController extends Controller
 
             // Send email
             $mailService = new MailService();
-            $resetLink = BASE_PATH . "/reset-password/{$token}";
+            $resetLink = BASE_URL . "/reset-password/{$token}";
             $subject = 'Your Password Reset Request';
             $body = $this->createEmailBody($resetLink);
             
@@ -98,7 +98,7 @@ class PasswordResetController extends Controller
     public function handleReset()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . BASE_PATH . '/login');
+            header('Location: ' . BASE_URL . '/login');
             exit;
         }
 
@@ -138,7 +138,7 @@ class PasswordResetController extends Controller
         $this->passwordResetModel->deleteResetToken($tokenData['email']);
 
         $_SESSION['success'] = 'Your password has been reset successfully. You can now log in.';
-        header('Location: ' . BASE_PATH . '/login');
+        header('Location: ' . BASE_URL . '/login');
         exit();
     }
     

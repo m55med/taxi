@@ -58,7 +58,7 @@ if (isset($add_url)) {
                         </div>
                         <div class="flex items-center space-x-3">
                             <span class="text-xs px-2 py-1 rounded-full <?= $discussion['status'] === 'open' ? 'bg-orange-200 text-orange-800' : 'bg-gray-200 text-gray-800' ?>"><?= ucfirst($discussion['status']) ?></span>
-                            <a href="<?= BASE_PATH ?>/discussions#discussion-<?= $discussion['id'] ?>" title="View on discussions page" class="text-gray-400 hover:text-blue-500 transition-colors duration-150">
+                            <a href="/discussions#discussion-<?= $discussion['id'] ?>" title="View on discussions page" class="text-gray-400 hover:text-blue-500 transition-colors duration-150">
                                 <i class="fas fa-external-link-alt"></i>
                             </a>
                         </div>

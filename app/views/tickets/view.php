@@ -25,7 +25,7 @@
                  <?php
                     render_partial('tickets/partials/discussions_section.php', [
                         'discussions' => $data['ticketDiscussions'] ?? [],
-                        'add_url' => BASE_PATH . "/discussions/add/ticket/" . $data['ticket']['id'],
+                        'add_url' => BASE_URL . "/discussions/add/ticket/" . $data['ticket']['id'],
                         'can_add_discussion' => in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer', 'agent']),
                         'currentUser' => $data['currentUser']
                     ]);
@@ -68,12 +68,7 @@
     }
 </script>
 
-<script>
-    // Define BASE_PATH as a global JavaScript variable
-    const BASE_PATH = '<?= defined('BASE_PATH') ? BASE_PATH : '' ?>';
-</script>
-
 <!-- Include the new ticket search JavaScript -->
-<script src="<?= BASE_PATH ?>/app/views/tickets/js/ticket_search.js"></script>
+<script src="<?= BASE_URL ?>/app/views/tickets/js/ticket_search.js"></script>
 
-<?php include_once __DIR__ . '/../includes/footer.php'; ?> 
+<?php include_once __DIR__ . '/../includes/footer.php'; ?>

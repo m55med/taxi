@@ -19,15 +19,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                // The BASE_PATH variable must be available globally in the HTML page.
-                const response = await fetch(`${BASE_PATH}/tickets/ajaxSearch?term=${encodeURIComponent(term)}`);
+                // The BASE_URL variable must be available globally in the HTML page.
+                const response = await fetch(`${BASE_URL}/tickets/ajaxSearch?term=${encodeURIComponent(term)}`);
                 const suggestions = await response.json();
 
                 suggestionsContainer.innerHTML = '';
                 if (suggestions.length > 0) {
                     suggestions.forEach(s => {
                         const item = document.createElement('a');
-                        item.href = `${BASE_PATH}/tickets/view/${s.id}`;
+                        item.href = `${BASE_URL}/tickets/view/${s.id}`;
                         item.className = 'block px-4 py-3 hover:bg-gray-100 border-b last:border-b-0';
                         
                         const ticketNumber = document.createElement('span');

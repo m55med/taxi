@@ -1,5 +1,5 @@
 <?php
-defined('BASE_PATH') or define('BASE_PATH', '');
+
 
 // Default values for the driver, now sourced from the $data array
 $driver = $data['driver'] ?? [

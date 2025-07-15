@@ -1,5 +1,5 @@
 <?php
-defined('BASE_PATH') or define('BASE_PATH', '');
+
 // Initialize variables if not set
 $driver = $data['driver'] ?? null;
 $countries = $data['countries'] ?? [];

@@ -8,7 +8,7 @@
          <ul class="space-y-3">
             <?php foreach ($data['relatedTickets'] as $relatedTicket): ?>
                  <li class="p-3 bg-gray-50 rounded-md border hover:bg-gray-100 transition">
-                    <a href="<?= BASE_PATH . '/tickets/view/' . $relatedTicket['id'] ?>" class="font-semibold text-blue-600 hover:underline flex justify-between items-center">
+                    <a href="<?= BASE_URL . '/tickets/view/' . $relatedTicket['id'] ?>" class="font-semibold text-blue-600 hover:underline flex justify-between items-center">
                         <span>Ticket #<?= htmlspecialchars($relatedTicket['ticket_number']) ?></span>
                         <i class="fas fa-external-link-alt text-sm text-gray-400"></i>
                     </a>

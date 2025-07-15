@@ -232,8 +232,8 @@
     </div>
 
     <script>
-        const BASE_PATH = '<?= BASE_PATH ?>';
+        
     </script>
-    <script src="<?= BASE_PATH ?>/js/review.js"></script>
+    <script src="<?= BASE_URL ?>/js/review.js"></script>
 </body>
 </html> 

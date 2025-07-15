@@ -112,7 +112,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
-                                    <a href="<?= BASE_PATH ?>/reports/users?team_id=<?= $team['team_id'] ?>&<?= http_build_query(array_diff_key($data['filters'], ['period'=>''])) ?>" class="text-indigo-600 hover:text-indigo-900 font-semibold">
+                                    <a href="/reports/users?team_id=<?= $team['team_id'] ?>&<?= http_build_query(array_diff_key($data['filters'], ['period'=>''])) ?>" class="text-indigo-600 hover:text-indigo-900 font-semibold">
                                         <?= htmlspecialchars($team['team_name']) ?>
                                     </a>
                                 </td>

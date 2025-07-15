@@ -90,7 +90,7 @@
                     // We now pass the entire $data array so the partial has access to currentUser
                     render_partial('tickets/partials/reviews_section.php', [
                         'reviews' => $history['reviews'] ?? [],
-                        'add_review_url' => BASE_PATH . "/review/add/ticket_detail/" . $history['id'],
+                        'add_review_url' => BASE_URL . "/review/add/ticket_detail/" . $history['id'],
                         'can_add_review' => in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']),
                         'currentUser' => $data['currentUser'],
                         'ticket_categories' => $data['ticket_categories'] ?? [] // Pass categories down

@@ -1,5 +1,5 @@
 <?php
-defined('BASE_PATH') or define('BASE_PATH', '');
+
 // Initialize variables for safety
 $document_types = $data['document_types'] ?? [];
 $required_documents = $data['required_documents'] ?? [];

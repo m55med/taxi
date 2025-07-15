@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taxi</title>
+
+    <script>var BASE_URL = "<?php echo BASE_URL; ?>";</script>
     
     <!-- AlpineJS Collapse Plugin (must be loaded BEFORE Alpine core) -->
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>

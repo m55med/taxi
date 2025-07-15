@@ -78,8 +78,8 @@
                     <?php else: ?>
                         <?php foreach ($data['calls'] as $call): ?>
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4"><a href="<?= BASE_PATH ?>/drivers/details/<?= $call['driver_id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($call['driver_name']) ?></a></td>
-                                <td class="px-6 py-4"><a href="<?= BASE_PATH ?>/reports/myactivity?user_id=<?= $call['user_id'] ?>" class="text-blue-500 hover:underline"><?= htmlspecialchars($call['user_name']) ?></a></td>
+                                <td class="px-6 py-4"><a href="/drivers/details/<?= $call['driver_id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($call['driver_name']) ?></a></td>
+                                <td class="px-6 py-4"><a href="/reports/myactivity?user_id=<?= $call['user_id'] ?>" class="text-blue-500 hover:underline"><?= htmlspecialchars($call['user_name']) ?></a></td>
                                 <td class="px-6 py-4 text-center">
                                      <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         <?= ($call['call_status'] == 'answered') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">

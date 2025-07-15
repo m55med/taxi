@@ -26,16 +26,11 @@
 
 $router->get('', 'HomeController@index');
 
-// Use a single, canonical route for authentication. The system now redirects to /auth/login.
-// $router->get('login', 'Auth/AuthController@login');
-$router->get('auth/login', 'Auth/AuthController@login');
-// $router->post('login', 'Auth/AuthController@login');
-$router->post('auth/login', 'Auth/AuthController@login');
-
-// $router->get('register', 'Auth/AuthController@register');
-$router->get('auth/register', 'Auth/AuthController@register');
-// $router->post('register', 'Auth/AuthController@register');
-$router->post('auth/register', 'Auth/AuthController@register');
+// Authentication Routes
+$router->get('login', 'Auth/AuthController@login');
+$router->post('login', 'Auth/AuthController@login');
+$router->get('register', 'Auth/AuthController@register');
+$router->post('register', 'Auth/AuthController@register');
 
 // Password Reset Routes
 $router->get('forgot-password', 'Password/PasswordResetController@showRequestForm');

@@ -8,7 +8,7 @@
 // --- API Helper ---
 const api = {
     get: async (endpoint, params = {}) => {
-        const url = new URL(`${BASE_PATH}/${endpoint}`);
+        const url = new URL(`${BASE_URL}/${endpoint}`);
         if (params) {
             Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
         }
@@ -23,7 +23,7 @@ const api = {
     },
     post: async (endpoint, body = {}) => {
         try {
-            const response = await fetch(`${BASE_PATH}/${endpoint}`, {
+            const response = await fetch(`${BASE_URL}/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -22,7 +22,7 @@ class App
     $requestUri = $_SERVER['REQUEST_URI'] ?? '';
     $path = parse_url($requestUri, PHP_URL_PATH);
 
-    $excludedPrefixes = ['/auth/login', '/auth/register', '/login', '/register'];
+    $excludedPrefixes = ['/login', '/register'];
 
 // التحقق هل الرابط الحالي يبدأ بأي من الروابط المستثناة
 $isExcluded = false;
@@ -42,7 +42,7 @@ if (
     session_destroy();
     // No need to start a new session here, as we are redirecting immediately.
     // The session is only needed if we want to pass a message, which we aren't here.
-    header('Location: ' . BASE_PATH . '/auth/login?reason=timeout');
+    header('Location: ' . BASE_URL . '/login?reason=timeout');
     exit;
 }
 
@@ -104,7 +104,7 @@ if (
             }
 
             $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول' . (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
-            header('Location: ' . BASE_PATH . '/auth/login');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit;
         }
     }

@@ -58,7 +58,7 @@ class AuthController extends Controller
 
             if ($result['status']) {
                 $_SESSION['success'] = 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.';
-                header('Location: /auth/login');
+                header('Location: ' . BASE_URL . '/login');
                 exit();
             } else {
                 $this->view('auth/register', ['error' => $result['message']]);
@@ -72,7 +72,7 @@ class AuthController extends Controller
     {
         // إذا كان المستخدم مسجل دخوله بالفعل، قم بتوجيهه إلى لوحة التحكم
         if (isset($_SESSION['user_id'])) {
-            header('Location: /dashboard');
+            header('Location: ' . BASE_URL . '/dashboard');
             exit();
         }
 
@@ -108,7 +108,7 @@ class AuthController extends Controller
                 $permissions = $this->userModel->getUserPermissions($user->id);
                 $_SESSION['permissions'] = $permissions;
 
-                header('Location: ' . BASE_PATH . '/dashboard');
+                header('Location: ' . BASE_URL . '/dashboard');
                 exit();
             } else {
                 $this->view('auth/login', ['error' => $result['message'] ?? 'Invalid username or password.']);
@@ -142,14 +142,14 @@ class AuthController extends Controller
             session_destroy();
         }
 
-        header('Location: /auth/login');
+        header('Location: ' . BASE_URL . '/login');
         exit();
     }
 
     public function profile()
     {
         if (!isset($_SESSION['user_id'])) {
-            header('Location: /login');
+            header('Location: ' . BASE_URL . '/login');
             exit();
         }
 
@@ -160,7 +160,7 @@ class AuthController extends Controller
             // User not found, handle appropriately
             session_unset();
             session_destroy();
-            header('Location: /login');
+            header('Location: ' . BASE_URL . '/login');
             exit();
         }
 
@@ -170,7 +170,7 @@ class AuthController extends Controller
     public function updateProfile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
-            header('Location: /profile');
+            header('Location: ' . BASE_URL . '/profile');
             exit();
         }
 
@@ -186,20 +186,20 @@ class AuthController extends Controller
         // Basic validation
         if (empty($data['name']) || empty($data['email'])) {
             $_SESSION['error'] = 'Name and Email are required.';
-            header('Location: ' . BASE_PATH . '/profile');
+            header('Location: ' . BASE_URL . '/profile');
             exit();
         }
 
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Invalid email format.';
-            header('Location: ' . BASE_PATH . '/profile');
+            header('Location: ' . BASE_URL . '/profile');
             exit();
         }
 
         // If password is provided, it must meet length requirements
         if (!empty($data['password']) && strlen($data['password']) < 6) {
             $_SESSION['error'] = 'Password must be at least 6 characters long.';
-            header('Location: ' . BASE_PATH . '/profile');
+            header('Location: ' . BASE_URL . '/profile');
             exit();
         }
 
@@ -215,7 +215,7 @@ class AuthController extends Controller
             $_SESSION['error'] = $result['message'] ?? 'Failed to update profile.';
         }
 
-        header('Location: ' . BASE_PATH . '/profile');
+        header('Location: ' . BASE_URL . '/profile');
         exit();
     }
 }

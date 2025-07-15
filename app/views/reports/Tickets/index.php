@@ -79,7 +79,7 @@
                         <?php foreach ($data['tickets'] as $ticket): ?>
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4">
-                                    <a href="<?= BASE_PATH ?>/tickets/view/<?= $ticket['id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($ticket['ticket_number']) ?></a>
+                                    <a href="/tickets/view/<?= $ticket['id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($ticket['ticket_number']) ?></a>
                                     <?php if($ticket['is_vip']): ?><span class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-400 text-white">VIP</span><?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4"><?= htmlspecialchars($ticket['created_by_user']) ?></td>

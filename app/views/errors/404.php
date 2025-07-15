@@ -20,7 +20,7 @@
         <p class="text-gray-600 mt-4 mb-8 text-lg">
             الصفحة التي تبحث عنها قد تكون حُذفت، أو تم تغيير اسمها، أو أنها غير متاحة مؤقتاً.
         </p>
-        <a href="<?= BASE_PATH ?>/dashboard" 
+        <a href="/dashboard" 
            class="inline-block bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl">
             <i class="fas fa-home ml-2"></i>
             العودة إلى لوحة التحكم

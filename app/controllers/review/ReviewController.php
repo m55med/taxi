@@ -27,7 +27,7 @@ class ReviewController extends Controller
         // التحقق من تسجيل الدخول
         if (!isset($_SESSION['user_id'])) {
             $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
-            header('Location: ' . BASE_PATH . '/auth/login');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit();
         }
 
