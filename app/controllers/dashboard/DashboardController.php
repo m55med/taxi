@@ -15,7 +15,7 @@ class DashboardController extends Controller
     public function __construct()
     {
         Auth::requireLogin();
-        $this->userModel = $this->model('user/User');
+        $this->userModel = $this->model('User/User');
         $this->dashboardModel = $this->model('dashboard/Dashboard');
         parent::__construct();
     }
@@ -33,9 +33,10 @@ class DashboardController extends Controller
 
         // The model expects an array with user details
         $userDataForModel = [
-            'id' => $user['id'],
-            'role_name' => $user['role_name']
+            'id' => $user->id,
+            'role_name' => $user->role_name
         ];
+        
 
 
         // Fetch all dashboard data using the centralized model method

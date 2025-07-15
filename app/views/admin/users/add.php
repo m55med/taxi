@@ -6,13 +6,13 @@
         <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Add New User</h1>
-                <a href="<?= BASE_PATH ?>/admin/users" class="text-indigo-600 hover:text-indigo-900">
+                <a href="<?= BASE_URL ?>/admin/users" class="text-indigo-600 hover:text-indigo-900">
                     <i class="fas fa-arrow-left mr-1"></i>
                     Back to List
                 </a>
             </div>
 
-            <form action="<?= BASE_PATH ?>/admin/users/store" method="POST" class="space-y-6">
+            <form action="<?= BASE_URL ?>/admin/users/store" method="POST" class="space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                     <input type="text" name="username" id="username" required
@@ -35,9 +35,9 @@
                     <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
                     <select name="role_id" id="role" required
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <?php foreach ($data['roles'] ?? [] as $role): ?>
-                            <option value="<?= htmlspecialchars($role['id']) ?>">
-                                <?= htmlspecialchars($role['name']) ?>
+                        <?php foreach ($roles ?? [] as $role): ?>
+                            <option value="<?= htmlspecialchars($role->id) ?>">
+                                <?= htmlspecialchars($role->name) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

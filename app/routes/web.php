@@ -2,7 +2,7 @@
 
 // Redirect old "auth/" routes to new clean routes for SEO and user experience
 $requestUriPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-$basePath = trim(parse_url(BASE_URL, PHP_URL_PATH), '/');
+$basePath = trim(parse_url(BASE_URL, PHP_URL_PATH) ?? '', '/');
 
 $cleanUri = $requestUriPath;
 if (!empty($basePath) && strpos($requestUriPath, $basePath) === 0) {
@@ -126,6 +126,14 @@ $router->post("admin/document_types/delete/{id}", "Admin/DocumentTypesController
 $router->get("admin/points", "Admin/PointsController@index");
 $router->post("admin/points/setTicketPoints", "Admin/PointsController@setTicketPoints");
 $router->post("admin/points/setCallPoints", "Admin/PointsController@setCallPoints");
+
+// Routes for UsersController
+$router->get("admin/users", "Admin/UsersController@index");
+$router->get("admin/users/create", "Admin/UsersController@create");
+$router->post("admin/users/store", "Admin/UsersController@store");
+$router->get("admin/users/edit/{id}", "Admin/UsersController@edit");
+$router->post("admin/users/update/{id}", "Admin/UsersController@update");
+$router->post("admin/users/destroy", "Admin/UsersController@destroy");
 
 // Custom routes for TeamsController
 $router->get("admin/teams", "Admin/TeamsController@index");
@@ -388,14 +396,14 @@ $router->get('tickets', 'Tickets/TicketController@index')->middleware(['admin', 
 $router->get('tickets/view/{id}', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('tickets/search', 'Tickets/TicketController@search')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-$router->get('create_ticket', 'Create_ticket/CreateTicketController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-$router->get('create_ticket/subcategories/{categoryId}', 'Create_ticket/CreateTicketController@getSubcategories');
-$router->get('create_ticket/codes/{subcategoryId}', 'Create_ticket/CreateTicketController@getCodes');
-$router->get('create_ticket/coupons/{countryId}', 'Create_ticket/CreateTicketController@getAvailableCoupons');
-$router->get('create_ticket/checkTicketExists/{ticketNumber}', 'Create_ticket/CreateTicketController@checkTicketExists');
-$router->post('create_ticket/store', 'Create_ticket/CreateTicketController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-$router->post('create_ticket/holdCoupon', 'Create_ticket/CreateTicketController@holdCoupon');
-$router->post('create_ticket/releaseCoupon', 'Create_ticket/CreateTicketController@releaseCoupon');
+$router->get('create_ticket', 'CreateTicket/CreateTicketController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('create_ticket/subcategories/{categoryId}', 'CreateTicket/CreateTicketController@getSubcategories');
+$router->get('create_ticket/codes/{subcategoryId}', 'CreateTicket/CreateTicketController@getCodes');
+$router->get('create_ticket/coupons/{countryId}', 'CreateTicket/CreateTicketController@getAvailableCoupons');
+$router->get('create_ticket/checkTicketExists/{ticketNumber}', 'CreateTicket/CreateTicketController@checkTicketExists');
+$router->post('create_ticket/store', 'CreateTicket/CreateTicketController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('create_ticket/holdCoupon', 'CreateTicket/CreateTicketController@holdCoupon');
+$router->post('create_ticket/releaseCoupon', 'CreateTicket/CreateTicketController@releaseCoupon');
 
 $router->get('discussions', 'Discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('discussions/addReply/{id}', 'Discussions/DiscussionsController@addReply');

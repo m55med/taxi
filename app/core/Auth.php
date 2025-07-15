@@ -7,7 +7,7 @@ class Auth
     public static function requireAuth()
     {
         if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_PATH . '/auth/login');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit();
         }
     }
@@ -110,7 +110,7 @@ class Auth
         if (!self::isLoggedIn()) {
             // You can store the intended URL in session to redirect back after login
             // $_SESSION['return_to'] = $_SERVER['REQUEST_URI'];
-            header('Location: ' . BASE_PATH . '/auth/login');
+            header('Location: ' . BASE_URL . '/auth/login');
             exit;
         }
     }

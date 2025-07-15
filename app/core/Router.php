@@ -104,7 +104,7 @@ class Router
                 // Create an associative array of parameters
                 $params = !empty($placeholders) ? array_combine($placeholders, $matches) : [];
 
-                list($controller, $method) = explode('@', $controllerAction);
+                list($controller, $method) = explode('@', $controllerAction['controller']);
 
                 // Check if the method name is a placeholder
                 if (preg_match('/^\{(.+)\}$/', $method, $method_matches)) {

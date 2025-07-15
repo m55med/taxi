@@ -31,7 +31,7 @@ class UsersController extends Controller {
         $userStats = $this->userModel->getUserStats(); // Get user statistics
 
         foreach ($users as &$user) {
-            $user['is_online'] = in_array($user['id'], $onlineUserIds);
+            $user->is_online = in_array($user->id, $onlineUserIds);
         }
         
         $data = [
@@ -85,7 +85,7 @@ class UsersController extends Controller {
                 }
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/users');
+        header('Location: ' . BASE_URL . '/admin/users');
         exit;
     }
 
@@ -93,7 +93,7 @@ class UsersController extends Controller {
         $user = $this->userModel->getUserById($id);
         if (!$user) {
             // Handle user not found
-            header('Location: ' . BASE_PATH . '/admin/users');
+            header('Location: ' . BASE_URL . '/admin/users');
             exit;
         }
 
@@ -128,13 +128,13 @@ class UsersController extends Controller {
                 $_SESSION['user_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/users');
+        header('Location: ' . BASE_URL . '/admin/users');
         exit;
     }
 
     public function destroy() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id'])) {
-             redirect(BASE_PATH . '/admin/users');
+             redirect(BASE_URL . '/admin/users');
         }
         $id = $_POST['id'];
 
@@ -146,7 +146,7 @@ class UsersController extends Controller {
             $_SESSION['user_message_type'] = 'error';
         }
         // This should redirect to the index page which will show the flash message
-        header('Location: ' . BASE_PATH . '/admin/users');
+        header('Location: ' . BASE_URL . '/admin/users');
         exit;
     }
 

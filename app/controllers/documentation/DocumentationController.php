@@ -6,6 +6,11 @@ use App\Core\Controller;
 
 class DocumentationController extends Controller
 {
+    public function __construct()
+    {
+        parent::__construct();
+    }
+    
     /**
      * Show the documentation page.
      */

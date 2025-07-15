@@ -191,15 +191,15 @@ class User
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $users = $stmt->fetchAll(PDO::FETCH_OBJ);
 
             // التأكد من أن جميع الحقول موجودة
             foreach ($users as &$user) {
-                $user['role_name'] = $user['role_name'] ?? 'مستخدم';
-                $user['role_id'] = $user['role_id'] ?? 3; // افتراضي للمستخدم العادي
-                $user['status'] = $user['status'] ?? 'pending';
-                $user['is_online'] = $user['is_online'] ?? 0;
-                $user['updated_at'] = $user['updated_at'] ?? date('Y-m-d H:i:s');
+                $user->role_name = $user->role_name ?? 'مستخدم';
+                $user->role_id = $user->role_id ?? 3; // افتراضي للمستخدم العادي
+                $user->status = $user->status ?? 'pending';
+                $user->is_online = $user->is_online ?? 0;
+                $user->updated_at = $user->updated_at ?? date('Y-m-d H:i:s');
             }
 
             return $users;
@@ -309,12 +309,12 @@ class User
                     WHERE u.id = ?";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $user = $stmt->fetch(PDO::FETCH_OBJ);
 
             if ($user) {
                 // التأكد من أن جميع الحقول المطلوبة موجودة
-                $user['role_name'] = $user['role_name'] ?? 'مستخدم';
-                $user['status'] = $user['status'] ?? 'pending';
+                $user->role_name = $user->role_name ?? 'مستخدم';
+                $user->status = $user->status ?? 'pending';
             }
 
             return $user;

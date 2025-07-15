@@ -94,7 +94,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
             <?php endif; ?>
 
-            <form action="/taxi/login" method="POST" class="space-y-6" autocomplete="off" novalidate>
+            <form action="/login" method="POST" class="space-y-6" autocomplete="off" novalidate>
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
                     <div class="form-input-container mt-1">
@@ -127,8 +127,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
 
                     <div class="text-sm">
-                    <a href="/forgot-password"
-                            class="font-medium text-indigo-600 hover:text-indigo-500"> Forgot your password? </a>
+                        <a href="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-500"> Forgot
+                            your password? </a>
                     </div>
                 </div>
 
@@ -143,8 +143,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
         <p class="mt-8 text-center text-sm text-gray-500">
             Not a member?
-            <a href="/taxi/register"
-                class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500 hover:underline">
+            <a href="/register" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500 hover:underline">
                 Sign up now
             </a>
         </p>
