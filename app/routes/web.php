@@ -1,5 +1,22 @@
 <?php
 
+// Redirect old "auth/" routes to new clean routes for SEO and user experience
+$requestUriPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+$basePath = trim(parse_url(BASE_URL, PHP_URL_PATH), '/');
+
+$cleanUri = $requestUriPath;
+if (!empty($basePath) && strpos($requestUriPath, $basePath) === 0) {
+    // Remove the base path (like 'taxi') from the start of the URI
+    $cleanUri = trim(substr($requestUriPath, strlen($basePath)), '/');
+}
+
+if (strpos($cleanUri, 'auth/') === 0) {
+    $newUri = str_replace('auth/', '', $cleanUri);
+    // Redirect to the new clean URI
+    header('Location: ' . BASE_URL . '/' . $newUri, true, 301);
+    exit;
+}
+
 // Note: The $router variable is now initialized in App.php and passed here.
 
 // This file will now act as the main entry point for all web routes.
@@ -31,6 +48,7 @@ $router->get('login', 'Auth/AuthController@login');
 $router->post('login', 'Auth/AuthController@login');
 $router->get('register', 'Auth/AuthController@register');
 $router->post('register', 'Auth/AuthController@register');
+$router->get('logout', 'Auth/AuthController@logout');
 
 // Password Reset Routes
 $router->get('forgot-password', 'Password/PasswordResetController@showRequestForm');
@@ -41,8 +59,6 @@ $router->post('reset-password', 'Password/PasswordResetController@handleReset');
 // Profile routes
 $router->get('profile', 'Auth/AuthController@profile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('profile/update', 'Auth/AuthController@updateProfile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-
-$router->get('logout', 'Auth/AuthController@logout');
 
 $router->get('dashboard', 'Dashboard/DashboardController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);

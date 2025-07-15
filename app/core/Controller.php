@@ -10,51 +10,25 @@ class Controller
 {
     public function __construct()
     {
-        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-        $path = parse_url($requestUri, PHP_URL_PATH);
-    
-        // صفحات مستثناة من التحقق (login, register, ... إلخ)
-        $excludedPaths = ['/login', '/auth/login', '/register', '/auth/register'];
-    
-        // ✅ لو الجلسة مش موجودة والمستخدم مش في صفحة مستثناة → نوجهه على login ونوقف التنفيذ
-        if (!isset($_SESSION['user_id'])) {
-            if (!in_array($path, $excludedPaths)) {
-                header('Location: /auth/login');
-                exit();
-            }
-            // ✅ المستخدم بالفعل في صفحة login → لا تعيد التوجيه
-        }
-        
-    
-        // ✅ The timeout check is handled in App.php
-        // We still need to record user activity for logged-in users.
-        if (isset($_SESSION['user_id'])) {
-            $activeUserService = new ActiveUserService();
+        // The authentication and session checks have been centralized in App.php
+        // to avoid duplicate logic and potential redirect loops.
 
-            // The timeout logic has been moved to App.php to run earlier.
-            /*
-            $timeout = 1800; // 30 دقيقة
-    
-            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout) {
-                $activeUserService->logoutUser($_SESSION['user_id']);
-                $_SESSION = [];
-                session_destroy();
-    
-                header('Location: /auth/login');
-                exit();
-            }
-            */
-    
-            // We still need to update the last activity timestamp and record the activity
+        // We can still perform actions that should happen on every authenticated request.
+        if (isset($_SESSION['user_id'])) {
             $_SESSION['last_activity'] = time();
+
+            $activeUserService = new \App\Services\ActiveUserService();
             $activeUserService->recordUserActivity($_SESSION['user_id']);
-    
-            // The cleanup can still run here
+
+            // نضيف احتمالية تنظيف المستخدمين غير النشطين
             if (rand(1, 100) <= 5) {
                 $activeUserService->cleanupInactiveUsers();
             }
         }
     }
+
+
+
     
     
 

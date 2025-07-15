@@ -65,12 +65,16 @@ define('APPROOT', dirname(__DIR__) . '/app');
 // Define Base URL dynamically
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'];
-$script_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
-$base_url = rtrim($script_dir, '/');
-// Always remove /public from the base url since it's the entry point
-$base_url = str_replace('/public', '', $base_url);
+
+// This gets /taxi/public → we want just /taxi
+$script_name = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
+$script_dir = rtrim(dirname($script_name), '/');
+$base_url = str_replace('/public', '', $script_dir);
+
+// Final BASE_URL: http://localhost/taxi (not http://localhost)
 define('BASE_URL', $protocol . $host . $base_url);
 define('URLROOT', BASE_URL);
+
 
 // Start the session
 if (session_status() === PHP_SESSION_NONE) {

@@ -22,7 +22,7 @@ class App
     $requestUri = $_SERVER['REQUEST_URI'] ?? '';
     $path = parse_url($requestUri, PHP_URL_PATH);
 
-    $excludedPrefixes = ['/login', '/register'];
+    $excludedPrefixes = ['/login', '/register', '/auth/login', '/auth/register'];
 
 // التحقق هل الرابط الحالي يبدأ بأي من الروابط المستثناة
 $isExcluded = false;
@@ -34,17 +34,17 @@ foreach ($excludedPrefixes as $excluded) {
 }
 
 if (
+    isset($_SESSION['user_id']) &&
     isset($_SESSION['last_activity']) &&
     (time() - $_SESSION['last_activity'] > self::SESSION_TIMEOUT) &&
     !$isExcluded
 ) {
     session_unset();
     session_destroy();
-    // No need to start a new session here, as we are redirecting immediately.
-    // The session is only needed if we want to pass a message, which we aren't here.
     header('Location: ' . BASE_URL . '/login?reason=timeout');
     exit;
 }
+
 
 
     // تحديث وقت النشاط الحالي

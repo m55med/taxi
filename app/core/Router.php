@@ -138,42 +138,10 @@ class Router
             return;
         }
 
-        // Authentication (is the user logged in?) is now handled in the Controller constructor.
-        // This block is redundant. The Controller will redirect to /auth/login if needed.
-        /*
-        // If user is not logged in, redirect to login page
-        if (!isset($_SESSION['user_id'])) {
-            // Start session if not already started to handle flash messages
-            if (session_status() === PHP_SESSION_NONE) {
-
-            }
-            header('Location: ' . BASE_PATH . '/login');
-            exit;
-        }
-        */
-
-        // Routes that require login but not a specific permission key.
-        $loggedInButNoPermissionNeeded = [
-            'Discussions/addReply',
-            'Discussions/close',
-        ];
-        if (in_array($permissionKey, $loggedInButNoPermissionNeeded, true)) {
-            return; // Skip specific permission check
-        }
-
-        // Final check for the permission
-        if (!Auth::hasPermission($permissionKey)) {
-            http_response_code(403);
-            $debug_info = [
-                'required_permission' => $permissionKey,
-                'user_role' => $_SESSION['role_name'] ?? 'Not Set',
-                'user_permissions' => $_SESSION['permissions'] ?? []
-            ];
-            $data['debug_info'] = $debug_info;
-            require_once APPROOT . '/views/errors/403.php';
-            exit;
-        }
+        // Call the controller action with params
+        call_user_func_array([$controllerInstance, $method], $params);
     }
+
 
     private function triggerNotFound($message = 'Page not found.')
     {
