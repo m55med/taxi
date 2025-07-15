@@ -4,7 +4,7 @@
 
 // Start session if not already started to access session variables
 if (session_status() == PHP_SESSION_NONE) {
-    session_start();
+
 }
 ?>
 

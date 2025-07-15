@@ -10,60 +10,76 @@ class App
     private const SESSION_TIMEOUT = 1800; // 30 minutes in seconds
 
     public function __construct()
-    {
-        ini_set('display_errors', 1);
-        ini_set('display_startup_errors', 1);
-        error_reporting(E_ALL);
-        // Session must be started to check for user_id
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        // Handle session timeout for inactivity
-        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > self::SESSION_TIMEOUT)) {
-            session_unset();
-            session_destroy();
-            session_start();
-            $_SESSION['error'] = 'تم تسجيل خروجك تلقائيًا بسبب عدم النشاط.';
-            header('Location: ' . BASE_PATH . '/login');
-            exit;
-        }
-
-        // Update last activity time on each request
-        if (isset($_SESSION['user_id'])) {
-            $_SESSION['last_activity'] = time();
-        }
-
-        // Force logout check, permission refresh, and online status update
-        if (isset($_SESSION['user_id'])) {
-            $this->checkAndHandleForceLogout($_SESSION['user_id']);
-            $this->checkAndRefreshPermissions($_SESSION['user_id']);
-
-            $userModel = new User();
-            $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
-        }
-
-        $url = self::parseUrl();
-
-        $uri = empty($url) ? '' : implode('/', $url);
-
-        // Load routes and dispatch the request.
-        // The router will handle 404s, controller/method calling, and permissions.
-        try {
-            $router = Router::load('../app/routes/web.php');
-            $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
-        } catch (\Throwable $e) {
-            // في وقت التطوير نعرض الخطأ كاملًا
-            http_response_code(500);
-            echo "<h1>500 - Internal Server Error</h1>";
-            echo "<pre style='color: red; background: #f9f9f9; padding: 10px;'>";
-            echo $e->getMessage() . "\n\n";
-            echo $e->getFile() . ':' . $e->getLine() . "\n\n";
-            echo $e->getTraceAsString();
-            echo "</pre>";
-            exit;
-        }
+{
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
     }
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+
+    // نتحقق من المسار الحالي
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = parse_url($requestUri, PHP_URL_PATH);
+
+    $excludedPrefixes = ['/auth/login', '/auth/register', '/login', '/register'];
+
+// التحقق هل الرابط الحالي يبدأ بأي من الروابط المستثناة
+$isExcluded = false;
+foreach ($excludedPrefixes as $excluded) {
+    if (strpos($path, $excluded) === 0) {
+        $isExcluded = true;
+        break;
+    }
+}
+
+if (
+    isset($_SESSION['last_activity']) &&
+    (time() - $_SESSION['last_activity'] > self::SESSION_TIMEOUT) &&
+    !$isExcluded
+) {
+    session_unset();
+    session_destroy();
+    // No need to start a new session here, as we are redirecting immediately.
+    // The session is only needed if we want to pass a message, which we aren't here.
+    header('Location: ' . BASE_PATH . '/auth/login?reason=timeout');
+    exit;
+}
+
+
+    // تحديث وقت النشاط الحالي
+    if (isset($_SESSION['user_id'])) {
+        $_SESSION['last_activity'] = time();
+    }
+
+    // تحديث الصلاحيات وتسجيل الحالة
+    if (isset($_SESSION['user_id'])) {
+        $this->checkAndHandleForceLogout($_SESSION['user_id']);
+        $this->checkAndRefreshPermissions($_SESSION['user_id']);
+
+        $userModel = new \App\Models\User\User();
+        $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
+    }
+
+    // تشغيل الراوتر
+    $url = self::parseUrl();
+    $uri = empty($url) ? '' : implode('/', $url);
+
+    try {
+        $router = Router::load('../app/routes/web.php');
+        $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+    } catch (\Throwable $e) {
+        http_response_code(500);
+        echo "<h1>500 - Internal Server Error</h1>";
+        echo "<pre style='color: red; background: #f9f9f9; padding: 10px;'>";
+        echo $e->getMessage() . "\n\n";
+        echo $e->getFile() . ':' . $e->getLine() . "\n\n";
+        echo $e->getTraceAsString();
+        echo "</pre>";
+        exit;
+    }
+}
+
 
     /**
      * Checks for a force-logout signal and handles it.
@@ -76,10 +92,17 @@ class App
             $userModel = new User();
             $logoutMessage = trim(file_get_contents($forceLogoutFile));
             unlink($forceLogoutFile);
-            $userModel->logout($userId);
+            $userModel->logout($userId); // This line is important, it should not be removed.
+
+            // Clean up session and redirect.
             session_unset();
             session_destroy();
-            session_start();
+            
+            // A new session must be started to store the flash message for the next request.
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
             $_SESSION['error'] = 'تم تسجيل خروجك بواسطة مسؤول' . (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
             header('Location: ' . BASE_PATH . '/auth/login');
             exit;

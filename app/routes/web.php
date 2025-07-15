@@ -26,13 +26,15 @@
 
 $router->get('', 'HomeController@index');
 
-$router->get('login', 'Auth/AuthController@login');
+// Use a single, canonical route for authentication. The system now redirects to /auth/login.
+// $router->get('login', 'Auth/AuthController@login');
 $router->get('auth/login', 'Auth/AuthController@login');
-$router->post('login', 'Auth/AuthController@login');
+// $router->post('login', 'Auth/AuthController@login');
 $router->post('auth/login', 'Auth/AuthController@login');
-$router->get('register', 'Auth/AuthController@register');
-$router->post('register', 'Auth/AuthController@register');
+
+// $router->get('register', 'Auth/AuthController@register');
 $router->get('auth/register', 'Auth/AuthController@register');
+// $router->post('register', 'Auth/AuthController@register');
 $router->post('auth/register', 'Auth/AuthController@register');
 
 // Password Reset Routes
@@ -42,25 +44,25 @@ $router->get('reset-password/{token}', 'Password/PasswordResetController@showRes
 $router->post('reset-password', 'Password/PasswordResetController@handleReset');
 
 // Profile routes
-$router->get('profile', 'Auth/AuthController@profile');
-$router->post('profile/update', 'Auth/AuthController@updateProfile');
+$router->get('profile', 'Auth/AuthController@profile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('profile/update', 'Auth/AuthController@updateProfile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 $router->get('logout', 'Auth/AuthController@logout');
 
-$router->get('dashboard', 'Dashboard/DashboardController@index');
-$router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}');
+$router->get('dashboard', 'Dashboard/DashboardController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Documentation
 $router->get('documentation', 'Documentation/DocumentationController@index');
 
 // Knowledge Base
-$router->get('knowledge_base', 'knowledge_base/KnowledgeBaseController@index');
-$router->get('knowledge_base/create', 'knowledge_base/KnowledgeBaseController@create');
-$router->post('knowledge_base/store', 'knowledge_base/KnowledgeBaseController@store');
-$router->get('knowledge_base/show/{id}', 'knowledge_base/KnowledgeBaseController@show');
-$router->get('knowledge_base/edit/{id}', 'knowledge_base/KnowledgeBaseController@edit');
-$router->post('knowledge_base/update/{id}', 'knowledge_base/KnowledgeBaseController@update');
-$router->post('knowledge_base/destroy', 'knowledge_base/KnowledgeBaseController@destroy');
+$router->get('knowledge_base', 'knowledge_base/KnowledgeBaseController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('knowledge_base/create', 'knowledge_base/KnowledgeBaseController@create')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('knowledge_base/store', 'knowledge_base/KnowledgeBaseController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('knowledge_base/show/{id}', 'knowledge_base/KnowledgeBaseController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('knowledge_base/edit/{id}', 'knowledge_base/KnowledgeBaseController@edit')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('knowledge_base/update/{id}', 'knowledge_base/KnowledgeBaseController@update')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('knowledge_base/destroy', 'knowledge_base/KnowledgeBaseController@destroy')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('knowledge_base/findByCode/{ticketCodeId}', 'knowledge_base/KnowledgeBaseController@findByCode');
 $router->get('knowledge_base/search', 'knowledge_base/KnowledgeBaseController@searchApi');
 
@@ -141,9 +143,9 @@ $router->post("user-delegations/create", "UserDelegationsController@create");
 $router->post("user-delegations/delete", "UserDelegationsController@delete");
 
 // Employee Evaluations
-$router->get('employee-evaluations', 'EmployeeEvaluationsController@index');
-$router->post('employee-evaluations/create', 'EmployeeEvaluationsController@create');
-$router->post('employee-evaluations/delete', 'EmployeeEvaluationsController@delete');
+$router->get('employee-evaluations', 'EmployeeEvaluationsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('employee-evaluations/create', 'EmployeeEvaluationsController@create')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('employee-evaluations/delete', 'EmployeeEvaluationsController@delete')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Custom routes for TicketCategoriesController
 $router->get("admin/ticket_categories", "Admin/TicketCategoriesController@index");
@@ -177,17 +179,17 @@ $router->post("admin/permissions/batchUpdateUserPermissions", "Admin/Permissions
 $router->get("reports/myactivity", "Reports/MyActivity/MyActivityController@index");
 
 // Notification Routes
-$router->get('notifications', 'Notifications/NotificationsController@index');
-$router->get('notifications/create', 'Notifications/NotificationsController@create');
-$router->post('notifications/store', 'Notifications/NotificationsController@store');
+$router->get('notifications', 'Notifications/NotificationsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('notifications/create', 'Notifications/NotificationsController@create')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('notifications/store', 'Notifications/NotificationsController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('notifications/getNavNotifications', 'Notifications/NotificationsController@getNavNotifications');
-$router->post('notifications/markRead', 'Notifications/NotificationsController@markRead');
-$router->get('notifications/history', 'Notifications/NotificationsController@history');
-$router->get('notifications/readers/{id}', 'Notifications/NotificationsController@readers');
+$router->post('notifications/markRead', 'Notifications/NotificationsController@markRead')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('notifications/history', 'Notifications/NotificationsController@history')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('notifications/readers/{id}', 'Notifications/NotificationsController@readers')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Calls Routes
-$router->get('calls', 'Calls/CallsController@index');
-$router->post('calls/record', 'Calls/CallsController@record');
+$router->get('calls', 'Calls/CallsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('calls/record', 'Calls/CallsController@record')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('calls/skip/{driverId}', 'Calls/CallsController@skip');
 $router->get('calls/subcategories/{categoryId}', 'Calls/CallsController@getSubcategories');
 $router->get('calls/codes/{subcategoryId}', 'Calls/CallsController@getCodes');
@@ -195,26 +197,26 @@ $router->post('calls/updateDocuments', 'Calls/CallsController@updateDocuments');
 $router->post('calls/releaseHold', 'Calls/CallsController@releaseHold');
 
 // Driver Routes
-$router->get('drivers', 'Driver/DriverController@index');
-$router->get('drivers/details/{id}', 'Driver/DriverController@details');
-$router->post('drivers/update', 'Driver/DriverController@update');
-$router->post('drivers/assign', 'Driver/DriverController@assign');
-$router->post('drivers/document/manage', 'Driver/DriverController@manageDocument');
+$router->get('drivers', 'Driver/DriverController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('drivers/details/{id}', 'Driver/DriverController@details')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('drivers/update', 'Driver/DriverController@update')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('drivers/assign', 'Driver/DriverController@assign')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('drivers/document/manage', 'Driver/DriverController@manageDocument')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('drivers/search', 'Driver/DriverController@search');
 
 // Review Routes
-$router->get('review/add/{type}/{id}', 'Review/ReviewController@add');
-$router->post('review/add/{type}/{id}', 'Review/ReviewController@add');
+$router->get('review/add/{type}/{id}', 'Review/ReviewController@add')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('review/add/{type}/{id}', 'Review/ReviewController@add')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Upload Routes
-$router->get('upload', 'Upload/UploadController@index');
-$router->post('upload/process', 'Upload/UploadController@process');
+$router->get('upload', 'Upload/UploadController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('upload/process', 'Upload/UploadController@process')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Discussion Routes
-$router->get('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
-$router->post('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add');
-$router->post('discussions/close/{id}', 'Discussions/DiscussionsController@close');
-$router->post('discussions/reopen/{id}', 'Discussions/DiscussionsController@reopen');
+$router->get('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('discussions/add/{type}/{id}', 'Discussions/DiscussionsController@add')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('discussions/close/{id}', 'Discussions/DiscussionsController@close')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('discussions/reopen/{id}', 'Discussions/DiscussionsController@reopen')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('discussions/get', 'Discussions/DiscussionsController@getDiscussionsApi');
 $router->post('discussions/{id}/mark-as-read', 'Discussions/DiscussionsController@markAsReadApi');
 $router->post('discussions/{id}/replies', 'Discussions/DiscussionsController@addReplyApi');
@@ -223,13 +225,13 @@ $router->post('discussions/{id}/replies', 'Discussions/DiscussionsController@add
 $router->get('tickets/ajaxSearch', 'Tickets/TicketController@ajaxSearch');
 
 // Quality Management Routes
-$router->get('quality/reviews', 'Quality/QualityController@reviews');
+$router->get('quality/reviews', 'Quality/QualityController@reviews')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('quality/get_reviews_api', 'Quality/QualityController@get_reviews_api');
-$router->get('quality/discussions', 'Quality/QualityController@discussions');
+$router->get('quality/discussions', 'Quality/QualityController@discussions')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('quality/get_discussions_api', 'Quality/QualityController@get_discussions_api');
 
 // Referral Routes
-$router->get('referral/dashboard', 'Referral/ReferralController@dashboard');
+$router->get('referral/dashboard', 'Referral/ReferralController@dashboard')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('referral/register', 'Referral/ReferralController@index');
 $router->post('referral/register', 'Referral/ReferralController@index');
 $router->get('referral/marketerDetails/{id}', 'Referral/ReferralController@marketerDetails');
@@ -237,48 +239,50 @@ $router->get('referral/editProfile/{id}', 'Referral/ReferralController@editProfi
 $router->post('referral/saveAgentProfile', 'Referral/ReferralController@saveAgentProfile');
 
 // Listings
-$router->get('listings/tickets', 'Listings/ListingsController@tickets');
+$router->get('listings/tickets', 'Listings/ListingsController@tickets')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('listings/get_tickets_api', 'Listings/ListingsController@get_tickets_api');
-$router->get('listings/drivers', 'Listings/ListingsController@drivers');
+$router->get('listings/drivers', 'Listings/ListingsController@drivers')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('listings/get_drivers_api', 'Listings/ListingsController@get_drivers_api');
-$router->post('listings/bulk_update_drivers', 'Listings/ListingsController@bulk_update_drivers');
-$router->get('listings/calls', 'Listings/ListingsController@calls');
+$router->post('listings/bulk_update_drivers', 'Listings/ListingsController@bulk_update_drivers')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('listings/calls', 'Listings/ListingsController@calls')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('listings/get_calls_api', 'Listings/ListingsController@get_calls_api');
 
 // API Routes
 $router->get('drivers/search', 'Driver/DriverController@search');
 
 foreach ($adminControllers as $controller => $uri) {
+    // Apply auth middleware to all admin routes
     $controllerPath = 'Admin/' . $controller;
-    $router->get("admin/{$uri}", "{$controllerPath}@index");
-    $router->get("admin/{$uri}/create", "{$controllerPath}@create");
-    $router->post("admin/{$uri}/store", "{$controllerPath}@store");
-    $router->get("admin/{$uri}/edit/{id}", "{$controllerPath}@edit");
-    $router->post("admin/{$uri}/update/{id}", "{$controllerPath}@update");
-    $router->post("admin/{$uri}/destroy", "{$controllerPath}@destroy");
+    $router->get("admin/{$uri}", "{$controllerPath}@index")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->get("admin/{$uri}/create", "{$controllerPath}@create")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("admin/{$uri}/store", "{$controllerPath}@store")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->get("admin/{$uri}/edit/{id}", "{$controllerPath}@edit")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("admin/{$uri}/update/{id}", "{$controllerPath}@update")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("admin/{$uri}/destroy", "{$controllerPath}@destroy")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 }
 
 // Add custom routes that don't fit the standard RESTful pattern
-$router->post("admin/users/forceLogout", "Admin/UsersController@forceLogout");
+$router->post("admin/users/forceLogout", "Admin/UsersController@forceLogout")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Helper function for report routes to avoid repetition
 function mapReportRoutes($router, $uri, $controllerPath)
 {
+    // Apply auth middleware to all report routes within this function
     $controller = 'Reports\\' . str_replace('/', '\\', $controllerPath);
 
     // Route for index method (e.g., /reports/users)
-    $router->get("reports/{$uri}", "{$controller}@index");
-    $router->post("reports/{$uri}", "{$controller}@index"); // For forms like search/filter
+    $router->get("reports/{$uri}", "{$controller}@index")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("reports/{$uri}", "{$controller}@index")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']); // For forms like search/filter
 
     // Route for methods with parameters (e.g., /reports/users/view/1)
     // The router is designed to handle dynamic methods and parameters
-    $router->get("reports/{$uri}/{action}", "{$controller}@{action}");
-    $router->get("reports/{$uri}/{action}/{p1}", "{$controller}@{action}");
-    $router->get("reports/{$uri}/{action}/{p1}/{p2}", "{$controller}@{action}");
+    $router->get("reports/{$uri}/{action}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->get("reports/{$uri}/{action}/{p1}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->get("reports/{$uri}/{action}/{p1}/{p2}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-    $router->post("reports/{$uri}/{action}", "{$controller}@{action}");
-    $router->post("reports/{$uri}/{action}/{p1}", "{$controller}@{action}");
-    $router->post("reports/{$uri}/{action}/{p1}/{p2}", "{$controller}@{action}");
+    $router->post("reports/{$uri}/{action}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("reports/{$uri}/{action}/{p1}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("reports/{$uri}/{action}/{p1}/{p2}", "{$controller}@{action}")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 }
 
 // Mapping all report routes
@@ -361,57 +365,58 @@ foreach ($reportControllers as $report) {
     }
 
 
-    $router->get("reports/{$uri}", "{$controllerPath}@index");
-    $router->post("reports/{$uri}/export", "{$controllerPath}@export");
+    $router->get("reports/{$uri}", "{$controllerPath}@index")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+    $router->post("reports/{$uri}/export", "{$controllerPath}@export")->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 }
 
 // Main Application Routes
-$router->get('dashboard', 'Dashboard/DashboardController@index');
+$router->get('dashboard', 'Dashboard/DashboardController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-$router->get('tickets', 'Tickets/TicketController@index');
-$router->get('tickets/view/{id}', 'Tickets/TicketController@show');
-$router->get('tickets/search', 'Tickets/TicketController@search');
+$router->get('tickets', 'Tickets/TicketController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('tickets/view/{id}', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('tickets/search', 'Tickets/TicketController@search')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-$router->get('create_ticket', 'Create_ticket/CreateTicketController@index');
+$router->get('create_ticket', 'Create_ticket/CreateTicketController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('create_ticket/subcategories/{categoryId}', 'Create_ticket/CreateTicketController@getSubcategories');
 $router->get('create_ticket/codes/{subcategoryId}', 'Create_ticket/CreateTicketController@getCodes');
 $router->get('create_ticket/coupons/{countryId}', 'Create_ticket/CreateTicketController@getAvailableCoupons');
 $router->get('create_ticket/checkTicketExists/{ticketNumber}', 'Create_ticket/CreateTicketController@checkTicketExists');
-$router->post('create_ticket/store', 'Create_ticket/CreateTicketController@store');
+$router->post('create_ticket/store', 'Create_ticket/CreateTicketController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('create_ticket/holdCoupon', 'Create_ticket/CreateTicketController@holdCoupon');
 $router->post('create_ticket/releaseCoupon', 'Create_ticket/CreateTicketController@releaseCoupon');
 
-$router->get('discussions', 'Discussions/DiscussionsController@index');
+$router->get('discussions', 'Discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('discussions/addReply/{id}', 'Discussions/DiscussionsController@addReply');
 
-$router->get('logs', 'Logs/LogsController@index');
-$router->post('logs/bulk_export', 'Logs/LogsController@bulk_export');
+$router->get('logs', 'Logs/LogsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('logs/bulk_export', 'Logs/LogsController@bulk_export')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-$router->get('review', 'Review/ReviewController@index');
-$router->post('review/store', 'Review/ReviewController@store');
+$router->get('review', 'Review/ReviewController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('review/store', 'Review/ReviewController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 $router->get('referral', 'Referral/ReferralController@index');
-$router->get('referral/dashboard', 'Referral/ReferralController@dashboard');
+$router->get('referral/dashboard', 'Referral/ReferralController@dashboard')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('referral/saveAgentProfile', 'Referral/ReferralController@saveAgentProfile');
 
-$router->get('trips/upload', 'Trips/TripsController@upload');
-$router->post('trips/process', 'Trips/TripsController@process');
+$router->get('trips/upload', 'Trips/TripsController@upload')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('trips/process', 'Trips/TripsController@process')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
-$router->get('driver/details/{id}', 'Driver/DriverController@details');
-$router->post('driver/update', 'Driver/DriverController@update');
+$router->get('driver/details/{id}', 'Driver/DriverController@details')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('driver/update', 'Driver/DriverController@update')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // API Routes for AJAX calls
 $router->get('api/drivers/search', 'Driver/DriverController@search');
 $router->post('calls/assign', 'Driver/DriverController@assign');
-$router->post('drivers/assign', 'Driver/DriverController@assign');
-$router->post('drivers/document/manage', 'Driver/DriverController@manageDocument');
+$router->post('drivers/assign', 'Driver/DriverController@assign')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('drivers/document/manage', 'Driver/DriverController@manageDocument')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // $router->get('', 'PagesController@home');
 
 // Calls Routes (Moved to the end to ensure they are not overwritten)
-$router->get('calls', 'Calls/CallsController@index');
+$router->get('calls', 'Calls/CallsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('calls/getNextDriver', 'Calls/CallsController@getNextDriver');
-$router->post('calls/record', 'Calls/CallsController@record');
+$router->post('calls/record', 'Calls/CallsController@record')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('calls/history/{id}', 'Calls/CallsController@getHistory');
 $router->post('calls/release-hold', 'Calls/CallsController@releaseHold');
 $router->get('calls/documents/{id}', 'Calls/DocumentsController@getDriverDocuments');
@@ -431,13 +436,13 @@ $router->get('reports/referral-visits/export-excel', 'Reports/ReferralVisits/Ref
 $router->get('reports/referral-visits/export-json', 'Reports/ReferralVisits/ReferralVisitsController@exportJson');
 
 // Tickets
-$router->get('tickets/create', 'CreateTicket/CreateTicketController@index');
-$router->post('tickets/store', 'CreateTicket/CreateTicketController@store');
+$router->get('tickets/create', 'CreateTicket/CreateTicketController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('tickets/store', 'CreateTicket/CreateTicketController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('ticket/{id}', 'Tickets/TicketController@show'); // Legacy Support
 $router->get('ticket', 'Tickets/TicketController@show'); // Legacy Support without ID
-$router->get('tickets/view/{id}', 'Tickets/TicketController@show');
-$router->get('tickets/view', 'Tickets/TicketController@show');
+$router->get('tickets/view/{id}', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('tickets/view', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Discussions
-$router->get('discussions', 'Discussions/DiscussionsController@index');
+$router->get('discussions', 'Discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('api/discussions', 'Discussions/DiscussionsController@index');

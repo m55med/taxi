@@ -57,7 +57,7 @@
 <body class="bg-gray-100" dir="ltr">
     <?php 
     if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+
     }
     include __DIR__ . '/nav.php'; 
     ?>

@@ -11,11 +11,11 @@ class CallsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager'])) {
-            $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
-        }
+        $this->initialize();
+    }
+
+    private function initialize()
+    {
         $this->callsReportModel = $this->model('reports/Calls/CallsReport');
     }
 

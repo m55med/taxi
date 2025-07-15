@@ -17,23 +17,16 @@ class UsersController extends Controller
     public function __construct()
     {
         parent::__construct();
+        $this->initialize();
+    }
 
-        // Authorization check
-        if (!isset($_SESSION['user_id'])) {
-            flash('auth_error', 'You must be logged in to view this page.', 'error');
-            redirect('auth/login');
-        }
-
-        // Specific permissions for this page
-        if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
-            flash('auth_error', 'You are not authorized to access this page.', 'error');
-            redirect('dashboard');
-        }
-
+    private function initialize()
+    {
         $this->usersReportModel = $this->model('reports/Users/UsersReport');
         $this->roleModel = $this->model('role/Role');
         $this->teamModel = $this->model('admin/Team');
     }
+    
 
     public function index()
     {

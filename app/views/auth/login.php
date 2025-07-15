@@ -3,7 +3,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+
 }
 ?>
 
@@ -127,7 +127,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
 
                     <div class="text-sm">
-                        <a href="<?= BASE_PATH ?>/forgot-password"
+                    <a href="/forgot-password"
                             class="font-medium text-indigo-600 hover:text-indigo-500"> Forgot your password? </a>
                     </div>
                 </div>

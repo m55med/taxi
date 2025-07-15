@@ -10,36 +10,53 @@ class Controller
 {
     public function __construct()
     {
-        $activeUserService = new ActiveUserService();
-
-        // Handle session timeout and activity tracking for logged-in users
-        if (isset($_SESSION['user_id'])) {
-            $timeout = 1800; // 30 minutes
-            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout) {
-                // Last activity was too long ago, log the user out
-                $activeUserService->logoutUser($_SESSION['user_id']);
-                
-                // Unset all of the session variables
-                $_SESSION = [];
-
-                // Destroy the session
-                session_destroy();
-
-                // Redirect to login page
-                header('Location: ' . URLROOT . '/auth/login');
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($requestUri, PHP_URL_PATH);
+    
+        // صفحات مستثناة من التحقق (login, register, ... إلخ)
+        $excludedPaths = ['/login', '/auth/login', '/register', '/auth/register'];
+    
+        // ✅ لو الجلسة مش موجودة والمستخدم مش في صفحة مستثناة → نوجهه على login ونوقف التنفيذ
+        if (!isset($_SESSION['user_id'])) {
+            if (!in_array($path, $excludedPaths)) {
+                header('Location: /auth/login');
                 exit();
             }
-            
-            // Update last activity timestamp and record user activity
+            // ✅ المستخدم بالفعل في صفحة login → لا تعيد التوجيه
+        }
+        
+    
+        // ✅ The timeout check is handled in App.php
+        // We still need to record user activity for logged-in users.
+        if (isset($_SESSION['user_id'])) {
+            $activeUserService = new ActiveUserService();
+
+            // The timeout logic has been moved to App.php to run earlier.
+            /*
+            $timeout = 1800; // 30 دقيقة
+    
+            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout) {
+                $activeUserService->logoutUser($_SESSION['user_id']);
+                $_SESSION = [];
+                session_destroy();
+    
+                header('Location: /auth/login');
+                exit();
+            }
+            */
+    
+            // We still need to update the last activity timestamp and record the activity
             $_SESSION['last_activity'] = time();
             $activeUserService->recordUserActivity($_SESSION['user_id']);
-        }
-
-        // Periodically run cleanup for inactive users (e.g., 5% chance on each request)
-        if (rand(1, 100) <= 5) {
-            $activeUserService->cleanupInactiveUsers();
+    
+            // The cleanup can still run here
+            if (rand(1, 100) <= 5) {
+                $activeUserService->cleanupInactiveUsers();
+            }
         }
     }
+    
+    
 
     /**
      * Loads a model file.
@@ -49,28 +66,27 @@ class Controller
      */
     public function model($model)
     {
-        // Construct the full path to the model file
-        $modelPath = '../app/models/' . $model . '.php';
-
-        // Check if the model file exists before trying to require it
-        if (file_exists($modelPath)) {
+        // Construct the full path to the model file using realpath
+        $modelPath = realpath(__DIR__ . '/../models/' . $model . '.php');
+    
+        if ($modelPath && file_exists($modelPath)) {
             require_once $modelPath;
-            // Construct the full class name with namespace, using directory names as they are
+    
             $parts = explode('/', $model);
             $className = array_pop($parts);
-            $namespace = implode('\\', $parts); // Keep original casing for namespace parts
+            $namespace = implode('\\', $parts);
             $modelClass = 'App\\Models\\' . ($namespace ? $namespace . '\\' : '') . $className;
-            
+    
             if (class_exists($modelClass)) {
                 return new $modelClass();
             }
         }
-        
-        // In case of any failure, log the error and return null.
-        // This prevents fatal errors and helps in debugging.
+    
+        // Log error for debugging
         error_log("Model not found or class does not exist: " . $model);
         return null;
     }
+    
 
     /**
      * Loads a view file.

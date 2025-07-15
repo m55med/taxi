@@ -13,7 +13,8 @@ class AuthController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->userModel = $this->model('user/User');
+        $this->userModel = $this->model('User/User');
+        if (!$this->userModel) { die('❌ Failed to load user model'); } // Debugging line
     }
 
     public function register()
@@ -57,7 +58,7 @@ class AuthController extends Controller
 
             if ($result['status']) {
                 $_SESSION['success'] = 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.';
-                header('Location: ' . BASE_PATH . '/auth/login');
+                header('Location: /auth/login');
                 exit();
             } else {
                 $this->view('auth/register', ['error' => $result['message']]);
@@ -71,7 +72,7 @@ class AuthController extends Controller
     {
         // إذا كان المستخدم مسجل دخوله بالفعل، قم بتوجيهه إلى لوحة التحكم
         if (isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_PATH . '/dashboard');
+            header('Location: /dashboard');
             exit();
         }
 
@@ -96,7 +97,6 @@ class AuthController extends Controller
                 $_SESSION['username'] = $user->username;
                 $_SESSION['user_name'] = $user->name;
                 $_SESSION['role_name'] = $user->role_name;
-                $_SESSION['role_name'] = $user->role_name; // <-- السطر المهم
                 $_SESSION['is_online'] = true;
                 $_SESSION['last_activity'] = time();
 
@@ -142,14 +142,14 @@ class AuthController extends Controller
             session_destroy();
         }
 
-        header('Location: ' . BASE_PATH . '/auth/login');
+        header('Location: /auth/login');
         exit();
     }
 
     public function profile()
     {
         if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_PATH . '/login');
+            header('Location: /login');
             exit();
         }
 
@@ -160,7 +160,7 @@ class AuthController extends Controller
             // User not found, handle appropriately
             session_unset();
             session_destroy();
-            header('Location: ' . BASE_PATH . '/login');
+            header('Location: /login');
             exit();
         }
 
@@ -170,7 +170,7 @@ class AuthController extends Controller
     public function updateProfile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_PATH . '/profile');
+            header('Location: /profile');
             exit();
         }
 

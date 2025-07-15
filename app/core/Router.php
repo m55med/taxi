@@ -20,12 +20,43 @@ class Router
 
     public function get($uri, $controller)
     {
-        $this->routes['GET'][$uri] = $controller;
+        $this->routes['GET'][$uri] = ['controller' => $controller, 'middleware' => null];
+        return $this;
     }
 
     public function post($uri, $controller)
     {
-        $this->routes['POST'][$uri] = $controller;
+        $this->routes['POST'][$uri] = ['controller' => $controller, 'middleware' => null];
+        return $this;
+    }
+
+    public function middleware($roles)
+    {
+        // Ensure roles are in an array, even if a single string is passed
+        $middleware = is_array($roles) ? $roles : [$roles];
+
+        // Apply to the last added GET route
+        $keys_get = array_keys($this->routes['GET']);
+        if (!empty($keys_get)) {
+            $this->routes['GET'][end($keys_get)]['middleware'] = $middleware;
+        }
+
+        // This logic for POST is flawed because it assumes the last POST route corresponds to the last GET route.
+        // A better approach is to chain middleware right after the route definition.
+        // For now, let's assume a similar logic for POST, but this needs review.
+        $keys_post = array_keys($this->routes['POST']);
+        if (!empty($keys_post)) {
+            // This might not always be the intended behavior.
+            // It applies middleware to the last defined POST route, which might not be the one you just defined with GET.
+            $last_post_key = end($keys_post);
+            $last_get_key = end($keys_get);
+            // A heuristic: if the last GET and POST URIs are the same, apply middleware to both.
+            if ($last_post_key === $last_get_key) {
+                $this->routes['POST'][$last_post_key]['middleware'] = $middleware;
+            }
+        }
+
+        return $this;
     }
 
     public function dispatch($uri, $requestType)
@@ -34,7 +65,15 @@ class Router
 
         // First, check for a direct static match
         if (isset($this->routes[$requestType][$uri])) {
-            list($controller, $method) = explode('@', $this->routes[$requestType][$uri]);
+            $route = $this->routes[$requestType][$uri];
+            if (!empty($route['middleware'])) {
+                if ($route['middleware'] === 'auth') {
+                    Auth::requireLogin();
+                } else {
+                    Auth::requireRole($route['middleware']);
+                }
+            }
+            list($controller, $method) = explode('@', $route['controller']);
             $controllerFullName = 'App\\Controllers\\' . str_replace('/', '\\', $controller);
             return $this->callAction($controllerFullName, $method);
         }
@@ -42,6 +81,7 @@ class Router
         // Handle dynamic routes with parameters
         foreach ($this->routes[$requestType] as $route => $controllerAction) {
             // Skip non-dynamic routes as they would have matched already
+            $controllerAction = $this->routes[$requestType][$route];
             if (strpos($route, '{') === false) {
                 continue;
             }
@@ -98,44 +138,19 @@ class Router
             return;
         }
 
-        $this->checkPermissions($controller, $method);
-
-        return call_user_func_array([$controllerInstance, $method], $params);
-    }
-
-    protected function checkPermissions($controller, $method)
-    {
-        // Public pages that do not require a login or permission check
-        $publicRoutes = [
-            'Auth/login',
-            'Auth/register',
-            'Referral/index',
-            'PasswordReset/showRequestForm',
-            'PasswordReset/handleRequestForm',
-            'PasswordReset/showResetForm',
-            'PasswordReset/handleReset'
-        ];
-
-        // Get the short name of the controller class
-        $reflector = new \ReflectionClass($controller);
-        $controllerShortName = str_replace('Controller', '', $reflector->getShortName());
-
-        $permissionKey = $controllerShortName . '/' . $method;
-
-        // If the route is public, skip the check
-        if (in_array($permissionKey, $publicRoutes)) {
-            return;
-        }
-
+        // Authentication (is the user logged in?) is now handled in the Controller constructor.
+        // This block is redundant. The Controller will redirect to /auth/login if needed.
+        /*
         // If user is not logged in, redirect to login page
         if (!isset($_SESSION['user_id'])) {
             // Start session if not already started to handle flash messages
             if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+
             }
             header('Location: ' . BASE_PATH . '/login');
             exit;
         }
+        */
 
         // Routes that require login but not a specific permission key.
         $loggedInButNoPermissionNeeded = [

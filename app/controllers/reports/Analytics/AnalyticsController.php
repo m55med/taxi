@@ -13,11 +13,11 @@ class AnalyticsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager'])) {
-            $_SESSION['error'] = 'You are not authorized to access this page.';
-            header('Location: ' . BASE_PATH . '/dashboard');
-            exit;
-        }
+        $this->initialize();
+    }
+
+    private function initialize()
+    {
         $this->analyticsReportModel = $this->model('reports/Analytics/AnalyticsReport');
     }
 

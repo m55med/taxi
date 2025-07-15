@@ -4,13 +4,21 @@ namespace App\Core;
 
 class Auth
 {
+    public static function requireAuth()
+    {
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: ' . BASE_PATH . '/auth/login');
+            exit();
+        }
+    }
+
     /**
      * Ensures session is started.
      */
     private static function startSession()
     {
         if (session_status() == PHP_SESSION_NONE) {
-            session_start();
+
         }
     }
 
@@ -111,13 +119,30 @@ class Auth
      * Requires a specific role to access a page. Shows 403 error if not met.
      * @param string $role
      */
-    public static function requireRole(string $role)
+    public static function requireRole($roles)
     {
         self::requireLogin(); // A user must be logged in to have a role.
-        if (!self::hasRole($role)) {
+
+        if (is_string($roles)) {
+            $roles = [$roles];
+        }
+
+        if (!is_array($roles)) { // Should not happen if used correctly
+            error_log('Invalid argument for requireRole. Must be string or array.');
+            http_response_code(500);
+            require_once APPROOT . '/views/errors/500.php'; // Or a generic error page
+            exit;
+        }
+
+        $userRole = self::getUserRole();
+
+        if (is_null($userRole) || !in_array($userRole, $roles)) {
             http_response_code(403);
-            // Ensure this path is correct
-            require_once APPROOT . '/../app/views/errors/403.php';
+            $data['debug_info'] = [
+                'required_roles' => $roles,
+                'user_role' => $userRole ?? 'Not Set',
+            ];
+            require_once APPROOT . '/views/errors/403.php';
             exit;
         }
     }

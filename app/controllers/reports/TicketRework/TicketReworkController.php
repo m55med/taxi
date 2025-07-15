@@ -11,11 +11,6 @@ class TicketReworkController extends Controller
     public function __construct()
     {
         parent::__construct();
-        if (!isset($_SESSION['user_id'])) {
-            $_SESSION['error'] = 'يجب تسجيل الدخول للوصول إلى هذه الصفحة';
-            header('Location: ' . BASE_PATH . '/auth/login');
-            exit;
-        }
         if (!in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_control'])) {
             $_SESSION['error'] = 'غير مصرح لك بالوصول إلى هذه الصفحة';
             header('Location: ' . BASE_PATH . '/dashboard');
