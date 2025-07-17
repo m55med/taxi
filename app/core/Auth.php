@@ -4,22 +4,28 @@ namespace App\Core;
 
 class Auth
 {
-    public static function requireAuth()
-    {
-        if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/auth/login');
-            exit();
-        }
-    }
-
     /**
-     * Ensures session is started.
+     * Get a value from the authenticated user's session data.
+     *
+     * @param string|null $key The key of the user data to retrieve (e.g., 'id', 'role_name').
+     *                         If null, returns the entire user data array.
+     * @return mixed|null The requested user data or null if not found.
      */
-    private static function startSession()
+    public static function user($key = null)
     {
         if (session_status() == PHP_SESSION_NONE) {
-
+            session_start();
         }
+
+        if (!isset($_SESSION['user'])) {
+            return null;
+        }
+
+        if (is_null($key)) {
+            return $_SESSION['user'];
+        }
+
+        return $_SESSION['user'][$key] ?? null;
     }
 
     /**
@@ -28,8 +34,7 @@ class Auth
      */
     public static function isLoggedIn(): bool
     {
-        self::startSession();
-        return isset($_SESSION['user_id']);
+        return self::user() !== null;
     }
 
     /**
@@ -38,8 +43,7 @@ class Auth
      */
     public static function getUserId(): ?int
     {
-        self::startSession();
-        return $_SESSION['user_id'] ?? null;
+        return self::user('id');
     }
 
     /**
@@ -48,8 +52,7 @@ class Auth
      */
     public static function getUserRole(): ?string
     {
-        self::startSession();
-        return $_SESSION['role_name'] ?? null;
+        return self::user('role_name');
     }
 
     /**
@@ -61,86 +64,62 @@ class Auth
     {
         return self::getUserRole() === $role;
     }
-
+    
     /**
      * Checks if the currently logged-in user has a specific permission.
-     * The permissions are checked against the array stored in the session.
      *
-     * @param string $permission The permission key (controller class) to check for.
+     * @param string $permission The permission key to check for.
      * @return bool True if the user has the permission, false otherwise.
      */
-    public static function hasPermission($permission)
+    public static function hasPermission($permission): bool
     {
-        self::startSession();
-
         // Admins and developers have all permissions implicitly.
-        if (isset($_SESSION['role_name']) && in_array($_SESSION['role_name'], ['admin', 'developer'])) {
+        $userRole = self::getUserRole();
+
+        if ($userRole && in_array($userRole, ['admin', 'developer'])) {
             return true;
         }
 
-        $userPermissions = $_SESSION['permissions'] ?? [];
-        if (is_string($userPermissions)) {
-            $userPermissions = array_map('trim', explode(',', $userPermissions));
-        }
-
-        $rolePermissions = $_SESSION['role_permissions'] ?? [];
-        if (is_string($rolePermissions)) {
-            $rolePermissions = array_map('trim', explode(',', $rolePermissions));
-        }
-
-        $permissions = array_unique(array_merge(
-            is_array($userPermissions) ? $userPermissions : [],
-            is_array($rolePermissions) ? $rolePermissions : []
-        ));
-
-        // If after all checks, it's not an array or it's empty, they don't have permission.
-        if (empty($permissions)) {
+        $permissions = self::user('permissions') ?? [];
+        
+        if (empty($permissions) || !is_array($permissions)) {
             return false;
         }
         
-        // Use strict comparison to check if the permission exists.
         return in_array($permission, $permissions, true);
     }
-
+    
     /**
      * If the user is not logged in, redirects to the login page.
      */
     public static function requireLogin()
     {
         if (!self::isLoggedIn()) {
-            // You can store the intended URL in session to redirect back after login
-            // $_SESSION['return_to'] = $_SERVER['REQUEST_URI'];
-            header('Location: ' . BASE_URL . '/auth/login');
+            header('Location: ' . BASE_URL . '/login');
             exit;
         }
     }
 
     /**
      * Requires a specific role to access a page. Shows 403 error if not met.
-     * @param string $role
+     * @param string|array $roles
      */
     public static function requireRole($roles)
     {
-        self::requireLogin(); // A user must be logged in to have a role.
+        self::requireLogin();
 
         if (is_string($roles)) {
             $roles = [$roles];
         }
 
-        if (!is_array($roles)) { // Should not happen if used correctly
-            error_log('Invalid argument for requireRole. Must be string or array.');
-            http_response_code(500);
-            require_once APPROOT . '/views/errors/500.php'; // Or a generic error page
-            exit;
-        }
-
         $userRole = self::getUserRole();
 
-        if (is_null($userRole) || !in_array($userRole, $roles)) {
+        if (is_null($userRole) || !in_array($userRole, $roles, true)) {
             http_response_code(403);
             $data['debug_info'] = [
                 'required_roles' => $roles,
                 'user_role' => $userRole ?? 'Not Set',
+                'session_user_data' => $_SESSION['user'] ?? 'User session not set'
             ];
             require_once APPROOT . '/views/errors/403.php';
             exit;
@@ -148,10 +127,10 @@ class Auth
     }
     
     /**
-     * A specific check for admin, which might have more uses.
+     * A specific check for admin and developer roles.
      */
     public static function checkAdmin()
     {
-        self::requireRole('admin');
+        self::requireRole(['admin', 'developer']);
     }
 }

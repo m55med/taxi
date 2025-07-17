@@ -193,15 +193,24 @@ class Dashboard
         if ($userId) {
             $today_start = date('Y-m-d 00:00:00');
             $today_end = date('Y-m-d 23:59:59');
-
-            $stats['incoming'] = $this->db->query("SELECT COUNT(*) FROM incoming_calls WHERE call_received_by = ? AND created_at BETWEEN ? AND ?", [$userId, $today_start, $today_end])->fetchColumn() ?: 0;
-            $stats['outgoing'] = $this->db->query("SELECT COUNT(*) FROM driver_calls WHERE call_by = ? AND created_at BETWEEN ? AND ?", [$userId, $today_start, $today_end])->fetchColumn() ?: 0;
+    
+            $stats['incoming'] = $this->db->query(
+                "SELECT COUNT(*) FROM incoming_calls WHERE call_received_by = ? AND call_started_at BETWEEN ? AND ?",
+                [$userId, $today_start, $today_end]
+            )->fetchColumn() ?: 0;
+    
+            $stats['outgoing'] = $this->db->query(
+                "SELECT COUNT(*) FROM driver_calls WHERE call_by = ? AND created_at BETWEEN ? AND ?",
+                [$userId, $today_start, $today_end]
+            )->fetchColumn() ?: 0;
         } else {
             $stats['incoming'] = $this->db->query("SELECT COUNT(*) FROM incoming_calls")->fetchColumn() ?: 0;
             $stats['outgoing'] = $this->db->query("SELECT COUNT(*) FROM driver_calls")->fetchColumn() ?: 0;
         }
+    
         return $stats;
     }
+    
 
     private function getCallRatio($userId = null)
     {

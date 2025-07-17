@@ -92,21 +92,27 @@ class AuthController extends Controller
                 // Create a clean session
                 session_regenerate_id(true);
 
-                // Store essential user data in the session
-                $_SESSION['user_id'] = $user->id;
+                // Fetch and store permissions for the user
+                $permissions = $this->userModel->getUserPermissions($user->id);
+
+                // Store all user data, including permissions, in a single session key
+                $_SESSION['user'] = [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'name' => $user->name,
+                    'role_name' => $user->role_name,
+                    'permissions' => $permissions,
+                    'is_online' => true,
+                    'last_activity' => time()
+                ];
+
+                // For backward compatibility, keep some old session keys if needed, but prefer the new structure.
+                $_SESSION['user_id'] = $user->id; 
                 $_SESSION['username'] = $user->username;
-                $_SESSION['user_name'] = $user->name;
-                $_SESSION['role_name'] = $user->role_name;
-                $_SESSION['is_online'] = true;
-                $_SESSION['last_activity'] = time();
 
                 // Record user activity to mark them as online immediately
                 $activeUserService = new ActiveUserService();
                 $activeUserService->recordUserActivity($user->id);
-
-                // Fetch and store permissions in the session
-                $permissions = $this->userModel->getUserPermissions($user->id);
-                $_SESSION['permissions'] = $permissions;
 
                 header('Location: ' . BASE_URL . '/dashboard');
                 exit();

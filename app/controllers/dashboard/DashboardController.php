@@ -22,12 +22,19 @@ class DashboardController extends Controller
 
     public function index()
     {
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            // This should not happen if requireLogin() is effective, but as a safeguard:
+            redirect('auth/logout');
+            return;
+        }
+
         // Fetch the full user object, which includes the role name
-        $user = $this->userModel->getUserById($_SESSION['user_id']);
+        $user = $this->userModel->getUserById($userId);
 
         if (!$user) {
-            // This case should ideally not happen if Auth::requireLogin() works
-            redirect('logout');
+            // This case might happen if user was deleted but session persists
+            redirect('auth/logout');
             return;
         }
 

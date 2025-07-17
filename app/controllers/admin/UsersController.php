@@ -55,6 +55,7 @@ class UsersController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
                 'username' => trim($_POST['username']),
+                'name' => trim($_POST['name']),
                 'email' => trim($_POST['email']),
                 'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
                 'role_id' => filter_input(INPUT_POST, 'role_id', FILTER_VALIDATE_INT),
@@ -110,6 +111,7 @@ class UsersController extends Controller {
             $data = [
                 'id' => $id,
                 'username' => trim($_POST['username']),
+                'name' => trim($_POST['name']),
                 'email' => trim($_POST['email']),
                 'role_id' => filter_input(INPUT_POST, 'role_id', FILTER_VALIDATE_INT),
                 'status' => $_POST['status']

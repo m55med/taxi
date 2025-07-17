@@ -66,18 +66,32 @@ class RolesController extends Controller {
     }
 
     public function delete($id) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if ($id == 1) {
-                flash('role_message', 'The Administrator role cannot be deleted.', 'error');
-                redirect('/admin/roles');
-            }
-
-            if ($this->roleModel->delete($id)) {
-                flash('role_message', 'Role deleted successfully.');
-            } else {
-                flash('role_message', 'Failed to delete role. It may be in use.', 'error');
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405); // Method Not Allowed
+            exit('Method Not Allowed');
         }
+
+        // Use the centralized Auth check which correctly handles admin privileges
+        if (!Auth::hasPermission('delete_role')) {
+            flash('role_message', 'You do not have permission to delete roles.', 'error');
+            redirect('/admin/roles');
+            return; // Add return to stop execution
+        }
+    
+        // منع حذف الدور الرئيسي
+        if ((int)$id === 1) {
+            flash('role_message', 'The Administrator role cannot be deleted.', 'error');
+            redirect('/admin/roles');
+        }
+    
+        // تنفيذ الحذف
+        if ($this->roleModel->delete($id)) {
+            flash('role_message', 'Role deleted successfully.');
+        } else {
+            flash('role_message', 'Failed to delete role. It may be in use.', 'error');
+        }
+    
         redirect('/admin/roles');
     }
+    
 } 

@@ -12,19 +12,25 @@
                 </a>
             </div>
 
-            <?php if (isset($user)): ?>
-                <form action="<?= BASE_URL ?>/admin/users/update/<?= htmlspecialchars($user->id) ?>" method="POST" class="space-y-6">
+            <?php if (isset($data['user'])): ?>
+                <form action="<?= BASE_URL ?>/admin/users/update/<?= htmlspecialchars($data['user']->id) ?>" method="POST" class="space-y-6">
                     <div>
                         <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                        <input type="text" name="username" id="username" required
-                            value="<?= htmlspecialchars($user->username) ?>"
+                        <input type="text" name="username" id="username" readonly
+                            value="<?= htmlspecialchars($data['user']->username) ?>"
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="name" required
+                            value="<?= htmlspecialchars($data['user']->name) ?>"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
 
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" id="email" required
-                            value="<?= htmlspecialchars($user->email) ?>"
+                            value="<?= htmlspecialchars($data['user']->email) ?>"
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
 
@@ -38,9 +44,9 @@
                         <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
                         <select name="role_id" id="role" required
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            <?php foreach ($roles ?? [] as $role): ?>
+                            <?php foreach ($data['roles'] as $role): ?>
                                 <option value="<?= htmlspecialchars($role->id) ?>"
-                                    <?= ($user->role_id ?? '') == $role->id ? 'selected' : '' ?>>
+                                    <?= ($data['user']->role_id ?? '') == $role->id ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($role->name) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -51,9 +57,9 @@
                         <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                         <select name="status" id="status" required
                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            <option value="active" <?= ($user->status ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
-                            <option value="pending" <?= ($user->status ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
-                            <option value="banned" <?= ($user->status ?? '') === 'banned' ? 'selected' : '' ?>>Banned</option>
+                            <option value="active" <?= ($data['user']->status ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
+                            <option value="pending" <?= ($data['user']->status ?? '') === 'pending' ? 'selected' : '' ?>>Pending</option>
+                            <option value="banned" <?= ($data['user']->status ?? '') === 'banned' ? 'selected' : '' ?>>Banned</option>
                         </select>
                     </div>
 

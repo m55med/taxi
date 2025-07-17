@@ -75,11 +75,6 @@
     </script>
     <?php endif; ?>
 
-    <!-- Quill Editor for Discussions -->
-    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-    <script src="/taxi/public/js/quill-initializer.js"></script>
-
     <!-- Custom JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=<?= time() ?>"></script>
