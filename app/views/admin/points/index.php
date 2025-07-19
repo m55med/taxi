@@ -37,7 +37,7 @@ if (isset($_SESSION['points_message'])) {
             <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h2 class="text-xl font-bold mb-4 border-b pb-2">Ticket Code Points</h2>
                 
-                <form action="<?= BASE_PATH ?>/admin/points/setTicketPoints" method="POST">
+                <form action="<?= URLROOT ?>/admin/points/setTicketPoints" method="POST">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="code_id" class="block text-sm font-medium text-gray-700">Code</label>
@@ -128,7 +128,7 @@ if (isset($_SESSION['points_message'])) {
 
                     <div x-show="tab === 'outgoing'" class="pt-4">
                         <h3 class="text-lg font-semibold mb-2 text-gray-800">Set Points for Outgoing Calls</h3>
-                        <form action="<?= BASE_PATH ?>/admin/points/setCallPoints" method="POST">
+                        <form action="<?= URLROOT ?>/admin/points/setCallPoints" method="POST">
                             <input type="hidden" name="call_type" value="outgoing">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -148,7 +148,7 @@ if (isset($_SESSION['points_message'])) {
 
                     <div x-show="tab === 'incoming'" class="pt-4">
                         <h3 class="text-lg font-semibold mb-2 text-gray-800">Set Points for Incoming Calls</h3>
-                        <form action="<?= BASE_PATH ?>/admin/points/setCallPoints" method="POST">
+                        <form action="<?= URLROOT ?>/admin/points/setCallPoints" method="POST">
                             <input type="hidden" name="call_type" value="incoming">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>

@@ -7,6 +7,10 @@ use PDO;
 
 class TelegramSetting extends Model
 {
+    public function __construct()
+    {
+        parent::__construct();
+    }
     /**
      * Get admin users who are not yet linked in telegram_links.
      * @return array

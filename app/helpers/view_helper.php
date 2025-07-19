@@ -12,3 +12,8 @@ function render_partial(string $path, array $data = [])
     extract($data);
     include __DIR__ . '/../views/' . $path;
 } 
+function view(string $path, array $data = [])
+{
+    extract($data);
+    require __DIR__ . '/../views/' . $path . '.php';
+}

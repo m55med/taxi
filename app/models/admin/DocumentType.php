@@ -72,4 +72,4 @@ class DocumentType
             return false;
         }
     }
-} 
+}

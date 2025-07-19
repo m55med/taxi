@@ -1,0 +1,5 @@
+[
+    "GET \/",
+    "GET \/login",
+    "GET \/auth\/login"
+]

@@ -18,14 +18,15 @@
             <p class="mt-2 text-gray-600">No problem. Enter your email address below and we'll send you instructions to reset it.</p>
         </div>
 
-        <?php if (isset($data['error'])): ?>
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
-                <p><?= htmlspecialchars($data['error']) ?></p>
-            </div>
-        <?php endif; ?>
+        <?php if (isset($error)): ?>
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+        <p><?= htmlspecialchars($error) ?></p>
+    </div>
+<?php endif; ?>
 
-        <form action="<?= BASE_PATH ?>/forgot-password" method="POST" class="space-y-6">
-            <div>
+
+        <form action="<?= BASE_URL ?>/forgot-password" method="POST" class="space-y-6">
+        <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
                 <div class="mt-1 relative rounded-md shadow-sm">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -45,7 +46,7 @@
             </div>
         </form>
         <div class="text-center">
-            <a href="<?= BASE_PATH ?>/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+        <a href="<?= BASE_URL ?>/login" class="font-medium text-indigo-600 hover:text-indigo-500">
                 Back to Login
             </a>
         </div>

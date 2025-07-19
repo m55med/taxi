@@ -36,7 +36,7 @@ class PasswordReset
             return $stmt->execute([
                 ':email' => $email,
                 ':token' => $token,
-                ':otp' => $otp,
+                ':otp' => $otp ?? '',
                 ':expires_at' => $expiresAt,
             ]);
         } catch (PDOException $e) {

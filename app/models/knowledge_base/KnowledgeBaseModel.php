@@ -15,6 +15,16 @@ class KnowledgeBaseModel
         $this->db = Database::getInstance();
         
         $config = \HTMLPurifier_Config::createDefault();
+
+        // Allow essential tags for a rich text editor, including images from URLs.
+        $config->set('HTML.Allowed', 'h1,h2,h3,p,b,strong,i,em,u,s,a[href|title],ul,ol,li,blockquote,pre,code,img[src|alt|style],span[style]');
+        
+        // Allow specific CSS properties that Quill might use for formatting.
+        $config->set('CSS.AllowedProperties', 'text-align, direction');
+
+        // Ensure that only http and https image sources are allowed.
+        $config->set('URI.AllowedSchemes', ['http' => true, 'https' => true]);
+
         $this->purifier = new \HTMLPurifier($config);
     }
 

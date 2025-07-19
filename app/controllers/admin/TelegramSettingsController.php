@@ -24,7 +24,7 @@ class TelegramSettingsController extends Controller
             'admin_users' => $this->telegramSettingModel->getAdminUsers(),
             'current_settings' => $this->telegramSettingModel->getAllSettings()
         ];
-        
+
         // The view path assumes a 'telegram_settings' folder inside 'admin' views
         $this->view('admin/telegram_settings/index', $data);
     }
@@ -35,7 +35,7 @@ class TelegramSettingsController extends Controller
     public function add()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ' . BASE_PATH . '/admin/telegram_settings');
+            header('Location: ' . URLROOT . '/admin/telegram_settings');
             exit;
         }
 
@@ -58,8 +58,8 @@ class TelegramSettingsController extends Controller
                 $_SESSION['telegram_message_type'] = 'error';
             }
         }
-        
-        header('Location: ' . BASE_PATH . '/admin/telegram_settings');
+
+        header('Location: ' . URLROOT . '/admin/telegram_settings');
         exit;
     }
 
@@ -79,7 +79,7 @@ class TelegramSettingsController extends Controller
             $_SESSION['telegram_message_type'] = 'error';
         }
 
-        header('Location: ' . BASE_PATH . '/admin/telegram_settings');
+        header('Location: ' . URLROOT . '/admin/telegram_settings');
         exit;
     }
-} 
+}

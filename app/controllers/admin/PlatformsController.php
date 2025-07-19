@@ -10,7 +10,7 @@ class PlatformsController extends Controller {
 
     public function __construct() {
         Auth::checkAdmin();
-        $this->platformModel = $this->model('Admin\Platform');
+        $this->platformModel = $this->model('Admin/Platform');
     }
 
     public function index() {

@@ -56,7 +56,7 @@ set_exception_handler(function ($exception) {
     }
 });
 
-
+define('BASE_PATH', '/');
 
 
 // Define application root directory

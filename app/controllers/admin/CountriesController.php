@@ -13,7 +13,7 @@ class CountriesController extends Controller {
     }
 
     public function index() {
-        $countryModel = $this->model('admin/Country');
+        $countryModel = $this->model('Admin/Country');
         $data = [
             'countries' => $countryModel->getAll()
         ];
@@ -26,7 +26,7 @@ class CountriesController extends Controller {
             $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
             
             if (!empty($name)) {
-                $countryModel = $this->model('admin/Country');
+                $countryModel = $this->model('Admin/Country');
                 if ($countryModel->create($name)) {
                     flash('country_message', 'Country added successfully.', 'success');
                 } else {
@@ -41,7 +41,7 @@ class CountriesController extends Controller {
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $countryModel = $this->model('admin/Country');
+            $countryModel = $this->model('Admin/Country');
             if ($countryModel->delete($id)) {
                 flash('country_message', 'Country deleted successfully.', 'success');
             } else {

@@ -13,7 +13,7 @@ class CarTypesController extends Controller {
     }
 
     public function index() {
-        $carTypeModel = $this->model('admin/CarType');
+        $carTypeModel = $this->model('Admin/CarType');
         $data = [
             'car_types' => $carTypeModel->getAll()
         ];
@@ -26,7 +26,7 @@ class CarTypesController extends Controller {
             $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS));
             
             if (!empty($name)) {
-                $carTypeModel = $this->model('admin/CarType');
+                $carTypeModel = $this->model('Admin/CarType');
                 if ($carTypeModel->create($name)) {
                     flash('car_type_message', 'Car type added successfully.', 'success');
                 } else {
@@ -41,7 +41,7 @@ class CarTypesController extends Controller {
 
     public function delete($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $carTypeModel = $this->model('admin/CarType');
+            $carTypeModel = $this->model('Admin/CarType');
             if ($carTypeModel->delete($id)) {
                 flash('car_type_message', 'Car type deleted successfully.', 'success');
             } else {

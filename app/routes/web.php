@@ -83,11 +83,11 @@ $adminControllers = [
 ];
 
 // Custom routes for BonusController
-$router->get("admin/bonus", "Admin/BonusController@index");
-$router->get("admin/bonus/settings", "Admin/BonusController@settings");
-$router->post("admin/bonus/updateSettings", "Admin/BonusController@updateSettings");
-$router->post("admin/bonus/grant", "Admin/BonusController@grant");
-$router->post("admin/bonus/delete/{id}", "Admin/BonusController@delete");
+$router->get("admin/bonus", "Admin/BonusController@index")->middleware(['admin', 'developer']);
+$router->get("admin/bonus/settings", "Admin/BonusController@settings")->middleware(['admin', 'developer']);
+$router->post("admin/bonus/updateSettings", "Admin/BonusController@updateSettings")->middleware(['admin', 'developer']);
+$router->post("admin/bonus/grant", "Admin/BonusController@grant")->middleware(['admin', 'developer']);
+$router->post("admin/bonus/delete/{id}", "Admin/BonusController@delete")->middleware(['admin', 'developer']);
 
 // Custom routes for TelegramSettingsController
 $router->get("admin/telegram_settings", "Admin/TelegramSettingsController@index");

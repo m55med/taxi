@@ -25,7 +25,7 @@
             <?php endif; ?>
         </p>
         <div class="pt-4">
-            <a href="<?= BASE_PATH ?>/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href="<?= BASE_URL ?>/login" class="font-medium text-indigo-600 hover:text-indigo-500">
                 &larr; Back to Login
             </a>
         </div>

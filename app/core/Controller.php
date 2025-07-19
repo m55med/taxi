@@ -29,8 +29,8 @@ class Controller
 
 
 
-    
-    
+
+
 
     /**
      * Loads a model file.
@@ -40,27 +40,27 @@ class Controller
      */
     public function model($model)
     {
-        // Construct the full path to the model file using realpath
-        $modelPath = realpath(__DIR__ . '/../models/' . $model . '.php');
-    
-        if ($modelPath && file_exists($modelPath)) {
+        // نبدل أي / بـ \ علشان نمشي مع PSR-4 autoloading و PHP namespaces
+        $normalizedModel = str_replace('/', DIRECTORY_SEPARATOR, $model);
+        $modelPath = __DIR__ . '/../models/' . $normalizedModel . '.php';
+
+        if (file_exists($modelPath)) {
             require_once $modelPath;
-    
-            $parts = explode('/', $model);
-            $className = array_pop($parts);
-            $namespace = implode('\\', $parts);
-            $modelClass = 'App\\Models\\' . ($namespace ? $namespace . '\\' : '') . $className;
-    
+
+            // نعدّل اسم الكلاس عشان يكون كامل بـ namespace مظبوط
+            $model = str_replace('/', '\\', $model); // مهم جدًا
+            $modelClass = 'App\\Models\\' . $model;
+
             if (class_exists($modelClass)) {
                 return new $modelClass();
             }
         }
-    
-        // Log error for debugging
-        error_log("Model not found or class does not exist: " . $model);
+
+        error_log("❌ Model not found or class does not exist: $model");
         return null;
     }
-    
+
+
 
     /**
      * Loads a view file.
@@ -77,7 +77,7 @@ class Controller
             if ($notificationModel) {
                 // Fetch mandatory notifications for modal pop-ups
                 $data['mandatory_notifications'] = $notificationModel->getMandatoryUnreadForUser($_SESSION['user_id']);
-                
+
                 // Fetch the count of unread notifications for the navigation bar
                 $data['unread_notification_count'] = $notificationModel->getUnreadCountForUser($_SESSION['user_id']);
             }
@@ -100,7 +100,7 @@ class Controller
         if (ob_get_level()) {
             ob_end_clean();
         }
-        
+
         // Ensure the status code is a valid integer before setting it.
         $finalStatusCode = is_int($statusCode) && $statusCode >= 100 && $statusCode < 600 ? $statusCode : 500;
         http_response_code($finalStatusCode);

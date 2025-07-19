@@ -1,5 +1,6 @@
 <?php require_once APPROOT . '/views/includes/header.php'; ?>
 
+
 <?php
 // Prepare flash message data for Alpine.js
 $flashMessage = null;
@@ -17,7 +18,7 @@ if (isset($_SESSION['bonus_message'])) {
 <div class="container mx-auto px-4 py-8" x-data="bonusPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Grant Monthly Bonus</h1>
-        <?php if ($data['is_admin']) : ?>
+        <?php if ($data['can_manage_settings']) : ?>
             <a href="<?= URLROOT ?>/admin/bonus/settings" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out">
                 Bonus Settings
             </a>

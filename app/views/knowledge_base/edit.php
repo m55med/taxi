@@ -9,8 +9,17 @@
 
     <!-- Form Container -->
     <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8">
-        <form action="<?= URLROOT ?>/knowledge_base/update/<?= $data['article']['id'] ?>" method="POST">
-            <?php include_once '_form.php'; ?>
+        <form id="kb-form" action="<?= URLROOT ?>/knowledge_base/update/<?= $data['article']['id'] ?>" method="POST">
+            <?php view('knowledge_base/_form', ['ticket_codes' => $data['ticket_codes'], 'article' => $data['article']]); ?>
+            
+            <div class="mt-8 flex justify-end space-x-4">
+                <a href="<?= URLROOT ?>/knowledge_base" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                    Update Article
+                </button>
+            </div>
         </form>
     </div>
 

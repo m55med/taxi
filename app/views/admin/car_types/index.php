@@ -28,7 +28,7 @@ if (isset($_SESSION['car_type_message'])) {
             toast: { show: false, message: '', type: 'success' },
             modal: { show: false, deleteUrl: '', name: '' },
             openModal(id, name) {
-                this.modal.deleteUrl = `<?= BASE_PATH ?>/admin/car_types/delete/${id}`;
+                this.modal.deleteUrl = `<?= URLROOT ?>/admin/car_types/delete/${id}`;
                 this.modal.name = name;
                 this.modal.show = true;
             },
@@ -84,7 +84,7 @@ if (isset($_SESSION['car_type_message'])) {
             <div class="md:col-span-1">
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New Car Type</h2>
-                    <form action="<?= BASE_PATH ?>/admin/car_types/store" method="POST">
+                    <form action="<?= URLROOT  ?>/admin/car_types/store" method="POST">
                         <div>
                             <label for="name" class="block text-sm font-medium text-gray-700">Car Type Name</label>
                             <input type="text" name="name" id="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Sedan, SUV">

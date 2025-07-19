@@ -10,7 +10,7 @@ class DocumentTypesController extends Controller {
 
     public function __construct() {
         Auth::checkAdmin();
-        $this->documentTypeModel = $this->model('Admin\DocumentType');
+        $this->documentTypeModel = $this->model('Admin/DocumentType');
     }
 
     public function index() {

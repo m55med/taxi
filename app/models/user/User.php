@@ -422,16 +422,19 @@ class User
     
     public function getAvailableForTeamLeadership()
     {
-        // Get users who are active and not already leading a team
-        $sql = "SELECT u.id, u.username 
+        $sql = "SELECT u.id, u.username
                 FROM users u
+                INNER JOIN roles r ON u.role_id = r.id
                 LEFT JOIN teams t ON u.id = t.team_leader_id
-                WHERE u.status = 'active' AND t.id IS NULL
+                WHERE u.status = 'active'
+                  AND r.name = 'Team_leader'
+                  AND t.id IS NULL
                 ORDER BY u.username ASC";
-        
+    
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    
 
     /**
      * Get all permissions for a specific user based on their role.

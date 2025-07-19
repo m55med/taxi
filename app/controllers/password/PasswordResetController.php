@@ -85,8 +85,12 @@ class PasswordResetController extends Controller
         $tokenData = $this->passwordResetModel->findResetToken($token);
 
         if (!$tokenData || strtotime($tokenData['expires_at']) < time()) {
-            // You might want a specific view for expired/invalid tokens
-            die('This password reset token is invalid or has expired.');
+            // Token is invalid or expired, show an error message within the view
+            $this->view('password/reset', [
+                'error' => 'This password reset token is invalid or has expired.',
+                'token' => null // Ensure token is not passed to the form
+            ]);
+            return;
         }
 
         $this->view('password/reset', ['token' => $token]);

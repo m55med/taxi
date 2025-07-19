@@ -34,7 +34,7 @@ class KnowledgeBaseController extends Controller
             'page_main_title' => 'Knowledge Base',
             'articles' => $articles,
             'searchQuery' => $searchQuery,
-            'is_admin' => in_array($_SESSION['role_name'], ['admin', 'developer'])
+'is_admin' => isset($_SESSION['user']['role_name']) && in_array($_SESSION['user']['role_name'], ['admin', 'developer']),
         ];
 
         $this->view('knowledge_base/index', $data);
@@ -209,8 +209,6 @@ class KnowledgeBaseController extends Controller
      */
     private function requireAdmin()
     {
-        if (!in_array($_SESSION['role_name'], ['admin', 'developer'])) {
-            redirect('/unauthorized');
-        }
+        Auth::checkAdmin();
     }
 }

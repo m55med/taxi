@@ -171,14 +171,14 @@ function platformsPage(flashMessage) {
         submitForm() {
             const formRef = this.$refs.form;
             formRef.action = this.form.id 
-                ? `<?= BASE_PATH ?>/admin/platforms/update` 
-                : `<?= BASE_PATH ?>/admin/platforms/store`;
+                ? `<?= URLROOT  ?>/admin/platforms/update` 
+                : `<?= URLROOT  ?>/admin/platforms/store`;
             formRef.submit();
         },
 
         confirmDelete(id, name) {
             this.deleteModal.message = `Are you sure you want to delete the platform "<strong>${name}</strong>"? This action cannot be undone.`;
-            this.deleteModal.actionUrl = `<?= BASE_PATH ?>/admin/platforms/delete/${id}`;
+            this.deleteModal.actionUrl = `<?= URLROOT  ?>/admin/platforms/delete/${id}`;
             this.deleteModal.open = true;
         }
     }

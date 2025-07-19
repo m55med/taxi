@@ -5,19 +5,15 @@ namespace App\Controllers\Admin;
 use App\Core\Controller;
 use App\Core\Auth;
 use App\Models\Admin\PointsModel;
-
 class PointsController extends Controller
 {
     private $pointsModel;
 
     public function __construct()
     {
-        // Auth check for admin
-        if (!isset($_SESSION['user_id']) || $_SESSION['role_name'] !== 'admin') {
-            Auth::isLoggedIn() ? redirect('/unauthorized') : redirect('/auth/login');
-        }
-
-        $this->pointsModel = $this->model('admin/PointsModel');
+        // Use the centralized admin check for consistency.
+        Auth::checkAdmin();
+        $this->pointsModel = $this->model('Admin/PointsModel');
     }
 
     public function index()

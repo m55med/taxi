@@ -57,7 +57,7 @@ class AuthController extends Controller
             $result = $this->userModel->register($data);
 
             if ($result['status']) {
-                $_SESSION['success'] = 'تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.';
+                $_SESSION['success'] = 'The account has been created successfully. You can now log in.';
                 header('Location: ' . BASE_URL . '/login');
                 exit();
             } else {

@@ -52,8 +52,7 @@ class TicketCodesController extends Controller {
                 $_SESSION['ticket_code_message_type'] = 'error';
             }
         }
-        header("Location: " . BASE_PATH . "/admin/ticket_codes");
-        exit();
+        redirect('admin/ticket_codes');
     }
 
     public function delete($id) {
@@ -67,7 +66,6 @@ class TicketCodesController extends Controller {
                 $_SESSION['ticket_code_message_type'] = 'error';
             }
         }
-        header("Location: " . BASE_PATH . "/admin/ticket_codes");
-        exit();
+        redirect('admin/ticket_codes');
     }
 } 

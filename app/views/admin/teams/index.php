@@ -53,6 +53,7 @@ if (isset($_SESSION['team_message'])) {
                     </form>
                 </div>
             </div>
+            <pre><?php print_r($data['users']); ?></pre>
 
             <!-- Teams List -->
             <div class="md:col-span-2">
@@ -147,12 +148,12 @@ function teamsPage(flashMessage) {
         },
         submitForm() {
             const formRef = this.$refs.form;
-            formRef.action = this.form.id ? `<?= BASE_PATH ?>/admin/teams/update` : `<?= BASE_PATH ?>/admin/teams/store`;
+            formRef.action = this.form.id ? `<?= URLROOT ?>/admin/teams/update` : `<?= URLROOT ?>/admin/teams/store`;
             formRef.submit();
         },
         confirmDelete(id, name) {
             this.deleteModal.message = `Are you sure you want to delete the team "<strong>${name}</strong>"? This may not be possible if it has members.`;
-            this.deleteModal.actionUrl = `<?= BASE_PATH ?>/admin/teams/delete/${id}`;
+            this.deleteModal.actionUrl = `<?= URLROOT ?>/admin/teams/delete/${id}`;
             this.deleteModal.open = true;
         }
     }

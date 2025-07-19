@@ -14,7 +14,7 @@ class TeamsController extends Controller {
 
     public function index() {
         $teamModel = new Team();
-        $userModel = $this->model('user/User');
+        $userModel = $this->model('User/User');
 
         $teams = $teamModel->getAll();
         $users = $userModel->getAvailableForTeamLeadership();
@@ -46,7 +46,7 @@ class TeamsController extends Controller {
                 $_SESSION['team_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/teams');
+        header('Location: ' . URLROOT . '/admin/teams');
         exit;
     }
 
@@ -61,14 +61,14 @@ class TeamsController extends Controller {
                 $_SESSION['team_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/teams');
+        header('Location: ' . URLROOT . '/admin/teams');
         exit;
     }
 
     public function create()
     {
         $teamModel = $this->model('Admin/Team');
-        $userModel = $this->model('user/User');
+        $userModel = $this->model('User/User');
 
         $members = $userModel->getAvailableForTeamLeadership();
 
@@ -83,7 +83,7 @@ class TeamsController extends Controller {
     public function edit($id)
     {
         $teamModel = $this->model('Admin/Team');
-        $userModel = $this->model('user/User');
+        $userModel = $this->model('User/User');
         $team = $teamModel->getTeamById($id);
         $members = $userModel->getAvailableForTeamLeadership($id);
 
@@ -121,14 +121,14 @@ class TeamsController extends Controller {
                 $_SESSION['team_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/teams');
+        header('Location: ' . URLROOT . '/admin/teams');
         exit;
     }
 
     public function addMember()
     {
         $teamModel = $this->model('Admin/Team');
-        $userModel = $this->model('user/User');
+        $userModel = $this->model('User/User');
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $teamId = $_POST['team_id'];
             $userId = $_POST['user_id'];
@@ -140,18 +140,18 @@ class TeamsController extends Controller {
                 $_SESSION['team_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_PATH . '/admin/teams/edit/' . $teamId);
+        header('Location: ' . URLROOT . '/admin/teams/edit/' . $teamId);
         exit;
     }
 
     public function removeMember($teamId, $userId)
     {
         $teamModel = $this->model('Admin/Team');
-        $userModel = $this->model('user/User');
+        $userModel = $this->model('User/User');
         $teamModel->removeMember($teamId, $userId);
         $_SESSION['team_message'] = 'Member removed from the team successfully.';
         $_SESSION['team_message_type'] = 'success';
-        header('Location: ' . BASE_PATH . '/admin/teams/edit/' . $teamId);
+        header('Location: ' . URLROOT . '/admin/teams/edit/' . $teamId);
         exit;
     }
 } 

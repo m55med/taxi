@@ -45,8 +45,7 @@ class TicketCategoriesController extends Controller {
                 $_SESSION['ticket_category_message_type'] = 'error';
             }
         }
-        header("Location: " . BASE_PATH . "/admin/ticket_categories");
-        exit();
+        redirect('admin/ticket_categories');
     }
 
     public function delete($id) {
@@ -60,7 +59,6 @@ class TicketCategoriesController extends Controller {
                 $_SESSION['ticket_category_message_type'] = 'error';
             }
         }
-        header("Location: " . BASE_PATH . "/admin/ticket_categories");
-        exit();
+        redirect('admin/ticket_categories');
     }
 } 
