@@ -57,7 +57,7 @@ class UsersController extends Controller {
                 'username' => trim($_POST['username']),
                 'name' => trim($_POST['name']),
                 'email' => trim($_POST['email']),
-                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'password' => $_POST['password'], // No hashing here
                 'role_id' => filter_input(INPUT_POST, 'role_id', FILTER_VALIDATE_INT),
                 'status' => $_POST['status']
             ];
@@ -65,28 +65,27 @@ class UsersController extends Controller {
             if ($this->userModel->isUsernameExists($data['username'])) {
                 $_SESSION['user_message'] = 'Username already exists.';
                 $_SESSION['user_message_type'] = 'error';
-            } elseif ($this->userModel->isEmailExists($data['email'])) {
+                header('Location: ' . URLROOT . '/admin/users/create'); // Redirect back to form
+                exit;
+            }
+            
+            if ($this->userModel->isEmailExists($data['email'])) {
                 $_SESSION['user_message'] = 'Email already exists.';
                 $_SESSION['user_message_type'] = 'error';
-            } else {
-                $newUserId = $this->userModel->createUser($data);
-                if ($newUserId) {
-                    // Assign default permissions for the role
-                    $roleId = $data['role_id'];
-                    $defaultPermissions = $this->permissionModel->getPermissionsByRole($roleId);
-                    if (!empty($defaultPermissions)) {
-                        $this->permissionModel->updateUserPermissions($newUserId, $defaultPermissions);
-                    }
+                header('Location: ' . URLROOT . '/admin/users/create'); // Redirect back to form
+                exit;
+            }
 
-                    $_SESSION['user_message'] = 'User added successfully.';
-                    $_SESSION['user_message_type'] = 'success';
-                } else {
-                    $_SESSION['user_message'] = 'Failed to add user.';
-                    $_SESSION['user_message_type'] = 'error';
-                }
+            $newUserId = $this->userModel->createUser($data);
+            if ($newUserId) {
+                $_SESSION['user_message'] = 'User added successfully.';
+                $_SESSION['user_message_type'] = 'success';
+            } else {
+                $_SESSION['user_message'] = 'Failed to add user.';
+                $_SESSION['user_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_URL . '/admin/users');
+        header('Location: ' . URLROOT . '/admin/users');
         exit;
     }
 
@@ -94,7 +93,7 @@ class UsersController extends Controller {
         $user = $this->userModel->getUserById($id);
         if (!$user) {
             // Handle user not found
-            header('Location: ' . BASE_URL . '/admin/users');
+            header('Location: ' . URLROOT . '/admin/users');
             exit;
         }
 
@@ -109,8 +108,6 @@ class UsersController extends Controller {
     public function update($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
-                'id' => $id,
-                'username' => trim($_POST['username']),
                 'name' => trim($_POST['name']),
                 'email' => trim($_POST['email']),
                 'role_id' => filter_input(INPUT_POST, 'role_id', FILTER_VALIDATE_INT),
@@ -119,24 +116,27 @@ class UsersController extends Controller {
 
             // Optional password update
             if (!empty($_POST['password'])) {
-                $data['password'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                $data['password'] = $_POST['password']; // No hashing here
             }
             
-            if ($this->userModel->updateUser($id, $data)) {
-                $_SESSION['user_message'] = 'User updated successfully.';
+            $result = $this->userModel->updateUser($id, $data);
+
+            if ($result['status']) {
+                $_SESSION['user_message'] = $result['message'];
                 $_SESSION['user_message_type'] = 'success';
             } else {
-                $_SESSION['user_message'] = 'Failed to update user.';
+                $_SESSION['user_message'] = $result['message'] ?? 'Failed to update user.';
                 $_SESSION['user_message_type'] = 'error';
             }
         }
-        header('Location: ' . BASE_URL . '/admin/users');
+        header('Location: ' . URLROOT . '/admin/users');
         exit;
     }
 
     public function destroy() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id'])) {
-             redirect(BASE_URL . '/admin/users');
+             header('Location: ' . URLROOT . '/admin/users');
+             exit;
         }
         $id = $_POST['id'];
 
@@ -148,7 +148,7 @@ class UsersController extends Controller {
             $_SESSION['user_message_type'] = 'error';
         }
         // This should redirect to the index page which will show the flash message
-        header('Location: ' . BASE_URL . '/admin/users');
+        header('Location: ' . URLROOT . '/admin/users');
         exit;
     }
 

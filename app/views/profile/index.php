@@ -4,10 +4,16 @@
 
 // Start session if not already started to access session variables
 if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
+$user = $data['user'] ?? null;
+if (!$user) {
+    // Redirect to login if user is not logged in or data is missing
+    header('Location: ' . URLROOT . '/login');
+    exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 
@@ -73,7 +79,7 @@ if (session_status() == PHP_SESSION_NONE) {
                 <?php unset($_SESSION['success']); ?>
             <?php endif; ?>
 
-            <form action="<?= BASE_URL ?>/profile/update" method="POST" class="space-y-5">
+            <form action="<?= URLROOT ?>/profile/update" method="POST" class="space-y-5">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username (cannot be
                         changed)</label>
@@ -124,7 +130,7 @@ if (session_status() == PHP_SESSION_NONE) {
                     </button>
                 </div>
                 <div class="text-center mt-4">
-                    <a href="<?= BASE_URL ?>/dashboard" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    <a href="<?= URLROOT ?>/dashboard" class="font-medium text-indigo-600 hover:text-indigo-500">
                         Back to Dashboard
                     </a>
                 </div>

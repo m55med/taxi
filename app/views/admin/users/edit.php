@@ -6,14 +6,14 @@
         <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">Edit User</h1>
-                <a href="<?= BASE_URL ?>/admin/users" class="text-indigo-600 hover:text-indigo-900">
+                <a href="<?= URLROOT ?>/admin/users" class="text-indigo-600 hover:text-indigo-900">
                     <i class="fas fa-arrow-left mr-1"></i>
                     Back to List
                 </a>
             </div>
 
             <?php if (isset($data['user'])): ?>
-                <form action="<?= BASE_URL ?>/admin/users/update/<?= htmlspecialchars($data['user']->id) ?>" method="POST" class="space-y-6">
+                <form action="<?= URLROOT ?>/admin/users/update/<?= htmlspecialchars($data['user']->id) ?>" method="POST" class="space-y-6">
                     <div>
                         <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
                         <input type="text" name="username" id="username" readonly

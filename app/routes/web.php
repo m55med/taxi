@@ -57,8 +57,8 @@ $router->get('reset-password/{token}', 'Password/PasswordResetController@showRes
 $router->post('reset-password', 'Password/PasswordResetController@handleReset');
 
 // Profile routes
-$router->get('profile', 'Auth/AuthController@profile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-$router->post('profile/update', 'Auth/AuthController@updateProfile')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('profile', 'Auth/AuthController@profile');
+$router->post('profile/update', 'Auth/AuthController@updateProfile');
 
 $router->get('dashboard', 'Dashboard/DashboardController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('dashboard/{action}', 'Dashboard/DashboardController@{action}')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);

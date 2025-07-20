@@ -67,7 +67,7 @@ if (isset($_SESSION['user_message'])) {
         <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
-                <a href="<?= BASE_URL ?>/admin/users/create" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <a href="<?= URLROOT ?>/admin/users/create" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                     <i class="fas fa-user-plus mr-1"></i>
                     Add New User
                 </a>
@@ -159,7 +159,7 @@ if (isset($_SESSION['user_message'])) {
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                                     <?php if (($user->id ?? '') !== ($_SESSION['user_id'] ?? '')): ?>
-                                        <a href="<?= BASE_URL ?>/admin/users/edit/<?= htmlspecialchars($user->id ?? '') ?>" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Edit">
+                                        <a href="<?= URLROOT ?>/admin/users/edit/<?= htmlspecialchars($user->id ?? '') ?>" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <button @click="openForceLogoutModal(<?= htmlspecialchars($user->id ?? '') ?>, '<?= htmlspecialchars($user->username ?? '') ?>')" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Force Logout">
@@ -169,7 +169,7 @@ if (isset($_SESSION['user_message'])) {
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     <?php else: ?>
-                                        <a href="<?= BASE_URL ?>/admin/users/change_password" class="text-indigo-600 hover:text-indigo-900" title="Change Password">
+                                        <a href="<?= URLROOT ?>/admin/users/change_password" class="text-indigo-600 hover:text-indigo-900" title="Change Password">
                                             <i class="fas fa-key"></i>
                                         </a>
                                     <?php endif; ?>
@@ -211,7 +211,7 @@ if (isset($_SESSION['user_message'])) {
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" @click.away="closeDeleteModal()">
             <h3 class="text-lg font-semibold mb-2">Confirm Deletion</h3>
             <p class="text-gray-600 mb-4">Are you sure you want to delete user <span class="font-bold" x-text="deleteModal.username"></span>? This action cannot be undone.</p>
-            <form @submit.prevent="submitDelete" method="POST" action="<?= BASE_URL ?>/admin/users/destroy">
+            <form @submit.prevent="submitDelete" method="POST" action="<?= URLROOT ?>/admin/users/destroy">
                 <input type="hidden" name="id" x-model="deleteModal.userId">
                 <div class="flex justify-end space-x-2">
                     <button type="button" @click="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
@@ -265,7 +265,7 @@ function usersPage(flashMessage) {
             body.append('id', this.forceLogoutModal.userId);
             body.append('message', this.forceLogoutModal.message);
 
-            fetch('<?= BASE_URL ?>/admin/users/forceLogout', {
+            fetch('<?= URLROOT ?>/admin/users/forceLogout', {
                 method: 'POST',
                 body: body
             })

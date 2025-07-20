@@ -58,7 +58,7 @@ class AuthController extends Controller
 
             if ($result['status']) {
                 $_SESSION['success'] = 'The account has been created successfully. You can now log in.';
-                header('Location: ' . BASE_URL . '/login');
+                header('Location: ' . URLROOT . '/login');
                 exit();
             } else {
                 $this->view('auth/register', ['error' => $result['message']]);
@@ -72,7 +72,7 @@ class AuthController extends Controller
     {
         // إذا كان المستخدم مسجل دخوله بالفعل، قم بتوجيهه إلى لوحة التحكم
         if (isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/dashboard');
+            header('Location: ' . URLROOT . '/dashboard');
             exit();
         }
 
@@ -100,6 +100,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'username' => $user->username,
                     'name' => $user->name,
+                    'email' => $user->email, // Add email to the session
                     'role_name' => $user->role_name,
                     'permissions' => $permissions,
                     'is_online' => true,
@@ -114,7 +115,7 @@ class AuthController extends Controller
                 $activeUserService = new ActiveUserService();
                 $activeUserService->recordUserActivity($user->id);
 
-                header('Location: ' . BASE_URL . '/dashboard');
+                header('Location: ' . URLROOT . '/dashboard');
                 exit();
             } else {
                 $this->view('auth/login', ['error' => $result['message'] ?? 'Invalid username or password.']);
@@ -148,35 +149,32 @@ class AuthController extends Controller
             session_destroy();
         }
 
-        header('Location: ' . BASE_URL . '/login');
+        header('Location: ' . URLROOT . '/login');
         exit();
     }
 
     public function profile()
     {
         if (!isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/login');
+            header('Location: ' . URLROOT . '/login');
             exit();
         }
 
-        $userId = $_SESSION['user_id'];
-        $user = $this->userModel->getUserById($userId);
+        $user = $this->userModel->getUserById($_SESSION['user_id']);
 
-        if (!$user) {
-            // User not found, handle appropriately
-            session_unset();
-            session_destroy();
-            header('Location: ' . BASE_URL . '/login');
-            exit();
-        }
+        $data = [
+            'user' => $user
+        ];
 
-        $this->view('profile/index', ['user' => $user]);
+        $this->view('profile/index', $data);
     }
+    
+    
 
     public function updateProfile()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
-            header('Location: ' . BASE_URL . '/profile');
+            header('Location: ' . URLROOT . '/profile');
             exit();
         }
 
@@ -192,20 +190,20 @@ class AuthController extends Controller
         // Basic validation
         if (empty($data['name']) || empty($data['email'])) {
             $_SESSION['error'] = 'Name and Email are required.';
-            header('Location: ' . BASE_URL . '/profile');
+            header('Location: ' . URLROOT . '/profile');
             exit();
         }
 
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Invalid email format.';
-            header('Location: ' . BASE_URL . '/profile');
+            header('Location: ' . URLROOT . '/profile');
             exit();
         }
 
         // If password is provided, it must meet length requirements
         if (!empty($data['password']) && strlen($data['password']) < 6) {
             $_SESSION['error'] = 'Password must be at least 6 characters long.';
-            header('Location: ' . BASE_URL . '/profile');
+            header('Location: ' . URLROOT . '/profile');
             exit();
         }
 
@@ -215,13 +213,13 @@ class AuthController extends Controller
             $_SESSION['success'] = 'Profile updated successfully.';
             // Update session with new name if it exists in the model response
             if (isset($result['name'])) {
-                $_SESSION['name'] = $result['name'];
+                $_SESSION['user']['name'] = $result['name'];
             }
         } else {
             $_SESSION['error'] = $result['message'] ?? 'Failed to update profile.';
         }
 
-        header('Location: ' . BASE_URL . '/profile');
+        header('Location: ' . URLROOT . '/profile');
         exit();
     }
 }

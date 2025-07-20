@@ -16,8 +16,8 @@ class PermissionsController extends Controller
         parent::__construct();
         // Use the new simplified authorization check
         \App\Core\Auth::checkAdmin();
-        $this->permissionModel = $this->model('Admin\Permission');
-        $this->userModel = $this->model('User\User');
+        $this->permissionModel = $this->model('Admin/Permission');
+        $this->userModel = $this->model('User/User');
     }
 
     private function jsonResponse(array $data, int $statusCode = 200)

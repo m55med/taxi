@@ -116,7 +116,7 @@ class User
             $userData['username'],
             $userData['name'],
             $userData['email'],
-            $userData['password'],
+            password_hash($userData['password'], PASSWORD_DEFAULT),
             $userData['role_id'],
             $userData['status']
         ]);
@@ -329,49 +329,61 @@ class User
 
     public function updateUser($id, $data)
     {
-        $fields = [];
-        $params = [];
-
-        if (isset($data['username'])) {
-            $fields[] = 'username = ?';
-            $params[] = $data['username'];
-        }
-        if (isset($data['name'])) {
-            $fields[] = 'name = ?';
-            $params[] = $data['name'];
-        }
-        if (isset($data['email'])) {
-            $fields[] = 'email = ?';
-            $params[] = $data['email'];
-        }
-        if (isset($data['password'])) {
-            $fields[] = 'password = ?';
-            $params[] = $data['password'];
-        }
-        if (isset($data['role_id'])) {
-            $fields[] = 'role_id = ?';
-            $params[] = $data['role_id'];
-        }
-        if (isset($data['status'])) {
-            $fields[] = 'status = ?';
-            $params[] = $data['status'];
-        }
-
-        if (empty($fields)) {
-            return false;
-        }
-
-        $fields[] = 'updated_at = CURRENT_TIMESTAMP';
-        $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?";
-        $params[] = $id;
-
         try {
+            // Check if the email is being changed to one that already belongs to another user.
+            if (!empty($data['email'])) {
+                $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email AND id != :id");
+                $stmt->execute([':email' => $data['email'], ':id' => $id]);
+                if ($stmt->fetch()) {
+                    return ['status' => false, 'message' => 'This email address is already in use by another account.'];
+                }
+            }
+
+            $fields = [];
+            $params = [':id' => $id];
+
+            if (!empty($data['name'])) {
+                $fields[] = 'name = :name';
+                $params[':name'] = $data['name'];
+            }
+            if (!empty($data['email'])) {
+                $fields[] = 'email = :email';
+                $params[':email'] = $data['email'];
+            }
+            if (!empty($data['password'])) {
+                $fields[] = 'password = :password';
+                $params[':password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            }
+            if (isset($data['role_id'])) {
+                $fields[] = 'role_id = :role_id';
+                $params[':role_id'] = $data['role_id'];
+            }
+            if (!empty($data['status'])) {
+                $fields[] = 'status = :status';
+                $params[':status'] = $data['status'];
+            }
+
+            if (empty($fields)) {
+                return ['status' => true, 'message' => 'No changes were made.'];
+            }
+
+            $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
             $stmt = $this->db->prepare($sql);
-            return $stmt->execute($params);
+            $result = $stmt->execute($params);
+
+            if ($result) {
+                // Return success and the updated name
+                $response = ['status' => true, 'message' => 'User updated successfully.'];
+                if (isset($data['name'])) {
+                    $response['name'] = $data['name'];
+                }
+                return $response;
+            } else {
+                return ['status' => false, 'message' => 'Failed to update user due to a database error.'];
+            }
         } catch (PDOException $e) {
-            // Log the error for debugging
-            error_log("User update failed: " . $e->getMessage());
-            return false;
+            error_log("User update error: " . $e->getMessage());
+            return ['status' => false, 'message' => 'An internal error occurred. Please try again later.'];
         }
     }
 
@@ -403,9 +415,7 @@ class User
 
     public function getById($id)
     {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id");
-        $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->getUserById($id);
     }
 
     public function getActiveStaff()
@@ -445,10 +455,10 @@ class User
     {
         // First, get the user's role ID
         $user = $this->getById($userId);
-        if (!$user || !isset($user['role_id'])) {
+        if (!$user || !isset($user->role_id)) {
             return []; // No user or role found, return no permissions
         }
-        $roleId = $user['role_id'];
+        $roleId = $user->role_id;
 
         // Get permissions assigned directly to the user
         $userPermissionsSql = "SELECT p.permission_key 
