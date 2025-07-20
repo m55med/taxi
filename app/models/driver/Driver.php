@@ -185,8 +185,8 @@ class Driver
         $this->db->beginTransaction();
         try {
             $sql_driver = "
-                INSERT INTO drivers (name, phone, email, country_id, app_status, data_source, notes, added_by) 
-                VALUES (:name, :phone, :email, :country_id, :app_status, :data_source, :notes, :added_by)
+                INSERT INTO drivers (name, phone, email, country_id, main_system_status, data_source, notes, added_by, car_type_id) 
+                VALUES (:name, :phone, :email, :country_id, :main_system_status, :data_source, :notes, :added_by, :car_type_id)
             ";
             $stmt_driver = $this->db->prepare($sql_driver);
 
@@ -213,10 +213,12 @@ class Driver
                     ':phone' => $driver['phone'],
                     ':email' => $driver['email'],
                     ':country_id' => $commonData['country_id'],
-                    ':app_status' => $commonData['app_status'],
+                    ':main_system_status' => $commonData['main_system_status'],
                     ':data_source' => $commonData['data_source'],
                     ':notes' => $commonData['notes'],
-                    ':added_by' => $commonData['added_by']
+                    ':added_by' => $commonData['added_by'],
+                    // Directly use the POST value to ensure integrity
+                    ':car_type_id' => (int)($_POST['car_type_id'] ?? 1) 
                 ];
 
                 if ($stmt_driver->execute($params_driver)) {

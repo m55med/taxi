@@ -12,7 +12,7 @@ class CouponsController extends Controller {
         parent::__construct();
         // Ensure user is logged in and is an admin
         Auth::checkAdmin();
-        $this->couponModel = $this->model('Admin\Coupon');
+        $this->couponModel = $this->model('Admin/Coupon');
     }
 
     public function index() {

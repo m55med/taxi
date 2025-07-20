@@ -29,7 +29,7 @@ if (isset($_SESSION['team_member_message'])) {
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h2 class="text-xl font-semibold text-gray-800 mb-4">Assign User to Team</h2>
                     <p class="text-sm text-gray-600 mb-4">You can add a new user to a team or move an existing user to a different team.</p>
-                    <form action="<?= BASE_PATH ?>/admin/team_members/store" method="POST">
+                    <form action="<?= URLROOT ?>/admin/team_members/store" method="POST">
                         <div class="mt-4">
                             <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>
                             <select name="user_id" id="user_id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -134,7 +134,7 @@ function teamMembersPage(flashMessage) {
         },
         confirmDelete(id, userName, teamName) {
             this.deleteModal.message = `Are you sure you want to remove "<strong>${userName}</strong>" from the team "<strong>${teamName}</strong>"?`;
-            this.deleteModal.actionUrl = `<?= BASE_PATH ?>/admin/team_members/delete/${id}`;
+            this.deleteModal.actionUrl = `<?= URLROOT ?>/admin/team_members/delete/${id}`;
             this.deleteModal.open = true;
         }
     }

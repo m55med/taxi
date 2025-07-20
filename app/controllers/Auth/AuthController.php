@@ -159,7 +159,7 @@ class AuthController extends Controller
             header('Location: ' . URLROOT . '/login');
             exit();
         }
-
+    
         $user = $this->userModel->getUserById($_SESSION['user_id']);
 
         $data = [

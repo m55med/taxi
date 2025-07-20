@@ -53,8 +53,6 @@ if (isset($_SESSION['team_message'])) {
                     </form>
                 </div>
             </div>
-            <pre><?php print_r($data['users']); ?></pre>
-
             <!-- Teams List -->
             <div class="md:col-span-2">
                 <div class="bg-white rounded-lg shadow-md">

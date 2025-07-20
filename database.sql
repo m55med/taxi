@@ -74,6 +74,16 @@ CREATE TABLE car_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL
 );
+
+-- Add default car types
+INSERT INTO `car_types` (`id`, `name`) VALUES
+(1, 'Sedan'),
+(2, 'SUV'),
+(3, 'Van'),
+(4, 'Luxury'),
+(5, 'Economy'),
+(6, 'Premium');
+
 --جدول لتخزين بيانات الدول
 CREATE TABLE countries (
     id INT AUTO_INCREMENT PRIMARY KEY,

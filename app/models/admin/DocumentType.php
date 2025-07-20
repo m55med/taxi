@@ -20,7 +20,7 @@ class DocumentType
         try {
             $stmt = $this->db->prepare("SELECT * FROM document_types ORDER BY name ASC");
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
         } catch (PDOException $e) {
             return [];
         }

@@ -69,7 +69,7 @@ if (isset($_SESSION['coupon_message'])) {
             <i class="fas fa-chevron-down transition-transform" :class="{'rotate-180': open}"></i>
         </div>
         <div x-show="open" x-collapse x-cloak>
-            <form action="<?= BASE_PATH ?>/admin/coupons" method="POST" class="p-5 border-t">
+            <form action="<?= URLROOT ?>/admin/coupons" method="POST" class="p-5 border-t">
                 <input type="hidden" name="action" value="add_bulk">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Codes Textarea -->
@@ -137,7 +137,7 @@ if (isset($_SESSION['coupon_message'])) {
                 </div>
                 <div class="flex items-center space-x-2">
                      <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 text-sm font-medium">Filter</button>
-                     <a href="<?= BASE_PATH ?>/admin/coupons" class="bg-gray-200 text-gray-700 px-5 py-2 rounded-md hover:bg-gray-300 text-sm font-medium">Clear</a>
+                     <a href="<?= URLROOT ?>/admin/coupons" class="bg-gray-200 text-gray-700 px-5 py-2 rounded-md hover:bg-gray-300 text-sm font-medium">Clear</a>
                 </div>
             </form>
 
@@ -171,7 +171,7 @@ if (isset($_SESSION['coupon_message'])) {
         </div>
         
         <!-- Table Form for Bulk Actions -->
-        <form action="<?= BASE_PATH ?>/admin/coupons" method="POST" id="bulkActionForm">
+        <form action="<?= URLROOT ?>/admin/coupons" method="POST" id="bulkActionForm">
             <input type="hidden" name="action" id="bulkActionInput" value="">
             <template x-for="couponId in selectedCoupons" :key="couponId">
                 <input type="hidden" name="coupon_ids[]" :value="couponId">
@@ -226,7 +226,7 @@ if (isset($_SESSION['coupon_message'])) {
                             <td class="px-4 py-4">
                                 <?php if ($coupon['is_used']): ?>
                                     <div class="text-xs">
-                                        <p><strong>Ticket:</strong> <a href="<?= BASE_PATH . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
+                                        <p><strong>Ticket:</strong> <a href="<?= URLROOT . '/tickets/details/' . $coupon['used_in_ticket'] ?>" class="text-blue-600 hover:underline"><?= htmlspecialchars($coupon['ticket_number']) ?></a></p>
                                         <p><strong>By:</strong> <?= htmlspecialchars($coupon['used_by_username']) ?></p>
                                         <p><strong>At:</strong> <?= date('Y-m-d H:i', strtotime($coupon['used_at'])) ?></p>
                                     </div>
@@ -376,7 +376,7 @@ function couponsPage(flashMessage) {
         submitEditForm(formElement) {
             // We can use FormData for simpler submission
             const formData = new FormData(formElement);
-            fetch('<?= BASE_PATH ?>/admin/coupons', {
+            fetch('<?= URLROOT ?>/admin/coupons', {
                 method: 'POST',
                 body: formData
             })

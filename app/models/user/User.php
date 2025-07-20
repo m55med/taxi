@@ -430,7 +430,7 @@ class User
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    public function getAvailableForTeamLeadership()
+    public function getAvailableForTeamLeadership($excludeTeamId = null)
     {
         $sql = "SELECT u.id, u.username
                 FROM users u
@@ -438,10 +438,11 @@ class User
                 LEFT JOIN teams t ON u.id = t.team_leader_id
                 WHERE u.status = 'active'
                   AND r.name = 'Team_leader'
-                  AND t.id IS NULL
+                  AND (t.id IS NULL OR t.id = :excludeTeamId)
                 ORDER BY u.username ASC";
-    
-        $stmt = $this->db->query($sql);
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':excludeTeamId' => $excludeTeamId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     

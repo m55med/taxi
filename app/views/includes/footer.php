@@ -57,7 +57,7 @@
                 const promises = this.notifications.map(n => {
                     const formData = new FormData();
                     formData.append('notification_id', n.id);
-                    return fetch('<?= BASE_PATH ?>/notifications/markRead', {
+                    return fetch('<?= URLROOT ?>/notifications/markRead', {
                         method: 'POST',
                         body: formData
                     });

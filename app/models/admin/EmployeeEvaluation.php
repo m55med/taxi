@@ -43,8 +43,8 @@ class EmployeeEvaluation {
                     ee.applicable_month,
                     ee.applicable_year,
                     ee.created_at,
-                    u_employee.username AS user_name,
-                    u_evaluator.username AS evaluator_name
+                    u_employee.name AS user_name,
+                    u_evaluator.name AS evaluator_name
                 FROM 
                     employee_evaluations ee
                 JOIN 
@@ -52,10 +52,11 @@ class EmployeeEvaluation {
                 JOIN 
                     users u_evaluator ON ee.evaluator_id = u_evaluator.id
                 ORDER BY 
-                    ee.applicable_year DESC, ee.applicable_month DESC, u_employee.username ASC";
+                    ee.applicable_year DESC, ee.applicable_month DESC, user_name ASC";
         
-        $this->db->query($sql);
-        return $this->db->resultSet();
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

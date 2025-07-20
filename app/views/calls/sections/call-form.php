@@ -1,5 +1,5 @@
 <?php
-defined('BASE_PATH') or exit('No direct script access allowed');
+defined('URLROOT') or exit('No direct script access allowed');
 $driver_id = $data['driver']['id'] ?? null;
 ?>
 
@@ -129,7 +129,7 @@ $driver_id = $data['driver']['id'] ?? null;
                 <span x-text="isSubmitting ? 'Saving...' : 'Save Call'"></span>
             </button>
             
-            <a href="<?= BASE_PATH ?>/calls/skip/<?= $driver_id ?>" title="Skip Driver"
+            <a href="<?= URLROOT ?>/calls/skip/<?= $driver_id ?>" title="Skip Driver"
                class="skip-btn inline-flex items-center justify-center h-12 w-12 rounded-lg text-gray-500 bg-gray-200 hover:bg-gray-300 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
                 <i class="fas fa-forward"></i>
             </a>

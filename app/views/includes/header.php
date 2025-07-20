@@ -55,6 +55,43 @@
     <!-- Choices.js SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
+    <script>
+        function evaluationsPage() {
+            return {
+                isModalOpen: false,
+                isDeleteModalOpen: false,
+                evaluationIdToDelete: null,
+                openModal() {
+                    this.isModalOpen = true;
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            document.getElementById('user_id').focus();
+                        }, 100);
+                    });
+                },
+                closeModal() {
+                    this.isModalOpen = false;
+                },
+                confirmDelete(id) {
+                    this.evaluationIdToDelete = id;
+                    this.isDeleteModalOpen = true;
+                },
+                closeDeleteModal() {
+                    this.isDeleteModalOpen = false;
+                    this.evaluationIdToDelete = null;
+                },
+                submitDeleteForm() {
+                    if (this.evaluationIdToDelete) {
+                        const form = document.getElementById('deleteForm-' + this.evaluationIdToDelete);
+                        if(form) {
+                            form.submit();
+                        }
+                    }
+                    this.closeDeleteModal();
+                }
+            }
+        }
+    </script>
 </head>
 <body class="bg-gray-100" dir="ltr">
     <?php 

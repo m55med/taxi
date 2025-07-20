@@ -7,11 +7,11 @@
             </h1>
             <?php if (isset($_SESSION['role_name']) && $_SESSION['role_name'] === 'admin'): ?>
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="<?= BASE_PATH ?>/notifications/create"
+                    <a href="<?= URLROOT ?>/notifications/create"
                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300">
                         <i class="fas fa-plus-circle mr-2"></i> Create New Notification
                     </a>
-                    <a href="<?= BASE_PATH ?>/notifications"
+                    <a href="<?= URLROOT ?>/notifications"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
                         <i class="fas fa-cogs mr-2"></i> Manage Notifications
                     </a>

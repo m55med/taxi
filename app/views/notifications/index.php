@@ -6,11 +6,11 @@
             <h1 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0 text-gray-800">
                 <?= htmlspecialchars($data['page_main_title']) ?></h1>
             <div class="flex space-x-2 space-x-reverse">
-                <a href="<?= BASE_PATH ?>/notifications/history"
+                <a href="<?= URLROOT ?>/notifications/history"
                     class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300">
                     <i class="fas fa-history mr-2"></i> View History
                 </a>
-                <a href="<?= BASE_PATH ?>/notifications/create"
+                <a href="<?= URLROOT ?>/notifications/create"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
                     <i class="fas fa-plus mr-2"></i> Create New Notification
                 </a>
@@ -68,7 +68,7 @@
                                             <?= $notification['total_recipients'] ?></p>
                                     </td>
                                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                        <a href="<?= BASE_PATH ?>/notifications/readers/<?= $notification['id'] ?>"
+                                        <a href="<?= URLROOT ?>/notifications/readers/<?= $notification['id'] ?>"
                                             class="text-indigo-600 hover:text-indigo-900 font-semibold">
                                             View Readers
                                         </a>

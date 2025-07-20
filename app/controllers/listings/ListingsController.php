@@ -20,7 +20,7 @@ class ListingsController extends Controller
         // These models will be created/used in the next steps
         $this->listingModel = $this->model('listings/ListingModel');
         $this->ticketCategoryModel = $this->model('tickets/Category');
-        $this->userModel = $this->model('user/User'); 
+        $this->userModel = $this->model('User/User'); 
         $this->platformModel = $this->model('admin/Platform');
     }
 
@@ -85,7 +85,7 @@ class ListingsController extends Controller
         $this->authorize('listings/drivers');
         
         $driverModel = $this->model('driver/Driver');
-        $carTypeModel = $this->model('admin/CarType');
+        $carTypeModel = $this->model('Admin/CarType');
 
         $data = [
             'page_main_title' => 'All Drivers',

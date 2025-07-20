@@ -4,6 +4,7 @@ namespace App\Controllers\Upload;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Models\Admin\CarType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Exception;
 
@@ -12,6 +13,7 @@ class UploadController extends Controller
     private $driverModel;
     private $countryModel;
     private $docTypeModel;
+    private $carTypeModel;
 
     public function __construct()
     {
@@ -24,8 +26,9 @@ class UploadController extends Controller
         }
 
         $this->driverModel = $this->model('driver/Driver');
-        $this->countryModel = $this->model('admin/Country');
-        $this->docTypeModel = $this->model('admin/DocumentType');
+        $this->countryModel = $this->model('Admin/Country');
+        $this->docTypeModel = $this->model('Admin/DocumentType');
+        $this->carTypeModel = $this->model('Admin/CarType');
     }
 
     public function index()
@@ -33,13 +36,15 @@ class UploadController extends Controller
         $data = [
             'page_main_title' => 'Bulk Upload Drivers',
             'countries' => $this->countryModel->getAll(),
-            'document_types' => $this->docTypeModel->getAll()
+            'document_types' => $this->docTypeModel->getAll(),
+            'car_types' => $this->carTypeModel->getAll()
         ];
         $this->view('upload/index', $data);
     }
 
     public function process()
     {
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('upload');
         }
@@ -49,8 +54,8 @@ class UploadController extends Controller
             if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
                 throw new Exception('File upload error. Please try again.');
             }
-            if (empty($_POST['country_id']) || empty($_POST['app_status'])) {
-                 throw new Exception('Country and Application Status are required fields.');
+            if (empty($_POST['country_id']) || empty($_POST['app_status']) || empty($_POST['car_type_id'])) {
+                 throw new Exception('Country, Application Status, and Car Type are required fields.');
             }
 
             $file = $_FILES['file'];
@@ -87,7 +92,7 @@ class UploadController extends Controller
             
             $commonData = [
                 'country_id' => (int)$_POST['country_id'],
-                'app_status' => $_POST['app_status'],
+                'main_system_status' => $_POST['app_status'],
                 'data_source' => $_POST['data_source'] ?? 'excel',
                 'notes' => $_POST['notes'] ?? null,
                 'added_by' => $_SESSION['user_id'],
@@ -122,27 +127,5 @@ class UploadController extends Controller
         }
 
         redirect('upload');
-    }
-
-    private function getCarTypeId($vehicleType)
-    {
-        // تعيين القيم المتوقعة من ملف Excel إلى معرفات قاعدة البيانات
-        $types = [
-            'sedan' => 1,
-            'سيدان' => 1,
-            'suv' => 2,
-            'دفع رباعي' => 2,
-            'van' => 3,
-            'فان' => 3,
-            'luxury' => 4,
-            'فاخرة' => 4,
-            'economy' => 5,
-            'اقتصادية' => 5,
-            'premium' => 6,
-            'بريميوم' => 6
-        ];
-
-        $type = strtolower(trim($vehicleType ?? ''));
-        return $types[$type] ?? 1; // إرجاع سيدان كقيمة افتراضية
     }
 } 

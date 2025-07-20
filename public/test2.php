@@ -19,17 +19,30 @@ $options = [
 ];
 
 try {
-    // الاتصال بقاعدة البيانات
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    // مثال استعلام: عرض المستخدمين الفعالين
-    $stmt = $pdo->query("SELECT id, username FROM users WHERE status = 'active'");
-    $users = $stmt->fetchAll();
+    // أمر إنشاء الجدول
+    $sql = <<<SQL
+    CREATE TABLE IF NOT EXISTS driver_documents_required (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        driver_id INT NOT NULL,
+        document_type_id INT NOT NULL,
+        status ENUM('missing', 'submitted', 'rejected') DEFAULT 'missing',
+        note TEXT,
+        updated_by INT DEFAULT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    echo "<pre>";
-    print_r($users);
-    echo "</pre>";
+        FOREIGN KEY (driver_id) REFERENCES drivers(id),
+        FOREIGN KEY (document_type_id) REFERENCES document_types(id),
+        FOREIGN KEY (updated_by) REFERENCES users(id),
+        
+        UNIQUE(driver_id, document_type_id)
+    );
+    SQL;
+
+    $pdo->exec($sql);
+    echo "✅ تم إنشاء الجدول driver_documents_required بنجاح.";
 
 } catch (PDOException $e) {
-    echo "❌ DB Error: " . $e->getMessage();
+    echo "❌ خطأ في الاتصال أو التنفيذ: " . $e->getMessage();
 }

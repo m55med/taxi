@@ -84,7 +84,7 @@
                         <select name="user_id" id="user_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                             <option value="" disabled selected>Select an employee...</option>
                             <?php foreach ($data['users'] as $user) : ?>
-                                <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
+                                <option value="<?= $user->id ?>"><?= htmlspecialchars($user->username) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -171,39 +171,5 @@
         </div>
     </div>
 </main>
-
-<script>
-    function evaluationsPage() {
-        return {
-            isModalOpen: false,
-            isDeleteModalOpen: false,
-            evaluationIdToDelete: null,
-            openModal() {
-                this.isModalOpen = true;
-                this.$nextTick(() => document.getElementById('user_id').focus());
-            },
-            closeModal() {
-                this.isModalOpen = false;
-            },
-            confirmDelete(id) {
-                this.evaluationIdToDelete = id;
-                this.isDeleteModalOpen = true;
-            },
-            closeDeleteModal() {
-                this.isDeleteModalOpen = false;
-                this.evaluationIdToDelete = null;
-            },
-            submitDeleteForm() {
-                if (this.evaluationIdToDelete) {
-                    const form = document.getElementById('deleteForm-' + this.evaluationIdToDelete);
-                    if(form) {
-                        form.submit();
-                    }
-                }
-                this.closeDeleteModal();
-            }
-        }
-    }
-</script>
 
 <?php require_once APPROOT . '/views/includes/footer.php'; ?> 

@@ -4,7 +4,7 @@
 <div class="container mx-auto p-4 sm:p-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0 text-gray-800"><?= htmlspecialchars($data['page_main_title']) ?></h1>
-        <a href="<?= BASE_PATH ?>/notifications" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+        <a href="<?= URLROOT ?>/notifications" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-300">
             <i class="fas fa-arrow-left mr-2"></i> Back to All Notifications
         </a>
     </div>
