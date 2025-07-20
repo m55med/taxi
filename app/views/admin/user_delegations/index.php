@@ -26,15 +26,16 @@ $years = range($currentYear - 2, $currentYear + 2);
     <!-- Assign Delegation Form -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 class="text-xl font-semibold text-gray-700 mb-4">Assign New Delegation</h2>
-        <form action="<?= BASE_PATH ?>/user-delegations/create" method="POST">
+        <form action="<?= URLROOT ?>/user-delegations/create" method="POST">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
                 <div>
                     <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>
                     <select id="user_id" name="user_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
                         <option value="">Select User...</option>
                         <?php foreach ($users as $user): ?>
-                            <option value="<?= $user['id']; ?>"><?= htmlspecialchars($user['username']); ?></option>
-                        <?php endforeach; ?>
+    <option value="<?= $user->id; ?>"><?= htmlspecialchars($user->username); ?></option>
+<?php endforeach; ?>
+
                     </select>
                 </div>
                 <div>
@@ -111,7 +112,7 @@ $years = range($currentYear - 2, $currentYear + 2);
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($delegation['assigned_by_user_name']); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= date('Y-m-d', strtotime($delegation['created_at'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <form action="<?= BASE_PATH ?>/user-delegations/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
+                                    <form action="<?= URLROOT ?>/user-delegations/delete" method="POST" onsubmit="return confirm('Are you sure you want to delete this assignment?');">
                                         <input type="hidden" name="id" value="<?= $delegation['id']; ?>">
                                         <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
                                     </form>
