@@ -1,4 +1,6 @@
-document.addEventListener('DOMContentLoaded', function() {
+console.log("✅ driver-info.js loaded");
+
+document.addEventListener('DOMContentLoaded', function () {
     const toggleButton = document.getElementById('driverInfoToggle');
     const contentDiv = document.getElementById('driverInfoContent');
     const icon = document.getElementById('driverInfoIcon');
@@ -15,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle form submission
     if (form) {
-        form.addEventListener('submit', async function(event) {
+        form.addEventListener('submit', async function (event) {
             event.preventDefault();
 
             const formData = new FormData(form);
@@ -54,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             banned: { text: 'محظور', class: 'bg-red-100 text-red-800' },
                         };
                         const statusInfo = statusMap[driver.app_status] || { text: driver.app_status, class: 'bg-gray-100 text-gray-800' };
-                        
+
                         statusElement.textContent = statusInfo.text;
                         statusElement.className = `px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`;
                     }
@@ -65,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         else if (driver.gender === 'female') genderElement.textContent = 'أنثى';
                         else genderElement.textContent = 'غير محدد';
                     }
-                    
+
                     const nationalityElement = document.getElementById('driver-profile-nationality');
                     if (nationalityElement) nationalityElement.textContent = driver.country_name || 'غير محدد';
 
@@ -85,9 +87,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             tripsStatusElement.innerHTML = '<i class="fas fa-times-circle mr-1"></i> Under 10 Trips';
                         }
                     }
-                    
+
                     // --- Also update the form fields to keep them in sync ---
-                    
+
                     form.querySelector('[name="name"]').value = driver.name;
                     form.querySelector('[name="email"]').value = driver.email;
                     form.querySelector('[name="gender"]').value = driver.gender;
@@ -97,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     form.querySelector('[name="notes"]').value = driver.notes;
 
                     const hasManyTripsToggle = form.querySelector('[name="has_many_trips"][type="checkbox"]');
-                    if(hasManyTripsToggle) {
+                    if (hasManyTripsToggle) {
                         hasManyTripsToggle.checked = !!parseInt(driver.has_many_trips);
                     }
 

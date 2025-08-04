@@ -16,12 +16,12 @@ class ListingsController extends Controller
     {
         parent::__construct();
         Auth::requireLogin();
-        
+
         // These models will be created/used in the next steps
-        $this->listingModel = $this->model('listings/ListingModel');
-        $this->ticketCategoryModel = $this->model('tickets/Category');
-        $this->userModel = $this->model('User/User'); 
-        $this->platformModel = $this->model('admin/Platform');
+        $this->listingModel = $this->model('Listings/ListingModel');
+        $this->ticketCategoryModel = $this->model('Tickets/Category');
+        $this->userModel = $this->model('User/User');
+        $this->platformModel = $this->model('Admin/Platform');
     }
 
     /**
@@ -30,7 +30,7 @@ class ListingsController extends Controller
     public function tickets()
     {
         $this->authorize('listings/tickets');
-        
+
         $data = [
             'page_main_title' => 'All Tickets',
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
@@ -83,8 +83,8 @@ class ListingsController extends Controller
     public function drivers()
     {
         $this->authorize('listings/drivers');
-        
-        $driverModel = $this->model('driver/Driver');
+
+        $driverModel = $this->model('Driver/Driver');
         $carTypeModel = $this->model('Admin/CarType');
 
         $data = [
@@ -103,7 +103,7 @@ class ListingsController extends Controller
     {
         header('Content-Type: application/json');
         $this->authorize('listings/drivers');
-        $driverModel = $this->model('driver/Driver');
+        $driverModel = $this->model('Driver/Driver');
         echo json_encode($driverModel->getFilteredDrivers($_GET));
     }
 
@@ -129,8 +129,8 @@ class ListingsController extends Controller
             echo json_encode(['status' => false, 'message' => 'Missing required parameters.']);
             return;
         }
-        
-        $driverModel = $this->model('driver/Driver');
+
+        $driverModel = $this->model('Driver/Driver');
         $updatedCount = $driverModel->bulkUpdate($driverIds, $field, $value);
 
         if ($updatedCount !== false) {
@@ -139,4 +139,4 @@ class ListingsController extends Controller
             echo json_encode(['status' => false, 'message' => 'An error occurred during the update.']);
         }
     }
-} 
+}

@@ -4,7 +4,7 @@
             <tr>
                 <th scope="col" class="p-4">
                     <div class="flex items-center">
-                        <input type="checkbox" @click="toggleAll($event.target.checked)" :checked="allVisibleActivities.length > 0 && selectedActivities.length === allVisibleActivities.length" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
+                        <input type="checkbox" id="select-all-checkbox" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
                     </div>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Type</th>
@@ -23,7 +23,7 @@
                 <tr>
                     <td class="p-4">
                         <div class="flex items-center">
-                            <input type="checkbox" :value="<?= htmlspecialchars(json_encode($activity_uid)) ?>" x-model="selectedActivities" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
+                            <input type="checkbox" value="<?= htmlspecialchars($activity_uid) ?>" class="activity-checkbox w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -61,7 +61,7 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="text-sm font-medium text-gray-900 truncate">
-                             <a href="<?= BASE_PATH ?>/<?= $activity->link_prefix ?>/<?= $activity->link_id ?>" class="text-indigo-600 hover:text-indigo-900" title="<?= htmlspecialchars($activity->details_primary) ?>">
+                             <a href="<?= URLROOT ?>/<?= $activity->link_prefix ?>/<?= $activity->link_id ?>" class="text-indigo-600 hover:text-indigo-900" title="<?= htmlspecialchars($activity->details_primary) ?>">
                                 <?php if ($activity->activity_type === 'Ticket' && !empty($activity->is_vip)): ?>
                                     <i class="fas fa-crown text-yellow-500 mr-2" title="VIP Ticket"></i>
                                 <?php endif; ?>
@@ -97,4 +97,4 @@
             <?php endforeach; ?>
         </tbody>
     </table>
-</div> 
+</div>

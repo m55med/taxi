@@ -15,18 +15,7 @@ try {
 }
 
 // Configure error reporting based on environment
-if ($_ENV['APP_DEBUG'] === 'true') {
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-} else {
-    ini_set('display_errors', 0);
-    ini_set('display_startup_errors', 0);
-    error_reporting(0);
-}
-
-// إعدادات عرض الأخطاء حسب APP_DEBUG
-if ($_ENV['APP_DEBUG'] === 'true') {
+if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
@@ -56,48 +45,49 @@ set_exception_handler(function ($exception) {
     }
 });
 
-define('BASE_PATH', '/');
-
-
 // Define application root directory
 define('APPROOT', dirname(__DIR__) . '/app');
 
-// Define Base URL dynamically
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+// 🔧 URLROOT and BASE_URL definitions (Corrected)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
 $host = $_SERVER['HTTP_HOST'];
+// More reliable way to get the base path, trims /public from the end if it exists
+$base_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+$base_url = preg_replace('/\/public$/', '', $base_url);
 
-// This gets /taxi/public → we want just /taxi
-$script_name = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
-$script_dir = rtrim(dirname($script_name), '/');
-$base_url = str_replace('/public', '', $script_dir);
 
-// Final BASE_URL: http://localhost/taxi (not http://localhost)
-define('BASE_URL', $protocol . $host . $base_url);
-define('URLROOT', BASE_URL);
+define('URLROOT', $protocol . $host . $base_url);
+define('BASE_URL', $base_url);
 
+// Debug output to browser console (optional)
+if (
+    !(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') &&
+    stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json') === false
+) {
+    // echo "<script>console.log('🔗 URLROOT = " . URLROOT . "');</script>";
+}
 
 // Start the session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Define application environment ('development' or 'production')
+// Define application environment
 define('ENVIRONMENT', 'development');
 
 // Load Helpers
 require_once APPROOT . '/helpers/url_helper.php';
 require_once APPROOT . '/helpers/session_helper.php';
-require_once '../app/helpers/view_helper.php';
+require_once APPROOT . '/helpers/view_helper.php';
 
-// Load the main App class definition but don't instantiate it yet
+// Load the main App class definition
 require_once APPROOT . '/core/App.php';
 
 // Load API routes
-require_once '../app/routes/api.php';
+require_once APPROOT . '/routes/api.php';
 
 // Parse the URL statically
 $url = App\Core\App::parseUrl();
-
 
 // Handle API routes first
 if (isset($url[0]) && $url[0] === 'api') {
@@ -106,9 +96,5 @@ if (isset($url[0]) && $url[0] === 'api') {
     }
 }
 
-// If it's not a handled API route, proceed with the normal web flow
+// Handle normal web request
 $app = new App\Core\App();
-
-// The App's constructor already handled the routing, so we don't need to call anything else.
-// If the API route was not hit, the regular web page route should have been processed by the App's constructor.
-

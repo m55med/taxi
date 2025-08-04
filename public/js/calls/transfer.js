@@ -1,3 +1,5 @@
+console.log("✅ transfer.js loaded");
+
 const TransferModule = {
     init() {
         this.modal = document.getElementById('transferModal');
@@ -47,11 +49,11 @@ const TransferModule = {
             e.preventDefault();
             const formData = new FormData(this.form);
             const submitButton = this.form.querySelector('button[type="submit"]');
-            
+
             // Disable submit button and show loading state
             submitButton.disabled = true;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i> جاري التحويل...';
-            
+
             try {
                 const response = await fetch(`${URLROOT}/calls/assign`, {
                     method: 'POST',
@@ -79,7 +81,7 @@ const TransferModule = {
                     }
                     throw new Error(data.message || `خطأ غير متوقع: ${response.statusText}`);
                 }
-                
+
                 if (data.success) {
                     showNotification(data.message || 'تم تحويل السائق بنجاح', 'success');
                     window.hideTransferModal();
@@ -105,4 +107,4 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => TransferModule.init());
 } else {
     TransferModule.init();
-} 
+}

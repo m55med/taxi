@@ -1,3 +1,5 @@
+console.log("✅ documents.js loaded");
+
 /**
  * @file Manages the driver documents section with an interactive card-based UI.
  * @description Allows users to add/remove documents via checkboxes and edit
@@ -10,17 +12,17 @@ const documentsModule = {
         const container = document.getElementById('toast-container');
         if (!container) {
             alert(message); // Fallback
-        return;
+            return;
         }
 
         const toast = document.createElement('div');
-        const bgColor = { success: 'bg-green-500', error: 'bg-red-500'}[type] || 'bg-blue-500';
-        const icon = { success: '<i class="fas fa-check-circle mr-3"></i>', error: '<i class="fas fa-times-circle mr-3"></i>'}[type] || '<i class="fas fa-info-circle mr-3"></i>';
+        const bgColor = { success: 'bg-green-500', error: 'bg-red-500' }[type] || 'bg-blue-500';
+        const icon = { success: '<i class="fas fa-check-circle mr-3"></i>', error: '<i class="fas fa-times-circle mr-3"></i>' }[type] || '<i class="fas fa-info-circle mr-3"></i>';
 
         toast.className = `flex items-center text-white p-4 rounded-lg shadow-lg`;
         toast.classList.add(bgColor);
         toast.innerHTML = `${icon}<span>${message}</span>`;
-        
+
         container.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     },
@@ -33,7 +35,7 @@ const documentsModule = {
         this.driverId = this.sectionContainer.dataset.driverId;
         this.saveButton = document.getElementById('save-documents-btn');
         this.listContainer = document.getElementById('documents-list');
-        
+
         // Modal elements
         this.deleteModal = document.getElementById('delete-confirm-modal');
         this.docNameSpan = document.getElementById('modal-doc-name');
@@ -51,7 +53,7 @@ const documentsModule = {
 
         this.saveButton.addEventListener('click', () => this.handleSave());
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
-        
+
         console.log('Documents module initialized.');
     },
 
@@ -70,12 +72,12 @@ const documentsModule = {
             this.openDeleteModal(docId, docName);
         }
     },
-    
+
     openDeleteModal(docId, docName) {
         this.docNameSpan.textContent = docName;
         this.confirmDeleteBtn.dataset.docId = docId;
         this.deleteModal.classList.remove('hidden');
-        
+
         // Use a one-time event listener for the confirmation
         this.confirmDeleteBtn.onclick = () => this.handleDelete(docId);
     },
@@ -100,7 +102,7 @@ const documentsModule = {
     toggleDetails(checkbox) {
         const itemContainer = checkbox.closest('.document-item');
         const detailsSection = itemContainer.querySelector('.document-details');
-        
+
         if (checkbox.checked) {
             detailsSection.classList.remove('hidden');
             itemContainer.classList.add('border-indigo-200', 'bg-indigo-50');
@@ -117,7 +119,7 @@ const documentsModule = {
         this.saveButton.disabled = true;
 
         const checkedItems = this.listContainer.querySelectorAll('.document-checkbox:checked');
-        
+
         const documentsPayload = Array.from(checkedItems).map(checkbox => {
             const itemContainer = checkbox.closest('.document-item');
             const statusSelect = itemContainer.querySelector('.status-select');
@@ -144,7 +146,7 @@ const documentsModule = {
             if (!response.ok) throw new Error(data.message || 'Server error');
 
             this.showToast(data.message || 'تم حفظ التغييرات بنجاح.', 'success');
-        
+
         } catch (error) {
             this.showToast(error.message || 'فشل حفظ التغييرات.', 'error');
             this.saveButton.disabled = false; // Re-enable button on error

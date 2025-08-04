@@ -8,16 +8,16 @@ use App\Core\Auth;
 
 class ReviewController extends Controller
 {
-    private $reviewModel;
-    private $userModel;
+    private $ReviewModel;
+    private $UserModel;
     private $categoryModel;
 
     public function __construct()
     {
         parent::__construct();
         Auth::requireLogin();
-        $this->reviewModel = $this->model('review/Review');
-        $this->userModel = $this->model('user/User');
+        $this->ReviewModel = $this->model('Review/Review');
+        $this->UserModel = $this->model('User/User');
         // Load the category model for use in the add method
         $this->categoryModel = $this->model('Tickets/Category');
     }
@@ -27,7 +27,7 @@ class ReviewController extends Controller
         // التحقق من تسجيل الدخول
         if (!isset($_SESSION['user_id'])) {
             $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
-            header('Location: ' . BASE_URL . '/auth/login');
+            header('Location: ' . URLROOT . '/auth/login');
             exit();
         }
 
@@ -38,10 +38,10 @@ class ReviewController extends Controller
         ];
 
         // جلب السائقين
-        $drivers = $this->reviewModel->getWaitingDrivers($filters);
+        $drivers = $this->ReviewModel->getWaitingDrivers($filters);
 
         // جلب المستخدمين لنموذج التحويل
-        $users = $this->userModel->getActiveUsers();
+        $users = $this->UserModel->getActiveUsers();
 
         // نص حالات السائقين
         $status_text = [
@@ -68,7 +68,7 @@ class ReviewController extends Controller
             exit;
         }
 
-        $details = $this->reviewModel->getDriverDetails($driverId);
+        $details = $this->ReviewModel->getDriverDetails($driverId);
 
         if ($details) {
             echo json_encode($details);
@@ -99,7 +99,7 @@ class ReviewController extends Controller
             'documents' => $_POST['documents'] ?? []
         ];
 
-        $result = $this->reviewModel->updateDriver($data);
+        $result = $this->ReviewModel->updateDriver($data);
 
         if ($result) {
             echo json_encode(['success' => true]);
@@ -129,7 +129,7 @@ class ReviewController extends Controller
             'note' => $_POST['note']
         ];
 
-        $result = $this->reviewModel->transferDriver($data);
+        $result = $this->ReviewModel->transferDriver($data);
 
         if ($result) {
             echo json_encode(['success' => true]);
@@ -178,7 +178,7 @@ class ReviewController extends Controller
             ];
 
             $userId = Auth::getUserId();
-            $result = $this->reviewModel->addReview($reviewable_type, $reviewable_id, $userId, $data);
+            $result = $this->ReviewModel->addReview($reviewable_type, $reviewable_id, $userId, $data);
 
             if ($result) {
                 flash('review_success', 'Review added successfully.', 'alert alert-success');
@@ -187,7 +187,7 @@ class ReviewController extends Controller
             }
 
             // Redirect back to the original entity's page
-            $redirectInfo = $this->reviewModel->getEntityIdForRedirect($reviewable_type, $reviewable_id);
+            $redirectInfo = $this->ReviewModel->getEntityIdForRedirect($reviewable_type, $reviewable_id);
             if ($redirectInfo) {
                 if ($redirectInfo['type'] === 'driver') {
                     redirect('drivers/details/' . $redirectInfo['id']);
@@ -202,7 +202,7 @@ class ReviewController extends Controller
         }
 
         // 2. Handle GET request (displaying the form)
-        $item_to_review = $this->reviewModel->getReviewableItemDetails($reviewable_type, $reviewable_id);
+        $item_to_review = $this->ReviewModel->getReviewableItemDetails($reviewable_type, $reviewable_id);
 
         if (!$item_to_review) {
             // Optionally, set a flash message

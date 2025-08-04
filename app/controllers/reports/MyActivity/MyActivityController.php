@@ -8,15 +8,15 @@ use App\Models\User\User;
 
 class MyActivityController extends Controller
 {
-    private $usersReportModel;
-    private $userModel;
+    private $UsersReportModel;
+    private $UserModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader', 'employee']);
-        $this->usersReportModel = new UsersReport();
-        $this->userModel = new User();
+        $this->UsersReportModel = new UsersReport();
+        $this->UserModel = new User();
     }
 
     public function index()
@@ -34,10 +34,10 @@ class MyActivityController extends Controller
             'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
         ];
 
-        $reportData = $this->usersReportModel->getUsersReportWithPoints($filters);
+        $reportData = $this->UsersReportModel->getUsersReportWithPoints($filters);
         $user_activity_data = !empty($reportData['users']) ? $reportData['users'][0] : null;
 
-        $user_info = $this->userModel->findById($user_id);
+        $user_info = $this->UserModel->findById($user_id);
 
         $data = [
             'title' => 'My Activity Report',

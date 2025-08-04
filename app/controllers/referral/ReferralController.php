@@ -209,7 +209,7 @@ class ReferralController extends Controller
             'filters' => $filters,
             'agentProfile' => $agentProfile,
             'working_hours' => $workingHours,
-            'referral_link' => BASE_PATH . '/referral/register?ref=' . $_SESSION['username'],
+            'referral_link' => URLROOT . '/referral/register?ref=' . $_SESSION['username'],
             'user_role' => 'marketer'
         ];
 

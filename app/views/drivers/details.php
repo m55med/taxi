@@ -314,7 +314,7 @@ include_once APPROOT . '/views/includes/header.php';
         </div>
     </div>
 </main>
-<script src="<?= URLROOT ?>/public/js/drivers/details.js?v=1.0"></script>
+<script src="<?= URLROOT ?>/js/drivers/details.js?v=1.0"></script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>

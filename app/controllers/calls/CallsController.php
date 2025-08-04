@@ -16,7 +16,7 @@ class CallsController extends Controller
 
         // Load models only when needed
         $callModel = $this->model('Calls/Call');
-        
+
         // If a model fails to load, it will be null.
         if (!$callModel) {
             die('Error: Call model could not be loaded.');
@@ -27,8 +27,9 @@ class CallsController extends Controller
             $callModel->releaseDriverHold($_SESSION['locked_driver_id']);
             unset($_SESSION['locked_driver_id']);
         }
-        
+
         $driver = null;
+        $driver = $callModel->getDriverById(1);
         $searchPhone = filter_input(INPUT_GET, 'phone', FILTER_SANITIZE_SPECIAL_CHARS);
         $debug_info = []; // Initialize debug_info to prevent view errors
 
@@ -44,8 +45,8 @@ class CallsController extends Controller
                     $callModel->markAssignmentAsSeen($unseenAssignment['id']);
                     $callModel->setDriverHold($driver['id'], true);
                 }
-            } 
-            
+            }
+
             // Priority 3: Get next driver from the queue.
             if (!$driver) {
                 $skippedDrivers = $_SESSION['skipped_drivers'] ?? [];
@@ -63,34 +64,34 @@ class CallsController extends Controller
 
 
         $data = [
-            'driver'               => $driver,
-            'debug_info'           => $debug_info,
-            'users'                => $callModel->getUsers(),
-            'countries'            => $countryModel ? $countryModel->getAll() : [],
-            'car_types'            => $carTypeModel ? $carTypeModel->getAll() : [],
-            'document_types'       => $documentModel ? $documentModel->getAllDocumentTypes() : [],
-            'required_documents'   => $driver && $documentModel ? $documentModel->getDriverDocuments($driver['id']) : [],
-            'call_history'         => $driver ? $callModel->getCallHistory($driver['id']) : [],
-            'today_calls_count'    => $callModel->getTodayCallsCount(),
-            'total_pending_calls'  => $callModel->getTotalPendingCalls(),
-            'ticket_categories'    => $ticketCategoryModel ? $ticketCategoryModel->getAll() : [],
-            'call_status_text'     => [
-                'no_answer'     => 'لم يتم الرد',
-                'answered'      => 'تم الرد',
-                'busy'          => 'مشغول',
+            'driver' => $driver,
+            'debug_info' => $debug_info,
+            'users' => $callModel->getUsers(),
+            'countries' => $countryModel ? $countryModel->getAll() : [],
+            'car_types' => $carTypeModel ? $carTypeModel->getAll() : [],
+            'document_types' => $documentModel ? $documentModel->getAllDocumentTypes() : [],
+            'required_documents' => $driver && $documentModel ? $documentModel->getDriverDocuments($driver['id']) : [],
+            'call_history' => $driver ? $callModel->getCallHistory($driver['id']) : [],
+            'today_calls_count' => $callModel->getTodayCallsCount(),
+            'total_pending_calls' => $callModel->getTotalPendingCalls(),
+            'ticket_categories' => $ticketCategoryModel ? $ticketCategoryModel->getAll() : [],
+            'call_status_text' => [
+                'no_answer' => 'لم يتم الرد',
+                'answered' => 'تم الرد',
+                'busy' => 'مشغول',
                 'not_available' => 'غير متاح',
-                'wrong_number'  => 'رقم خاطئ',
-                'rescheduled'   => 'معاد جدولته'
+                'wrong_number' => 'رقم خاطئ',
+                'rescheduled' => 'معاد جدولته'
             ]
         ];
 
         if ($driver) {
             $_SESSION['locked_driver_id'] = $driver['id'];
         }
-        
+
         $this->view('calls/index', $data);
     }
-    
+
     public function record()
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -139,7 +140,7 @@ class CallsController extends Controller
                 $logMessage .= "Line: " . $e->getLine() . "\n";
                 $logMessage .= "Trace: " . $e->getTraceAsString() . "\n\n";
                 error_log($logMessage, 3, APPROOT . '/log/php_errors.log');
-                
+
                 $this->sendJsonResponse(['success' => false, 'message' => 'An internal server error occurred. The issue has been logged.']);
             }
         } else {
@@ -147,7 +148,7 @@ class CallsController extends Controller
             $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
         }
     }
-    
+
     // Any other methods like skip(), transfer() should also be reviewed
     // to use this new pattern of loading models.
     public function skip($driverId = null)
@@ -161,7 +162,7 @@ class CallsController extends Controller
             if (!isset($_SESSION['skipped_drivers'])) {
                 $_SESSION['skipped_drivers'] = [];
             }
-            $_SESSION['skipped_drivers'][] = (int)$driverId;
+            $_SESSION['skipped_drivers'][] = (int) $driverId;
             $_SESSION['skipped_drivers'] = array_unique($_SESSION['skipped_drivers']);
 
             // Release the hold
@@ -169,7 +170,7 @@ class CallsController extends Controller
             if ($callModel) {
                 $callModel->releaseDriverHold($driverId);
             }
-            
+
             // Ensure the session's locked driver is also cleared
             if (isset($_SESSION['locked_driver_id']) && $_SESSION['locked_driver_id'] == $driverId) {
                 unset($_SESSION['locked_driver_id']);
@@ -182,15 +183,27 @@ class CallsController extends Controller
 
     public function getSubcategories($categoryId)
     {
+        header('Content-Type: application/json');
+    
         $categoryModel = $this->model('Tickets/Category');
-        $subcategories = $categoryModel->getSubcategoriesByCategoryId((int)$categoryId);
-        $this->sendJsonResponse($subcategories);
+        if (!$categoryModel) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Ticket category model could not be loaded.']);
+            exit;
+        }
+    
+        $subcategories = $categoryModel->getSubcategoriesByCategoryId((int) $categoryId);
+        echo json_encode($subcategories);
+        exit; // 👈 لازم تحط دي عشان تمنع أي طباعة تانية
+        
     }
+    
+    
 
     public function getCodes($subcategoryId)
     {
         $categoryModel = $this->model('Tickets/Category');
-        $codes = $categoryModel->getCodesBySubcategoryId((int)$subcategoryId);
+        $codes = $categoryModel->getCodesBySubcategoryId((int) $subcategoryId);
         $this->sendJsonResponse($codes);
     }
 
@@ -239,7 +252,7 @@ class CallsController extends Controller
 
         $driverId = $data['driver_id'] ?? null;
         $submittedDocs = $data['documents'] ?? null;
-    
+
         if (!$driverId || !is_array($submittedDocs)) {
             echo json_encode(['success' => false, 'message' => 'Invalid data provided.']);
             return;
@@ -247,23 +260,23 @@ class CallsController extends Controller
 
         $documentModel = $this->model('Document/Document');
         $db = \App\Core\Database::getInstance();
-    
+
         try {
             $db->beginTransaction();
-    
+
             // Get IDs of documents currently in the DB for this driver
             $currentDbDocs = $documentModel->getDriverDocuments($driverId);
             $currentDbDocIds = array_column($currentDbDocs, 'id');
-    
+
             // Get IDs of documents submitted from the frontend
             $submittedDocIds = array_column($submittedDocs, 'id');
-    
+
             // 1. Documents to REMOVE: In DB but not in submission
             $docsToRemove = array_diff($currentDbDocIds, $submittedDocIds);
             foreach ($docsToRemove as $docTypeId) {
                 $documentModel->removeDriverDocument($driverId, $docTypeId);
             }
-    
+
             // 2. Documents to UPSERT: All submitted documents
             foreach ($submittedDocs as $doc) {
                 $documentModel->upsertDriverDocument(
@@ -273,27 +286,27 @@ class CallsController extends Controller
                     $doc['note'] ?? ''
                 );
             }
-    
+
             // 3. Update the master flag for the driver based on the new state
             $documentModel->updateDriverMissingDocsFlag($driverId);
-    
+
             $db->commit();
-    
+
             $updatedDocs = $documentModel->getDriverDocuments($driverId);
-            
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Documents updated successfully!',
                 'documents' => $updatedDocs
             ]);
-    
+
         } catch (\Exception $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
             error_log("Error in CallsController::updateDocuments: " . $e->getMessage());
             echo json_encode([
-                'success' => false, 
+                'success' => false,
                 'message' => 'A server error occurred while updating documents.',
                 'debug' => ['error' => $e->getMessage()]
             ]);

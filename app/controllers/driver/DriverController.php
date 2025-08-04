@@ -18,10 +18,10 @@ class DriverController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->driverModel = $this->model('driver/Driver');
-        $this->discussionModel = $this->model('discussion/Discussion');
-        $this->reviewModel = $this->model('review/Review');
-        $this->documentModel = $this->model('document/Document');
+        $this->driverModel = $this->model('Driver/Driver');
+        $this->discussionModel = $this->model('Discussion/Discussion');
+        $this->reviewModel = $this->model('Review/Review');
+        $this->documentModel = $this->model('Document/Document');
     }
 
     public function index()
@@ -146,7 +146,7 @@ class DriverController extends Controller
 
             if ($result) {
                 // This logic is common for both AJAX and non-AJAX responses
-                $callModel = $this->model('Calls/Call');
+                $callModel = $this->model('Call/Call');
                 if ($callModel) {
                     $callModel->releaseDriverHold($driverId);
                 }

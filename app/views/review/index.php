@@ -1,3 +1,8 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
@@ -234,6 +239,6 @@
     <script>
         
     </script>
-    <script src="<?= BASE_URL ?>/js/review.js"></script>
+    <script src="<?= URLROOT ?>/js/review.js"></script>
 </body>
 </html> 

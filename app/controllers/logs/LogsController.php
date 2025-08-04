@@ -26,6 +26,7 @@ class LogsController extends Controller
 
     public function index()
     {
+        Auth::requireLogin();
         $page_main_title = 'Activity Log';
 
         // Default filters from GET request
@@ -112,7 +113,7 @@ class LogsController extends Controller
 
         $data = [
             'page_main_title' => $page_main_title,
-            'activities' => $activities,
+            'activities' => $activities ?? [],
             'activitiesSummary' => $activitiesSummary,
             'filters' => $filters,
             'users' => $users,

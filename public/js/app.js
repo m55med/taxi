@@ -1,7 +1,7 @@
 document.addEventListener('alpine:init', () => {
     // Start the global user activity heartbeat
     setInterval(() => {
-        fetch('/taxi/api/heartbeat', {
+        fetch('/api/heartbeat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             this.isLoading = true;
-            fetch(`/taxi/drivers/search?phone=${this.query}`)
+            fetch(`/drivers/search?phone=${this.query}`)
                 .then(response => response.json())
                 .then(data => {
                     this.results = data;
@@ -36,7 +36,7 @@ document.addEventListener('alpine:init', () => {
         highlightPrev() { if (this.highlightedIndex > 0) { this.highlightedIndex--; } },
         selectHighlighted() {
             if (this.highlightedIndex > -1) {
-                window.location.href = `/taxi/drivers/details/${this.results[this.highlightedIndex].id}`;
+                window.location.href = `/drivers/details/${this.results[this.highlightedIndex].id}`;
             }
         }
     }));

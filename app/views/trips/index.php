@@ -36,7 +36,8 @@
             <?php endif; ?>
 
             <?php if (isset($_SESSION['success'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
+                    role="alert">
                     <span class="block sm:inline"><?= htmlspecialchars($_SESSION['success']) ?></span>
                 </div>
                 <?php unset($_SESSION['success']); ?>
@@ -63,14 +64,18 @@
 
             <form id="upload-form" class="space-y-6">
                 <div>
-                    <label for="file" class="block text-sm font-medium text-gray-700 mb-2">اختر ملف Excel أو CSV للرحلات</label>
-                    <div id="upload-area" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                    <label for="file" class="block text-sm font-medium text-gray-700 mb-2">اختر ملف Excel أو CSV
+                        للرحلات</label>
+                    <div id="upload-area"
+                        class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div class="space-y-1 text-center">
                             <i class="fas fa-file-excel text-gray-400 text-4xl mb-3"></i>
                             <div class="flex text-sm text-gray-600">
-                                <label for="file" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                <label for="file"
+                                    class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
                                     <span>اختر ملف ليتم رفعه</span>
-                                    <input id="file" name="file" type="file" accept=".csv,.xlsx,.xls" class="sr-only" required>
+                                    <input id="file" name="file" type="file" accept=".csv,.xlsx,.xls" class="sr-only"
+                                        required>
                                 </label>
                             </div>
                             <p class="text-xs text-gray-500">يُسمح بملفات CSV, XLSX, XLS</p>
@@ -87,7 +92,7 @@
                     </button>
                 </div>
             </form>
-            
+
             <div id="progress-container" class="mt-8 hidden">
                 <h3 class="text-lg font-semibold mb-2">تقدم المعالجة:</h3>
                 <div class="w-full bg-gray-200 rounded-full h-4">
@@ -95,7 +100,7 @@
                 </div>
                 <p id="progress-text" class="text-center mt-2 text-gray-600"></p>
             </div>
-            
+
             <div id="stats-container" class="mt-8 hidden">
                 <h3 class="text-lg font-semibold mb-2">نتائج المعالجة:</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
@@ -114,7 +119,8 @@
                 </div>
             </div>
 
-            <div id="error-details" class="mt-4 hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div id="error-details"
+                class="mt-4 hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 <strong class="font-bold">حدث خطأ!</strong>
                 <span class="block sm:inline" id="error-message"></span>
             </div>
@@ -123,7 +129,7 @@
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="/taxi/app/views/trips/js/trips.js"></script>
+<script src="/app/views/trips/js/trips.js"></script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
-</html> 
+</html>

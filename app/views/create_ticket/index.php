@@ -336,7 +336,7 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-<script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=<?= time() ?>"></script>
-<script src="<?= URLROOT ?>/public/js/create_ticket/main.js?v=<?= time() ?>"></script>
+<script src="<?= URLROOT ?>/js/components/searchable-select.js?v=<?= time() ?>"></script>
+<script src="<?= URLROOT ?>/js/create_ticket/main.js?v=<?= time() ?>"></script>
 
 <?php require_once APPROOT . '/views/includes/footer.php'; ?> 

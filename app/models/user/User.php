@@ -530,6 +530,14 @@ class User
         $stmt->execute([$roleId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
+
+    public function findById($id)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
     
     public function getUserStats() {
         try {

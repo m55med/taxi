@@ -1,3 +1,5 @@
+console.log("✅ shared.js loaded");
+
 // Notification functions
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
@@ -13,9 +15,9 @@ function showNotification(message, type = 'success') {
         console.error('Notification child elements not found');
         return;
     }
-    
+
     notificationMessage.textContent = message;
-    
+
     // Reset classes and set icon based on type
     notification.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 max-w-sm w-full bg-white rounded-lg shadow-lg z-50 animated';
     if (type === 'success') {
@@ -23,10 +25,10 @@ function showNotification(message, type = 'success') {
     } else { // 'error'
         notificationIcon.className = 'fas fa-exclamation-circle text-red-500 text-xl';
     }
-    
+
     notification.classList.add('fadeIn');
     notification.classList.remove('hidden');
-    
+
     // Auto hide after 3 seconds with fade out animation
     setTimeout(() => {
         notification.classList.add('fadeOut');
@@ -64,15 +66,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Copy to clipboard function
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('تم نسخ الرقم بنجاح', 'success');
-    }).catch(err => {
-        showNotification('فشل في نسخ الرقم', 'error');
-    });
-}
-
 // Loading Overlay Functions
 function showLoading() {
     // Avoid creating multiple overlays
@@ -100,6 +93,5 @@ function hideLoading() {
 // Export functions to window object for global access
 window.showNotification = showNotification;
 window.hideNotification = hideNotification;
-window.copyToClipboard = copyToClipboard;
 window.showLoading = showLoading;
-window.hideLoading = hideLoading; 
+window.hideLoading = hideLoading;

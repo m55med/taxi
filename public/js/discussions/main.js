@@ -13,7 +13,7 @@ function discussionsComponent() {
 
         async init() {
             await this.fetchDiscussions();
-            
+
             this.$watch('selectedDiscussionId', () => {
                 this.$nextTick(() => {
                     this.scrollToBottom();
@@ -32,18 +32,18 @@ function discussionsComponent() {
                 }
             });
         },
-        
+
         async fetchDiscussions() {
             this.isLoading = true;
             try {
-                const response = await fetch('/taxi/discussions/get');
+                const response = await fetch('/discussions/get');
                 if (!response.ok) {
                     throw new Error('Network response was not ok.');
                 }
                 const data = await response.json();
                 this.discussions = data.discussions;
                 this.currentUser = data.currentUser;
-                
+
                 if (this.filteredDiscussions.length > 0) {
                     const hash = window.location.hash;
                     if (hash && hash.startsWith('#discussion-')) {
@@ -51,7 +51,7 @@ function discussionsComponent() {
                         if (this.discussions.some(d => d.id === idFromHash)) {
                             this.selectedDiscussionId = idFromHash;
                         }
-                    } 
+                    }
                     if (!this.selectedDiscussionId) {
                         this.selectedDiscussionId = this.filteredDiscussions[0].id;
                     }
@@ -88,7 +88,7 @@ function discussionsComponent() {
             });
             return filtered.sort((a, b) => new Date(b.last_activity_at) - new Date(a.last_activity_at));
         },
-        
+
         get selectedDiscussion() {
             if (!this.selectedDiscussionId) return null;
             let discussion = this.discussions.find(d => d.id == this.selectedDiscussionId);
@@ -98,13 +98,13 @@ function discussionsComponent() {
         selectDiscussion(id) {
             this.selectedDiscussionId = id;
             window.location.hash = 'discussion-' + id;
-            
+
             const discussion = this.discussions.find(d => d.id == id);
             if (discussion && discussion.unread_count > 0) {
-                fetch(`/taxi/discussions/${id}/mark-as-read`, { method: 'POST' })
+                fetch(`/discussions/${id}/mark-as-read`, { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
-                        if(data.success) {
+                        if (data.success) {
                             discussion.unread_count = 0;
                         }
                     })
@@ -116,10 +116,10 @@ function discussionsComponent() {
             const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
             return new Date(dateString).toLocaleDateString(undefined, options);
         },
-        
+
         scrollToBottom() {
             let chatBody = this.$refs.chatBody;
-            if(chatBody) {
+            if (chatBody) {
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
         },
@@ -131,7 +131,7 @@ function discussionsComponent() {
             const message = this.newReplyMessage;
 
             try {
-                const response = await fetch(`/taxi/discussions/${discussionId}/replies`, {
+                const response = await fetch(`/discussions/${discussionId}/replies`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ message: message })
@@ -140,14 +140,14 @@ function discussionsComponent() {
                 if (!response.ok) throw new Error('Network response was not ok.');
 
                 const newReply = await response.json();
-                
+
                 const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
                 if (discussionIndex !== -1) {
                     this.discussions[discussionIndex].replies.push(newReply.reply);
-                    this.discussions[discussionIndex].last_activity_at = newReply.reply.created_at; 
+                    this.discussions[discussionIndex].last_activity_at = newReply.reply.created_at;
                     this.discussions.sort((a, b) => new Date(b.last_activity_at) - new Date(a.last_activity_at));
                 }
-                
+
                 this.newReplyMessage = '';
                 this.$nextTick(() => this.scrollToBottom());
 
@@ -159,22 +159,22 @@ function discussionsComponent() {
 
         async closeDiscussion() {
             if (!this.selectedDiscussion) return;
-        
+
             const discussionId = this.selectedDiscussion.id;
-        
+
             try {
-                const response = await fetch(`/taxi/discussions/close/${discussionId}`, {
+                const response = await fetch(`/discussions/close/${discussionId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
                 });
-        
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Network response was not ok.');
                 }
-        
+
                 const result = await response.json();
-        
+
                 if (result.success) {
                     const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
                     if (discussionIndex !== -1) {
@@ -184,7 +184,7 @@ function discussionsComponent() {
                 } else {
                     alert(result.message || 'Failed to close the discussion.');
                 }
-        
+
             } catch (error) {
                 console.error('Error closing discussion:', error);
                 alert(error.message || 'An error occurred. Please try again.');
@@ -201,7 +201,7 @@ function discussionsComponent() {
             const discussionId = this.selectedDiscussion.id;
 
             try {
-                const response = await fetch(`/taxi/discussions/reopen/${discussionId}`, {
+                const response = await fetch(`/discussions/reopen/${discussionId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
                 });
@@ -217,7 +217,7 @@ function discussionsComponent() {
                     // Find the discussion and update its status and get the new reply
                     const discussionIndex = this.discussions.findIndex(d => d.id == discussionId);
                     if (discussionIndex !== -1) {
-                       await this.fetchDiscussions(); // Refetch to get all updates
+                        await this.fetchDiscussions(); // Refetch to get all updates
                     }
                 } else {
                     alert(result.message || 'Failed to reopen the discussion.');

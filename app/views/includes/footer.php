@@ -77,8 +77,8 @@
 
     <!-- Custom JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=<?= time() ?>"></script>
-    <script src="<?= URLROOT ?>/public/js/create_ticket/main.js?v=<?= time() ?>"></script>
+    <script src="<?= URLROOT ?>/js/components/searchable-select.js?v=<?= time() ?>"></script>
+    <script src="<?= URLROOT ?>/js/create_ticket/main.js?v=<?= time() ?>"></script>
 
     <script>
         // Initialize Toastr
@@ -101,4 +101,4 @@
         };
     </script>
 </body>
-</html> 
+</html>

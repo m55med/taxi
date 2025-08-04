@@ -14,8 +14,8 @@ class ReportsController extends Controller
     // تقرير السائقين حسب الحالة
     public function drivers()
     {
-        $driverModel = $this->model('driver/Driver');
-        $userModel = $this->model('user/User');
+        $driverModel = $this->model('Driver/Driver');
+        $userModel = $this->model('User/User');
         
         $filters = [
             'main_system_status' => $_GET['main_system_status'] ?? '',
@@ -43,8 +43,8 @@ class ReportsController extends Controller
     // تقرير المستندات
     public function documents()
     {
-        $documentModel = $this->model('document/Document');
-        $userModel = $this->model('user/User');
+        $documentModel = $this->model('Document/Document');
+        $userModel = $this->model('User/User');
         
         $filters = [
             'document_type_id' => $_GET['document_type_id'] ?? '',
@@ -72,8 +72,8 @@ class ReportsController extends Controller
     // تقرير المكالمات
     public function calls()
     {
-        $callModel = $this->model('call_model/Call');
-        $userModel = $this->model('user/User');
+        $callModel = $this->model('Call/Call');
+        $userModel = $this->model('User/User');
         
         $filters = [
             'call_status' => $_GET['call_status'] ?? '',
@@ -99,8 +99,8 @@ class ReportsController extends Controller
     // تقرير التحويلات
     public function assignments()
     {
-        $assignmentModel = $this->model('assignment/Assignment');
-        $userModel = $this->model('user/User');
+        $assignmentModel = $this->model('Assignment/Assignment');
+        $userModel = $this->model('User/User');
         
         $filters = [
             'from_user_id' => $_GET['from_user_id'] ?? '',
@@ -127,8 +127,8 @@ class ReportsController extends Controller
     // تقرير التحليلات
     public function analytics()
     {
-        $driverModel = $this->model('driver/Driver');
-        $callModel = $this->model('call_model/Call');
+        $driverModel = $this->model('Driver/Driver');
+        $callModel = $this->model('Call/Call');
         
         $filters = [
             'date_from' => $_GET['date_from'] ?? date('Y-m-d'),

@@ -1,3 +1,5 @@
+console.log("✅ search-autocomplete.js loaded");
+
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('input[name="phone"]');
     const searchForm = searchInput.closest('form');
@@ -32,9 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${URLROOT}/drivers/search?q=${query}`);
             if (!response.ok) throw new Error('Network response was not ok.');
-            
+
             const drivers = await response.json();
-            
+
             if (drivers.length > 0) {
                 resultsContainer.innerHTML = drivers.map(driver => {
                     if (driver.hold == 1 && driver.held_by_username) {
@@ -89,10 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsContainer.classList.add('hidden');
         }
     });
-     // Show results when focusing on the input again if there is text
-     searchInput.addEventListener('focus', () => {
-        if(searchInput.value.length >= 3){
+    // Show results when focusing on the input again if there is text
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.length >= 3) {
             fetchResults();
         }
     });
-}); 
+});

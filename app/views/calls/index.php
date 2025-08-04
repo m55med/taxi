@@ -1,11 +1,51 @@
 <?php include_once __DIR__ . '/../includes/header.php'; ?>
-<link href="<?= URLROOT ?>/public/css/calls/styles.css?v=1.1" rel="stylesheet">
+
+<link href="<?= URLROOT ?>/css/calls/styles.css?v=1.1" rel="stylesheet">
 <style>
     /* Custom styles for this page */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 </style>
-<script> const URLROOT = '<?= URLROOT ?>'; </script>
+<script>
+    const URLROOT = "<?= URLROOT ?>";
+
+    // --- Shared Utility Functions ---
+    
+    /**
+     * Displays a toast notification.
+     * @param {string} message The message to display.
+     * @param {string} type 'success', 'error', or 'info'.
+     */
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
+        toast.className = `p-4 rounded-lg shadow-lg text-white ${bgColor} flex items-center`;
+        toast.innerHTML = `<i class="fas ${icon} mr-3"></i> <p>${message}</p>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+
+    /**
+     * Copies text to the clipboard.
+     * @param {string} text The text to copy.
+     * @param {string} entityName The name of the item being copied (e.g., 'Phone number').
+     */
+    function copyToClipboard(text, entityName = 'Text') {
+        if (!navigator.clipboard) {
+            showToast('Clipboard API not available.', 'error');
+            return;
+        }
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(`${entityName} copied to clipboard!`);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            showToast('Failed to copy to clipboard.', 'error');
+        });
+    }
+</script>
 
 <div class="container mx-auto px-4 py-8">
     <!-- Notification Placeholder -->
@@ -14,18 +54,20 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-800">Call Center</h1>
-        
-        <!-- Search Form -->
-        <form action="<?= URLROOT ?>/calls" method="GET" class="flex-grow md:max-w-xs">
-            <div class="relative">
-                <input type="search" name="phone" placeholder="Search by phone number..."
-                       class="w-full pl-10 pr-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                       value="<?= htmlspecialchars($_GET['phone'] ?? '') ?>">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fas fa-search text-gray-400"></i>
-                </div>
-            </div>
-        </form>
+        <form action="<?= URLROOT ?>/calls" method="GET" class="flex-grow md:max-w-xs" onsubmit="return false;">
+    <div class="relative">
+        <input type="search" name="phone" id="phone-search" placeholder="Search by phone number..."
+            class="w-full pl-10 pr-4 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            autocomplete="off"
+            value="<?= htmlspecialchars($_GET['phone'] ?? '') ?>">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-search text-gray-400"></i>
+        </div>
+
+        <!-- Autocomplete Dropdown -->
+        <div id="search-suggestions" class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded-md shadow-lg hidden max-h-60 overflow-y-auto"></div>
+    </div>
+</form>
 
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white rounded-lg shadow p-4 text-center">
@@ -51,42 +93,32 @@
             <p class="text-gray-600">The next available driver will be shown here automatically.</p>
         </div>
     <?php else: ?>
-        <!-- Main Grid Layout -->
         <div class="grid grid-cols-12 gap-6">
-            <!-- Left Sidebar -->
             <div class="col-span-12 lg:col-span-4 space-y-6">
                 <?php include __DIR__ . '/sections/driver-profile.php'; ?>
                 <?php include __DIR__ . '/sections/driver-info-form.php'; ?>
             </div>
-
-            <!-- Right Content Area with Tabs -->
             <div class="col-span-12 lg:col-span-8">
                 <div class="bg-white rounded-lg shadow">
-                    <!-- Tab Buttons -->
                     <div class="border-b border-gray-200">
                         <nav class="flex space-x-2" aria-label="Tabs">
                             <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-indigo-500 text-indigo-600" data-tab="call-form">
-                                <i class="fas fa-phone-alt mr-2"></i>
-                                <span>Call Details</span>
+                                <i class="fas fa-phone-alt mr-2"></i> Call Details
                             </button>
-                            <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="call-history">
-                                <i class="fas fa-history mr-2"></i>
-                                <span>Call History</span>
+                            <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="call-history">
+                                <i class="fas fa-history mr-2"></i> Call History
                                 <?php if (!empty($data['call_history'])): ?>
                                     <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"><?= count($data['call_history']) ?></span>
                                 <?php endif; ?>
                             </button>
-                            <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors duration-200" data-tab="documents">
-                                <i class="fas fa-file-alt mr-2"></i>
-                                <span>Documents</span>
+                            <button class="tab-button whitespace-nowrap flex-1 py-4 px-1 text-center border-b-2 font-semibold text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="documents">
+                                <i class="fas fa-file-alt mr-2"></i> Documents
                                 <?php if (!empty($data['required_documents'])): ?>
                                     <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full"><?= count($data['required_documents']) ?></span>
                                 <?php endif; ?>
                             </button>
                         </nav>
                     </div>
-                    
-                    <!-- Tab Content -->
                     <div class="p-6">
                         <div id="call-form-content" class="tab-content active">
                             <?php include __DIR__ . '/sections/call-form.php'; ?>
@@ -107,69 +139,101 @@
 <!-- Modals -->
 <?php include __DIR__ . '/sections/transfer-modal.php'; ?>
 
-<!-- Core & Module Scripts -->
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="<?= URLROOT ?>/public/js/utils.js?v=1.2"></script>
-<script src="<?= URLROOT ?>/public/js/components/searchable-select.js?v=1.0"></script>
-<script src="<?= URLROOT ?>/public/js/calls/shared.js?v=1.2"></script>
-<script src="<?= URLROOT ?>/public/js/calls/driver-profile.js?v=1.3"></script>
-<script src="<?= URLROOT ?>/public/js/calls/driver-info.js?v=1.6"></script>
-<script src="<?= URLROOT ?>/public/js/calls/documents.js?v=1.2"></script>
-<script src="<?= URLROOT ?>/public/js/calls/transfer.js?v=1.2"></script>
-<script src="<?= URLROOT ?>/public/js/calls/call-form-alpine.js?v=1.0"></script>
-<script src="<?= URLROOT ?>/public/js/calls/search-autocomplete.js?v=1.0"></script>
+<!-- Page-specific logic -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tab switching logic
-        const tabs = document.querySelectorAll('.tab-button');
-        const inactiveClasses = ['border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'];
-        const activeClasses = ['border-indigo-500', 'text-indigo-600'];
+document.addEventListener('DOMContentLoaded', function () {
+    // Tab switching logic
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const inactiveClasses = ['border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300'];
+    const activeClasses = ['border-indigo-500', 'text-indigo-600'];
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Deactivate all tabs
-                tabs.forEach(t => {
-                    t.classList.remove(...activeClasses);
-                    t.classList.add(...inactiveClasses);
-                });
-
-                // Deactivate all content
-                document.querySelectorAll('.tab-content').forEach(c => {
-                    c.classList.remove('active');
-                });
-
-                // Activate clicked tab
-                tab.classList.remove(...inactiveClasses);
-                tab.classList.add(...activeClasses);
-
-                // Activate associated content
-                const tabContentId = tab.dataset.tab + '-content';
-                document.getElementById(tabContentId).classList.add('active');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => {
+                t.classList.remove(...activeClasses);
+                t.classList.add(...inactiveClasses);
             });
-        });
+            tab.classList.add(...activeClasses);
+            tab.classList.remove(...inactiveClasses);
 
-        // Rate limit countdown
-        const countdownElement = document.getElementById('countdown');
-        if (countdownElement) {
-            let timeLeft = parseInt(countdownElement.innerText);
-            const interval = setInterval(() => {
-                timeLeft--;
-                countdownElement.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(interval);
-                    window.location.reload();
-                }
-            }, 1000);
-        }
+            tabContents.forEach(c => {
+                c.classList.remove('active');
+            });
+            document.getElementById(tab.dataset.tab + '-content').classList.add('active');
+        });
     });
+
+    // Rate limit countdown
+    const countdownElement = document.getElementById('countdown');
+    if (countdownElement) {
+        let timeLeft = parseInt(countdownElement.innerText);
+        const interval = setInterval(() => {
+            timeLeft--;
+            countdownElement.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                window.location.reload();
+            }
+        }, 1000);
+    }
 
     // Reliable beacon to release hold on driver
     window.addEventListener('beforeunload', function () {
         if (navigator.sendBeacon) {
-            // Use an empty body as we just need to trigger the server-side script
             navigator.sendBeacon('<?= URLROOT ?>/calls/releaseHold', new Blob());
         }
     });
+});
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('phone-search');
+    const suggestionsBox = document.getElementById('search-suggestions');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        clearTimeout(debounceTimer);
+        suggestionsBox.innerHTML = '';
+        suggestionsBox.classList.add('hidden');
+
+        if (query.length < 3) return;
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`${URLROOT}/drivers/search?q=${encodeURIComponent(query)}`);
+                if (!response.ok) return;
+                const results = await response.json();
+
+                if (!results.length) return;
+
+                results.forEach(driver => {
+                    const item = document.createElement('div');
+                    item.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                    item.textContent = `${driver.name} - ${driver.phone}`;
+                    item.addEventListener('click', () => {
+                        // Redirect to /calls?phone=xxxx
+                        window.location.href = `${URLROOT}/calls?phone=${encodeURIComponent(driver.phone)}`;
+                    });
+                    suggestionsBox.appendChild(item);
+                });
+
+                suggestionsBox.classList.remove('hidden');
+            } catch (err) {
+                console.error('Error fetching suggestions:', err);
+            }
+        }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.innerHTML = '';
+            suggestionsBox.classList.add('hidden');
+        }
+    });
+});
+</script>
+
 
 <?php include_once __DIR__ . '/../includes/footer.php'; ?>

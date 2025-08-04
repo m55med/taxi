@@ -1,7 +1,7 @@
 <?php include_once APPROOT . '/views/includes/header.php'; ?>
 
 <!-- Link to the new Tailwind CSS stylesheet -->
-<link rel="stylesheet" href="<?= URLROOT ?>/public/css/dist/style.css">
+<link rel="stylesheet" href="<?= URLROOT ?>/css/dist/style.css">
 <!-- Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -275,5 +275,5 @@
     </div>
 </div>
 
-<script src="<?= URLROOT ?>/public/js/discussions/main.js"></script>
+<script src="<?= URLROOT ?>/js/discussions/main.js"></script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>

@@ -30,7 +30,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
 
     <!-- Custom CSS files -->
-    <link rel="stylesheet" href="<?php echo URLROOT; ?>/public/css/discussions.css">
+    <link rel="stylesheet" href="<?php echo URLROOT; ?>/css/discussions.css">
 
     <style>
         body {
@@ -50,7 +50,7 @@
         }
     </style>
     
-    <script src="<?= URLROOT ?>/public/js/app.js" defer></script>
+    <script src="<?= URLROOT ?>/js/app.js" defer></script>
     
     <!-- Choices.js SCRIPT -->
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>

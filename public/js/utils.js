@@ -1,3 +1,5 @@
+console.log('✅ utils.js loaded');
+
 /**
  * utils.js
  * Contains shared utility functions for the application.
@@ -68,4 +70,17 @@ const showToast = (message, type = 'success') => {
         toast.classList.add('translate-x-full');
         toast.addEventListener('transitionend', () => toast.remove());
     }, 5000);
-}; 
+};
+
+function copyToClipboard(text, entityName = 'Text') {
+    if (!navigator.clipboard) {
+        showToast('Clipboard API not available.', 'error');
+        return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(`${entityName} copied to clipboard!`);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        showToast('Failed to copy to clipboard.', 'error');
+    });
+}

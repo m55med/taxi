@@ -3,11 +3,22 @@
 // Initialize variables for safety
 $document_types = $data['document_types'] ?? [];
 $required_documents = $data['required_documents'] ?? [];
+
+// Force-convert arrays to objects
+$document_types = array_map(fn($d) => (object) $d, $document_types);
+$required_documents = array_map(fn($d) => (object) $d, $required_documents);
+
 $driver = $data['driver'] ?? null;
+
+
+// Ensure driver is an object for consistency, though the error implies it already is.
+if (is_array($driver)) {
+    $driver = (object) $driver;
+}
 ?>
 
 <?php if ($driver): ?>
-<div id="documents-section-container" data-driver-id="<?= htmlspecialchars($driver['id'] ?? '') ?>">
+<div id="documents-section-container" data-driver-id="<?= htmlspecialchars($driver->id ?? '') ?>">
     <!-- Header: Title and Action Buttons -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h2 class="text-xl font-bold text-gray-800 flex items-center">
@@ -31,12 +42,14 @@ $driver = $data['driver'] ?? null;
             // Create a lookup map for faster access to submitted document details.
             $submitted_docs_map = [];
             foreach ($required_documents as $doc) {
-                $submitted_docs_map[$doc['id']] = $doc;
+                // Assuming $doc could be an object
+                $submitted_docs_map[$doc->id] = $doc;
             }
             ?>
             <?php foreach ($document_types as $doc_type): ?>
                 <?php
-                $doc_id = $doc_type['id'];
+                // Assuming $doc_type could be an object
+                $doc_id = $doc_type->id;
                 $submitted_doc = $submitted_docs_map[$doc_id] ?? null;
                 $isChecked = $submitted_doc !== null;
                 ?>
@@ -48,9 +61,9 @@ $driver = $data['driver'] ?? null;
                                    class="document-checkbox form-checkbox h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                    value="<?= $doc_id ?>"
                                    <?= $isChecked ? 'checked' : '' ?>>
-                            <span class="ml-4 text-gray-800 font-semibold"><?= htmlspecialchars($doc_type['name']) ?></span>
+                            <span class="ml-4 text-gray-800 font-semibold"><?= htmlspecialchars($doc_type->name) ?></span>
                         </label>
-                        <button class="delete-document-btn text-gray-400 hover:text-red-500 transition-colors" data-doc-id="<?= $doc_id ?>" data-doc-name="<?= htmlspecialchars($doc_type['name']) ?>">
+                        <button class="delete-document-btn text-gray-400 hover:text-red-500 transition-colors" data-doc-id="<?= $doc_id ?>" data-doc-name="<?= htmlspecialchars($doc_type->name) ?>">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -63,7 +76,7 @@ $driver = $data['driver'] ?? null;
                                 <select class="status-select w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                     <?php
                                     $statuses = ['submitted' => 'Submitted', 'approved' => 'Approved', 'rejected' => 'Rejected'];
-                                    $current_status = $submitted_doc['status'] ?? 'submitted';
+                                    $current_status = $submitted_doc->status ?? 'submitted';
                                     if (!array_key_exists($current_status, $statuses)) {
                                         $current_status = 'submitted';
                                     }
@@ -78,15 +91,15 @@ $driver = $data['driver'] ?? null;
                                 <label class="text-xs font-medium text-gray-600 block mb-1">Notes</label>
                                 <textarea class="note-textarea w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                           placeholder="Add a note (optional)..."
-                                          rows="1"><?= htmlspecialchars($submitted_doc['note'] ?? '') ?></textarea>
+                                          rows="1"><?= htmlspecialchars($submitted_doc->note ?? '') ?></textarea>
                             </div>
                         </div>
-                        <?php if ($submitted_doc && !empty($submitted_doc['updated_at'])): ?>
+                        <?php if ($submitted_doc && !empty($submitted_doc->updated_at)): ?>
                             <div class="text-xs text-gray-500 text-right pt-2 border-t mt-4">
                                 <i class="fas fa-clock fa-fw"></i>
-                                Last updated: <?= (new DateTime($submitted_doc['updated_at']))->format('Y-m-d H:i') ?>
-                                <?php if (!empty($submitted_doc['updated_by_name'])): ?>
-                                    by <?= htmlspecialchars($submitted_doc['updated_by_name']) ?>
+                                Last updated: <?= (new DateTime($submitted_doc->updated_at))->format('Y-m-d H:i') ?>
+                                <?php if (!empty($submitted_doc->updated_by_name)): ?>
+                                    by <?= htmlspecialchars($submitted_doc->updated_by_name) ?>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -110,3 +123,122 @@ $driver = $data['driver'] ?? null;
 </div>
 
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("✅ documents.js loaded");
+
+    const documentsModule = {
+        init() {
+            this.sectionContainer = document.getElementById('documents-section-container');
+            if (!this.sectionContainer) return;
+
+            this.driverId = this.sectionContainer.dataset.driverId;
+            this.saveButton = document.getElementById('save-documents-btn');
+            this.listContainer = document.getElementById('documents-list');
+            this.deleteModal = document.getElementById('delete-confirm-modal');
+            this.docNameSpan = document.getElementById('modal-doc-name');
+            this.confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            this.cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+            if (!this.driverId || !this.saveButton || !this.listContainer || !this.deleteModal) {
+                console.error('Documents module: Required elements are missing.');
+                return;
+            }
+
+            this.listContainer.addEventListener('input', (e) => this.handleInput(e));
+            this.listContainer.addEventListener('click', (e) => this.handleClick(e));
+            this.saveButton.addEventListener('click', () => this.handleSave());
+            this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
+
+            console.log('Documents module initialized.');
+        },
+
+        handleInput(e) {
+            if (e.target.classList.contains('document-checkbox')) {
+                this.toggleDetails(e.target);
+            }
+            this.saveButton.disabled = false;
+        },
+
+        handleClick(e) {
+            const deleteButton = e.target.closest('.delete-document-btn');
+            if (deleteButton) {
+                const docId = deleteButton.dataset.docId;
+                const docName = deleteButton.dataset.docName;
+                this.openDeleteModal(docId, docName);
+            }
+        },
+
+        openDeleteModal(docId, docName) {
+            this.docNameSpan.textContent = docName;
+            this.confirmDeleteBtn.dataset.docId = docId;
+            this.deleteModal.classList.remove('hidden');
+            this.confirmDeleteBtn.onclick = () => this.handleDelete(docId);
+        },
+
+        closeDeleteModal() {
+            this.deleteModal.classList.add('hidden');
+            this.confirmDeleteBtn.dataset.docId = '';
+            this.confirmDeleteBtn.onclick = null;
+        },
+
+        handleDelete(docId) {
+            const checkbox = this.listContainer.querySelector(`.document-checkbox[value="${docId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+                this.toggleDetails(checkbox);
+                this.saveButton.disabled = false;
+            }
+            this.closeDeleteModal();
+        },
+
+        toggleDetails(checkbox) {
+            const itemContainer = checkbox.closest('.document-item');
+            const detailsSection = itemContainer.querySelector('.document-details');
+            if (checkbox.checked) {
+                detailsSection.classList.remove('hidden');
+                itemContainer.classList.add('border-indigo-200', 'bg-indigo-50');
+                itemContainer.classList.remove('border-gray-200', 'bg-white');
+            } else {
+                detailsSection.classList.add('hidden');
+                itemContainer.classList.remove('border-indigo-200', 'bg-indigo-50');
+                itemContainer.classList.add('border-gray-200', 'bg-white');
+            }
+        },
+
+        async handleSave() {
+            this.saveButton.disabled = true;
+            const checkedItems = this.listContainer.querySelectorAll('.document-checkbox:checked');
+            const documentsPayload = Array.from(checkedItems).map(checkbox => {
+                const itemContainer = checkbox.closest('.document-item');
+                return {
+                    id: parseInt(checkbox.value, 10),
+                    status: itemContainer.querySelector('.status-select')?.value || 'submitted',
+                    note: itemContainer.querySelector('.note-textarea')?.value.trim() || ''
+                };
+            });
+
+            try {
+                const response = await fetch(`${URLROOT}/calls/updateDocuments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({
+                        driver_id: this.driverId,
+                        documents: documentsPayload
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.message || 'Server error');
+                showToast(data.message || 'تم حفظ التغييرات بنجاح.', 'success');
+            } catch (error) {
+                showToast(error.message || 'فشل حفظ التغييرات.', 'error');
+            } finally {
+                 this.saveButton.disabled = false;
+            }
+        }
+    };
+
+    documentsModule.init();
+});
+</script>

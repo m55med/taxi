@@ -1,5 +1,11 @@
 Options -Indexes
 RewriteEngine On
 
-RewriteRule ^$ public/ [L]
-RewriteRule (.*) public/$1 [L]
+# Allow direct access to existing files and directories
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Redirect all other requests to the public directory
+RewriteRule ^(.*)$ public/$1 [L]
+

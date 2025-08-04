@@ -23,7 +23,7 @@ class TicketController extends Controller
         if (!Auth::isLoggedIn()) {
             redirect('auth/login');
         }
-        $this->ticketModel = $this->model('tickets/Ticket');
+        $this->ticketModel = $this->model('Tickets/Ticket');
         $this->discussionModel = $this->model('discussion/Discussion');
         $this->reviewModel = $this->model('review/Review');
     }
@@ -398,10 +398,10 @@ class TicketController extends Controller
     public function index()
     {
         // Load necessary data for the create/update form
-        $countryModel = $this->model('admin/Country');
-        $categoryModel = $this->model('tickets/Category');
-        $platformModel = $this->model('tickets/Platform');
-        $teamModel = $this->model('admin/Team');
+        $countryModel = $this->model('Admin/Country');
+        $categoryModel = $this->model('Tickets/Category');
+        $platformModel = $this->model('Tickets/Platform');
+        $teamModel = $this->model('Admin/Team');
 
         $data = [
             'countries' => $countryModel->getAll(),
