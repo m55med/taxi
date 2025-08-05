@@ -14,7 +14,7 @@ class DriverCallsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->callsReportModel = $this->model('reports/DriverCalls/DriverCallsReport');
+        $this->callsReportModel = $this->model('Reports/DriverCalls/DriverCallsReport');
     }
 
     public function index()

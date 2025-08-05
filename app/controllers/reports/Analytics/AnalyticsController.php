@@ -18,7 +18,8 @@ class AnalyticsController extends Controller
 
     private function initialize()
     {
-        $this->analyticsReportModel = $this->model('reports/Analytics/AnalyticsReport');
+        $this->analyticsReportModel = $this->model('Reports/Analytics/AnalyticsReport');
+
     }
 
     public function index()

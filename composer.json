@@ -15,7 +15,8 @@
             "app/core",
             "app/controllers",
             "app/models",
-            "app/services"
+            "app/services",
+            "app/helpers"
         ],
         "files": [
             "app/helpers/session_helper.php",

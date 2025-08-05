@@ -24,20 +24,24 @@ class TicketController extends Controller
             redirect('auth/login');
         }
         $this->ticketModel = $this->model('Tickets/Ticket');
-        $this->discussionModel = $this->model('discussion/Discussion');
-        $this->reviewModel = $this->model('review/Review');
+        $this->discussionModel = $this->model('Discussion/Discussion');
+        $this->reviewModel = $this->model('Review/Review');
     }
 
     public function show($id = null)
     {
         if (empty($id)) {
-            redirect('listings/tickets');
+            // If no ID is provided, show the search page
+            $this->view('tickets/search', ['page_main_title' => 'Search for a Ticket']);
+            return;
         }
 
         $ticket = $this->ticketModel->findById($id);
 
         if (!$ticket) {
-            die('Ticket not found.');
+            // If ticket not found, redirect back to search with an error
+            $_SESSION['error_message'] = "Ticket with ID #{$id} not found.";
+            redirect('tickets/view');
         }
 
         // Get the full history of the ticket
@@ -139,8 +143,9 @@ class TicketController extends Controller
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
                 'id' => $_SESSION['user_id'],
-                'role' => $_SESSION['role_name']
+                'role' => $_SESSION['user']['role_name'] ?? 'default_role'
             ]
+
         ];
 
         $this->view('tickets/view', $data);
@@ -346,7 +351,7 @@ class TicketController extends Controller
     public function search()
     {
         if (empty($_POST['search_term'])) {
-            redirect('create_ticket'); // Redirect if search is empty
+            redirect('tickets/view'); // Redirect if search is empty
         }
 
         $searchTerm = trim($_POST['search_term']);
@@ -357,8 +362,8 @@ class TicketController extends Controller
         } else {
             // Set a flash message to inform the user
             $_SESSION['error_message'] = "No ticket or customer found for: " . htmlspecialchars($searchTerm);
-            // Redirect to the create page so they can create it if they want
-            redirect('create_ticket');
+            // Redirect back to the search page
+            redirect('tickets/view');
         }
     }
 

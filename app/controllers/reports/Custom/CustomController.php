@@ -18,7 +18,7 @@ class CustomController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->customModel = $this->model('reports/Custom/CustomReport');
+        $this->customModel = $this->model('Reports/Custom/CustomReport');
     }
 
     public function index()

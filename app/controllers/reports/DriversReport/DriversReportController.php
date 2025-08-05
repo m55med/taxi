@@ -16,7 +16,7 @@ class DriversReportController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->driversReportModel = $this->model('reports/DriversReport');
+        $this->driversReportModel = $this->model('Reports/DriversReport');
     }
 
     public function index()

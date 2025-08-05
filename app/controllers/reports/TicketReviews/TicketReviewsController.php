@@ -14,7 +14,7 @@ class TicketReviewsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->reviewModel = $this->model('reports/TicketReviews/TicketReviewsReport');
+        $this->reviewModel = $this->model('Reports/TicketReviews/TicketReviewsReport');
     }
 
     public function index()

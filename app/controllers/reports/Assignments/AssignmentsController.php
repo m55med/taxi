@@ -16,7 +16,7 @@ class AssignmentsController extends Controller
 
     private function initialize()
     {
-        $this->assignmentsReportModel = $this->model('reports/Assignments/AssignmentsReport');
+        $this->assignmentsReportModel = $this->model('Reports/Assignments/AssignmentsReport');
     }
 
     public function index()

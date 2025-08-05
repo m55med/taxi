@@ -11,8 +11,8 @@ class NotificationsController extends Controller
     public function __construct()
     {
         // The model is loaded into the controller.
-        $this->notificationModel = $this->model('notifications/Notification');
-        $this->reportModel = $this->model('reports/Notifications/NotificationsReportModel');
+        $this->notificationModel = $this->model('Notifications/Notification');
+        $this->reportModel = $this->model('Notifications/NotificationsReportModel');
     }
 
     /**

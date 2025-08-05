@@ -21,7 +21,7 @@ class AdminDashboardController extends Controller
             exit;
         }
 
-        $this->dashboardModel = $this->model('reports/AdminDashboard/AdminDashboardReport');
+        $this->dashboardModel = $this->model('Reports/AdminDashboard/AdminDashboardReport');
     }
 
     public function index()

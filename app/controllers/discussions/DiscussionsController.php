@@ -13,31 +13,68 @@ class DiscussionsController extends Controller
     {
         parent::__construct();
         Auth::requireLogin(); // Ensure user is logged in
-        $this->discussionModel = $this->model('discussion/Discussion');
+        $this->discussionModel = $this->model('Discussion/Discussion');
     }
 
     public function index()
     {
+        $userId = $_SESSION['user']['id'];
+        $role = $_SESSION['user']['role_name'];
+
+        // Get filters from the URL
+        $filters = [
+            'status' => $_GET['status'] ?? 'all',
+            'search' => trim($_GET['search'] ?? '')
+        ];
+
+        // Fetch all discussions based on the filters
+        $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role, $filters);
+        
+        // Determine the selected discussion
+        $selectedDiscussionId = $_GET['id'] ?? null;
+        $selectedDiscussion = null;
+
+        if ($selectedDiscussionId) {
+            // Find the selected discussion from the fetched list
+            $selectedDiscussion = array_values(array_filter($discussions, function ($d) use ($selectedDiscussionId) {
+                return $d['id'] == $selectedDiscussionId;
+            }))[0] ?? null;
+
+            // If found, mark its replies as read
+            if ($selectedDiscussion) {
+                $this->discussionModel->markRepliesAsRead($selectedDiscussionId, $userId);
+                // We need to refetch to update the unread count, or manually set it to 0
+                $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role, $filters);
+            }
+        }
+
         $data = [
             'page_main_title' => 'My Discussions',
+            'discussions' => $discussions,
+            'selectedDiscussion' => $selectedDiscussion,
+            'filters' => $filters,
+            'currentUser' => [
+                'id' => $userId,
+                'role' => $role
+            ]
         ];
 
         $this->view('discussions/index', $data);
     }
-
+    
     public function getDiscussionsApi()
     {
         header('Content-Type: application/json');
 
         $userId = Auth::getUserId();
 
-        if (!$userId || !isset($_SESSION['role_name'])) {
+        if (!$userId || !isset($_SESSION['user']['role_name'])) {
             http_response_code(401); // Unauthorized
             echo json_encode(['error' => 'Authentication required.']);
             return;
         }
 
-        $role = $_SESSION['role_name'];
+        $role = $_SESSION['user']['role_name'];
         $discussions = $this->discussionModel->getDiscussionsForUser($userId, $role);
 
         $currentUser = ['id' => $userId, 'role' => $role];
@@ -72,7 +109,7 @@ class DiscussionsController extends Controller
 
             if ($newDiscussionId) {
                 flash('discussion_success', 'Discussion opened successfully.', 'alert alert-success');
-                redirect('discussions#discussion-' . $newDiscussionId);
+                redirect('discussions?id=' . $newDiscussionId);
             } else {
                 flash('discussion_error', 'Failed to add discussion. A database error occurred.', 'alert alert-danger');
                 $this->safeRedirectBack($discussable_type, $discussable_id);
@@ -122,28 +159,27 @@ class DiscussionsController extends Controller
         header('Content-Type: application/json');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405); // Method Not Allowed
+            http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
             return;
         }
 
-        $userId = Auth::getUserId();
-        $role = $_SESSION['role_name'] ?? ''; // Make sure role exists
+        $userId = $_SESSION['user']['id'];
+        $role = $_SESSION['user']['role_name'] ?? '';
 
-        // Authorization check
-        $canCloseRoles = ['admin', 'quality_manager', 'Team_leader'];
+        $canCloseRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
         if (!in_array($role, $canCloseRoles)) {
-            http_response_code(403); // Forbidden
+            http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'You do not have permission to close this discussion.']);
             return;
         }
 
         if ($this->discussionModel->closeDiscussion($id, $userId, $role)) {
-            http_response_code(200); // OK
+            http_response_code(200);
             echo json_encode(['success' => true, 'message' => 'Discussion closed successfully.']);
         } else {
-            http_response_code(500); // Internal Server Error
-            echo json_encode(['success' => false, 'message' => 'Failed to close the discussion due to a server error or it might be already closed.']);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to close discussion.']);
         }
     }
 
@@ -157,48 +193,53 @@ class DiscussionsController extends Controller
             return;
         }
 
-        $userId = Auth::getUserId();
-        $role = $_SESSION['role_name'] ?? '';
+        $userId = $_SESSION['user']['id'];
+        $role = $_SESSION['user']['role_name'] ?? '';
 
-        // Allow reopening for a broader set of authorized roles, not just admin
         $canReopenRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
         if (!in_array($role, $canReopenRoles)) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'You do not have permission to reopen this discussion.']);
+            echo json_encode(['success' => false, 'message' => 'You do not have permission to re-open this discussion.']);
             return;
         }
 
         if ($this->discussionModel->reopenDiscussion($id, $userId)) {
             http_response_code(200);
-            echo json_encode(['success' => true, 'message' => 'Discussion reopened successfully.']);
+            echo json_encode(['success' => true, 'message' => 'Discussion re-opened successfully.']);
         } else {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Failed to reopen the discussion.']);
+            echo json_encode(['success' => false, 'message' => 'Failed to re-open discussion.']);
         }
     }
 
     public function addReply($discussionId)
     {
+        header('Content-Type: application/json');
+        
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('discussions');
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
+            return;
         }
 
         $message = trim($_POST['message'] ?? '');
         if (empty($message)) {
-            flash('discussion_error', 'Reply message cannot be empty.', 'alert alert-danger');
-            redirect('discussions#discussion-' . $discussionId);
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Reply message cannot be empty.']);
             return;
         }
 
-        $userId = $_SESSION['user_id'];
+        $userId = $_SESSION['user']['id'];
 
-        if ($this->discussionModel->addReply($discussionId, $userId, $message)) {
-            flash('discussion_success', 'Reply added successfully.', 'alert alert-success');
+        $newReply = $this->discussionModel->addReply($discussionId, $userId, $message);
+        
+        if ($newReply) {
+            http_response_code(201);
+            echo json_encode(['success' => true, 'reply' => $newReply]);
         } else {
-            flash('discussion_error', 'Failed to add reply.', 'alert alert-danger');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to add reply.']);
         }
-
-        redirect('discussions#discussion-' . $discussionId);
     }
 
     public function addReplyApi($discussionId)

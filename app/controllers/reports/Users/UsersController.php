@@ -22,9 +22,9 @@ class UsersController extends Controller
 
     private function initialize()
     {
-        $this->usersReportModel = $this->model('reports/Users/UsersReport');
-        $this->roleModel = $this->model('role/Role');
-        $this->teamModel = $this->model('admin/Team');
+        $this->usersReportModel = $this->model('Reports/Users/UsersReport');
+        $this->roleModel = $this->model('Role/Role');
+        $this->teamModel = $this->model('Admin/Team');
     }
     
 
@@ -56,7 +56,7 @@ class UsersController extends Controller
             'filters' => $filters,
         ];
 
-        $this->view('reports/Users/index', $data);
+        $this->view('reports/users/index', $data);
     }
 
     public function export()

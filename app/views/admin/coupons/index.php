@@ -8,24 +8,7 @@ if (isset($_SESSION['coupon_message'])) {
     unset($_SESSION['coupon_message'], $_SESSION['coupon_message_type']);
 }
 ?>
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($page_main_title ?? 'Manage Coupons') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        [x-cloak] { display: none !important; }
-        .toast-container { z-index: 1000; }
-    </style>
-</head>
-<body class="bg-gray-100" x-data="couponsPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
-    
+   
 <?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
 <!-- Flash Message Toast -->

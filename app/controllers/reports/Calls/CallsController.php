@@ -16,7 +16,7 @@ class CallsController extends Controller
 
     private function initialize()
     {
-        $this->callsReportModel = $this->model('reports/Calls/CallsReport');
+        $this->callsReportModel = $this->model('Reports/Calls/CallsReport');
     }
 
     public function index()

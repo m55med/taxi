@@ -18,7 +18,7 @@ class ReferralsController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->referralModel = $this->model('reports/Referrals/ReferralsReport');
+        $this->referralModel = $this->model('Reports/Referrals/ReferralsReport');
     }
 
     public function index()

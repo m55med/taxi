@@ -18,9 +18,9 @@ class EmployeeActivityScoreController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->scoreModel = $this->model('reports/EmployeeActivityScore/EmployeeActivityScoreModel');
-        $this->teamModel = $this->model('admin/Team');
-        $this->roleModel = $this->model('role/Role');
+        $this->scoreModel = $this->model('Reports/EmployeeActivityScore/EmployeeActivityScoreModel');
+        $this->teamModel = $this->model('Admin/Team');
+        $this->roleModel = $this->model('Role/Role');
     }
 
     public function index()

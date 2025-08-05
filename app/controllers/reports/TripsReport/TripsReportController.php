@@ -14,7 +14,7 @@ class TripsReportController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->tripsReportModel = $this->model('reports/TripsReportModel');
+        $this->tripsReportModel = $this->model('Reports/TripsReportModel');
     }
 
     public function index()

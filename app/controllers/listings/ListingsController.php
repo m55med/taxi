@@ -4,6 +4,7 @@ namespace App\Controllers\Listings;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Helpers\ExportHelper;
 
 class ListingsController extends Controller
 {
@@ -25,21 +26,73 @@ class ListingsController extends Controller
     }
 
     /**
-     * Display the main tickets listing page.
+     * Display the main tickets listing page or export data.
      */
     public function tickets()
     {
         $this->authorize('listings/tickets');
 
+        $filters = $_GET;
+        $tickets = $this->listingModel->getFilteredTickets($filters);
+
+        // Check for export request
+        if (isset($filters['export'])) {
+            $this->exportTickets($tickets, $filters['export']);
+            return; // Stop further execution
+        }
+
         $data = [
             'page_main_title' => 'All Tickets',
+            'tickets' => $tickets, // Pass tickets to the view
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
             'platforms' => $this->platformModel->getAll(),
             'users' => $this->userModel->getAllUsers(),
+            'filters' => $filters // Pass current filters back to the view
         ];
 
         $this->view('listings/tickets', $data);
     }
+
+    /**
+     * Handle the export of ticket data.
+     *
+     * @param array $tickets The ticket data to export.
+     * @param string $format The export format ('excel' or 'json').
+     */
+    private function exportTickets(array $tickets, string $format)
+    {
+        $filename = 'tickets_export';
+        $exportData = [];
+
+        if ($format === 'excel') {
+            // Prepare data for Excel export
+            $exportData['headers'] = [
+                'Ticket #', 'Creator', 'Platform', 'Phone', 'Classification', 'Created At', 'VIP'
+            ];
+            $exportData['rows'] = array_map(function ($ticket) {
+                $classification = implode(' > ', array_filter([
+                    $ticket['category_name'] ?? '',
+                    $ticket['subcategory_name'] ?? '',
+                    $ticket['code_name'] ?? ''
+                ]));
+                return [
+                    $ticket['ticket_number'],
+                    $ticket['created_by_username'],
+                    $ticket['platform_name'],
+                    $ticket['phone'] ?? '',
+                    $classification,
+                    date('Y-m-d H:i', strtotime($ticket['created_at'])),
+                    $ticket['is_vip'] == 1 ? 'Yes' : 'No'
+                ];
+            }, $tickets);
+
+            ExportHelper::exportToExcel($exportData, $filename);
+        } elseif ($format === 'json') {
+            // For JSON, we can export the raw ticket data
+            ExportHelper::exportToJson($tickets, $filename);
+        }
+    }
+
 
     /**
      * API endpoint to fetch filtered tickets.
@@ -58,10 +111,21 @@ class ListingsController extends Controller
     {
         $this->authorize('listings/calls');
 
+        // Fetch filtered calls
+        $callsData = $this->listingModel->getFilteredCalls($_GET);
+
         $data = [
             'page_main_title' => 'All Calls',
+            'calls' => $callsData['data'] ?? [],
+            'pagination' => [
+                'total' => $callsData['total'] ?? 0,
+                'total_pages' => $callsData['total_pages'] ?? 1,
+                'current_page' => $callsData['current_page'] ?? 1,
+                'limit' => $callsData['limit'] ?? 25,
+            ],
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
             'users' => $this->userModel->getAllUsers(),
+            'filters' => $_GET
         ];
 
         $this->view('listings/calls', $data);
@@ -86,11 +150,22 @@ class ListingsController extends Controller
 
         $driverModel = $this->model('Driver/Driver');
         $carTypeModel = $this->model('Admin/CarType');
+        
+        // Fetch filtered drivers
+        $driversData = $driverModel->getFilteredDrivers($_GET);
 
         $data = [
             'page_main_title' => 'All Drivers',
             'stats' => $driverModel->getDriverStats(),
             'car_types' => $carTypeModel->getAll(),
+            'drivers' => $driversData['data'] ?? [],
+            'pagination' => [
+                'total' => $driversData['total'] ?? 0,
+                'total_pages' => $driversData['total_pages'] ?? 1,
+                'current_page' => $driversData['current_page'] ?? 1,
+                'limit' => $driversData['limit'] ?? 15,
+            ],
+            'filters' => $_GET
         ];
 
         $this->view('listings/drivers', $data);

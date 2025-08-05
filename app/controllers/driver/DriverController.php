@@ -184,13 +184,15 @@ class DriverController extends Controller
     public function details($id = null)
     {
         if (empty($id)) {
-            redirect('listings/calls');
+            $this->view('drivers/search', ['page_main_title' => 'Search for a Driver']);
+            return;
         }
 
         $driver = $this->driverModel->getById($id);
 
         if (!$driver) {
-            redirect('errors/notfound');
+            flash('driver_search_error', 'Driver not found.', 'bg-red-500 text-white');
+            redirect('drivers/details');
         }
 
         $callHistory = $this->driverModel->getCallHistory($id);
@@ -265,8 +267,8 @@ class DriverController extends Controller
             'unassignedDocuments' => $unassignedDocuments,
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
-                'id' => $_SESSION['user_id'],
-                'role' => $_SESSION['role_name']
+                'id' => $_SESSION['user']['id'],
+                'role' => $_SESSION['user']['role_name'] ?? 'default_role'
             ]
         ];
 

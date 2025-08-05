@@ -18,7 +18,7 @@ class CouponsController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->couponModel = $this->model('reports/Coupons/CouponsReport');
+        $this->couponModel = $this->model('Reports/Coupons/CouponsReport');
     }
 
     public function index()

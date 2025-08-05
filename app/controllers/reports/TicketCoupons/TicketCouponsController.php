@@ -14,7 +14,7 @@ class TicketCouponsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->couponModel = $this->model('reports/TicketCoupons/TicketCouponsReport');
+        $this->couponModel = $this->model('Reports/TicketCoupons/TicketCouponsReport');
     }
 
     public function index()

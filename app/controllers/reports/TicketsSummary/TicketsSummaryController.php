@@ -14,7 +14,7 @@ class TicketsSummaryController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->summaryModel = $this->model('reports/TicketsSummary/TicketsSummaryReport');
+        $this->summaryModel = $this->model('Reports/TicketsSummary/TicketsSummaryReport');
     }
 
     public function index()

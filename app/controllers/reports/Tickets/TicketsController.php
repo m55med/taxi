@@ -14,7 +14,7 @@ class TicketsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->ticketModel = $this->model('reports/Tickets/TicketsReport');
+        $this->ticketModel = $this->model('Reports/Tickets/TicketsReport');
     }
 
     public function index()

@@ -16,7 +16,7 @@ class DocumentsController extends Controller
 
     private function initialize()
     {
-        $this->documentsReportModel = $this->model('reports/Documents/DocumentsReport');
+        $this->documentsReportModel = $this->model('Reports/Documents/DocumentsReport');
     }
 
     public function index()

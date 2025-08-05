@@ -19,20 +19,7 @@
         <!-- Main Content Column -->
         <div class="lg:col-span-2">
             <?php include_once __DIR__ . '/partials/history_section.php'; ?>
-            
-            <!-- Global Discussions Section for the Ticket -->
-            <div class="mt-8 bg-white p-6 rounded-lg shadow-md border">
-                 <?php
-                    render_partial('tickets/partials/discussions_section.php', [
-                        'discussions' => $data['ticketDiscussions'] ?? [],
-                        'add_url' => BASE_URL . "/discussions/add/ticket/" . $data['ticket']['id'],
-                        'can_add_discussion' => in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer', 'agent']),
-                        'currentUser' => $data['currentUser']
-                    ]);
-                ?>
-            </div>
         </div>
-        
         <!-- Sidebar Column -->
         <div class="lg:col-span-1 space-y-6">
             <?php include_once __DIR__ . '/partials/sidebar.php'; ?>

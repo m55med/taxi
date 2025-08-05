@@ -10,7 +10,7 @@ class NotificationsController extends Controller
     public function __construct()
     {
         $this->authorize('admin');
-        $this->reportModel = $this->model('reports/Notifications/NotificationsReportModel');
+        $this->reportModel = $this->model('Reports/Notifications/NotificationsReportModel');
     }
 
     public function index()

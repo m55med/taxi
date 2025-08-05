@@ -16,8 +16,8 @@ class QualityController extends Controller
         parent::__construct();
         Auth::requireLogin();
         // We will create this model in the next step
-        $this->qualityModel = $this->model('quality/QualityModel');
-        $this->ticketCategoryModel = $this->model('tickets/Category');
+        $this->qualityModel = $this->model('Quality/QualityModel');
+        $this->ticketCategoryModel = $this->model('Tickets/Category');
 
     }
 

@@ -1,11 +1,5 @@
-Options -Indexes
 RewriteEngine On
 
-# Allow direct access to existing files and directories
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Redirect all other requests to the public directory
+# لو الزائر دخل من غير تحديد مجلد، نحوله على /public
+RewriteCond %{REQUEST_URI} !^/public
 RewriteRule ^(.*)$ public/$1 [L]
-

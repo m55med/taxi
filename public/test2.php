@@ -2,6 +2,7 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+// بيانات الاتصال
 $host = 'localhost';
 $db = 'taxif_cstaxi';
 $user = 'taxif_root';
@@ -17,27 +18,21 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    // البيانات الجديدة
-    $userId = 9; // غيرها حسب المستخدم اللي عايز تضيفه
-    $teamId = 2;
+    // تغيير ترميز قاعدة البيانات نفسها
+    $pdo->exec("ALTER DATABASE `$db` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
 
-    // تنفيذ الإدخال
-    $stmt = $pdo->prepare("INSERT INTO team_members (user_id, team_id) VALUES (:user_id, :team_id)");
-    $stmt->execute([
-        ':user_id' => $userId,
-        ':team_id' => $teamId
-    ]);
+    // الحصول على كل الجداول
+    $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'تمت إضافة العضو بنجاح.',
-        'inserted_id' => $pdo->lastInsertId()
-    ]);
+    foreach ($tables as $table) {
+        echo "🔄 Converting table: $table...\n";
 
+        // تغيير ترميز الجدول نفسه
+        $pdo->exec("ALTER TABLE `$table` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+    }
+
+    echo "\n✅ تم تحويل كل الجداول والأعمدة إلى utf8mb4 بنجاح.\n";
 } catch (PDOException $e) {
-    echo json_encode([
-        'success' => false,
-        'error' => $e->getMessage()
-    ]);
+    echo "❌ Error: " . $e->getMessage();
 }
 ?>

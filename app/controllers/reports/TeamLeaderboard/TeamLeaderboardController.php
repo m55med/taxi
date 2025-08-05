@@ -14,7 +14,7 @@ class TeamLeaderboardController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->leaderboardModel = $this->model('reports/TeamLeaderboard/TeamLeaderboardModel');
+        $this->leaderboardModel = $this->model('Reports/TeamLeaderboard/TeamLeaderboardModel');
     }
 
     public function index()

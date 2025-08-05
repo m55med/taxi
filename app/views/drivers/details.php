@@ -7,7 +7,7 @@ include_once APPROOT . '/views/includes/header.php';
 ?>
 
 <script>
-    const URLROOT = '<?= BASE_PATH ?>';
+    const URLROOT = '<?= URLROOT ?>';
 </script>
 
 <main class="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -110,13 +110,17 @@ include_once APPROOT . '/views/includes/header.php';
                         <i class="fas fa-history text-gray-400 mr-3"></i>
                         Call History
                     </div>
+                    <div class="relative w-1/2">
+                        <input type="text" id="call-history-search" placeholder="Search in history..." class="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-300">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
                     <?php $activityCount = count($assignmentHistory ?? []); ?>
                     <span class="bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
                         <?= $activityCount ?> Activities
                     </span>
                 </h2>
                 <?php if (!empty($callHistory)): ?>
-                    <div class="relative">
+                    <div class="relative" id="call-history-container">
                         <?php foreach ($callHistory as $call): ?>
                             <div class="timeline-item mb-6 pl-10 relative">
                                 <div class="absolute left-0 top-0">
@@ -314,6 +318,26 @@ include_once APPROOT . '/views/includes/header.php';
         </div>
     </div>
 </main>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('call-history-search');
+        const historyContainer = document.getElementById('call-history-container');
+        const timelineItems = historyContainer.querySelectorAll('.timeline-item');
+
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            timelineItems.forEach(item => {
+                const textContent = item.textContent.toLowerCase();
+                if (textContent.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 <script src="<?= URLROOT ?>/js/drivers/details.js?v=1.0"></script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
 

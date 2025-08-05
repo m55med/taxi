@@ -5,7 +5,7 @@
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($data['page_main_title']) ?>
             </h1>
-            <?php if (isset($_SESSION['role_name']) && $_SESSION['role_name'] === 'admin'): ?>
+            <?php if (isset($_SESSION['user']['role_name']) && $_SESSION['user']['role_name'] === 'admin'): ?>
                 <div class="flex flex-col sm:flex-row gap-3">
                     <a href="<?= URLROOT ?>/notifications/create"
                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-300">
@@ -13,7 +13,7 @@
                     </a>
                     <a href="<?= URLROOT ?>/notifications"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
-                        <i class="fas fa-cogs mr-2"></i> Manage Notifications
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Management
                     </a>
                 </div>
             <?php endif; ?>

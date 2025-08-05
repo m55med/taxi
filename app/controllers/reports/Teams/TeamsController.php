@@ -20,7 +20,7 @@ class TeamsController extends Controller
             exit;
         }
 
-        $this->teamModel = $this->model('reports/Teams/TeamsReport');
+        $this->teamModel = $this->model('Reports/Teams/TeamsReport');
     }
 
     public function index()

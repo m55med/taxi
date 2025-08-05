@@ -14,7 +14,7 @@ class DriverAssignmentsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->assignmentModel = $this->model('reports/DriverAssignments/DriverAssignmentsReport');
+        $this->assignmentModel = $this->model('Reports/DriverAssignments/DriverAssignmentsReport');
     }
 
     public function index()

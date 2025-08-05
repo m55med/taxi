@@ -18,7 +18,7 @@ class ReferralRegistrationsController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->registrationModel = $this->model('reports/ReferralRegistrations/ReferralRegistrationsReport');
+        $this->registrationModel = $this->model('Reports/ReferralRegistrations/ReferralRegistrationsReport');
     }
 
     public function index()

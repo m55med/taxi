@@ -49,6 +49,7 @@ $router->post('login', 'Auth/AuthController@login');
 $router->get('register', 'Auth/AuthController@register');
 $router->post('register', 'Auth/AuthController@register');
 $router->get('logout', 'Auth/AuthController@logout');
+$router->post('logout', 'Auth/AuthController@logout');
 
 // Password Reset Routes
 $router->get('forgot-password', 'Password/PasswordResetController@showRequestForm');
@@ -218,6 +219,7 @@ $router->post('calls/releaseHold', 'Calls/CallsController@releaseHold');
 // Driver Routes
 $router->get('drivers', 'Driver/DriverController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('drivers/details/{id}', 'Driver/DriverController@details')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('drivers/details', 'Driver/DriverController@details')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('drivers/update', 'Driver/DriverController@update')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('drivers/assign', 'Driver/DriverController@assign')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('drivers/document/manage', 'Driver/DriverController@manageDocument')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);

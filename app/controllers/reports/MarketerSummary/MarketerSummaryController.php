@@ -16,7 +16,7 @@ class MarketerSummaryController extends Controller
 
     private function initialize()
     {
-        $this->summaryModel = $this->model('reports/MarketerSummary/MarketerSummaryReport');
+        $this->summaryModel = $this->model('Reports/MarketerSummary/MarketerSummaryReport');
     }
 
     public function index()

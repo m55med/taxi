@@ -36,16 +36,14 @@
                                     class="w-full pl-10 pr-4 py-2 border rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400">
                             </div>
                             <div class="flex justify-center space-x-2 mt-4">
-                                <button @click="filterStatus = 'all'"
-                                    :class="{'bg-blue-500 text-white': filterStatus === 'all', 'bg-gray-200 text-gray-700': filterStatus !== 'all'}"
-                                    class="px-4 py-1.5 rounded-full text-sm font-semibold transition">All</button>
-                                <button @click="filterStatus = 'open'"
-                                    :class="{'bg-blue-500 text-white': filterStatus === 'open', 'bg-gray-200 text-gray-700': filterStatus !== 'open'}"
-                                    class="px-4 py-1.5 rounded-full text-sm font-semibold transition">Open</button>
-                                <button @click="filterStatus = 'closed'"
-                                    :class="{'bg-blue-500 text-white': filterStatus === 'closed', 'bg-gray-200 text-gray-700': filterStatus !== 'closed'}"
-                                    class="px-4 py-1.5 rounded-full text-sm font-semibold transition">Closed</button>
+                                <button type="submit" name="status" value="all"
+                                        class="px-4 py-1.5 rounded-full text-sm font-semibold transition <?= $data['filters']['status'] === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700' ?>">All</button>
+                                <button type="submit" name="status" value="open"
+                                        class="px-4 py-1.5 rounded-full text-sm font-semibold transition <?= $data['filters']['status'] === 'open' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700' ?>">Open</button>
+                                <button type="submit" name="status" value="closed"
+                                        class="px-4 py-1.5 rounded-full text-sm font-semibold transition <?= $data['filters']['status'] === 'closed' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700' ?>">Closed</button>
                             </div>
+
                         </div>
 
                         <!-- Discussions List -->
@@ -195,8 +193,8 @@
                                                 <div class="flex-shrink-0 mr-3"
                                                     x-show="reply.user_id != currentUser.id">
                                                     <img class="w-8 h-8 rounded-full"
-                                                        :src="`https://ui-avatars.com/api/?name=${reply.user_name}&background=random`"
-                                                        :alt="reply.user_name">
+                                                        :src="`https://ui-avatars.com/api/?name=${reply.username}&background=random`"
+                                                        :alt="reply.username">
                                                 </div>
 
                                                 <div class="max-w-md p-3 rounded-lg" :class="{
@@ -206,7 +204,7 @@
                                                     <p class="text-sm" x-text="reply.message"></p>
                                                     <div class="text-xs mt-2"
                                                         :class="{'text-blue-200': reply.user_id == currentUser.id, 'text-gray-500': reply.user_id != currentUser.id}"
-                                                        x-text="`${reply.user_name} • ${formatDateTime(reply.created_at)}`">
+                                                        x-text="`${reply.username} • ${formatDateTime(reply.created_at)}`">
                                                     </div>
                                                 </div>
                                             </div>

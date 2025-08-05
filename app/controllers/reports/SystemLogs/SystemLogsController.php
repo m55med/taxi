@@ -14,7 +14,7 @@ class SystemLogsController extends Controller
     {
         parent::__construct();
         $this->authorize(['developer', 'admin']);
-        $this->logModel = $this->model('reports/SystemLogs/SystemLogsReport');
+        $this->logModel = $this->model('Reports/SystemLogs/SystemLogsReport');
     }
 
     public function index()

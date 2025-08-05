@@ -1,26 +1,6 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($page_main_title ?? 'Activity Log') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-        }
-        .hidden {
-            display: none !important;
-        }
-    </style>
-</head>
 
-<body class="bg-gray-100">
-
-    <?php include_once APPROOT . '/views/includes/nav.php'; ?>
+    <?php include_once APPROOT . '/views/includes/header.php'; ?>
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="flex justify-between items-center mb-6">

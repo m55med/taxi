@@ -14,7 +14,7 @@ class TicketDiscussionsController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->discussionModel = $this->model('reports/TicketDiscussions/TicketDiscussionsReport');
+        $this->discussionModel = $this->model('Reports/TicketDiscussions/TicketDiscussionsReport');
     }
 
     public function index()

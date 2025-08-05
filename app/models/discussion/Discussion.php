@@ -492,7 +492,7 @@ class Discussion extends Model
 
         $placeholders = implode(',', array_fill(0, count($discussionIds), '?'));
         
-        $sql = "SELECT dr.*, u.username as user_name
+        $sql = "SELECT dr.*, u.username 
                 FROM discussion_replies dr
                 JOIN users u ON dr.user_id = u.id
                 WHERE dr.discussion_id IN ($placeholders)

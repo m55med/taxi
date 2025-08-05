@@ -1,260 +1,233 @@
-<!-- 
-  This navigation bar has been simplified to remove all PHP permission logic.
-  It now displays all available links directly.
--->
-<?php if (isset($_SESSION['user_id'])): ?>
-<nav class="bg-white shadow" x-data="{ isMobileMenuOpen: false }">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/dashboard" class="text-2xl font-bold text-indigo-600 hover:text-indigo-700">Taxi</a>
-                </div>
-                <!-- Desktop menu links -->
-                <div class="hidden lg:ml-6 lg:flex lg:space-x-4 flex-wrap">
-                    
-                    <!-- Top Level Links -->
+<?php
+function getNavigationItems($role) {
+    $items = [
+        [
+            'title' => 'Dashboard',
+            'href' => '/dashboard',
+            'icon' => 'fas fa-home',
+        ],
+        [
+            'title' => 'Tickets',
+            'icon' => 'fas fa-ticket-alt',
+            'children' => [
+                ['title' => 'All Tickets', 'href' => '/listings/tickets', 'icon' => 'fas fa-tags'],
+                ['title' => 'Create Ticket', 'href' => '/create_ticket', 'icon' => 'fas fa-plus-circle'],
+                ['title' => 'Search Tickets', 'href' => '/tickets/view', 'icon' => 'fas fa-search'],
+            ]
+        ],
+        [
+            'title' => 'Calls',
+            'icon' => 'fas fa-headset',
+            'children' => [
+                ['title' => 'Call Center', 'href' => '/calls', 'icon' => 'fas fa-headset'],
+                ['title' => 'All Calls', 'href' => '/listings/calls', 'icon' => 'fas fa-list-ol'],
+            ]
+        ],
+        [
+            'title' => 'Drivers',
+            'icon' => 'fas fa-car',
+            'children' => [
+                ['title' => 'All Drivers', 'href' => '/listings/drivers', 'icon' => 'fas fa-users-cog'],
+                ['title' => 'Search Drivers', 'href' => '/drivers/details', 'icon' => 'fas fa-search'],
+                ['title' => 'Upload Drivers', 'href' => '/upload', 'icon' => 'fas fa-upload', 'permissions' => ['admin', 'developer']],
+            ]
+        ],
+        [
+            'title' => 'Quality & Discussions',
+            'icon' => 'fas fa-star',
+            'children' => [
+                ['title' => 'Quality Reviews', 'href' => '/quality/reviews', 'icon' => 'fas fa-star-half-alt'],
+                ['title' => 'Discussions', 'href' => '/discussions', 'icon' => 'fas fa-comments'],
+            ]
+        ],
+        [
+            'title' => "Referral & Marketing",
+            'icon' => 'fas fa-bullseye',
+            'permissions' => ['admin', 'developer', 'marketer'],
+            'children' => [
+                ['title' => "Referral Dashboard", 'href' => '/referral/dashboard', 'icon' => 'fas fa-chart-line'],
+                ['title' => "Marketer Registration", 'href' => '/referral/register', 'icon' => 'fas fa-user-plus'],
+            ]
+        ],
+        [
+            'title' => 'Reports',
+            'icon' => 'fas fa-chart-bar',
+            'permissions' => ['admin', 'developer', 'quality_manager', 'Team_leader'],
+            'children' => [
+                 ['title' => 'My Activity', 'href' => '/reports/myactivity', 'icon' => 'fas fa-running'],
+                 ['title' => 'Analytics', 'href' => '/reports/analytics', 'icon' => 'fas fa-chart-pie'],
+                 ['title' => 'System Logs', 'href' => '/reports/system-logs', 'icon' => 'fas fa-database'],
+                 ['title' => 'Team Leaderboard', 'href' => '/reports/team-leaderboard', 'icon' => 'fas fa-trophy'],
+                 ['title' => 'Employee Score', 'href' => '/reports/employee-activity-score', 'icon' => 'fas fa-award'],
+                 ['title' => 'Users Report', 'href' => '/reports/users', 'icon' => 'fas fa-users'],
+                 ['title' => 'Drivers Report', 'href' => '/reports/drivers', 'icon' => 'fas fa-id-card'],
+                 ['title' => 'Trips Report', 'href' => '/reports/trips', 'icon' => 'fas fa-route'],
+                 ['title' => 'Tickets Report', 'href' => '/reports/tickets', 'icon' => 'fas fa-file-invoice'],
+                 ['title' => 'Custom Reports', 'href' => '/reports/custom', 'icon' => 'fas fa-wrench'],
+            ]
+        ],
+        [
+            'title' => 'Activity Logs',
+            'icon' => 'fas fa-clipboard-list',
+            'children' => [
+                [
+                    'title' => 'All Logs',
+                    'href' => '/logs',
+                    'icon' => 'fas fa-list'
+                ],
+                [
+                    'title' => 'Ticket Logs',
+                    'href' => '/logs?search=&activity_type=ticket',
+                    'icon' => 'fas fa-ticket-alt'
+                ],
+                [
+                    'title' => 'Outgoing Calls',
+                    'href' => '/logs?search=&activity_type=outgoing_call',
+                    'icon' => 'fas fa-phone-volume'
+                ],
+                [
+                    'title' => 'Incoming Calls',
+                    'href' => '/logs?search=&activity_type=incoming_call',
+                    'icon' => 'fas fa-phone-square'
+                ],
+            ]
+        ],
+        
+        
+         [
+            'title' => 'Help',
+            'icon' => 'fas fa-question-circle',
+            'children' => [
+                ['title' => "Documentation", 'href' => '/documentation', 'icon' => 'fas fa-file-alt'],
+                ['title' => "Knowledge Base", 'href' => '/knowledge_base', 'icon' => 'fas fa-lightbulb'],
+        ]
+    ],
+  ];
 
-                    <!-- Listings Dropdown -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-list-ul mr-2"></i><span>Listings</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
-                            <a href="/listings/tickets" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-ticket-alt mr-2"></i>All Tickets</a>
-                            <a href="/listings/drivers" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-user-tie mr-2"></i>All Drivers</a>
-                            <a href="/listings/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-phone-alt mr-2"></i>All Calls</a>
-                        </div>
-                    </div>
-                    
-                    <!-- Collaboration Dropdown -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-users-cog mr-2"></i><span>Collaboration</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
-                            <a href="/discussions" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-comments mr-2"></i>Discussions</a>
-                            <a href="/logs" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-book mr-2"></i>System Logs</a>
-                        </div>
-                    </div>
+    return array_filter($items, function ($item) use ($role) {
+        if (empty($item['permissions'])) return true;
+        return in_array($role, $item['permissions']);
+    });
+}
 
-                    <!-- Activity Dropdown -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-tasks mr-2"></i><span>Activity</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-xl z-20">
-                            <a href="/tickets/create" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus-circle mr-2"></i>Create Ticket</a>
-                            <a href="/calls" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-headset mr-2"></i>Call Center</a>
-                            <a href="/referral/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-users mr-2"></i>Referral Dashboard</a>
-                        </div>
-                    </div>
+function getAdminNavItems($role) {
+    $items = [
+        [
+            'title' => 'Admin Settings',
+            'icon' => 'fas fa-cogs',
+            'permissions' => ['admin', 'developer', 'quality_manager', 'Team_leader'],
+            'children' => [
+                ['title' => 'User Management', 'href' => '/admin/users', 'icon' => 'fas fa-users-cog'],
+                ['title' => 'Teams Management', 'href' => '/admin/teams', 'icon' => 'fas fa-sitemap'],
+                [
+                    'title' => 'Ticket Settings',
+                    'icon' => 'fas fa-cogs',
+                    'children' => [
+                        ['title' => 'Categories', 'href' => '/admin/ticket_categories', 'icon' => 'fas fa-list-alt'],
+                        ['title' => 'Subcategories', 'href' => '/admin/ticket_subcategories', 'icon' => 'fas fa-indent'],
+                        ['title' => 'Codes', 'href' => '/admin/ticket_codes', 'icon' => 'fas fa-code'],
+                    ]
+                ],
+                ['title' => 'Bonus Settings', 'href' => '/admin/bonus/settings', 'icon' => 'fas fa-gift'],
+                ['title' => 'Delegation Types', 'href' => '/delegation-types', 'icon' => 'fas fa-user-tie'],
+                ['title' => 'Employee Evaluations', 'href' => '/employee-evaluations', 'icon' => 'fas fa-user-check'],
+                ['title' => 'Coupons', 'href' => '/admin/coupons', 'icon' => 'fas fa-percent'],
+                ['title' => 'Platforms', 'href' => '/admin/platforms', 'icon' => 'fas fa-layer-group'],
+                ['title' => 'Permissions', 'href' => '/admin/permissions', 'icon' => 'fas fa-shield-alt', 'permissions' => ['admin', 'developer']],
+                ['title' => 'Telegram Settings', 'href' => '/admin/telegram_settings', 'icon' => 'fab fa-telegram-plane', 'permissions' => ['admin', 'developer']],
+                ['title' => 'System Logs', 'href' => '/logs', 'icon' => 'fas fa-clipboard-list', 'permissions' => ['admin', 'developer']],
+            ]
+        ]
+        
+    ];
+    return array_filter($items, function ($item) use ($role) {
+        if (empty($item['permissions'])) return true;
+        return in_array($role, $item['permissions']);
+    });
+}
 
-                    <!-- Reports Mega Dropdown -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-chart-bar mr-2"></i><span>Reports</span><i class="fas fa-chevron-down ml-2 text-xs transition-transform duration-300" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full left-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden">
-                            <div x-data="{ openSubmenu: '' }">
-                                <!-- Report groups -->
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'general' ? '' : 'general')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>General</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'general'}"></i></button><div x-show="openSubmenu === 'general'" x-collapse x-cloak><a href="/reports/analytics" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Analytics</a><a href="/reports/system-logs" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">System Logs</a><a href="/reports/notifications" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Notifications</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'users' ? '' : 'users')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>User & Team</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'users'}"></i></button><div x-show="openSubmenu === 'users'" x-collapse x-cloak><a href="/reports/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Users</a><a href="/reports/team-leaderboard" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Team Leaderboard</a><a href="/reports/employee-activity-score" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Employee Score</a><a href="/reports/myactivity" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">My Activity</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'drivers' ? '' : 'drivers')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Drivers</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'drivers'}"></i></button><div x-show="openSubmenu === 'drivers'" x-collapse x-cloak><a href="/reports/drivers" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Drivers</a><a href="/reports/driver-assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Driver Assignments</a><a href="/reports/driver-calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Driver Calls</a><a href="/reports/driver-documents-compliance" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Docs Compliance</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'trips' ? '' : 'trips')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Trips</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'trips'}"></i></button><div x-show="openSubmenu === 'trips'" x-collapse x-cloak><a href="/reports/trips" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Detailed Trips</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'tickets' ? '' : 'tickets')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Tickets</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'tickets'}"></i></button><div x-show="openSubmenu === 'tickets'" x-collapse x-cloak><a href="/reports/tickets-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Summary</a><a href="/reports/tickets" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Details</a><a href="/reports/ticket-reviews" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Reviews</a><a href="/reports/ticket-discussions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Discussions</a><a href="/reports/ticket-coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Coupons</a><a href="/reports/ticket-rework" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Rework</a><a href="/reports/review-quality" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Review Quality</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'marketing' ? '' : 'marketing')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Marketing</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'marketing'}"></i></button><div x-show="openSubmenu === 'marketing'" x-collapse x-cloak><a href="/reports/marketer-summary" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Marketer Summary</a><a href="/reports/referral-visits" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Referral Visits</a></div></div>
-                                <div><button @click="openSubmenu = (openSubmenu === 'other' ? '' : 'other')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Other</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'other'}"></i></button><div x-show="openSubmenu === 'other'" x-collapse x-cloak><a href="/reports/calls" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Calls</a><a href="/reports/assignments" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Assignments</a><a href="/reports/documents" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Documents</a><a href="/reports/coupons" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Coupons</a><a href="/reports/custom" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Custom</a></div></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Settings Mega Dropdown -->
-                    <div class="relative flex items-center" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-indigo-600 transition-colors duration-200">
-                            <i class="fas fa-cogs mr-2"></i><span>Settings</span><i class="fas fa-chevron-down ml-2 text-xs" :class="{'transform rotate-180': open}"></i>
-                        </button>
-                        <div @click.away="open = false" x-show="open" x-cloak class="absolute top-full right-0 mt-2 w-72 bg-white rounded-md shadow-xl z-20 overflow-hidden">
-                             <div x-data="{ openSubmenu: '' }">
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'system' ? '' : 'system')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>System</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'system'}"></i></button><div x-show="openSubmenu === 'system'" x-collapse x-cloak><a href="/admin/users" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Users</a><a href="/admin/roles" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Roles</a><a href="/admin/permissions" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Permissions</a><a href="/admin/telegram_settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Telegram</a><a href="/admin/platforms" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Platforms</a><a href="/admin/car_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Car Types</a><a href="/admin/countries" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Countries</a><a href="/admin/document_types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Document Types</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'teams' ? '' : 'teams')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Teams</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'teams'}"></i></button><div x-show="openSubmenu === 'teams'" x-collapse x-cloak><a href="/admin/teams" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Manage Teams</a><a href="/admin/team_members" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Team Members</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'rewards' ? '' : 'rewards')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Rewards & Evaluations</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'rewards'}"></i></button><div x-show="openSubmenu === 'rewards'" x-collapse x-cloak><a href="/admin/points" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Points System</a><a href="/admin/bonus/settings" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Bonus Settings</a><a href="/delegation-types" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Delegation Types</a><a href="/user-delegations" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">User Delegations</a><a href="/employee-evaluations" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Employee Evaluations</a></div></div>
-                                <div class="border-b"><button @click="openSubmenu = (openSubmenu === 'uploads' ? '' : 'uploads')" class="w-full text-left flex justify-between items-center px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50"><span>Uploads</span><i class="fas fa-chevron-down text-xs" :class="{'rotate-180': openSubmenu === 'uploads'}"></i></button><div x-show="openSubmenu === 'uploads'" x-collapse x-cloak><a href="/upload" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Upload Drivers</a><a href="/trips/upload" class="block px-6 py-2 text-sm text-gray-600 hover:bg-gray-100">Upload Trips</a></div></div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            
-            <!-- User info for large screens -->
-            <div class="hidden sm:flex sm:items-center sm:ml-6">
-                <!-- Notification Bell (Desktop) -->
-                <div class="relative flex items-center mr-4" x-data="navNotifications()">
-                    <button @click="open = !open" class="text-gray-500 hover:text-gray-700 focus:outline-none relative">
-                        <i class="fas fa-bell"></i>
-                        <template x-if="unreadCount > 0">
-                            <span class="absolute -top-2 -right-2 flex h-5 w-5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-5 w-5 bg-red-500 justify-center items-center text-white text-xs" x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
-                            </span>
-                        </template>
-                    </button>
-                    <div @click.away="open = false" x-show="open" 
-                         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
-                         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-                         class="absolute top-full right-0 mt-2 w-80 bg-white rounded-md shadow-xl z-20" style="display: none;">
-                        <div class="p-2 flex justify-between items-center border-b">
-                            <span class="font-bold text-gray-700">Notifications</span>
-                            <a href="/notifications/history" class="text-sm text-blue-600 hover:underline">View All</a>
-                        </div>
-                        <div class="max-h-96 overflow-y-auto">
-                            <template x-if="notifications.length === 0">
-                                <p class="text-gray-500 text-sm text-center p-4">You have no new notifications.</p>
-                            </template>
-                            <template x-for="notification in notifications" :key="notification.id">
-                                <a :href="`/notifications/history#notification-${notification.id}`" class="block px-4 py-3 hover:bg-gray-100 border-b">
-                                    <div class="flex items-start">
-                                        <div class="w-8 text-center">
-                                            <i class="fas fa-info-circle" :class="!notification.is_read ? 'text-blue-500' : 'text-gray-400'"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <p class="font-bold text-gray-800 text-sm" x-text="notification.title"></p>
-                                            <p class="text-xs text-gray-500 mt-1" x-text="new Date(notification.created_at).toLocaleString()"></p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Profile dropdown -->
-                <div class="ml-3 relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-sm border-2 border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-label="User menu" aria-haspopup="true">
-                        <?php
-                            $name = $_SESSION['username'] ?? 'U';
-                            $initials = '';
-                            $parts = explode(' ', $name);
-                            foreach ($parts as $part) {
-                                if (!empty($part)) {
-                                    $initials .= strtoupper($part[0]);
-                                }
-                                if (strlen($initials) >= 2) break;
-                            }
-                        ?>
-                        <span><?= htmlspecialchars($initials) ?></span>
-                    </button>
-                    <div x-show="open" @click.away="open = false" x-cloak
-                         x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0 transform scale-95"
-                         x-transition:enter-end="opacity-100 transform scale-100"
-                         x-transition:leave="transition ease-in duration-150"
-                         x-transition:leave-start="opacity-100 transform scale-100"
-                         x-transition:leave-end="opacity-0 transform scale-95"
-                         class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
-                        <div class="px-4 py-3 border-b">
-                            <p class="text-sm font-semibold text-gray-900">Signed in as</p>
-                            <p class="text-sm text-gray-600 truncate" title="<?= htmlspecialchars($_SESSION['username'] ?? '') ?>"><?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></p>
-                        </div>
-                        <div class="py-1">
-                            <a href="/profile" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                <i class="fas fa-user-circle fa-fw mr-2 text-gray-500"></i>
-                                Your Profile
-                            </a>
-                            <form action="/auth/logout" method="POST" class="w-full">
-                                <button type="submit" class="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-sign-out-alt fa-fw mr-2 text-gray-500"></i>
-                                    Sign out
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mobile menu button -->
-            <div class="-mr-2 flex items-center lg:hidden">
-                <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
-                    <svg :class="{'hidden': isMobileMenuOpen, 'block': !isMobileMenuOpen }" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg :class="{'hidden': !isMobileMenuOpen, 'block': isMobileMenuOpen }" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile menu -->
-    <div :class="{'block': isMobileMenuOpen, 'hidden': !isMobileMenuOpen}" class="lg:hidden" x-cloak>
-        <div class="pt-2 pb-3 space-y-1">
-            <!-- Mobile Dropdowns -->
-            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Listings</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="/listings/tickets" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Tickets</a><a href="/listings/drivers" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Drivers</a><a href="/listings/calls" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">All Calls</a></div></div>
-            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Collaboration</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="/discussions" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Discussions</a><a href="/logs" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">System Logs</a></div></div>
-            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Activity</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="/tickets/create" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Create Ticket</a><a href="/calls" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Call Center</a><a href="/referral/dashboard" class="block py-2 text-sm text-gray-600 hover:bg-gray-50">Referral Dashboard</a></div></div>
-            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Reports</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="/reports/main" class="block py-2 text-sm">Main Reports</a><a href="/reports/referral-visits" class="block py-2 text-sm">Referral Visits</a></div></div>
-            <div x-data="{ open: false }"><button @click="open = !open" class="w-full flex justify-between items-center pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50"><span>Settings</span><i class="fas fa-chevron-down text-sm" :class="{'transform rotate-180': open}"></i></button><div x-show="open" x-collapse x-cloak class="pl-4 space-y-1"><a href="/admin/users" class="block py-2 text-sm">Users</a><a href="/admin/roles" class="block py-2 text-sm">Roles</a><a href="/admin/teams" class="block py-2 text-sm">Teams</a></div></div>
-        </div>
-        <div class="pt-4 pb-3 border-t border-gray-200">
-            <div class="flex items-center px-4">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-gray-200 flex items-center justify-center rounded-full">
-                        <i class="fas fa-user text-gray-600 text-lg"></i>
-                    </div>
-                </div>
-                <div class="ml-3">
-                    <div class="text-base font-medium text-gray-800"><?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></div>
-                    <div class="text-sm font-medium text-gray-500"><?= htmlspecialchars($_SESSION['email'] ?? 'user@example.com') ?></div>
-                </div>
-            </div>
-            <div class="mt-3 space-y-1">
-                <a href="/profile" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-50">Your Profile</a>
-                <form action="/auth/logout" method="POST"><button type="submit" class="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-50">Sign out</button></form>
-            </div>
-        </div>
-    </div>
-</nav>
-<script>
-    function navNotifications() {
-        return {
-            open: false,
-            unreadCount: 0,
-            notifications: [],
-            init() {
-                // Assign to window so modal can call it after marking as read
-                window.updateNavNotifications = this.fetchNotifications.bind(this);
-                this.fetchNotifications();
-                // Refresh notifications every 2 minutes
-                setInterval(() => this.fetchNotifications(), 120000);
-            },
-            fetchNotifications() {
-                fetch('/notifications/getNavNotifications')
-                    .then(res => res.json())
-                    .then(data => {
-                        if(data) {
-                            this.notifications = data.notifications;
-                            this.unreadCount = data.unread_count;
-                        }
-                    })
-                    .catch(err => console.error('Error fetching nav notifications:', err));
+function renderNavItem($item, $currentPath) {
+        $hasChildren = !empty($item['children']);
+    $isActive = false;
+    if ($hasChildren) {
+        foreach ($item['children'] as $child) {
+            if (isset($child['href']) && $child['href'] === $currentPath) {
+                $isActive = true;
+                break;
             }
         }
+            
+    } else {
+        $isActive = ($item['href'] === $currentPath);
     }
-    </script>
-<script src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-<?php else: ?>
-<nav class="bg-white shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="text-xl font-bold text-indigo-600">Taxi</a>
-                </div>
-            </div>
-            <div class="hidden sm:flex sm:items-center sm:ml-6">
-                <a href="/login" class="text-sm font-medium text-gray-700 hover:text-indigo-600">Login</a>
-                <a href="/register" class="ml-4 text-sm font-medium text-gray-700 hover:text-indigo-600">Register</a>
+
+        if ($hasChildren) {
+        echo "<div x-data='{ open: " . ($isActive ? 'true' : 'false') . " }'>";
+        echo "<button @click='open = !open' class='w-full flex justify-between items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-200'>";
+        echo "<div class='flex items-center gap-3'><i class='{$item['icon']} w-5 text-center'></i><span x-show='!isSidebarCollapsed' class='text-sm font-medium'>{$item['title']}</span></div>";
+        echo "<i class='fas fa-chevron-down w-4 h-4 transition-transform' x-show='!isSidebarCollapsed' :class='{ \"rotate-180\": open }'></i>";
+        echo "</button>";
+        echo "<div x-show='open && !isSidebarCollapsed' x-collapse class='pl-4 mt-1 space-y-1'>";
+        foreach ($item['children'] as $child) {
+            renderNavItem($child, $currentPath);
+        }
+        echo "</div></div>";
+    } else {
+        $href = $item['href'] ?? '#';
+        $activeClass = $isActive ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100';
+        echo "<a href='" . URLROOT . "{$href}' class='w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 {$activeClass}'>";
+                echo "<i class='{$item['icon']} w-5 text-center'></i>";
+        echo "<span x-show='!isSidebarCollapsed' class='text-sm font-medium'>{$item['title']}</span>";
+        echo "</a>";
+    }
+}
+
+$userRole = $_SESSION['user']['role_name'] ?? 'agent';
+$navigationItems = getNavigationItems($userRole);
+$adminNavItems = getAdminNavItems($userRole);
+$currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+?>
+
+<aside class="relative bg-white border-r transition-all duration-300 z-40 flex flex-col" :class="isSidebarCollapsed ? 'w-20' : 'w-64'">
+    <div class="flex items-center p-4 border-b h-16" :class="isSidebarCollapsed ? 'justify-center' : 'justify-between'">
+        <div x-show="!isSidebarCollapsed" class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-taxi text-white"></i>
+        </div>
+            <div>
+                <h2 class="font-bold text-lg text-gray-800">Taxi CS</h2>
+                <p class="text-xs text-gray-500">Customer Service</p>
             </div>
         </div>
+        <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="p-2 rounded-md hover:bg-gray-100">
+            <i class="fas" :class="isSidebarCollapsed ? 'fa-align-right' : 'fa-align-left'"></i>
+        </button>
     </div>
+
+    <div class="flex-1 overflow-y-auto px-2 py-4">
+        <nav class="space-y-1">
+            <?php 
+            foreach ($navigationItems as $item) {
+                renderNavItem($item, $currentPath);
+            } 
+            if (!empty($adminNavItems)) {
+                echo '<div class="my-4 border-t"></div>';
+                foreach ($adminNavItems as $item) {
+                    renderNavItem($item, $currentPath);
+                } 
+            }
+            ?>
 </nav>
-<?php endif; ?>
+    </div>
+
+    <div class="border-t p-2">
+         <a href="<?= URLROOT ?>/profile" class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-gray-600 hover:bg-gray-100">
+            <i class="fas fa-user-cog w-5 text-center"></i>
+            <span x-show="!isSidebarCollapsed" class="text-sm font-medium">My Profile</span>
+        </a>
+         <a href="<?= URLROOT ?>/logout" class="w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-red-600 hover:bg-red-100">
+            <i class="fas fa-sign-out-alt w-5 text-center"></i>
+            <span x-show="!isSidebarCollapsed" class="text-sm font-medium">Logout</span>
+        </a>
+    </div>
+</aside>

@@ -16,7 +16,7 @@ class DashboardController extends Controller
     {
         Auth::requireLogin();
         $this->userModel = $this->model('User/User');
-        $this->dashboardModel = $this->model('dashboard/Dashboard');
+        $this->dashboardModel = $this->model('Dashboard/Dashboard');
         parent::__construct();
     }
 

@@ -11,7 +11,7 @@ class ReviewQualityController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->qualityModel = $this->model('reports/ReviewQuality/ReviewQualityReport');
+        $this->qualityModel = $this->model('Reports/ReviewQuality/ReviewQualityReport');
     }
 
     public function index()

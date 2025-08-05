@@ -16,7 +16,7 @@ class TicketReworkController extends Controller
             header('Location: ' . BASE_PATH . '/dashboard');
             exit;
         }
-        $this->reworkModel = $this->model('reports/TicketRework/TicketReworkReport');
+        $this->reworkModel = $this->model('Reports/TicketRework/TicketReworkReport');
     }
 
     public function index()

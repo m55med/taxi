@@ -14,7 +14,7 @@ class DriverDocumentsComplianceController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager']);
-        $this->documentModel = $this->model('reports/DriverDocumentsCompliance/DriverDocumentsComplianceReport');
+        $this->documentModel = $this->model('Reports/DriverDocumentsCompliance/DriverDocumentsComplianceReport');
     }
 
     public function index()

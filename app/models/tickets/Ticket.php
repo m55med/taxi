@@ -363,7 +363,6 @@ class Ticket extends Model
                     t.ticket_number,
                     (SELECT phone FROM ticket_details WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) as phone
                 FROM tickets as t
-                -- We need to check both the ticket number and the latest phone number
                 WHERE t.ticket_number LIKE :searchTerm1 
                    OR t.id IN (SELECT ticket_id FROM ticket_details WHERE phone LIKE :searchTerm2)
                 ORDER BY t.created_at DESC
@@ -374,7 +373,20 @@ class Ticket extends Model
             ':searchTerm1' => $searchTerm,
             ':searchTerm2' => $searchTerm
         ]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Process results to create a user-friendly label
+        return array_map(function($ticket) {
+            $label = $ticket['ticket_number'];
+            if (!empty($ticket['phone'])) {
+                $label .= ' - ' . htmlspecialchars($ticket['phone']);
+            }
+            return [
+                'id' => $ticket['id'],
+                'label' => $label
+            ];
+        }, $results);
     }
 
     public function getTicketIdFromDetailId($detailId)
