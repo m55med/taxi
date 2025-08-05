@@ -40,25 +40,17 @@ class Controller
      */
     public function model($model)
     {
-        // نبدل أي / بـ \ علشان نمشي مع PSR-4 autoloading و PHP namespaces
-        $normalizedModel = str_replace('/', DIRECTORY_SEPARATOR, $model);
-        $modelPath = __DIR__ . '/../models/' . $normalizedModel . '.php';
-
-        if (file_exists($modelPath)) {
-            require_once $modelPath;
-
-            // نعدّل اسم الكلاس عشان يكون كامل بـ namespace مظبوط
-            $model = str_replace('/', '\\', $model); // مهم جدًا
-            $modelClass = 'App\\Models\\' . $model;
-
-            if (class_exists($modelClass)) {
-                return new $modelClass();
-            }
+        $model = str_replace('/', '\\', $model); // لتحويل إلى namespace
+        $modelClass = 'App\\Models\\' . $model;
+    
+        if (class_exists($modelClass)) {
+            return new $modelClass();
         }
-
-        error_log("❌ Model not found or class does not exist: $model");
+    
+        error_log("❌ Model class not found: $modelClass");
         return null;
     }
+    
 
 
 
