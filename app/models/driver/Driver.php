@@ -662,36 +662,52 @@ class Driver
         }
     }
 
-    public function getDriverStats()
+    public function getDriverStats($filters = [])
     {
-        // Initialize stats with all possible statuses to ensure they all appear
         $stats = [
             'total' => 0, 'pending' => 0, 'waiting_chat' => 0, 'no_answer' => 0, 
             'rescheduled' => 0, 'completed' => 0, 'blocked' => 0, 
             'reconsider' => 0, 'needs_documents' => 0
         ];
+        
+        $params = [];
+        $whereClauses = [];
+
+        if (!empty($filters['date_from'])) {
+            $whereClauses[] = "DATE(created_at) >= :date_from";
+            $params[':date_from'] = $filters['date_from'];
+        }
+        if (!empty($filters['date_to'])) {
+            $whereClauses[] = "DATE(created_at) <= :date_to";
+            $params[':date_to'] = $filters['date_to'];
+        }
+
+        $whereSql = "";
+        if (!empty($whereClauses)) {
+            $whereSql = " WHERE " . implode(' AND ', $whereClauses);
+        }
 
         try {
-            // Get counts for each status
-            $sql = "SELECT main_system_status, COUNT(id) as count FROM drivers GROUP BY main_system_status";
-            $stmt = $this->db->query($sql);
+            $sql = "SELECT main_system_status, COUNT(id) as count FROM drivers" . $whereSql . " GROUP BY main_system_status";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $statusCounts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-            // Populate the stats array with actual counts
             foreach ($statusCounts as $status => $count) {
                 if (array_key_exists($status, $stats)) {
                     $stats[$status] = (int)$count;
                 }
             }
 
-            // Get total count separately
-            $totalStmt = $this->db->query("SELECT COUNT(id) FROM drivers");
+            $totalSql = "SELECT COUNT(id) FROM drivers" . $whereSql;
+            $totalStmt = $this->db->prepare($totalSql);
+            $totalStmt->execute($params);
             $stats['total'] = (int)$totalStmt->fetchColumn();
 
             return $stats;
         } catch (PDOException $e) {
             error_log('DriverModel::getDriverStats Error: ' . $e->getMessage());
-            return $stats; // Return initialized stats on error
+            return $stats;
         }
     }
 

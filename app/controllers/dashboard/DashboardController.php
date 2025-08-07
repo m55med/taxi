@@ -24,35 +24,34 @@ class DashboardController extends Controller
     {
         $userId = Auth::getUserId();
         if (!$userId) {
-            // This should not happen if requireLogin() is effective, but as a safeguard:
             redirect('auth/logout');
             return;
         }
 
-        // Fetch the full user object, which includes the role name
         $user = $this->userModel->getUserById($userId);
-
         if (!$user) {
-            // This case might happen if user was deleted but session persists
             redirect('auth/logout');
             return;
         }
 
-        // The model expects an array with user details
+        // Get date range from GET parameters, with defaults
+        $dateFrom = $_GET['date_from'] ?? null;
+        $dateTo = $_GET['date_to'] ?? null;
+
         $userDataForModel = [
             'id' => $user->id,
             'role_name' => $user->role_name
         ];
         
-
-
         // Fetch all dashboard data using the centralized model method
-        $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel);
+        $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel, $dateFrom, $dateTo);
 
         // This is a master data array passed to the view
         $data = [
             'title' => 'Dashboard',
             'dashboardData' => $dashboardData,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
         ];
 
         $this->view('dashboard/index', $data);

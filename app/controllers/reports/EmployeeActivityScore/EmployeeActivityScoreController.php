@@ -18,9 +18,19 @@ class EmployeeActivityScoreController extends Controller
     {
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
-        $this->scoreModel = $this->model('Reports/EmployeeActivityScore/EmployeeActivityScoreModel');
+
+        // نحمل اللي مفيش فيه مشاكل
         $this->teamModel = $this->model('Admin/Team');
         $this->roleModel = $this->model('Role/Role');
+    }
+
+    // Lazy load للـ scoreModel
+    private function getScoreModel()
+    {
+        if ($this->scoreModel === null) {
+            $this->scoreModel = $this->model('Reports/EmployeeActivityScore/EmployeeActivityScoreModel');
+        }
+        return $this->scoreModel;
     }
 
     public function index()
@@ -30,17 +40,16 @@ class EmployeeActivityScoreController extends Controller
         if (isset($_GET['export'])) {
             $this->export($filters, $_GET['export']);
         }
-        
+
         // Pagination
         $records_per_page = 25;
         $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $offset = ($current_page - 1) * $records_per_page;
-        
-        $total_records = $this->scoreModel->getScoresCount($filters);
-        $total_pages = ceil($total_records / $records_per_page);
 
-        $scores = $this->scoreModel->getEmployeeScores($filters, $records_per_page, $offset);
-        
+        // استخدمنا getScoreModel بدل الوصول المباشر
+        $total_pages = ceil($this->getScoreModel()->getScoresCount($filters) / $records_per_page);
+        $scores = $this->getScoreModel()->getEmployeeScores($filters, $records_per_page, $offset);
+
         $data = [
             'title' => 'Employee Activity Score',
             'scores' => $scores,
@@ -53,7 +62,7 @@ class EmployeeActivityScoreController extends Controller
 
         $this->view('reports/employee-activity-score/index', $data);
     }
-    
+
     private function get_filters()
     {
         $filters = [
@@ -92,7 +101,7 @@ class EmployeeActivityScoreController extends Controller
 
     private function export($filters, $format)
     {
-        $allScores = $this->scoreModel->getEmployeeScores($filters, 10000, 0);
+        $allScores = $this->getScoreModel()->getEmployeeScores($filters, 10000, 0);
 
         $rows = array_map(function($user, $index) {
             return [
@@ -109,11 +118,11 @@ class EmployeeActivityScoreController extends Controller
             'headers' => ['Rank', 'Employee', 'Team', 'Total Points', 'Total Tickets', 'Total Calls'],
             'rows' => $rows
         ];
-        
+
         if ($format === 'excel') {
             ExportHelper::exportToExcel($export_data, 'employee_activity_scores');
         } elseif ($format === 'json') {
             ExportHelper::exportToJson($allScores, 'employee_activity_scores');
         }
     }
-} 
+}

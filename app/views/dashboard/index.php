@@ -3,6 +3,8 @@
 <?php
 // Make data easier to access and set defaults
 $d = $data['dashboardData'];
+
+
 $role = $d['user_role'] ?? 'agent';
 $isPrivileged = in_array($role, ['admin', 'developer', 'quality_manager', 'Team_leader']);
 
@@ -48,7 +50,30 @@ function getGreeting() {
             </div>
         </div>
 
+        <!-- Date Filter -->
+        <div class="bg-white p-4 border-0 shadow-lg rounded-xl">
+            <form action="<?= URLROOT ?>/dashboard" method="GET" class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-1 w-full">
+                    <label for="date_from" class="block text-sm font-medium text-gray-700">From</label>
+                    <input type="date" id="date_from" name="date_from" value="<?= htmlspecialchars($_GET['date_from'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div class="flex-1 w-full">
+                    <label for="date_to" class="block text-sm font-medium text-gray-700">To</label>
+                    <input type="date" id="date_to" name="date_to" value="<?= htmlspecialchars($_GET['date_to'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div class="pt-5">
+                    <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-filter mr-2"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <!-- Stats Grid -->
+        <div class="text-sm text-gray-500 mb-4">
+            Showing data from <span class="font-semibold"><?= htmlspecialchars(date('M j, Y', strtotime($d['date_from']))) ?></span> to <span class="font-semibold"><?= htmlspecialchars(date('M j, Y', strtotime($d['date_to']))) ?></span>
+        </div>
+        
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Tickets Stat Card -->
             <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
@@ -96,7 +121,7 @@ function getGreeting() {
             </div>
 
             <!-- Users Stat Card -->
-            <?php if ($isPrivileged && isset($d['user_stats'])): ?>
+            <?php if (($d['user_role'] ?? '') === 'admin' && isset($d['user_stats'])): ?>
             <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
                 <div class="flex items-center justify-between">
                     <div class="space-y-1">

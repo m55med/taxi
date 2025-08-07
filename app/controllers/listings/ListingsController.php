@@ -111,11 +111,21 @@ class ListingsController extends Controller
     {
         $this->authorize('listings/calls');
 
-        // Fetch filtered calls
-        $callsData = $this->listingModel->getFilteredCalls($_GET);
+        $filters = $_GET;
+
+        // Check for export request
+        if (isset($filters['export'])) {
+            $callsData = $this->listingModel->getFilteredCalls($filters, false); // Fetch all matching data for export
+            $this->exportCalls($callsData['data'], $filters['export']);
+            return; // Stop further execution
+        }
+        
+        // Fetch paginated calls for display
+        $callsData = $this->listingModel->getFilteredCalls($filters);
 
         $data = [
             'page_main_title' => 'All Calls',
+            'stats' => $this->listingModel->getCallStats($filters),
             'calls' => $callsData['data'] ?? [],
             'pagination' => [
                 'total' => $callsData['total'] ?? 0,
@@ -125,10 +135,47 @@ class ListingsController extends Controller
             ],
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
             'users' => $this->userModel->getAllUsers(),
-            'filters' => $_GET
+            'filters' => $filters
         ];
 
         $this->view('listings/calls', $data);
+    }
+
+    private function exportCalls(array $calls, string $format)
+    {
+        $filename = 'calls_export';
+        $headers = ['Type', 'Contact Name', 'Contact Phone', 'User', 'Status', 'Details', 'Call Time'];
+        $rows = array_map(function ($call) {
+            return [
+                $call['call_type'],
+                $call['contact_name'],
+                $call['contact_phone'],
+                $call['user_name'],
+                $call['status'],
+                '', // Details placeholder
+                date('Y-m-d H:i', strtotime($call['call_time']))
+            ];
+        }, $calls);
+
+        $data = ['headers' => $headers, 'rows' => $rows];
+
+        switch ($format) {
+            case 'excel':
+                ExportHelper::exportToExcel($data, $filename);
+                break;
+            case 'csv':
+                ExportHelper::exportToCsv($data, $filename);
+                break;
+            case 'json':
+                ExportHelper::exportToJson($calls, $filename); // Export raw data
+                break;
+            case 'pdf':
+                ExportHelper::exportToPdf($data, $filename);
+                break;
+            case 'txt':
+                ExportHelper::exportToTxt($data, $filename);
+                break;
+        }
     }
 
     /**
@@ -147,29 +194,72 @@ class ListingsController extends Controller
     public function drivers()
     {
         $this->authorize('listings/drivers');
-
+    
         $driverModel = $this->model('Driver/Driver');
         $carTypeModel = $this->model('Admin/CarType');
         
-        // Fetch filtered drivers
-        $driversData = $driverModel->getFilteredDrivers($_GET);
+        $filters = $_GET;
+        $driversData = $driverModel->getFilteredDrivers($filters);
+    
+        if (isset($filters['export'])) {
+            $this->exportDrivers($driversData['data'], $filters['export']);
+            return;
+        }
 
+        // build pagination data
+        $pagination = [
+            'total' => $driversData['total'] ?? 0,
+            'total_pages' => $driversData['total_pages'] ?? 1,
+            'current_page' => $driversData['current_page'] ?? 1,
+            'limit' => $driversData['limit'] ?? 25,
+        ];
+    
         $data = [
             'page_main_title' => 'All Drivers',
-            'stats' => $driverModel->getDriverStats(),
-            'car_types' => $carTypeModel->getAll(),
-            'drivers' => $driversData['data'] ?? [],
-            'pagination' => [
-                'total' => $driversData['total'] ?? 0,
-                'total_pages' => $driversData['total_pages'] ?? 1,
-                'current_page' => $driversData['current_page'] ?? 1,
-                'limit' => $driversData['limit'] ?? 15,
-            ],
-            'filters' => $_GET
+            'stats' => $driverModel->getDriverStats($filters),
+            'car_types' => $carTypeModel->getAll() ?? [],
+            'drivers' => $driversData,
+            'filters' => $filters,
+            'pagination' => $pagination, 
         ];
-
+    
         $this->view('listings/drivers', $data);
     }
+
+    private function exportDrivers(array $drivers, string $format)
+    {
+        $filename = 'drivers_export';
+        $headers = ['ID', 'Name', 'Phone', 'Email', 'Main Status', 'App Status', 'Car Type', 'Call Count', 'Missing Docs'];
+        $rows = array_map(function ($driver) {
+            return [
+                $driver['id'],
+                $driver['name'],
+                $driver['phone'],
+                $driver['email'] ?? 'N/A',
+                $driver['main_system_status'],
+                $driver['app_status'],
+                $driver['car_type_name'] ?? 'N/A',
+                $driver['call_count'],
+                $driver['missing_documents_count']
+            ];
+        }, $drivers);
+
+        $data = ['headers' => $headers, 'rows' => $rows];
+
+        switch ($format) {
+            case 'excel':
+                ExportHelper::exportToExcel($data, $filename);
+                break;
+            case 'csv':
+                ExportHelper::exportToCsv($data, $filename);
+                break;
+            case 'json':
+                ExportHelper::exportToJson($drivers, $filename); // Export raw data for JSON
+                break;
+
+        }
+    }
+    
 
     /**
      * API endpoint to fetch filtered drivers.

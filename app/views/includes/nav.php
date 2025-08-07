@@ -61,7 +61,6 @@ function getNavigationItems($role) {
                  ['title' => 'Employee Score', 'href' => '/reports/employee-activity-score', 'icon' => 'fas fa-award'],
                  ['title' => 'Users Report', 'href' => '/reports/users', 'icon' => 'fas fa-users'],
                  ['title' => 'Drivers Report', 'href' => '/reports/drivers', 'icon' => 'fas fa-id-card'],
-                 ['title' => 'Trips Report', 'href' => '/reports/trips', 'icon' => 'fas fa-route'],
                  ['title' => 'Tickets Report', 'href' => '/reports/tickets', 'icon' => 'fas fa-file-invoice'],
                  ['title' => 'Custom Reports', 'href' => '/reports/custom', 'icon' => 'fas fa-wrench'],
             ]

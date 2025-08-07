@@ -2,15 +2,26 @@
 
 <div class="container mx-auto p-6 bg-gray-50 min-h-screen">
     <?php 
-        $user = $data['user_info'];
-        $activity = $data['user_activity'];
-        $filters = $data['filters'];
+        $user = $data['user_info'] ?? null;
+        $activity = $data['user_activity'] ?? null;
+        $filters = $data['filters'] ?? [];
+
+        // If the user cannot be found, display an error and stop.
+        if (!$user) {
+            echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+                    <strong class="font-bold">Error:</strong>
+                    <span class="block sm:inline">User not found. Cannot display activity report.</span>
+                  </div>';
+            echo '</div>'; // Close container
+            require APPROOT . '/views/includes/footer.php';
+            exit; // Stop rendering the rest of the page
+        }
     ?>
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-            <h1 class="text-4xl font-bold text-gray-800"><?= htmlspecialchars($user->username) ?>'s Activity</h1>
-            <p class="text-lg text-gray-600">Role: <span class="font-semibold text-indigo-600"><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user->role_name))) ?></span></p>
+            <h1 class="text-4xl font-bold text-gray-800"><?= htmlspecialchars($user->username ?? 'Unknown User') ?>'s Activity</h1>
+            <p class="text-lg text-gray-600">Role: <span class="font-semibold text-indigo-600"><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user->role_name ?? 'N/A'))) ?></span></p>
         </div>
     </div>
     
@@ -18,14 +29,14 @@
     <div class="bg-white p-4 rounded-lg shadow-md mb-8">
         <form action="" method="get">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <input type="hidden" name="user_id" value="<?= htmlspecialchars($user->id) ?>">
+                <input type="hidden" name="user_id" value="<?= htmlspecialchars($user->id ?? '') ?>">
                 <div>
                     <label for="date_from" class="block text-sm font-medium text-gray-700">From</label>
-                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($filters['date_from']) ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($filters['date_from'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
                 <div>
                     <label for="date_to" class="block text-sm font-medium text-gray-700">To</label>
-                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($filters['date_to']) ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($filters['date_to'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
                 <div>
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Apply</button>

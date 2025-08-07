@@ -15,6 +15,10 @@ class TicketsController extends Controller
         parent::__construct();
         $this->authorize(['admin', 'developer', 'quality_manager', 'team_leader']);
         $this->ticketModel = $this->model('Reports/Tickets/TicketsReport');
+        if (!$this->ticketModel) {
+            die("ticketModel is null – probably model() failed to load class");
+        }
+        
     }
 
     public function index()

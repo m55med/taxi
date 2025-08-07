@@ -314,7 +314,7 @@ mapReportRoutes($router, 'analytics', 'Analytics/AnalyticsController');
 mapReportRoutes($router, 'documents', 'Documents/DocumentsController');
 mapReportRoutes($router, 'coupons', 'Coupons/CouponsController');
 mapReportRoutes($router, 'logs', 'Logs/LogsController');
-mapReportRoutes($router, 'tickets', 'Tickets/TicketController');
+mapReportRoutes($router, 'tickets', 'Tickets/TicketsController');
 mapReportRoutes($router, 'driver-documents-compliance', 'DriverDocumentsCompliance/DriverDocumentsComplianceController');
 mapReportRoutes($router, 'driver-assignments', 'DriverAssignments/DriverAssignmentsController');
 mapReportRoutes($router, 'tickets-summary', 'TicketsSummary/TicketsSummaryController');
@@ -329,7 +329,6 @@ mapReportRoutes($router, 'system-logs', 'SystemLogs/SystemLogsController');
 mapReportRoutes($router, 'employee-activity-score', 'EmployeeActivityScore/EmployeeActivityScoreController');
 mapReportRoutes($router, 'team-leaderboard', 'TeamLeaderboard/TeamLeaderboardController');
 mapReportRoutes($router, 'custom', 'Custom/CustomController');
-mapReportRoutes($router, 'trips', 'TripsReport/TripsReportController');
 mapReportRoutes($router, 'notifications', 'Notifications/NotificationsController');
 
 // Reports Routes
@@ -362,7 +361,6 @@ $reportControllers = [
     'TicketRework',
     'Tickets',
     'TicketsSummary',
-    'TripsReport',
     'Users'
 ];
 
@@ -375,14 +373,11 @@ foreach ($reportControllers as $report) {
 
     // Some controllers might have a different name than their folder
     // This is a simplification, might need adjustments for specific reports
-    if ($report === 'Tickets' || $report === 'TicketReviews' || $report === 'TicketCoupons' || $report === 'TicketDiscussions' || $report === 'TicketRework' || $report === 'TicketsSummary') {
-        $controllerPath = "Reports/{$controllerClass}/TicketController";
+           if ($report === 'Tickets' || $report === 'TicketReviews' || $report === 'TicketCoupons' || $report === 'TicketDiscussions' || $report === 'TicketRework' || $report === 'TicketsSummary') {
+        $controllerPath = "Reports/{$controllerClass}/{$controllerClass}Controller";
         if ($report === 'TicketsSummary') {
             $controllerPath = "Reports/{$controllerClass}/TicketsSummaryController";
         }
-    }
-    if ($report === 'TripsReport') {
-        $controllerPath = "Reports/{$report}/{$report}Controller";
     }
 
 
@@ -419,9 +414,6 @@ $router->post('review/store', 'Review/ReviewController@store')->middleware(['adm
 $router->get('referral', 'Referral/ReferralController@index');
 $router->get('referral/dashboard', 'Referral/ReferralController@dashboard')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('referral/saveAgentProfile', 'Referral/ReferralController@saveAgentProfile');
-
-$router->get('trips/upload', 'Trips/TripsController@upload')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-$router->post('trips/process', 'Trips/TripsController@process')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 $router->get('driver/details/{id}', 'Driver/DriverController@details')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('driver/update', 'Driver/DriverController@update')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);

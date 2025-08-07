@@ -21,10 +21,23 @@ class MyActivityController extends Controller
 
     public function index()
     {
-        // Determine the user to display. Admins can view others, otherwise view self.
-        $user_id = $_SESSION['user_id'];
-        if (isset($_GET['user_id']) && in_array($_SESSION['role_name'], ['admin', 'developer', 'quality_manager', 'team_leader'])) {
-            $user_id = (int) $_GET['user_id'];
+        // Modern and safe way to get user info from the session array
+        $user_id = $_SESSION['user']['id'] ?? null;
+        $user_role = $_SESSION['user']['role_name'] ?? null;
+
+        // Allow privileged users to view other users' reports
+        if (isset($_GET['user_id']) && !empty($_GET['user_id'])) {
+            if (in_array($user_role, ['admin', 'developer', 'quality_manager', 'team_leader'])) {
+                $user_id = (int) $_GET['user_id'];
+            } else {
+                // Non-privileged users trying to view others are reset to their own report.
+                $user_id = $_SESSION['user']['id'] ?? null;
+            }
+        }
+        
+        if (!$user_id) {
+            // This will trigger if the user session is not properly set.
+            die('Error: User not identified. Please login again.');
         }
 
         // Set up date filters

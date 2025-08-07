@@ -14,67 +14,69 @@ class Dashboard
         $this->db = Database::getInstance();
     }
 
-    public function getDashboardData($user)
+    public function getDashboardData($user, $dateFrom = null, $dateTo = null)
     {
         $data = [];
         $role = $user['role_name'];
         $userId = $user['id'];
-
         $isPrivileged = in_array($role, ['admin', 'developer', 'quality_manager', 'Team_leader']);
 
-        // Stats visible to all or based on role
-        $data['driver_stats'] = $this->getDriverStats();
-        $data['leaderboards'] = $this->getLeaderboards();
+        // Set default date range if not provided
+        $dateTo = $dateTo && strtotime($dateTo) ? $dateTo : date('Y-m-d');
+        $dateFrom = $dateFrom && strtotime($dateFrom) ? $dateFrom : date('Y-m-d', strtotime('-30 days', strtotime($dateTo)));
+        
+        $data['date_from'] = $dateFrom;
+        $data['date_to'] = $dateTo;
+        
+        $data['user_role'] = $role;
 
         if ($isPrivileged) {
-            $data['user_stats'] = $this->getUserStats();
-            $data['ticket_stats'] = $this->getTicketStats();
-            $data['review_discussion_stats'] = $this->getReviewDiscussionStats();
-            $data['call_stats'] = $this->getCallStats();
-            $data['call_ratio'] = $this->getCallRatio();
-            $data['daily_trends'] = $this->getDailyTrends(); // Add trends for privileged users
+            // Privileged users get all stats
+            $data['driver_stats'] = ($role === 'admin') ? $this->getDriverStats() : $this->getDriverStats($dateFrom, $dateTo);
+            $data['leaderboards'] = $this->getLeaderboards($dateFrom, $dateTo);
+            $data['user_stats'] = $this->getUserStats(); // User stats are not time-dependent
+            $data['ticket_stats'] = $this->getTicketStats(null, $dateFrom, $dateTo);
+            $data['review_discussion_stats'] = $this->getReviewDiscussionStats(null, $dateFrom, $dateTo);
+            $data['call_stats'] = $this->getCallStats(null, $dateFrom, $dateTo);
+            $data['call_ratio'] = $this->getCallRatio(null, $dateFrom, $dateTo);
+            $data['daily_trends'] = $this->getDailyTrends($dateFrom, $dateTo);
+            if (in_array($role, ['admin', 'developer', 'marketer'])) {
+                $data['marketer_stats'] = $this->getMarketerStats(null, $dateFrom, $dateTo);
+            }
         } else {
-            $data['ticket_stats'] = $this->getTicketStats($userId);
-            $data['review_discussion_stats'] = $this->getReviewDiscussionStats($userId);
-            $data['call_stats'] = $this->getCallStats($userId);
-            $data['call_ratio'] = $this->getCallRatio($userId);
+            // Non-privileged users get their own stats
+            $data['ticket_stats'] = $this->getTicketStats($userId, $dateFrom, $dateTo);
+            $data['review_discussion_stats'] = $this->getReviewDiscussionStats($userId, $dateFrom, $dateTo);
+            $data['call_stats'] = $this->getCallStats($userId, $dateFrom, $dateTo);
+            $data['call_ratio'] = $this->getCallRatio($userId, $dateFrom, $dateTo);
+            if ($role === 'marketer') {
+                $data['marketer_stats'] = $this->getMarketerStats($userId, $dateFrom, $dateTo);
+            }
         }
-
-        if (in_array($role, ['admin', 'developer', 'marketer'])) {
-            $data['marketer_stats'] = ($role === 'marketer') ? $this->getMarketerStats($userId) : $this->getMarketerStats();
-        }
-
-        $data['user_role'] = $role; // Pass role to view for conditional rendering
 
         return $data;
     }
 
-    private function getDailyTrends()
+    private function getDailyTrends($dateFrom, $dateTo)
     {
-        $days = 15;
-        $date_start = date('Y-m-d', strtotime("-{$days} days"));
-
         $sql = "
-        WITH all_dates AS (
-            -- This part generates a list of dates for the last 15 days
-            SELECT a.Date as a_date
-            FROM (
-                SELECT CURDATE() - INTERVAL (a.a + (10 * b.a)) DAY as Date
-                FROM (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS a
-                CROSS JOIN (SELECT 0 AS a UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS b
-            ) a
-            WHERE a.Date BETWEEN :date_start AND CURDATE()
+        WITH RECURSIVE all_dates(a_date) AS (
+            SELECT :date_from
+            UNION ALL
+            SELECT a_date + INTERVAL 1 DAY
+            FROM all_dates
+            WHERE a_date < :date_to
         ),
         tickets AS (
             SELECT DATE(created_at) as t_date, COUNT(id) as ticket_count
             FROM ticket_details
-            WHERE DATE(created_at) BETWEEN :date_start AND CURDATE()
+            WHERE DATE(created_at) BETWEEN :date_from_tickets AND :date_to_tickets
             GROUP BY t_date
         ),
         calls AS (
              SELECT DATE(created_at) as c_date, COUNT(id) as call_count
              FROM driver_calls
-             WHERE DATE(created_at) BETWEEN :date_start AND CURDATE()
+             WHERE DATE(created_at) BETWEEN :date_from_calls AND :date_to_calls
              GROUP BY c_date
         )
         SELECT 
@@ -87,172 +89,315 @@ class Dashboard
         ORDER BY ad.a_date ASC
         ";
 
-        return $this->db->query($sql, [':date_start' => $date_start])->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare($sql);
+            $params = [
+                ':date_from' => $dateFrom,
+                ':date_to' => $dateTo,
+                ':date_from_tickets' => $dateFrom,
+                ':date_to_tickets' => $dateTo,
+                ':date_from_calls' => $dateFrom,
+                ':date_to_calls' => $dateTo,
+            ];
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error in getDailyTrends: " . $e->getMessage());
+            return [];
+        }
     }
 
     private function getUserStats()
     {
-        $stats = $this->db->query("
+        $query = "
         SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) as banned
+                COUNT(id) AS total,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END) AS banned,
+                SUM(is_online) AS online
         FROM users
-    ")->fetch(PDO::FETCH_ASSOC);
+        ";
+        
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error in getUserStats: " . $e->getMessage());
+            $result = false;
+        }
 
-        // ✅ تحقق إذا لم تكن مصفوفة، عيّن مصفوفة فاضية
-        $stats = is_array($stats) ? $stats : [];
-
-        // أضف إحصائية الأونلاين
-        $stats['online'] = $this->db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
-
-        return $stats;
+        return [
+            'total'    => (int)($result['total'] ?? 0),
+            'active'   => (int)($result['active'] ?? 0),
+            'pending'  => (int)($result['pending'] ?? 0),
+            'banned'   => (int)($result['banned'] ?? 0),
+            'online'   => (int)($result['online'] ?? 0),
+        ];
     }
 
-
-    private function getDriverStats()
+    private function getDriverStats($dateFrom = null, $dateTo = null)
     {
-        $stats = $this->db->query("
+        $defaults = [
+            'total' => 0, 'active' => 0, 'inactive' => 0, 'missing_documents' => 0,
+            'more_than_10_trips' => 0, 'less_than_10_trips' => 0
+        ];
+        
+        $params = [];
+        $whereClause = '';
+        if ($dateFrom && $dateTo) {
+            $whereClause = 'WHERE DATE(created_at) BETWEEN :date_from AND :date_to';
+            $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        }
+
+        $statsQuery = "
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN app_status = 'active' THEN 1 ELSE 0 END) as active,
                 SUM(CASE WHEN app_status = 'inactive' THEN 1 ELSE 0 END) as inactive,
                 SUM(has_missing_documents) as missing_documents
             FROM drivers
-        ")->fetch(PDO::FETCH_ASSOC);
+            {$whereClause}
+        ";
+        $stmt = $this->db->prepare($statsQuery);
+        $stmt->execute($params);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $tripCounts = $this->db->query("
+        $tripWhereClause = '';
+        if ($dateFrom && $dateTo) {
+            $tripWhereClause = 'WHERE DATE(d.created_at) BETWEEN :date_from AND :date_to';
+        }
+
+        $tripQuery = "
             SELECT 
-                SUM(CASE WHEN has_many_trips = 1 THEN 1 ELSE 0 END) as more_than_10_trips,
-                SUM(CASE WHEN has_many_trips = 0 THEN 1 ELSE 0 END) as less_than_10_trips
-            FROM driver_attributes
-        ")->fetch(PDO::FETCH_ASSOC);
+                SUM(CASE WHEN da.has_many_trips = 1 THEN 1 ELSE 0 END) as more_than_10_trips,
+                SUM(CASE WHEN da.has_many_trips = 0 THEN 1 ELSE 0 END) as less_than_10_trips
+            FROM driver_attributes da
+            JOIN drivers d ON da.driver_id = d.id
+            {$tripWhereClause}
+        ";
+        $stmt = $this->db->prepare($tripQuery);
+        $stmt->execute($params);
+        $tripCounts = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Ensure that the variables are arrays before merging to prevent errors
-        $stats = is_array($stats) ? $stats : [];
-        $tripCounts = is_array($tripCounts) ? $tripCounts : [];
+        $results = array_merge(
+            is_array($stats) ? $stats : [],
+            is_array($tripCounts) ? $tripCounts : []
+        );
 
-        return array_merge($stats, $tripCounts);
+        return array_merge($defaults, $results);
     }
 
-    private function getTicketStats($userId = null)
+    private function getTicketStats($userId, $dateFrom, $dateTo)
     {
-        $baseQueryTickets = "SELECT COUNT(*) FROM tickets";
-        $baseQueryDetails = "SELECT COUNT(*) FROM ticket_details";
-        $baseQueryVip = "SELECT is_vip, COUNT(*) as count FROM ticket_details";
+        $stats = ['total_tickets' => 0, 'total_details' => 0, 'vip_details' => 0, 'normal_details' => 0];
+        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $userWhere = '';
 
         if ($userId) {
-            $today_start = date('Y-m-d 00:00:00');
-            $today_end = date('Y-m-d 23:59:59');
-
-            $stats['total_tickets'] = $this->db->query($baseQueryTickets . " WHERE created_by = ? AND created_at BETWEEN ? AND ?", [$userId, $today_start, $today_end])->fetchColumn() ?: 0;
-            $stats['total_details'] = $this->db->query($baseQueryDetails . " WHERE edited_by = ? AND created_at BETWEEN ? AND ?", [$userId, $today_start, $today_end])->fetchColumn() ?: 0;
-            $vipCounts = $this->db->query($baseQueryVip . " WHERE edited_by = ? AND created_at BETWEEN ? AND ? GROUP BY is_vip", [$userId, $today_start, $today_end])->fetchAll(PDO::FETCH_KEY_PAIR);
-        } else {
-            $stats['total_tickets'] = $this->db->query($baseQueryTickets)->fetchColumn() ?: 0;
-            $stats['total_details'] = $this->db->query($baseQueryDetails)->fetchColumn() ?: 0;
-            $vipCounts = $this->db->query($baseQueryVip . " GROUP BY is_vip")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $userWhere = ' AND created_by = :user_id';
+            $params[':user_id'] = $userId;
         }
 
-        $stats['vip_details'] = $vipCounts[1] ?? 0;
-        $stats['normal_details'] = $vipCounts[0] ?? 0;
+        $ticketQuery = "SELECT COUNT(*) FROM tickets WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere;
+        $stmt = $this->db->prepare($ticketQuery);
+        $stmt->execute($params);
+        $stats['total_tickets'] = (int) $stmt->fetchColumn();
+
+        if ($userId) {
+            $userWhere = ' AND edited_by = :user_id';
+        } else {
+             unset($params[':user_id']);
+        }
+
+        $detailQuery = "SELECT COUNT(*) FROM ticket_details WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere;
+        $stmt = $this->db->prepare($detailQuery);
+        $stmt->execute($params);
+        $stats['total_details'] = (int) $stmt->fetchColumn();
+        
+        $vipQuery = "SELECT is_vip, COUNT(*) as count FROM ticket_details WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere . " GROUP BY is_vip";
+        $stmt = $this->db->prepare($vipQuery);
+        $stmt->execute($params);
+        $vipCounts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        $vipData = is_array($vipCounts) ? $vipCounts : [];
+        $stats['vip_details'] = $vipData[1] ?? 0;
+        $stats['normal_details'] = $vipData[0] ?? 0;
 
         return $stats;
     }
 
-    private function getReviewDiscussionStats($userId = null)
+    private function getReviewDiscussionStats($userId, $dateFrom, $dateTo)
     {
+        $defaults = ['reviews' => 0, 'discussions' => 0];
+        $stats = [];
+        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $userWhereReviews = '';
+        $userWhereDiscussions = '';
+
         if ($userId) {
-            $stats['reviews'] = $this->db->query("SELECT COUNT(r.id) FROM reviews r JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'TicketDetail' WHERE td.edited_by = ?", [$userId])->fetchColumn();
-            $stats['discussions'] = $this->db->query("SELECT COUNT(*) FROM discussions WHERE opened_by = ?", [$userId])->fetchColumn();
-        } else {
-            $stats['reviews'] = $this->db->query("SELECT COUNT(*) FROM reviews")->fetchColumn();
-            $stats['discussions'] = $this->db->query("SELECT COUNT(*) FROM discussions")->fetchColumn();
+            $userWhereReviews = " AND td.edited_by = :user_id";
+            $userWhereDiscussions = " AND opened_by = :user_id";
+            $params[':user_id'] = $userId;
         }
-        return $stats;
+
+        $reviewsQuery = "SELECT COUNT(r.id) FROM reviews r JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'TicketDetail' WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to" . $userWhereReviews;
+        $stmt_reviews = $this->db->prepare($reviewsQuery);
+        $stmt_reviews->execute($params);
+        $stats['reviews'] = (int) $stmt_reviews->fetchColumn();
+
+        if (!$userId) {
+            unset($params[':user_id']);
+        }
+
+        $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhereDiscussions;
+        $stmt_discussions = $this->db->prepare($discussionsQuery);
+        $stmt_discussions->execute($params);
+        $stats['discussions'] = (int) $stmt_discussions->fetchColumn();
+        
+        return array_merge($defaults, $stats);
     }
 
-    private function getMarketerStats($userId = null)
+    private function getMarketerStats($userId, $dateFrom, $dateTo)
     {
+        $defaults = ['total_marketers' => 0, 'visits' => 0, 'registrations' => 0, 'top_countries' => []];
+        $stats = [];
+        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $userWhere = '';
+
         if ($userId) {
-            $stats['visits'] = $this->db->query("SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = ?", [$userId])->fetchColumn();
-            $stats['registrations'] = $this->db->query("SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = ? AND registration_status = 'successful'", [$userId])->fetchColumn();
-            $stats['top_countries'] = $this->db->query("SELECT country, COUNT(*) as count FROM referral_visits WHERE affiliate_user_id = ? AND country IS NOT NULL GROUP BY country ORDER BY count DESC LIMIT 3", [$userId])->fetchAll(PDO::FETCH_KEY_PAIR);
+            $userWhere = " AND affiliate_user_id = :user_id";
+            $params[':user_id'] = $userId;
+
+            $visitsQuery = "SELECT COUNT(*) FROM referral_visits WHERE visit_date BETWEEN :date_from AND :date_to" . $userWhere;
+            $stmt_visits = $this->db->prepare($visitsQuery);
+            $stmt_visits->execute($params);
+            $stats['visits'] = (int) $stmt_visits->fetchColumn();
+
+            $regsQuery = "SELECT COUNT(*) FROM referral_visits WHERE registration_status = 'successful' AND visit_date BETWEEN :date_from AND :date_to" . $userWhere;
+            $stmt_regs = $this->db->prepare($regsQuery);
+            $stmt_regs->execute($params);
+            $stats['registrations'] = (int) $stmt_regs->fetchColumn();
+            
+            $countriesQuery = "SELECT country, COUNT(*) as count FROM referral_visits WHERE country IS NOT NULL AND visit_date BETWEEN :date_from AND :date_to" . $userWhere . " GROUP BY country ORDER BY count DESC LIMIT 3";
+            $stmt_countries = $this->db->prepare($countriesQuery);
+            $stmt_countries->execute($params);
+            $stats['top_countries'] = $stmt_countries->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
         } else {
-            $stats['total_marketers'] = $this->db->query("SELECT COUNT(*) FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'marketer'")->fetchColumn();
-            $stats['visits'] = $this->db->query("SELECT COUNT(*) FROM referral_visits")->fetchColumn();
-            $stats['registrations'] = $this->db->query("SELECT COUNT(*) FROM referral_visits WHERE registration_status = 'successful'")->fetchColumn();
-            $stats['top_countries'] = $this->db->query("SELECT country, COUNT(*) as count FROM referral_visits WHERE country IS NOT NULL GROUP BY country ORDER BY count DESC LIMIT 3")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $stats['total_marketers'] = (int) $this->db->query("SELECT COUNT(*) FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'marketer'")->fetchColumn();
+            
+            $visitsQuery = "SELECT COUNT(*) FROM referral_visits WHERE visit_date BETWEEN :date_from AND :date_to";
+            $stmt_visits = $this->db->prepare($visitsQuery);
+            $stmt_visits->execute([':date_from' => $dateFrom, ':date_to' => $dateTo]);
+            $stats['visits'] = (int) $stmt_visits->fetchColumn();
+
+            $regsQuery = "SELECT COUNT(*) FROM referral_visits WHERE registration_status = 'successful' AND visit_date BETWEEN :date_from AND :date_to";
+            $stmt_regs = $this->db->prepare($regsQuery);
+            $stmt_regs->execute([':date_from' => $dateFrom, ':date_to' => $dateTo]);
+            $stats['registrations'] = (int) $stmt_regs->fetchColumn();
+
+            $countriesQuery = "SELECT country, COUNT(*) as count FROM referral_visits WHERE country IS NOT NULL AND visit_date BETWEEN :date_from AND :date_to GROUP BY country ORDER BY count DESC LIMIT 3";
+            $stmt_countries = $this->db->prepare($countriesQuery);
+            $stmt_countries->execute([':date_from' => $dateFrom, ':date_to' => $dateTo]);
+            $stats['top_countries'] = $stmt_countries->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
         }
-        return $stats;
+        
+        return array_merge($defaults, $stats);
     }
 
-    private function getCallStats($userId = null)
+    private function getCallStats($userId, $dateFrom, $dateTo)
     {
+        $stats = ['incoming' => 0, 'outgoing' => 0];
+        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $userWhereIncoming = '';
+        $userWhereOutgoing = '';
+
         if ($userId) {
-            $today_start = date('Y-m-d 00:00:00');
-            $today_end = date('Y-m-d 23:59:59');
-    
-            $stats['incoming'] = $this->db->query(
-                "SELECT COUNT(*) FROM incoming_calls WHERE call_received_by = ? AND call_started_at BETWEEN ? AND ?",
-                [$userId, $today_start, $today_end]
-            )->fetchColumn() ?: 0;
-    
-            $stats['outgoing'] = $this->db->query(
-                "SELECT COUNT(*) FROM driver_calls WHERE call_by = ? AND created_at BETWEEN ? AND ?",
-                [$userId, $today_start, $today_end]
-            )->fetchColumn() ?: 0;
-        } else {
-            $stats['incoming'] = $this->db->query("SELECT COUNT(*) FROM incoming_calls")->fetchColumn() ?: 0;
-            $stats['outgoing'] = $this->db->query("SELECT COUNT(*) FROM driver_calls")->fetchColumn() ?: 0;
+            $userWhereIncoming = ' AND call_received_by = :user_id';
+            $userWhereOutgoing = ' AND call_by = :user_id';
+            $params[':user_id'] = $userId;
         }
+
+        $incomingQuery = "SELECT COUNT(*) FROM incoming_calls WHERE DATE(call_started_at) BETWEEN :date_from AND :date_to" . $userWhereIncoming;
+        $stmt_incoming = $this->db->prepare($incomingQuery);
+        $stmt_incoming->execute($params);
+        $stats['incoming'] = (int) $stmt_incoming->fetchColumn();
+        
+        if (!$userId) {
+            unset($params[':user_id']);
+        }
+
+        $outgoingQuery = "SELECT COUNT(*) FROM driver_calls WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhereOutgoing;
+        $stmt_outgoing = $this->db->prepare($outgoingQuery);
+        $stmt_outgoing->execute($params);
+        $stats['outgoing'] = (int) $stmt_outgoing->fetchColumn();
     
         return $stats;
     }
     
-
-    private function getCallRatio($userId = null)
+    private function getCallRatio($userId, $dateFrom, $dateTo)
     {
-        $stats = $this->getCallStats($userId);
-        $total = $stats['incoming'] + $stats['outgoing'];
-        if ($total === 0) {
+        $callStats = $this->getCallStats($userId, $dateFrom, $dateTo);
+        $totalCalls = ($callStats['incoming'] ?? 0) + ($callStats['outgoing'] ?? 0);
+
+        if ($totalCalls === 0) {
             return ['incoming' => 0, 'outgoing' => 0];
         }
+
         return [
-            'incoming' => round(($stats['incoming'] / $total) * 100, 2),
-            'outgoing' => round(($stats['outgoing'] / $total) * 100, 2),
+            'incoming' => round(($callStats['incoming'] / $totalCalls) * 100, 2),
+            'outgoing' => round(($callStats['outgoing'] / $totalCalls) * 100, 2),
         ];
     }
 
-    private function getLeaderboards()
+    private function getLeaderboards($dateFrom, $dateTo)
     {
-        $leaderboards['tickets'] = $this->db->query("
+        $leaderboards = [
+            'tickets' => [],
+            'outgoing_calls' => [],
+            'incoming_calls' => [],
+        ];
+        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+
+        $ticketsQuery = "
             SELECT u.name, COUNT(td.id) as count 
             FROM ticket_details td 
             JOIN users u ON td.edited_by = u.id 
+            WHERE DATE(td.created_at) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        ";
+        $stmt = $this->db->prepare($ticketsQuery);
+        $stmt->execute($params);
+        $leaderboards['tickets'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $leaderboards['outgoing_calls'] = $this->db->query("
+        $outgoingQuery = "
             SELECT u.name, COUNT(dc.id) as count 
             FROM driver_calls dc 
             JOIN users u ON dc.call_by = u.id 
+            WHERE DATE(dc.created_at) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        ";
+        $stmt = $this->db->prepare($outgoingQuery);
+        $stmt->execute($params);
+        $leaderboards['outgoing_calls'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $leaderboards['incoming_calls'] = $this->db->query("
+        $incomingQuery = "
             SELECT u.name, COUNT(ic.id) as count 
             FROM incoming_calls ic 
             JOIN users u ON ic.call_received_by = u.id 
+            WHERE DATE(ic.call_started_at) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        ";
+        $stmt = $this->db->prepare($incomingQuery);
+        $stmt->execute($params);
+        $leaderboards['incoming_calls'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
         return $leaderboards;
     }

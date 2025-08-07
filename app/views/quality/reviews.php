@@ -7,7 +7,16 @@
 
     <!-- Filter Section -->
     <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Filters</h2>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Filters</h2>
+            <!-- Quick Date Filter Buttons -->
+            <div class="flex items-center space-x-2">
+                <button @click="setPeriod('all')" :class="{'bg-blue-600 text-white': activePeriod === 'all', 'bg-gray-200 text-gray-700': activePeriod !== 'all'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-gray-300">All Time</button>
+                <button @click="setPeriod('today')" :class="{'bg-blue-600 text-white': activePeriod === 'today', 'bg-gray-200 text-gray-700': activePeriod !== 'today'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-gray-300">Today</button>
+                <button @click="setPeriod('week')" :class="{'bg-blue-600 text-white': activePeriod === 'week', 'bg-gray-200 text-gray-700': activePeriod !== 'week'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-gray-300">Last 7 Days</button>
+                <button @click="setPeriod('month')" :class="{'bg-blue-600 text-white': activePeriod === 'month', 'bg-gray-200 text-gray-700': activePeriod !== 'month'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-gray-300">This Month</button>
+            </div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Date Range -->
             <div>
@@ -149,6 +158,7 @@ function reviewsPage() {
         subcategory_id: '',
         code_id: '',
     },
+    activePeriod: '',
     // For cascading dropdowns
     categories: <?= json_encode($data['ticket_categories']) ?>,
     subcategories: [],
@@ -166,6 +176,7 @@ function reviewsPage() {
                     this.filters.start_date = selectedDates[0] ? this.formatDate(selectedDates[0]) : '';
                     this.filters.end_date = selectedDates[1] ? this.formatDate(selectedDates[1]) : '';
                 }
+                 this.activePeriod = ''; // Clear active period button style
             }
         });
 
@@ -176,6 +187,26 @@ function reviewsPage() {
         this.$watch('selectedSubcategory', () => {
              this.filters.subcategory_id = this.selectedSubcategory;
         });
+        
+        this.fetchReviews();
+    },
+    
+    setPeriod(period) {
+        this.activePeriod = period;
+        let startDate = new Date();
+        let endDate = new Date();
+
+        if (period === 'today') {
+            // No change needed for start/end date
+        } else if (period === 'week') {
+            startDate.setDate(startDate.getDate() - 7);
+        } else if (period === 'month') {
+            startDate.setMonth(startDate.getMonth() - 1);
+        }
+
+        this.filters.start_date = this.formatDate(startDate);
+        this.filters.end_date = this.formatDate(endDate);
+        this.flatpickrInstance.setDate([this.filters.start_date, this.filters.end_date]);
         
         this.fetchReviews();
     },
@@ -207,6 +238,7 @@ function reviewsPage() {
         this.selectedSubcategory = '';
         this.subcategories = [];
         this.codes = [];
+        this.activePeriod = '';
         this.flatpickrInstance.clear();
         this.fetchReviews();
     },
@@ -275,4 +307,4 @@ function reviewsPage() {
 }
 </script>
 
-<?php include_once APPROOT . '/views/includes/footer.php'; ?> 
+<?php include_once APPROOT . '/views/includes/footer.php'; ?>

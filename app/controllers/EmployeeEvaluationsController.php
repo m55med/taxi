@@ -13,13 +13,10 @@ class EmployeeEvaluationsController extends Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->userModel = new User();
+        $this->userModel = new User(); 
         $this->evaluationModel = new EmployeeEvaluation();
-        // A 'team_leader' or 'admin' can access this page.
-        // We can create a new permission or reuse an existing one.
-        // For now, let's assume a permission like 'manage_evaluations' is required.
-        // The authorize method should be flexible enough.
     }
+    
 
     /**
      * Display the main page for managing employee evaluations.

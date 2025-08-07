@@ -11,6 +11,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
+        '9e4824c5afbdc1482b6025ce3d4dfde8' => __DIR__ . '/..' . '/league/csv/src/functions_include.php',
         '87b91d3d2e05a58b15e4bdbc53c83189' => __DIR__ . '/../..' . '/app/helpers/session_helper.php',
         '40f374a79196b8b2fbda90ea13466ab1' => __DIR__ . '/../..' . '/app/helpers/url_helper.php',
         '44243d3862f268c19b2ad7ab24687d79' => __DIR__ . '/../..' . '/app/helpers/view_helper.php',
@@ -41,6 +42,10 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         array (
             'Monolog\\' => 8,
             'Matrix\\' => 7,
+        ),
+        'L' => 
+        array (
+            'League\\Csv\\' => 11,
         ),
         'G' => 
         array (
@@ -110,6 +115,10 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'Matrix\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
+        ),
+        'League\\Csv\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/csv/src',
         ),
         'GrahamCampbell\\ResultType\\' => 
         array (
@@ -206,7 +215,6 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Controllers\\Reports\\TicketRework\\TicketReworkController' => __DIR__ . '/../..' . '/app/controllers/reports/TicketRework/TicketReworkController.php',
         'App\\Controllers\\Reports\\TicketsSummary\\TicketsSummaryController' => __DIR__ . '/../..' . '/app/controllers/reports/TicketsSummary/TicketsSummaryController.php',
         'App\\Controllers\\Reports\\Tickets\\TicketsController' => __DIR__ . '/../..' . '/app/controllers/reports/Tickets/TicketsController.php',
-        'App\\Controllers\\Reports\\TripsReport\\TripsReportController' => __DIR__ . '/../..' . '/app/controllers/reports/TripsReport/TripsReportController.php',
         'App\\Controllers\\Reports\\Users\\UsersController' => __DIR__ . '/../..' . '/app/controllers/reports/Users/UsersController.php',
         'App\\Controllers\\Review\\ReviewController' => __DIR__ . '/../..' . '/app/controllers/review/ReviewController.php',
         'App\\Controllers\\Telegram\\WebhookController' => __DIR__ . '/../..' . '/app/controllers/telegram/WebhookController.php',
@@ -261,6 +269,7 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\Reports\\Assignments\\AssignmentsReport' => __DIR__ . '/../..' . '/app/models/Reports/Assignments/AssignmentsReport.php',
         'App\\Models\\Reports\\Calls\\CallsReport' => __DIR__ . '/../..' . '/app/models/Reports/Calls/CallsReport.php',
         'App\\Models\\Reports\\Coupons\\CouponsReport' => __DIR__ . '/../..' . '/app/models/Reports/Coupons/CouponsReport.php',
+        'App\\Models\\Reports\\Custom\\CustomReport' => __DIR__ . '/../..' . '/app/models/Reports/Custom/CustomReport.php',
         'App\\Models\\Reports\\Documents\\DocumentsReport' => __DIR__ . '/../..' . '/app/models/Reports/Documents/DocumentsReport.php',
         'App\\Models\\Reports\\DriverAssignments\\DriverAssignmentsReport' => __DIR__ . '/../..' . '/app/models/Reports/DriverAssignments/DriverAssignmentsReport.php',
         'App\\Models\\Reports\\DriverCalls\\DriverCallsReport' => __DIR__ . '/../..' . '/app/models/Reports/DriverCalls/DriverCallsReport.php',
@@ -296,7 +305,6 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'App\\Models\\Tickets\\Subcategory' => __DIR__ . '/../..' . '/app/models/Tickets/Subcategory.php',
         'App\\Models\\Tickets\\Team' => __DIR__ . '/../..' . '/app/models/Tickets/Team.php',
         'App\\Models\\Tickets\\Ticket' => __DIR__ . '/../..' . '/app/models/Tickets/Ticket.php',
-        'App\\Models\\Trips\\TripModel' => __DIR__ . '/../..' . '/app/models/Trips/TripModel.php',
         'App\\Models\\User\\User' => __DIR__ . '/../..' . '/app/models/User/User.php',
         'App\\Models\\create_ticket\\CreateTicketModel' => __DIR__ . '/../..' . '/app/models/Create_ticket/CreateTicketModel.php',
         'App\\Models\\knowledge_base\\KnowledgeBaseModel' => __DIR__ . '/../..' . '/app/models/Knowledge_base/KnowledgeBaseModel.php',
@@ -306,8 +314,20 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'CallsController' => __DIR__ . '/../..' . '/app/controllers/calls/CallsController.php app/models/Calls/Call.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'Datamatrix' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/barcodes/datamatrix.php',
+        'PDF417' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/barcodes/pdf417.php',
         'PhpToken' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
+        'QRcode' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/barcodes/qrcode.php',
         'Stringable' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
+        'TCPDF' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf.php',
+        'TCPDF2DBarcode' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf_barcodes_2d.php',
+        'TCPDFBarcode' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf_barcodes_1d.php',
+        'TCPDF_COLORS' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_colors.php',
+        'TCPDF_FILTERS' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_filters.php',
+        'TCPDF_FONTS' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_fonts.php',
+        'TCPDF_FONT_DATA' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_font_data.php',
+        'TCPDF_IMAGES' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_images.php',
+        'TCPDF_STATIC' => __DIR__ . '/..' . '/tecnickcom/tcpdf/include/tcpdf_static.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
     );

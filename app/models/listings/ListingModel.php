@@ -99,13 +99,13 @@ class ListingModel extends Model
         }
     }
 
-    public function getFilteredCalls($filters = [])
+    public function getFilteredCalls($filters = [], $paginate = true)
     {
-        $limit = isset($filters['limit']) ? (int)$filters['limit'] : 25;
-        $page = isset($filters['page']) ? (int)$filters['page'] : 1;
+        $limit = isset($filters['limit']) && $paginate ? (int)$filters['limit'] : 25;
+        $page = isset($filters['page']) && $paginate ? (int)$filters['page'] : 1;
         $offset = ($page - 1) * $limit;
 
-        $params = [':limit' => $limit, ':offset' => $offset];
+        $params = [];
         $whereClauses = [];
 
         // Common filters
@@ -195,10 +195,7 @@ class ListingModel extends Model
         $totalSql = "SELECT COUNT(*) as total FROM ({$baseQuery}) as all_calls " . $typeWhere . $whereSql;
         try {
             $totalStmt = $this->db->prepare($totalSql);
-            // We need to remove limit and offset from params for the count query
-            $countParams = $params;
-            unset($countParams[':limit'], $countParams[':offset']);
-            $totalStmt->execute($countParams);
+            $totalStmt->execute($params);
             $totalRecords = $totalStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
         } catch (\PDOException $e) {
             error_log('ListingModel::getFilteredCalls Count Error: ' . $e->getMessage());
@@ -206,18 +203,71 @@ class ListingModel extends Model
         }
 
         // Get Data
-        $dataSql = $fullQuery . $whereSql . " ORDER BY call_time DESC LIMIT :limit OFFSET :offset";
+        $dataSql = $fullQuery . $whereSql . " ORDER BY call_time DESC";
+        if ($paginate) {
+            $dataSql .= " LIMIT :limit OFFSET :offset";
+            $params[':limit'] = $limit;
+            $params[':offset'] = $offset;
+        }
+        
         try {
             $dataStmt = $this->db->prepare($dataSql);
             $dataStmt->execute($params);
             $results = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
             return [
                 'data' => $results, 'total' => $totalRecords, 'limit' => $limit, 'page' => $page,
-                'total_pages' => ceil($totalRecords / $limit)
+                'total_pages' => $paginate ? ceil($totalRecords / $limit) : 1
             ];
         } catch (\PDOException $e) {
             error_log('ListingModel::getFilteredCalls Data Error: ' . $e->getMessage());
             return ['error' => 'Database data query failed: ' . $e->getMessage(), 'data' => []];
+        }
+    }
+
+    public function getCallStats($filters = [])
+    {
+        $params = [];
+        $whereClauses = [];
+
+        if (!empty($filters['start_date'])) {
+            $whereClauses[] = "DATE(call_time) >= :start_date";
+            $params[':start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $whereClauses[] = "DATE(call_time) <= :end_date";
+            $params[':end_date'] = $filters['end_date'];
+        }
+        
+        $baseQuery = "
+            (SELECT 'Outgoing' as call_type, created_at as call_time FROM driver_calls)
+            UNION ALL
+            (SELECT 'Incoming' as call_type, call_started_at as call_time FROM incoming_calls)
+        ";
+        
+        $whereSql = "";
+        if(!empty($whereClauses)) {
+            $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+        }
+
+        $sql = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN call_type = 'Incoming' THEN 1 ELSE 0 END) as incoming,
+                    SUM(CASE WHEN call_type = 'Outgoing' THEN 1 ELSE 0 END) as outgoing
+                FROM ({$baseQuery}) as all_calls
+                {$whereSql}";
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return [
+                'total' => (int)($result['total'] ?? 0),
+                'incoming' => (int)($result['incoming'] ?? 0),
+                'outgoing' => (int)($result['outgoing'] ?? 0),
+            ];
+        } catch (\PDOException $e) {
+            error_log('ListingModel::getCallStats Error: ' . $e->getMessage());
+            return ['total' => 0, 'incoming' => 0, 'outgoing' => 0];
         }
     }
 }
