@@ -456,6 +456,10 @@ $router->get('ticket', 'Tickets/TicketController@show'); // Legacy Support witho
 $router->get('tickets/view/{id}', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('tickets/view', 'Tickets/TicketController@show')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
+// Create Ticket V2
+$router->get('create_ticket/v2', 'CreateTicket/CreateTicketController@v2')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->get('create_ticket/fetch_trengo_ticket/{ticketId}', 'CreateTicket/CreateTicketController@fetch_trengo_ticket')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+
 // Discussions
 $router->get('discussions', 'Discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('api/discussions', 'Discussions/DiscussionsController@index');

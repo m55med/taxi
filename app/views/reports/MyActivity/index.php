@@ -6,22 +6,34 @@
         $activity = $data['user_activity'] ?? null;
         $filters = $data['filters'] ?? [];
 
-        // If the user cannot be found, display an error and stop.
+        // Debug (remove in production)
+        /*
+        echo '<pre>';
+        print_r($data);
+        echo '</pre>';
+        */
+
         if (!$user) {
             echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
                     <strong class="font-bold">Error:</strong>
                     <span class="block sm:inline">User not found. Cannot display activity report.</span>
                   </div>';
-            echo '</div>'; // Close container
+            echo '</div>';
             require APPROOT . '/views/includes/footer.php';
-            exit; // Stop rendering the rest of the page
+            exit;
         }
     ?>
+
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
             <h1 class="text-4xl font-bold text-gray-800"><?= htmlspecialchars($user->username ?? 'Unknown User') ?>'s Activity</h1>
-            <p class="text-lg text-gray-600">Role: <span class="font-semibold text-indigo-600"><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user->role_name ?? 'N/A'))) ?></span></p>
+            <p class="text-lg text-gray-600">
+                Role: 
+                <span class="font-semibold text-indigo-600">
+                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user->role_name ?? 'N/A'))) ?>
+                </span>
+            </p>
         </div>
     </div>
     
@@ -32,11 +44,15 @@
                 <input type="hidden" name="user_id" value="<?= htmlspecialchars($user->id ?? '') ?>">
                 <div>
                     <label for="date_from" class="block text-sm font-medium text-gray-700">From</label>
-                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($filters['date_from'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <input type="date" name="date_from" id="date_from" 
+                           value="<?= htmlspecialchars($filters['date_from'] ?? '') ?>" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
                 <div>
                     <label for="date_to" class="block text-sm font-medium text-gray-700">To</label>
-                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($filters['date_to'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <input type="date" name="date_to" id="date_to" 
+                           value="<?= htmlspecialchars($filters['date_to'] ?? '') ?>" 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                 </div>
                 <div>
                     <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">Apply</button>
@@ -50,7 +66,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-indigo-500">
             <h2 class="text-gray-500 text-lg font-semibold">Total Points</h2>
-            <p class="text-4xl font-bold text-gray-900 mt-2"><?= number_format($activity['points_details']['final_total_points'] ?? 0, 2) ?></p>
+            <p class="text-4xl font-bold text-gray-900 mt-2"><?= number_format($activity['total_points'] ?? 0, 2) ?></p>
         </div>
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-500">
             <h2 class="text-gray-500 text-lg font-semibold">Quality Score</h2>
@@ -62,7 +78,7 @@
         </div>
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
             <h2 class="text-gray-500 text-lg font-semibold">Total Calls</h2>
-            <p class="text-4xl font-bold text-gray-900 mt-2"><?= number_format(($activity['call_stats']['total_incoming_calls'] ?? 0) + ($activity['call_stats']['total_outgoing_calls'] ?? 0)) ?></p>
+            <p class="text-4xl font-bold text-gray-900 mt-2"><?= number_format(($activity['incoming_calls'] ?? 0) + ($activity['outgoing_calls'] ?? 0)) ?></p>
         </div>
     </div>
     
@@ -76,30 +92,29 @@
                 <ul class="space-y-1 text-gray-600">
                     <li>Normal Tickets: <span class="font-mono float-right"><?= number_format($activity['normal_tickets'] ?? 0) ?></span></li>
                     <li>VIP Tickets: <span class="font-mono float-right"><?= number_format($activity['vip_tickets'] ?? 0) ?></span></li>
-                    <li class="border-t pt-1 mt-1">Ticket Points: <span class="font-mono float-right font-bold text-green-600"><?= number_format($activity['points_details']['ticket_points'] ?? 0, 2) ?></span></li>
                 </ul>
             </div>
              <!-- Calls -->
             <div class="border p-4 rounded-lg">
                 <h3 class="text-lg font-semibold text-gray-700 mb-2">Calls</h3>
                 <ul class="space-y-1 text-gray-600">
-                    <li>Incoming: <span class="font-mono float-right"><?= number_format($activity['call_stats']['total_incoming_calls'] ?? 0) ?></span></li>
-                    <li>Outgoing: <span class="font-mono float-right"><?= number_format($activity['call_stats']['total_outgoing_calls'] ?? 0) ?></span></li>
-                    <li class="border-t pt-1 mt-1">Call Points: <span class="font-mono float-right font-bold text-green-600"><?= number_format($activity['points_details']['call_points'] ?? 0, 2) ?></span></li>
+                    <li>Incoming: <span class="font-mono float-right"><?= number_format($activity['incoming_calls'] ?? 0) ?></span></li>
+                    <li>Outgoing: <span class="font-mono float-right"><?= number_format($activity['outgoing_calls'] ?? 0) ?></span></li>
                 </ul>
             </div>
-             <!-- Quality & Bonus -->
+             <!-- Quality -->
             <div class="border p-4 rounded-lg">
-                <h3 class="text-lg font-semibold text-gray-700 mb-2">Quality & Bonus</h3>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Quality</h3>
                 <ul class="space-y-1 text-gray-600">
                     <li>Reviews: <span class="font-mono float-right"><?= number_format($activity['total_reviews'] ?? 0) ?></span></li>
                     <li>Avg Rating: <span class="font-mono float-right"><?= number_format($activity['quality_score'] ?? 0, 2) ?>%</span></li>
-                    <li class="border-t pt-1 mt-1">Monthly Bonus: <span class="font-mono float-right font-bold text-green-600"><?= number_format($activity['points_details']['bonus_amount'] ?? 0, 2) ?> (<?= number_format($activity['points_details']['bonus_percent'] ?? 0, 1) ?>%)</span></li>
                 </ul>
             </div>
         </div>
         <div class="mt-6 border-t pt-4">
-             <h3 class="text-xl font-semibold text-gray-800 text-center">Base Points: <?= number_format($activity['points_details']['base_points'] ?? 0, 2) ?> + Bonus: <?= number_format($activity['points_details']['bonus_amount'] ?? 0, 2) ?> = <span class="text-indigo-600">Final Score: <?= number_format($activity['points_details']['final_total_points'] ?? 0, 2) ?></span></h3>
+             <h3 class="text-xl font-semibold text-gray-800 text-center">
+                Final Score: <span class="text-indigo-600"><?= number_format($activity['total_points'] ?? 0, 2) ?></span>
+             </h3>
         </div>
     </div>
     <?php else: ?>
@@ -110,4 +125,4 @@
     <?php endif; ?>
 </div>
 
-<?php require APPROOT . '/views/includes/footer.php'; ?> 
+<?php require APPROOT . '/views/includes/footer.php'; ?>

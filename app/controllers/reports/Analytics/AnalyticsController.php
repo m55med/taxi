@@ -42,7 +42,7 @@ class AnalyticsController extends Controller
             'ticketing_stats' => $ticketing_stats,
         ];
 
-        $this->view('reports/Analytics/index', $data);
+        $this->view('reports/analytics/index', $data);
     }
 
     private function get_filters()

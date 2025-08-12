@@ -166,7 +166,7 @@ include_once APPROOT . '/views/includes/header.php';
                                         <div>
                                             <?php
                                             $reviews = $call['reviews'] ?? [];
-                                            $add_review_url = BASE_PATH . "/review/add/driver_call/" . $call['id'];
+                                            $add_review_url = URLROOT . "/review/add/driver_call/" . $call['id'];
                                             $can_add_review = in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']);
                                             include APPROOT . '/views/tickets/partials/reviews_section.php';
                                             ?>

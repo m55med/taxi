@@ -129,6 +129,7 @@ function getAdminNavItems($role) {
                 ],
                 ['title' => 'Bonus Settings', 'href' => '/admin/bonus/settings', 'icon' => 'fas fa-gift'],
                 ['title' => 'Delegation Types', 'href' => '/delegation-types', 'icon' => 'fas fa-user-tie'],
+                ['title' => 'Document Types', 'href' => '/admin/document_types', 'icon' => 'fas fa-file-alt'],
                 ['title' => 'Employee Evaluations', 'href' => '/employee-evaluations', 'icon' => 'fas fa-user-check'],
                 ['title' => 'Coupons', 'href' => '/admin/coupons', 'icon' => 'fas fa-percent'],
                 ['title' => 'Platforms', 'href' => '/admin/platforms', 'icon' => 'fas fa-layer-group'],

@@ -9,33 +9,9 @@ if (isset($_SESSION['document_type_message'])) {
     unset($_SESSION['document_type_message'], $_SESSION['document_type_message_type']);
 }
 ?>
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Document Types</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
 
-        [x-cloak] {
-            display: none !important;
-        }
-
-        .toast-container {
-            z-index: 1000;
-        }
-    </style>
-</head>
-
-<body class="bg-gray-100" x-data="documentTypesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)"
-    x-init="init()" x-cloak>
+<body class="bg-gray-100" x-data="documentTypesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
 
     <?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
@@ -94,22 +70,15 @@ if (isset($_SESSION['document_type_message'])) {
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            #</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Name</th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php if (empty($data['document_types'])): ?>
                                         <tr>
-                                            <td colspan="3"
-                                                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                            <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                                 No document types found.
                                             </td>
                                         </tr>
@@ -120,7 +89,7 @@ if (isset($_SESSION['document_type_message'])) {
                                                     <?= $index + 1 ?>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <?= htmlspecialchars($docType['name']) ?>
+                                                    <?= htmlspecialchars($docType->name) ?>
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
                                                     <button @click="editType(<?= htmlspecialchars(json_encode($docType)) ?>)"
@@ -128,7 +97,7 @@ if (isset($_SESSION['document_type_message'])) {
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                     <button
-                                                        @click="confirmDelete(<?= $docType['id'] ?>, '<?= htmlspecialchars(addslashes($docType['name'])) ?>')"
+                                                        @click="confirmDelete(<?= $docType->id ?>, '<?= htmlspecialchars(addslashes($docType->name)) ?>')"
                                                         class="text-red-600 hover:text-red-900" title="Delete">
                                                         <i class="fas fa-trash-alt"></i>
                                                     </button>

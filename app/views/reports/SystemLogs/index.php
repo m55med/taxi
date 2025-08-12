@@ -103,7 +103,7 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <a href="<?= BASE_PATH ?>/reports/myactivity?user_id=<?= $log['user_id'] ?>" class="text-blue-500 hover:underline">
+                                    <a href="<?= URLROOT ?>/reports/myactivity?user_id=<?= $log['user_id'] ?>" class="text-blue-500 hover:underline">
                                         <?= htmlspecialchars($log['username'] ?? 'N/A') ?>
                                     </a>
                                 </td>

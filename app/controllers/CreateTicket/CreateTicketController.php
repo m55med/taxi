@@ -29,6 +29,45 @@ class CreateTicketController extends Controller
         $this->view('create_ticket/index', $data);
     }
 
+    public function v2()
+    {
+        // Data for the V2 form
+        $data = [
+            'countries' => $this->createTicketModel->getCountries(),
+            'platforms' => $this->createTicketModel->getPlatforms(),
+            'categories' => $this->createTicketModel->getCategories(),
+            'marketers' => $this->createTicketModel->getMarketers(),
+            'title' => 'Create New Ticket V2'
+        ];
+
+        $this->view('create_ticket/v2', $data);
+    }
+
+    public function fetch_trengo_ticket($ticketId)
+    {
+        // It's better to store the token in an environment variable or a config file
+        $token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiYjQ1OGE3ZDEyMTg4NjY4OGM2ZmY4MDY5NzgyMjBmNWU1YWVkMjRiYmVhZDZjNmM0N2FkNDg1NzMzMTU3ZmU3OTVjZWE5YTIxYmIxMGVlOTYiLCJpYXQiOjE3NTQ5ODY0NjQsIm5iZiI6MTc1NDk4NjQ2NCwiZXhwIjo0ODc5MTI0MDY0LCJzdWIiOiI3MjQ3MTgiLCJzY29wZXMiOltdLCJhZ2VuY3lfaWQiOjIyNTU1fQ.jtA3Qa3ubVnUb8tgd0d0I24oE1gPMFeZEmPzylqt04fZywBbQcIombLQjU9o5nOMSyCa6iXUN4yqke3WbX_9TA';
+        $url = "https://app.trengo.com/api/v2/tickets/{$ticketId}";
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Authorization: Bearer ' . $token
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode >= 400) {
+            $this->sendJsonResponse(['success' => false, 'message' => "Failed to fetch data from Trengo. Status code: {$httpCode}"], $httpCode);
+            return;
+        }
+
+        $this->sendJsonResponse(['success' => true, 'data' => json_decode($response)]);
+    }
+
     public function getSubcategories($categoryId)
     {
         $subcategories = $this->createTicketModel->getSubcategories($categoryId);

@@ -99,7 +99,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-600"><?= htmlspecialchars($user['team_name'] ?? 'N/A') ?></td>
                                     <td class="px-6 py-4 text-center font-bold text-indigo-600"><?= number_format($user['points_details']['final_total_points'] ?? 0, 2) ?></td>
                                     <td class="px-6 py-4 text-center">
-                                        <a href="<?= BASE_PATH ?>/reports/myactivity?user_id=<?= $user['id'] ?>" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Activity</a>
+                                        <a href="<?= URLROOT ?>/reports/myactivity?user_id=<?= $user['id'] ?>" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Activity</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
