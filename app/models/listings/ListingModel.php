@@ -99,12 +99,8 @@ class ListingModel extends Model
         }
     }
 
-    public function getFilteredCalls($filters = [], $paginate = true)
+    private function _buildCallQueryParts($filters = [])
     {
-        $limit = isset($filters['limit']) && $paginate ? (int)$filters['limit'] : 25;
-        $page = isset($filters['page']) && $paginate ? (int)$filters['page'] : 1;
-        $offset = ($page - 1) * $limit;
-
         $params = [];
         $whereClauses = [];
 
@@ -137,19 +133,26 @@ class ListingModel extends Model
             $typeWhere = "WHERE call_type = 'Incoming'";
         } elseif ($callType === 'outgoing') {
             $typeWhere = "WHERE call_type = 'Outgoing'";
-            if (!empty($filters['category_id'])) {
-                $whereClauses[] = "category_id = :category_id";
-                $params[':category_id'] = $filters['category_id'];
-            }
-            if (!empty($filters['subcategory_id'])) {
-                $whereClauses[] = "subcategory_id = :subcategory_id";
-                $params[':subcategory_id'] = $filters['subcategory_id'];
-            }
-            if (!empty($filters['code_id'])) {
-                $whereClauses[] = "code_id = :code_id";
-                $params[':code_id'] = $filters['code_id'];
-            }
         }
+        
+        $whereSql = "";
+        if (count($whereClauses) > 0) {
+            $whereSql = ($typeWhere ? " AND " : " WHERE ") . implode(' AND ', $whereClauses);
+        }
+        
+        return ['typeWhere' => $typeWhere, 'whereSql' => $whereSql, 'params' => $params];
+    }
+
+    public function getFilteredCalls($filters = [], $paginate = true)
+    {
+        $limit = isset($filters['limit']) && $paginate ? (int)$filters['limit'] : 25;
+        $page = isset($filters['page']) && $paginate ? (int)$filters['page'] : 1;
+        $offset = ($page - 1) * $limit;
+
+        $queryParts = $this->_buildCallQueryParts($filters);
+        $params = $queryParts['params'];
+        $typeWhere = $queryParts['typeWhere'];
+        $whereSql = $queryParts['whereSql'];
 
         $baseQuery = "
             (SELECT
@@ -186,11 +189,7 @@ class ListingModel extends Model
         ";
 
         $fullQuery = "SELECT * FROM ({$baseQuery}) as all_calls " . $typeWhere;
-        $whereSql = "";
-        if (count($whereClauses) > 0) {
-            $whereSql = ($typeWhere ? " AND " : " WHERE ") . implode(' AND ', $whereClauses);
-        }
-
+        
         // Get Total
         $totalSql = "SELECT COUNT(*) as total FROM ({$baseQuery}) as all_calls " . $typeWhere . $whereSql;
         try {
@@ -226,35 +225,23 @@ class ListingModel extends Model
 
     public function getCallStats($filters = [])
     {
-        $params = [];
-        $whereClauses = [];
+        $queryParts = $this->_buildCallQueryParts($filters);
+        $params = $queryParts['params'];
+        $typeWhere = $queryParts['typeWhere'];
+        $whereSql = $queryParts['whereSql'];
 
-        if (!empty($filters['start_date'])) {
-            $whereClauses[] = "DATE(call_time) >= :start_date";
-            $params[':start_date'] = $filters['start_date'];
-        }
-        if (!empty($filters['end_date'])) {
-            $whereClauses[] = "DATE(call_time) <= :end_date";
-            $params[':end_date'] = $filters['end_date'];
-        }
-        
         $baseQuery = "
-            (SELECT 'Outgoing' as call_type, created_at as call_time FROM driver_calls)
+            (SELECT 'Outgoing' as call_type, created_at as call_time, call_by as user_id FROM driver_calls)
             UNION ALL
-            (SELECT 'Incoming' as call_type, call_started_at as call_time FROM incoming_calls)
+            (SELECT 'Incoming' as call_type, call_started_at as call_time, call_received_by as user_id FROM incoming_calls)
         ";
         
-        $whereSql = "";
-        if(!empty($whereClauses)) {
-            $whereSql = " WHERE " . implode(" AND ", $whereClauses);
-        }
-
         $sql = "SELECT 
                     COUNT(*) as total,
                     SUM(CASE WHEN call_type = 'Incoming' THEN 1 ELSE 0 END) as incoming,
                     SUM(CASE WHEN call_type = 'Outgoing' THEN 1 ELSE 0 END) as outgoing
                 FROM ({$baseQuery}) as all_calls
-                {$whereSql}";
+                " . $typeWhere . $whereSql;
         
         try {
             $stmt = $this->db->prepare($sql);

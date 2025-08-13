@@ -33,6 +33,12 @@ class ListingsController extends Controller
         $this->authorize('listings/tickets');
 
         $filters = $_GET;
+
+        // If the user is an agent, force filter by their user ID
+        if (Auth::hasRole('agent')) {
+            $filters['created_by'] = Auth::getUserId();
+        }
+
         $tickets = $this->listingModel->getFilteredTickets($filters);
 
         // Check for export request
@@ -112,6 +118,11 @@ class ListingsController extends Controller
         $this->authorize('listings/calls');
 
         $filters = $_GET;
+
+        // If the user is an agent, force filter by their user ID
+        if (Auth::hasRole('agent')) {
+            $filters['user_id'] = Auth::getUserId();
+        }
 
         // Check for export request
         if (isset($filters['export'])) {

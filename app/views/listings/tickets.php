@@ -20,17 +20,19 @@
                     <input type="hidden" id="start_date" name="start_date" value="<?= htmlspecialchars($data['filters']['start_date'] ?? '') ?>">
                     <input type="hidden" id="end_date" name="end_date" value="<?= htmlspecialchars($data['filters']['end_date'] ?? '') ?>">
                 </div>
+                <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                 <div>
-    <label for="created_by" class="block text-sm font-medium text-gray-600 mb-1">Created By</label>
-    <select id="created_by" name="created_by" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <option value="">All Users</option>
-        <?php foreach ($data['users'] as $user): ?>
-            <option value="<?= $user->id ?>" <?= (isset($data['filters']['created_by']) && $data['filters']['created_by'] == $user->id) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($user->username) ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</div>
+                    <label for="created_by" class="block text-sm font-medium text-gray-600 mb-1">Created By</label>
+                    <select id="created_by" name="created_by" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Users</option>
+                        <?php foreach ($data['users'] as $user): ?>
+                            <option value="<?= $user->id ?>" <?= (isset($data['filters']['created_by']) && $data['filters']['created_by'] == $user->id) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($user->username) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
 
                 <div>
                     <label for="platform_id" class="block text-sm font-medium text-gray-600 mb-1">Platform</label>
@@ -85,7 +87,9 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket #</th>
+                    <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
+                    <?php endif; ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
@@ -104,7 +108,9 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                                 <a href="<?= URLROOT ?>/tickets/view/<?= $ticket['ticket_id'] ?>" target="_blank" class="hover:underline"><?= htmlspecialchars($ticket['ticket_number']) ?></a>
                             </td>
+                            <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?= htmlspecialchars($ticket['created_by_username']) ?></td>
+                            <?php endif; ?>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?= htmlspecialchars($ticket['platform_name']) ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?= htmlspecialchars($ticket['phone'] ?? '') ?></td>
                             <td class="px-6 py-4 text-sm text-gray-600">

@@ -129,7 +129,7 @@ if (
         $refreshFile = $refreshDir . $userId;
         if (file_exists($refreshFile)) {
             $userModel = new \App\Models\User\User();
-            $_SESSION['permissions'] = $userModel->getUserPermissions($userId);
+            $_SESSION['user']['permissions'] = $userModel->getUserPermissions($userId);
 
             unlink($refreshFile);
         }

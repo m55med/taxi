@@ -204,6 +204,7 @@ class Permission
                 }
             }
             $this->db->commit();
+            $this->notifyUser($userId); // Notify the specific user
             return true;
         } catch (\Exception $e) {
             $this->db->rollBack();
@@ -218,11 +219,17 @@ class Permission
             if ($grant) {
                 // Use IGNORE to prevent errors if the permission already exists.
                 $stmt = $this->db->prepare("INSERT IGNORE INTO user_permissions (user_id, permission_id) VALUES (?, ?)");
-                return $stmt->execute([$userId, $permissionId]);
+                $success = $stmt->execute([$userId, $permissionId]);
             } else {
                 $stmt = $this->db->prepare("DELETE FROM user_permissions WHERE user_id = ? AND permission_id = ?");
-                return $stmt->execute([$userId, $permissionId]);
+                $success = $stmt->execute([$userId, $permissionId]);
             }
+
+            if ($success) {
+                $this->notifyUser($userId);
+            }
+
+            return $success;
         } catch (\Exception $e) {
             error_log($e->getMessage());
             return false;
@@ -234,11 +241,16 @@ class Permission
         try {
             if ($grant) {
                 $stmt = $this->db->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
-                return $stmt->execute([$roleId, $permissionId]);
+                $success = $stmt->execute([$roleId, $permissionId]);
             } else {
                 $stmt = $this->db->prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission_id = ?");
-                return $stmt->execute([$roleId, $permissionId]);
+                $success = $stmt->execute([$roleId, $permissionId]);
             }
+
+            if ($success) {
+                $this->notifyUsersInRole($roleId);
+            }
+            return $success;
         } catch (\Exception $e) {
             error_log($e->getMessage());
             return false;
@@ -269,13 +281,18 @@ class Permission
                 }
                 $sql .= implode(', ', $values);
                 $stmt = $this->db->prepare($sql);
-                return $stmt->execute($params);
+                $success = $stmt->execute($params);
             } else {
                 $sql = "DELETE FROM role_permissions WHERE role_id = ? AND permission_id IN ($placeholders)";
                 $params = array_merge([$roleId], $permissionIds);
                 $stmt = $this->db->prepare($sql);
-                return $stmt->execute($params);
+                $success = $stmt->execute($params);
             }
+
+            if ($success) {
+                $this->notifyUsersInRole($roleId);
+            }
+            return $success;
         } catch (\Exception $e) {
             error_log($e->getMessage());
             return false;
@@ -303,16 +320,65 @@ class Permission
                 }
                 $sql .= implode(', ', $values);
                 $stmt = $this->db->prepare($sql);
-                return $stmt->execute($params);
+                $success = $stmt->execute($params);
             } else {
                 $sql = "DELETE FROM user_permissions WHERE user_id = ? AND permission_id IN ($placeholders)";
                 $params = array_merge([$userId], $permissionIds);
                 $stmt = $this->db->prepare($sql);
-                return $stmt->execute($params);
+                $success = $stmt->execute($params);
             }
+
+            if ($success) {
+                $this->notifyUser($userId);
+            }
+            return $success;
         } catch (\Exception $e) {
             error_log($e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Creates a "refresh" file for all users in a specific role.
+     * This signals the App to update their session permissions on the next request.
+     *
+     * @param int $roleId The ID of the role.
+     */
+    public function notifyUsersInRole(int $roleId)
+    {
+        try {
+            $userModel = new \App\Models\User\User();
+            $users = $userModel->getUsersByRole($roleId);
+            
+            $refreshDir = APPROOT . '/cache/refresh_permissions/';
+            if (!is_dir($refreshDir)) {
+                mkdir($refreshDir, 0777, true);
+            }
+
+            foreach ($users as $user) {
+                touch($refreshDir . $user['id']);
+            }
+        } catch (\Exception $e) {
+            error_log("Failed to notify users in role {$roleId}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Creates a "refresh" file for a specific user.
+     * This signals the App to update their session permissions on the next request.
+     *
+     * @param int $userId The ID of the user.
+     */
+    public function notifyUser(int $userId)
+    {
+        try {
+            $refreshDir = APPROOT . '/cache/refresh_permissions/';
+            if (!is_dir($refreshDir)) {
+                mkdir($refreshDir, 0777, true);
+            }
+            touch($refreshDir . $userId);
+        } catch (\Exception $e) {
+            error_log("Failed to notify user {$userId}: " . $e->getMessage());
         }
     }
 } 

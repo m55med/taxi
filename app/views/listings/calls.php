@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="stat-card bg-white p-6 rounded-2xl shadow-lg flex items-center justify-between">
             <div>
-                <p class="text-sm font-medium text-gray-500">Total Calls</p>
+                <p class="text-sm font-medium text-gray-500"><?= \App\Core\Auth::hasRole('agent') ? 'My Total Calls' : 'Total Calls' ?></p>
                 <p class="text-3xl font-bold text-gray-800"><?= $data['stats']['total'] ?? 0 ?></p>
             </div>
             <div class="bg-blue-100 rounded-full p-3">
@@ -19,7 +19,7 @@
         </div>
         <div class="stat-card bg-white p-6 rounded-2xl shadow-lg flex items-center justify-between">
             <div>
-                <p class="text-sm font-medium text-gray-500">Incoming Calls</p>
+                <p class="text-sm font-medium text-gray-500"><?= \App\Core\Auth::hasRole('agent') ? 'My Incoming Calls' : 'Incoming Calls' ?></p>
                 <p class="text-3xl font-bold text-gray-800"><?= $data['stats']['incoming'] ?? 0 ?></p>
             </div>
             <div class="bg-green-100 rounded-full p-3">
@@ -28,7 +28,7 @@
         </div>
         <div class="stat-card bg-white p-6 rounded-2xl shadow-lg flex items-center justify-between">
             <div>
-                <p class="text-sm font-medium text-gray-500">Outgoing Calls</p>
+                <p class="text-sm font-medium text-gray-500"><?= \App\Core\Auth::hasRole('agent') ? 'My Outgoing Calls' : 'Outgoing Calls' ?></p>
                 <p class="text-3xl font-bold text-gray-800"><?= $data['stats']['outgoing'] ?? 0 ?></p>
             </div>
             <div class="bg-orange-100 rounded-full p-3">
@@ -51,6 +51,7 @@
                     <input type="text" id="search_term" name="search_term" class="filter-input" value="<?= htmlspecialchars($data['filters']['search_term'] ?? '') ?>" placeholder="Name or Phone...">
                 </div>
                 <!-- User -->
+                <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                 <div>
                     <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">User</label>
                     <select id="user_id" name="user_id" class="filter-input">
@@ -60,6 +61,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php endif; ?>
                 <!-- Call Type -->
                 <div>
                     <label for="call_type" class="block text-sm font-medium text-gray-700 mb-2">Call Type</label>
@@ -126,7 +128,9 @@
                     <tr>
                         <th class="th">Type</th>
                         <th class="th">Contact</th>
+                        <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                         <th class="th">User</th>
+                        <?php endif; ?>
                         <th class="th">Status</th>
                         <th class="th">Duration</th>
                         <th class="th">Date/Time</th>
@@ -157,7 +161,9 @@
                                     <?php endif; ?>
                                     <p class="text-xs text-gray-500"><?= htmlspecialchars($call['contact_phone']) ?></p>
                                 </td>
+                                <?php if (!\App\Core\Auth::hasRole('agent')): ?>
                                 <td class="td"><?= htmlspecialchars($call['user_name']) ?></td>
+                                <?php endif; ?>
                                 <td class="td">
                                     <span class="status-badge bg-gray-100 text-gray-800"><?= htmlspecialchars($call['status']) ?></span>
                                 </td>

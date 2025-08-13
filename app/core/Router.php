@@ -10,6 +10,7 @@ class Router
         'GET' => [],
         'POST' => []
     ];
+    private $latestRoute = null;
 
     public static function load($file)
     {
@@ -20,42 +21,56 @@ class Router
 
     public function get($uri, $controller)
     {
-        $this->routes['GET'][$uri] = ['controller' => $controller, 'middleware' => null];
-        return $this;
+        return $this->addRoute('GET', $uri, $controller);
     }
 
     public function post($uri, $controller)
     {
-        $this->routes['POST'][$uri] = ['controller' => $controller, 'middleware' => null];
+        return $this->addRoute('POST', $uri, $controller);
+    }
+
+    private function addRoute($method, $uri, $controller)
+    {
+        $this->latestRoute = ['method' => $method, 'uri' => $uri];
+        $this->routes[$method][$uri] = [
+            'controller' => $controller,
+            'middleware' => null,
+            'permission' => $this->generatePermissionKey($controller)
+        ];
         return $this;
+    }
+    
+    private function generatePermissionKey($controllerAction)
+    {
+        list($controller, $method) = explode('@', $controllerAction);
+        
+        // This logic is designed to match the one in Permission::discoverPermissions
+        $parts = explode('/', str_replace('\\', '/', $controller));
+        $className = end($parts);
+        
+        // Remove "Controller" from the end of the class name
+        $permissionKey = preg_replace('/Controller$/', '', $className);
+
+        // Handle dynamic method names like {action}
+        if (strpos($method, '{') === 0 && strpos($method, '}') !== false) {
+            // Replace dynamic part with a wildcard or a resolvable pattern.
+            // For now, let's assume it needs to be resolved during dispatch.
+            // For permission generation, we might use a generic name.
+            $method = '*';
+        }
+
+        return $permissionKey . '/' . $method;
     }
 
     public function middleware($roles)
     {
-        // Ensure roles are in an array, even if a single string is passed
-        $middleware = is_array($roles) ? $roles : [$roles];
-
-        // Apply to the last added GET route
-        $keys_get = array_keys($this->routes['GET']);
-        if (!empty($keys_get)) {
-            $this->routes['GET'][end($keys_get)]['middleware'] = $middleware;
-        }
-
-        // This logic for POST is flawed because it assumes the last POST route corresponds to the last GET route.
-        // A better approach is to chain middleware right after the route definition.
-        // For now, let's assume a similar logic for POST, but this needs review.
-        $keys_post = array_keys($this->routes['POST']);
-        if (!empty($keys_post)) {
-            // This might not always be the intended behavior.
-            // It applies middleware to the last defined POST route, which might not be the one you just defined with GET.
-            $last_post_key = end($keys_post);
-            $last_get_key = end($keys_get);
-            // A heuristic: if the last GET and POST URIs are the same, apply middleware to both.
-            if ($last_post_key === $last_get_key) {
-                $this->routes['POST'][$last_post_key]['middleware'] = $middleware;
+        if ($this->latestRoute) {
+            $method = $this->latestRoute['method'];
+            $uri = $this->latestRoute['uri'];
+            if (isset($this->routes[$method][$uri])) {
+                $this->routes[$method][$uri]['middleware'] = is_array($roles) ? $roles : [$roles];
             }
         }
-
         return $this;
     }
 
@@ -63,65 +78,45 @@ class Router
     {
         $uri = trim($uri, '/');
 
-        // First, check for a direct static match
-        if (isset($this->routes[$requestType][$uri])) {
+        // Check for direct static match first
+        if (array_key_exists($requestType, $this->routes) && array_key_exists($uri, $this->routes[$requestType])) {
             $route = $this->routes[$requestType][$uri];
-            if (!empty($route['middleware'])) {
-                if ($route['middleware'] === 'auth') {
-                    Auth::requireLogin();
-                } else {
-                    Auth::requireRole($route['middleware']);
-                }
-            }
-            list($controller, $method) = explode('@', $route['controller']);
-            $controllerFullName = 'App\\Controllers\\' . str_replace('/', '\\', $controller);
-            return $this->callAction($controllerFullName, $method);
+            return $this->handleRoute($route);
         }
 
-        // Handle dynamic routes with parameters
-        foreach ($this->routes[$requestType] as $route => $controllerAction) {
-            // Skip non-dynamic routes as they would have matched already
-            $controllerAction = $this->routes[$requestType][$route];
-            if (strpos($route, '{') === false) {
-                continue;
-            }
-
-            $route = trim($route, '/');
-
-            // Get placeholder names from the route definition
-            $placeholders = [];
-            if (preg_match_all('/\{([a-zA-Z0-9_]+)\}/', $route, $placeholder_matches)) {
-                $placeholders = $placeholder_matches[1];
-            }
-
-            // Convert route to regex
-            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^\/]+)', $route);
-            $pattern = "#^" . $pattern . "$#";
-
-            if (preg_match($pattern, $uri, $matches)) {
-                array_shift($matches); // Remove the full match
-
-                // Create an associative array of parameters
-                $params = !empty($placeholders) ? array_combine($placeholders, $matches) : [];
-
-                list($controller, $method) = explode('@', $controllerAction['controller']);
-
-                // Check if the method name is a placeholder
-                if (preg_match('/^\{(.+)\}$/', $method, $method_matches)) {
-                    $method_placeholder_name = $method_matches[1];
-                    if (isset($params[$method_placeholder_name])) {
-                        $method = $params[$method_placeholder_name];
-                        unset($params[$method_placeholder_name]);
-                    }
+        // Handle dynamic routes
+        foreach ($this->routes[$requestType] as $routeUri => $routeDetails) {
+            if (strpos($routeUri, '{') !== false) {
+                $pattern = "#^" . preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^\/]+)', $routeUri) . "$#";
+                if (preg_match($pattern, $uri, $matches)) {
+                    array_shift($matches);
+                    return $this->handleRoute($routeDetails, $matches);
                 }
-
-                $controllerFullName = 'App\\Controllers\\' . str_replace('/', '\\', $controller);
-
-                return $this->callAction($controllerFullName, $method, array_values($params));
             }
         }
 
         $this->triggerNotFound('No route defined for this URI: ' . $uri);
+    }
+
+    protected function handleRoute($route, $params = [])
+    {
+        if (!empty($route['middleware'])) {
+            Auth::requireAccess($route['middleware'], $route['permission']);
+        }
+        
+        list($controller, $method) = explode('@', $route['controller']);
+        
+        // Handle dynamic method placeholders like {action}
+        if (preg_match('/^\{(.+)\}$/', $method, $method_matches)) {
+            // This logic is simplified. It assumes the placeholder name matches the order.
+            // A more robust implementation would use named parameters from the route.
+            $method = $params[0] ?? 'index'; // Default to 'index' if not found
+            array_shift($params); // The first parameter was the method name
+        }
+
+        $controllerFullName = 'App\\Controllers\\' . str_replace('/', '\\', $controller);
+        
+        return $this->callAction($controllerFullName, $method, $params);
     }
 
     protected function callAction($controller, $method, $params = [])
@@ -138,17 +133,13 @@ class Router
             return;
         }
 
-        // Call the controller action with params
         call_user_func_array([$controllerInstance, $method], $params);
     }
-
 
     private function triggerNotFound($message = 'Page not found.')
     {
         http_response_code(404);
         error_log("404 Not Found: " . $message);
-
-        // You might want to render a proper 404 view
         require_once '../app/views/errors/404.php';
         exit;
     }

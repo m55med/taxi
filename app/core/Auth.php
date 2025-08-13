@@ -101,8 +101,55 @@ class Auth
     }
 
     /**
+     * A new, unified method to check for access based on roles or direct permissions.
+     *
+     * @param array $roles An array of role names that are allowed access.
+     * @param string $permissionNeeded The specific permission key required for this route.
+     */
+    public static function requireAccess(array $roles, string $permissionNeeded)
+    {
+        self::requireLogin();
+
+        $userRole = self::getUserRole();
+        $userPermissions = self::user('permissions') ?? [];
+
+
+        // 1. Admins and developers always have access.
+        if ($userRole && in_array($userRole, ['admin', 'developer'])) {
+            return;
+        }
+        
+        // 2. Check if the user's role is in the allowed list for the route.
+        if ($userRole && in_array($userRole, $roles, true)) {
+            return;
+        }
+
+        // 3. Check if the user has the specific permission required for the route.
+        if (self::hasPermission($permissionNeeded)) {
+            return;
+        }
+
+        // If all checks fail, deny access.
+        // The check below is intentionally redundant for debugging.
+        // A warning will be triggered if headers are already sent by the <pre> block.
+        if (!headers_sent()) {
+            http_response_code(403);
+        }
+        $data['debug_info'] = [
+            'required_roles' => $roles,
+            'user_role' => $userRole ?? 'Not Set',
+            'required_permission' => $permissionNeeded,
+            'user_permissions' => self::user('permissions') ?? [],
+            'session_user_data' => $_SESSION['user'] ?? 'User session not set'
+        ];
+        require_once APPROOT . '/views/errors/403.php';
+        exit;
+    }
+
+    /**
      * Requires a specific role to access a page. Shows 403 error if not met.
      * @param string|array $roles
+     * @deprecated Use requireAccess instead for more fine-grained control.
      */
     public static function requireRole($roles)
     {
@@ -113,7 +160,9 @@ class Auth
         }
 
         $userRole = self::getUserRole();
-
+        
+        // This is a simplified check. For full functionality, we should also check permissions here.
+        // However, since this method is deprecated, we will keep it simple.
         if (is_null($userRole) || !in_array($userRole, $roles, true)) {
             http_response_code(403);
             $data['debug_info'] = [
