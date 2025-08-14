@@ -1,5 +1,6 @@
 <?php
 
+
 // Redirect old "auth/" routes to new clean routes for SEO and user experience
 $requestUriPath = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 $basePath = trim(parse_url(BASE_URL, PHP_URL_PATH) ?? '', '/');
@@ -41,6 +42,10 @@ if (strpos($cleanUri, 'auth/') === 0) {
  *
  */
 
+
+
+
+
 $router->get('', 'HomeController@index');
 
 // Authentication Routes
@@ -78,9 +83,15 @@ $router->post('knowledge_base/destroy', 'knowledge_base/KnowledgeBaseController@
 $router->get('knowledge_base/findByCode/{ticketCodeId}', 'knowledge_base/KnowledgeBaseController@findByCode');
 $router->get('knowledge_base/search', 'knowledge_base/KnowledgeBaseController@searchApi');
 
+// Help Videos
+$router->get("admin/help-videos", "App\\Controllers\\Admin\\HelpController@index");
+$router->post("admin/help-videos/save", "Admin/HelpController@save");
+
+
+
 // Admin Routes
 $adminControllers = [
-    'UsersController' => 'users'
+    'UsersController' => 'users',
 ];
 
 // Custom routes for BonusController
@@ -203,8 +214,8 @@ $router->get('notifications', 'Notifications/NotificationsController@index')->mi
 $router->get('notifications/create', 'Notifications/NotificationsController@create')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->post('notifications/store', 'Notifications/NotificationsController@store')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('notifications/getNavNotifications', 'Notifications/NotificationsController@getNavNotifications');
-$router->post('notifications/markRead', 'Notifications/NotificationsController@markRead')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
-$router->get('notifications/history', 'Notifications/NotificationsController@history')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
+$router->post('notifications/markRead', 'Notifications/NotificationsController@markRead');
+$router->get('notifications/history', 'Notifications/NotificationsController@history');
 $router->get('notifications/readers/{id}', 'Notifications/NotificationsController@readers')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 
 // Calls Routes
@@ -463,3 +474,4 @@ $router->get('create_ticket/fetch_trengo_ticket/{ticketId}', 'CreateTicket/Creat
 // Discussions
 $router->get('discussions', 'Discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'quality_manager', 'team_leader']);
 $router->get('api/discussions', 'Discussions/DiscussionsController@index');
+

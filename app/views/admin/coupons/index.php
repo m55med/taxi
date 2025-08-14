@@ -11,22 +11,28 @@ if (isset($_SESSION['coupon_message'])) {
    
 <?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
+<div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="couponsPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES, 'UTF-8') ?>)" x-init="init()">
+    
 <!-- Flash Message Toast -->
-<div class="toast-container fixed top-5 right-5">
+    <div class="fixed top-20 right-5 z-[100]">
     <div x-show="toast.show" 
             x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 transform translate-y-2"
-            x-transition:enter-end="opacity-100 transform translate-y-0"
-            x-transition:leave="transition ease-in duration-300"
-            x-transition:leave-start="opacity-100 transform translate-y-0"
-            x-transition:leave-end="opacity-0 transform translate-y-2"
-            class="p-4 rounded-lg shadow-lg text-white font-semibold"
-            :class="{ 'bg-green-500': toast.type === 'success', 'bg-red-500': toast.type === 'error' }">
-        <p x-text="toast.message"></p>
+             x-transition:enter-start="opacity-0 transform translate-x-full"
+             x-transition:enter-end="opacity-100 transform translate-x-0"
+             x-transition:leave="transition ease-in duration-500"
+             x-transition:leave-start="opacity-100 transform translate-x-0"
+             x-transition:leave-end="opacity-0 transform translate-x-full"
+             @click.away="toast.show = false"
+             class="p-4 rounded-lg shadow-lg text-white font-semibold flex items-center space-x-3"
+             :class="{ 'bg-green-500': toast.type === 'success', 'bg-red-500': toast.type === 'error' }"
+             style="display: none;">
+            <span x-text="toast.message"></span>
+            <button @click="toast.show = false" class="text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
     </div>
 </div>
 
-<div class="container mx-auto p-4 sm:p-6 lg:p-8">
     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6"><?= htmlspecialchars($page_main_title); ?></h1>
 
     <!-- Stats Cards -->
@@ -233,7 +239,6 @@ if (isset($_SESSION['coupon_message'])) {
         <!-- Pagination -->
          <?php require_once __DIR__ . '/../../includes/pagination.php'; ?>
         </form>
-    </div>
 </div>
 
 <!-- Modals Container -->
@@ -317,6 +322,7 @@ if (isset($_SESSION['coupon_message'])) {
             <div class="flex justify-end space-x-4">
                 <button @click="deleteModal.open = false" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition">Cancel</button>
                 <button @click="processDelete()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">Yes, Delete</button>
+                </div>
             </div>
         </div>
     </div>

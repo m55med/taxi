@@ -103,7 +103,7 @@ if (
                 session_start();
             }
 
-            $_SESSION['error'] = 'You have been logged out by an administrator .' (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
+            $_SESSION['error'] = 'You have been logged out by an administrator' . (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
             header('Location: ' . BASE_URL . '/auth/login');
             exit;
         }

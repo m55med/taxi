@@ -118,6 +118,7 @@ function getAdminNavItems($role) {
             'children' => [
                 ['title' => 'User Management', 'href' => '/admin/users', 'icon' => 'fas fa-users-cog'],
                 ['title' => 'Teams Management', 'href' => '/admin/teams', 'icon' => 'fas fa-sitemap'],
+                ['title' => 'Team Members', 'href' => '/admin/team_members', 'icon' => 'fas fa-user-friends'],
                 [
                     'title' => 'Ticket Settings',
                     'icon' => 'fas fa-cogs',
@@ -127,15 +128,22 @@ function getAdminNavItems($role) {
                         ['title' => 'Codes', 'href' => '/admin/ticket_codes', 'icon' => 'fas fa-code'],
                     ]
                 ],
+                ['title' => 'Bonus Granting', 'href' => '/admin/bonus', 'icon' => 'fas fa-award'],
                 ['title' => 'Bonus Settings', 'href' => '/admin/bonus/settings', 'icon' => 'fas fa-gift'],
+                ['title' => 'Car Types', 'href' => '/admin/car_types', 'icon' => 'fas fa-car'],
+                ['title' => 'Countries', 'href' => '/admin/countries', 'icon' => 'fas fa-globe-americas'],
+                ['title' => 'Coupons', 'href' => '/admin/coupons', 'icon' => 'fas fa-percent'],
                 ['title' => 'Delegation Types', 'href' => '/delegation-types', 'icon' => 'fas fa-user-tie'],
                 ['title' => 'Document Types', 'href' => '/admin/document_types', 'icon' => 'fas fa-file-alt'],
                 ['title' => 'Employee Evaluations', 'href' => '/employee-evaluations', 'icon' => 'fas fa-user-check'],
-                ['title' => 'Coupons', 'href' => '/admin/coupons', 'icon' => 'fas fa-percent'],
-                ['title' => 'Platforms', 'href' => '/admin/platforms', 'icon' => 'fas fa-layer-group'],
+                ['title' => 'Help Videos', 'href' => '/admin/help-videos', 'icon' => 'fas fa-video'],
                 ['title' => 'Permissions', 'href' => '/admin/permissions', 'icon' => 'fas fa-shield-alt', 'permissions' => ['admin', 'developer']],
-                ['title' => 'Telegram Settings', 'href' => '/admin/telegram_settings', 'icon' => 'fab fa-telegram-plane', 'permissions' => ['admin', 'developer']],
+                ['title' => 'Platforms', 'href' => '/admin/platforms', 'icon' => 'fas fa-layer-group'],
+                ['title' => 'Points', 'href' => '/admin/points', 'icon' => 'fas fa-star'],
+                ['title' => 'Roles', 'href' => '/admin/roles', 'icon' => 'fas fa-user-tag'],
                 ['title' => 'System Logs', 'href' => '/logs', 'icon' => 'fas fa-clipboard-list', 'permissions' => ['admin', 'developer']],
+                ['title' => 'Telegram Settings', 'href' => '/admin/telegram_settings', 'icon' => 'fab fa-telegram-plane', 'permissions' => ['admin', 'developer']],
+                ['title' => 'User Delegations', 'href' => '/admin/user_delegations', 'icon' => 'fas fa-people-arrows'],
             ]
         ]
         

@@ -24,4 +24,6 @@ return array(
     'Dotenv\\' => array($vendorDir . '/vlucas/phpdotenv/src'),
     'Composer\\Pcre\\' => array($vendorDir . '/composer/pcre/src'),
     'Complex\\' => array($vendorDir . '/markbaker/complex/classes/src'),
+    'App\\controllers\\' => array($baseDir . '/app/controllers'),
+    'App\\' => array($baseDir . '/app'),
 );

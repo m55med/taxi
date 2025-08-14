@@ -26,6 +26,7 @@ class UsersController extends Controller {
     }
 
     public function index() {
+        $this->activeUserService->cleanupInactiveUsers();
         $users = $this->userModel->getAllUsers();
         $onlineUserIds = $this->activeUserService->getOnlineUserIds();
         $userStats = $this->userModel->getUserStats(); // Get user statistics

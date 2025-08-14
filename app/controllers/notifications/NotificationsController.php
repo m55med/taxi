@@ -12,7 +12,7 @@ class NotificationsController extends Controller
     {
         // The model is loaded into the controller.
         $this->notificationModel = $this->model('Notifications/Notification');
-        $this->reportModel = $this->model('Notifications/NotificationsReportModel');
+        $this->reportModel = $this->model('Reports/Notifications/NotificationsReportModel');
     }
 
     /**
@@ -102,8 +102,12 @@ class NotificationsController extends Controller
      */
     public function markRead()
     {
-        if (!isset($_SESSION['user_id']) || $_SERVER['REQUEST_METHOD'] != 'POST') {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Unauthorized Access'], 401);
+        // Allow access if a user_id is provided in the POST request,
+        // otherwise fall back to the session for logged-in users.
+        $userId = $_POST['user_id'] ?? $_SESSION['user_id'] ?? null;
+
+        if (!$userId || $_SERVER['REQUEST_METHOD'] != 'POST') {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Unauthorized Access or Invalid Request'], 401);
             return;
         }
 
@@ -113,7 +117,7 @@ class NotificationsController extends Controller
             return;
         }
 
-        if ($this->notificationModel->markAsRead($_SESSION['user_id'], $notificationId)) {
+        if ($this->notificationModel->markAsRead($userId, $notificationId)) {
             $this->sendJsonResponse(['success' => true]);
         } else {
             // This is not a critical error if it was already read, so we send success.
