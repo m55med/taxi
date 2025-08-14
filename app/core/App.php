@@ -57,7 +57,7 @@ if (
         $this->checkAndHandleForceLogout($_SESSION['user_id']);
         $this->checkAndRefreshPermissions($_SESSION['user_id']);
 
-        $userModel = new \App\Models\User\User();
+        $userModel = new User();
         $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
     }
 

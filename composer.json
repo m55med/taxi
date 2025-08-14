@@ -14,17 +14,17 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "app/",
-            "App\\controllers\\": "app/controllers/"
+            "App\\": "app/"
         },
 
         "files": [
             "app/helpers/session_helper.php",
             "app/helpers/url_helper.php",
-            "app/helpers/flash_helper.php",
             "app/helpers/export_helper.php",
-            "app/helpers/help_helper.php"
+            "app/helpers/help_helper.php",
+            "app/helpers/view_helper.php"
         ]
+
     },
     "authors": [
         {

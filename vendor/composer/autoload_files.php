@@ -13,7 +13,7 @@ return array(
     '9e4824c5afbdc1482b6025ce3d4dfde8' => $vendorDir . '/league/csv/src/functions_include.php',
     '87b91d3d2e05a58b15e4bdbc53c83189' => $baseDir . '/app/helpers/session_helper.php',
     '40f374a79196b8b2fbda90ea13466ab1' => $baseDir . '/app/helpers/url_helper.php',
-    '0d381098bf2c36d14604e38735368f71' => $baseDir . '/app/helpers/flash_helper.php',
     'f4bec08317d5b69f69ddc801b53b4f64' => $baseDir . '/app/helpers/export_helper.php',
     'f4f03cff73a62ec9041c48cd83cae5f7' => $baseDir . '/app/helpers/help_helper.php',
+    '44243d3862f268c19b2ad7ab24687d79' => $baseDir . '/app/helpers/view_helper.php',
 );
