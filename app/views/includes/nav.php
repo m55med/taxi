@@ -140,10 +140,11 @@ function getAdminNavItems($role) {
                 ['title' => 'Permissions', 'href' => '/admin/permissions', 'icon' => 'fas fa-shield-alt', 'permissions' => ['admin', 'developer']],
                 ['title' => 'Platforms', 'href' => '/admin/platforms', 'icon' => 'fas fa-layer-group'],
                 ['title' => 'Points', 'href' => '/admin/points', 'icon' => 'fas fa-star'],
+                ['title' => 'Restaurants', 'href' => '/admin/restaurants', 'icon' => 'fas fa-utensils'],
                 ['title' => 'Roles', 'href' => '/admin/roles', 'icon' => 'fas fa-user-tag'],
                 ['title' => 'System Logs', 'href' => '/logs', 'icon' => 'fas fa-clipboard-list', 'permissions' => ['admin', 'developer']],
                 ['title' => 'Telegram Settings', 'href' => '/admin/telegram_settings', 'icon' => 'fab fa-telegram-plane', 'permissions' => ['admin', 'developer']],
-                ['title' => 'User Delegations', 'href' => '/admin/user_delegations', 'icon' => 'fas fa-people-arrows'],
+                ['title' => 'User Delegations', 'href' => '/admin/user-delegations', 'icon' => 'fas fa-people-arrows'],
             ]
         ]
         

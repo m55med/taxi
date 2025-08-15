@@ -8,49 +8,34 @@ if (isset($_SESSION['country_message'])) {
     unset($_SESSION['country_message'], $_SESSION['country_message_type']);
 }
 ?>
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Countries</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .toast-container { z-index: 1000; }
-        [x-cloak] { display: none !important; }
-    </style>
-    <script>
-    function countriesPage(flashMessage) {
-        return {
-            toast: { show: false, message: '', type: 'success' },
-            modal: { show: false, deleteUrl: '', name: '' },
-            openModal(id, name) {
-                this.modal.deleteUrl = `<?= URLROOT ?>/admin/countries/delete/${id}`;
-                this.modal.name = name;
-                this.modal.show = true;
-            },
-            showToast(message, type = 'success') {
-                this.toast = { show: true, message, type };
-                setTimeout(() => this.toast.show = false, 5000);
-            },
-            init() {
-                if (flashMessage) {
-                    this.showToast(flashMessage.message, flashMessage.type);
-                }
+<script>
+function countriesPage(flashMessage) {
+    return {
+        toast: { show: false, message: '', type: 'success' },
+        modal: { show: false, deleteUrl: '', name: '' },
+        openModal(id, name) {
+            this.modal.deleteUrl = `<?= URLROOT ?>/admin/countries/delete/${id}`;
+            this.modal.name = name;
+            this.modal.show = true;
+        },
+        showToast(message, type = 'success') {
+            this.toast = { show: true, message, type };
+            setTimeout(() => this.toast.show = false, 5000);
+        },
+        init() {
+            if (flashMessage) {
+                this.showToast(flashMessage.message, flashMessage.type);
             }
         }
     }
-    </script>
-</head>
-<body class="bg-gray-100" x-data="countriesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
+}
+</script>
+<div x-data="countriesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
     <?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
     <!-- Flash Message Toast -->
-    <div class="toast-container fixed top-5 right-5">
-        <div x-show="toast.show" 
+    <div class="toast-container fixed top-5 right-5 z-50">
+        <div x-show="toast.show"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform translate-y-2"
              x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -122,9 +107,9 @@ if (isset($_SESSION['country_message'])) {
                                     <?php foreach ($data['countries'] as $index => $country): ?>
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($country['name']) ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($country->name) ?></td>
                                             <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
-                                                <button @click="openModal(<?= $country['id'] ?>, '<?= htmlspecialchars($country['name']) ?>')" class="text-red-600 hover:text-red-900" title="Delete Country">
+                                                <button @click="openModal(<?= $country->id ?>, '<?= htmlspecialchars($country->name) ?>')" class="text-red-600 hover:text-red-900" title="Delete Country">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </td>
@@ -140,5 +125,4 @@ if (isset($_SESSION['country_message'])) {
     </div>
 
     <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
-</body>
-</html> 
+</div> 

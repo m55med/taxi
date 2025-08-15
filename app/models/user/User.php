@@ -531,10 +531,11 @@ class User
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    public function findById($id)
+    public function findUserById($id)
     {
         return $this->getUserById($id);
     }
+    
 
     
     public function getUserStats() {

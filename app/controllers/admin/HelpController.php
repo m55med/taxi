@@ -15,8 +15,7 @@ class HelpController extends Controller
 
     public function index()
     {
-        echo "<pre>Reached HelpController@index ✅</pre>";
-        die;
+
         $routes = $this->getIndexRoutes();
         $mappings = $this->loadMappings();
 
@@ -65,17 +64,21 @@ class HelpController extends Controller
         }
 
         $contents = file_get_contents($routesFilePath);
-        preg_match_all('/\$router->get\s*\(\s*[\'"]([^\'"{}\s]+)[\'"]\s*,\s*[\'"]([a-zA-Z0-9\/_]+Controller@index)[\'"]\s*\)/', $contents, $matches);
         
-        $indexRoutes = [];
+        // A more flexible regex to capture all static GET routes without parameters.
+        // This will find routes like 'admin/bonus/settings' or 'reports/drivers'.
+        preg_match_all('/\$router->get\s*\(\s*[\'"]([a-zA-Z0-9\/_-]+)[\'"]\s*,/', $contents, $matches);
+
+        $allRoutes = [];
         if (!empty($matches[1])) {
-            $indexRoutes = array_filter($matches[1], function($route) {
-                return $route !== ''; // Exclude the root route
+            $allRoutes = array_filter($matches[1], function($route) {
+                // Exclude empty routes and routes with parameters
+                return $route !== '' && strpos($route, '{') === false;
             });
         }
-        
-        sort($indexRoutes);
-        return array_unique($indexRoutes);
+
+        sort($allRoutes);
+        return array_unique($allRoutes);
     }
 
     private function loadMappings()

@@ -21,7 +21,7 @@ class UsersController extends Controller {
         $this->userModel = new User();
         $this->roleModel = new Role();
         $this->permissionModel = new Permission();
-        require_once APPROOT . '/services/ActiveUserService.php';
+        require_once APPROOT . '/Services/ActiveUserService.php';
         $this->activeUserService = new ActiveUserService();
     }
 

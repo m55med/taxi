@@ -35,7 +35,7 @@ class ProfileModel
     public function getAllAgentsWithUsers(): array
     {
         $sql = "SELECT 
-                    u.id as user_id,
+                    u.id,
                     u.username,
                     u.email,
                     r.name as role_name,
@@ -46,17 +46,27 @@ class ProfileModel
                     a.map_url,
                     a.latitude,
                     a.longitude,
-                    (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id) as total_visits,
-                    (SELECT COUNT(*) FROM referral_visits WHERE affiliate_user_id = u.id AND registration_status = 'successful') as total_registrations
+                    COALESCE(vs.total_visits, 0) as total_visits,
+                    COALESCE(vs.total_registrations, 0) as total_registrations,
+                    IF(COALESCE(vs.total_visits, 0) > 0, (COALESCE(vs.total_registrations, 0) / vs.total_visits) * 100, 0) AS conversion_rate
                 FROM users u
                 LEFT JOIN agents a ON u.id = a.user_id
                 JOIN roles r ON u.role_id = r.id
-                WHERE r.name = 'marketer'
+                LEFT JOIN (
+                    SELECT
+                        affiliate_user_id,
+                        COUNT(id) AS total_visits,
+                        SUM(CASE WHEN registration_status = 'successful' THEN 1 ELSE 0 END) AS total_registrations
+                    FROM referral_visits
+                    GROUP BY affiliate_user_id
+                ) AS vs ON u.id = vs.affiliate_user_id
+                WHERE r.name IN ('marketer', 'Team_leader')
                 ORDER BY u.username ASC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $results;
     }
 
     /**

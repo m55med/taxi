@@ -145,7 +145,7 @@ class ReferralController extends Controller
 
         $dashboardModel = $this->model('Referral/DashboardModel');
         $userId = $_SESSION['user_id'];
-        $userRole = $_SESSION['role_name'] ?? 'marketer'; // Default to marketer for safety
+        $userRole = $_SESSION['user']['role_name'] ?? 'marketer'; // Default to marketer for safety
 
         if ($userRole === 'admin') {
             $this->adminDashboard($dashboardModel);
@@ -159,29 +159,30 @@ class ReferralController extends Controller
         $filters = [
             'marketer_id' => filter_input(INPUT_GET, 'marketer_id', FILTER_VALIDATE_INT),
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
+            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'registration_status' => filter_input(INPUT_GET, 'registration_status', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'device_type' => filter_input(INPUT_GET, 'device_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
         ];
 
         $allMarketers = $this->model('Referral/ProfileModel')->getAllAgentsWithUsers();
+        $dashboardStats = $dashboardModel->getDashboardStats($filters);
+        $visits = $dashboardModel->getVisitsForMarketer(null, $filters);
 
-        // Calculate aggregate stats for summary cards
-        $total_marketers = count($allMarketers);
-        $total_visits = array_sum(array_column($allMarketers, 'total_visits'));
-        $total_registrations = array_sum(array_column($allMarketers, 'total_registrations'));
-        $overall_conversion_rate = ($total_visits > 0) ? ($total_registrations / $total_visits) * 100 : 0;
 
         $summary_stats = [
-            'total_marketers' => $total_marketers,
-            'total_visits' => $total_visits,
-            'total_registrations' => $total_registrations,
-            'conversion_rate' => $overall_conversion_rate
+            'total_marketers' => count($allMarketers),
+            'total_visits' => $dashboardStats['total_visits'],
+            'total_registrations' => $dashboardStats['total_registrations'],
+            'conversion_rate' => $dashboardStats['conversion_rate']
         ];
 
         $data = [
             'page_main_title' => 'Admin - Referral Dashboard',
             'marketers' => $allMarketers,
             'summary_stats' => $summary_stats,
-            'filters' => $filters
+            'filters' => $filters,
+            'dashboardStats' => $dashboardStats,
+            'visits' => $visits,
         ];
 
         $this->view('referral/dashboard/admin_dashboard', $data);
@@ -190,17 +191,31 @@ class ReferralController extends Controller
     private function marketerDashboard($dashboardModel, $userId)
     {
         $profileModel = $this->model('Referral/ProfileModel');
+        $userModel = $this->model('User/User'); // Assuming a general user model exists
 
         $filters = [
             'marketer_id' => $userId, // Marketer can only see their own data
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
+            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'registration_status' => filter_input(INPUT_GET, 'registration_status', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
+            'device_type' => filter_input(INPUT_GET, 'device_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
         ];
 
         $dashboardStats = $dashboardModel->getDashboardStats($filters);
         $visits = $dashboardModel->getVisitsForMarketer($userId, $filters);
+        
+        // Fetch base user info and agent profile separately
+        $user_info = $userModel->findUserById($userId);
         $agentProfile = $profileModel->getAgentByUserId($userId);
-        $workingHours = ($agentProfile) ? $profileModel->getWorkingHoursByAgentId($agentProfile['id']) : [];
+
+        // Merge user info into agent profile if it exists, otherwise use user info as the base
+        if ($agentProfile) {
+            $agentProfile = array_merge((array)$user_info, (array)$agentProfile);
+        } else {
+            $agentProfile = (array)$user_info;
+        }
+        
+        $workingHours = isset($agentProfile['id']) ? $profileModel->getWorkingHoursByAgentId($agentProfile['id']) : [];
 
         $data = [
             'page_main_title' => 'لوحة تحكم المناديب',
@@ -294,7 +309,7 @@ class ReferralController extends Controller
         // Determine which user's profile is being saved.
         $targetUserId = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
         $currentUserId = $_SESSION['user_id'];
-        $currentUserRole = $_SESSION['role_name'];
+        $currentUserRole = $_SESSION['user']['role_name'];
 
         // If no target user ID is provided, it's the current user editing their own profile.
         if (empty($targetUserId)) {

@@ -64,7 +64,6 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         ),
         'A' => 
         array (
-            'App\\controllers\\' => 16,
             'App\\' => 4,
         ),
     );
@@ -142,10 +141,6 @@ class ComposerStaticInit1f962c94f3e321929d001730cf05b41c
         'Complex\\' => 
         array (
             0 => __DIR__ . '/..' . '/markbaker/complex/classes/src',
-        ),
-        'App\\controllers\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/app/controllers',
         ),
         'App\\' => 
         array (

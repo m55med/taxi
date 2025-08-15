@@ -19,6 +19,12 @@ class DriversReport
         $whereConditions = [];
         $params = [];
 
+        if (!empty($filters['search'])) {
+            $searchTerm = '%' . $filters['search'] . '%';
+            $whereConditions[] = "(d.name LIKE ? OR d.phone LIKE ?)";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
         if (!empty($filters['main_system_status'])) {
             $whereConditions[] = "d.main_system_status = ?";
             $params[] = $filters['main_system_status'];
@@ -71,6 +77,22 @@ class DriversReport
         $stmtStats->execute($filterData['params']);
         $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
 
+        // Manually build distribution arrays
+        $stats['source_distribution'] = [
+            'form' => $stats['source_form'],
+            'referral' => $stats['source_referral'],
+            'telegram' => $stats['source_telegram'],
+            'staff' => $stats['source_staff'],
+        ];
+
+        $stats['status_distribution'] = [
+            'pending' => $stats['pending_drivers'],
+            'waiting_chat' => $stats['waiting_chat'],
+            'no_answer' => $stats['no_answer'],
+            'rescheduled' => $stats['rescheduled'],
+            'reconsider' => $stats['reconsider'],
+        ];
+
         $stats['docs_completion_rate'] = ($stats['total_drivers'] > 0) ? round(($stats['complete_docs'] / $stats['total_drivers']) * 100, 1) : 0;
         
         return $stats;
@@ -78,7 +100,7 @@ class DriversReport
 
     public function countDrivers($filters = [])
     {
-        $baseQuery = "FROM drivers d";
+        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id LEFT JOIN countries c ON d.country_id = c.id";
         $filterData = $this->getWhereClause($filters);
         $countSql = "SELECT COUNT(d.id) {$baseQuery} {$filterData['clause']}";
         
@@ -89,12 +111,13 @@ class DriversReport
 
     public function getPaginatedDrivers($limit, $offset, $filters = [])
     {
-        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id";
+        $baseQuery = "FROM drivers d LEFT JOIN users u ON d.added_by = u.id LEFT JOIN countries c ON d.country_id = c.id";
         $filterData = $this->getWhereClause($filters);
 
         $listSql = "SELECT 
-                        d.id, d.name, d.phone, d.main_system_status, d.data_source, d.created_at,
-                        u.username AS added_by_name
+                        d.id, d.name, d.phone, d.main_system_status, d.app_status, d.data_source, d.created_at,
+                        u.username AS added_by_name,
+                        c.name as country_name
                     {$baseQuery} {$filterData['clause']} 
                     ORDER BY d.created_at DESC
                     LIMIT {$limit} OFFSET {$offset}";
@@ -102,5 +125,16 @@ class DriversReport
         $stmtList = $this->db->prepare($listSql);
         $stmtList->execute($filterData['params']);
         return $stmtList->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getFilterOptions()
+    {
+        $statuses = $this->db->query("SELECT DISTINCT main_system_status FROM drivers ORDER BY main_system_status")->fetchAll(PDO::FETCH_COLUMN);
+        $sources = $this->db->query("SELECT DISTINCT data_source FROM drivers ORDER BY data_source")->fetchAll(PDO::FETCH_COLUMN);
+        
+        return [
+            'statuses' => $statuses,
+            'sources' => $sources,
+        ];
     }
 } 

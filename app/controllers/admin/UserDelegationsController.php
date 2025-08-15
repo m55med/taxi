@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Admin;
 
 use App\Core\Controller;
 use App\Models\Admin\UserDelegation;
@@ -16,7 +16,6 @@ class UserDelegationsController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->authorize('UserDelegations/index');
 
         $this->userDelegationModel = $this->model('Admin/UserDelegation');
         $this->delegationTypeModel = $this->model('Admin/DelegationType');
@@ -48,7 +47,7 @@ class UserDelegationsController extends Controller
 
             if (empty($userId) || empty($delegationTypeId) || empty($month) || empty($year)) {
                 flash('error', 'Please fill in all required fields.');
-                redirect('user-delegations');
+                redirect('admin/user-delegations');
                 return;
             }
 
@@ -61,9 +60,9 @@ class UserDelegationsController extends Controller
             } else {
                 flash('error', 'Failed to assign delegation.');
             }
-            redirect('user-delegations');
+            redirect('admin/user-delegations');
         } else {
-            redirect('user-delegations');
+            redirect('admin/user-delegations');
         }
     }
 
@@ -74,7 +73,7 @@ class UserDelegationsController extends Controller
 
             if (empty($id)) {
                 flash('error', 'Invalid ID.');
-                redirect('user-delegations');
+                redirect('admin/user-delegations');
                 return;
             }
 
@@ -83,9 +82,9 @@ class UserDelegationsController extends Controller
             } else {
                 flash('error', 'Failed to delete delegation.');
             }
-            redirect('user-delegations');
+            redirect('admin/user-delegations');
         } else {
-            redirect('user-delegations');
+            redirect('admin/user-delegations');
         }
     }
 } 

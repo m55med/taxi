@@ -66,8 +66,7 @@ if (
     $uri = empty($url) ? '' : implode('/', $url);
 
     try {
-        $router = Router::load('../app/routes/web.php');
-        $router->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+        (new Router())->loadRoutes('../app/routes/web.php')->dispatch($uri, $_SERVER['REQUEST_METHOD']);
     } catch (\Throwable $e) {
         http_response_code(500);
         echo "<h1>500 - Internal Server Error</h1>";

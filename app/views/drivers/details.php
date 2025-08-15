@@ -6,10 +6,6 @@ require_once APPROOT . '/helpers/session_helper.php';
 include_once APPROOT . '/views/includes/header.php';
 ?>
 
-<script>
-    const URLROOT = '<?= URLROOT ?>';
-</script>
-
 <main class="container mx-auto p-4 sm:p-6 lg:p-8">
 
     <!-- Driver Search Bar -->
@@ -40,7 +36,7 @@ include_once APPROOT . '/views/includes/header.php';
             <ul>
                 <template x-for="(driver, index) in results" :key="driver.id">
                     <li>
-                        <a :href="`<?= URLROOT ?>/drivers/details/${driver.id}`"
+                        <a :href="'<?= URLROOT ?>/drivers/details/' + driver.id"
                            @mouseenter="highlightedIndex = index"
                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-500 hover:text-white"
                            :class="{ 'bg-blue-500 text-white': highlightedIndex === index }">
@@ -338,7 +334,168 @@ include_once APPROOT . '/views/includes/header.php';
         });
     });
 </script>
-<script src="<?= URLROOT ?>/js/drivers/details.js?v=1.0"></script>
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('driverSearch', () => ({
+            query: '',
+            results: [],
+            isOpen: false,
+            isLoading: false,
+            highlightedIndex: -1,
+            search() {
+                if (this.query.length < 2) {
+                    this.results = [];
+                    this.isOpen = false;
+                    return;
+                }
+                this.isLoading = true;
+                this.isOpen = true;
+                fetch(URLROOT + '/drivers/search?q=' + this.query)
+                    .then(response => response.json())
+                    .then(data => {
+                        this.results = data;
+                        this.isLoading = false;
+                        this.highlightedIndex = -1;
+                    })
+                    .catch(() => {
+                        this.isLoading = false;
+                        this.results = [];
+                    });
+            },
+            highlightNext() {
+                if (this.highlightedIndex < this.results.length - 1) {
+                    this.highlightedIndex++;
+                }
+            },
+            highlightPrev() {
+                if (this.highlightedIndex > 0) {
+                    this.highlightedIndex--;
+                }
+            },
+            selectHighlighted() {
+                if (this.highlightedIndex > -1) {
+                    window.location.href = URLROOT + '/drivers/details/' + this.results[this.highlightedIndex].id;
+                }
+            }
+        }));
+
+        Alpine.data('driverDetails', (data) => ({
+            driver: data.driver,
+            documents: data.driverDocuments,
+            unassignedDocuments: data.unassignedDocuments,
+            newDocumentId: '',
+            documentToRemove: null,
+            isModalOpen: false,
+
+            init() {
+                // Initialization logic can go here
+            },
+
+            addDocument() {
+                if (!this.newDocumentId) {
+                    toastr.error('Please select a document to add.');
+                    return;
+                }
+                fetch(URLROOT + '/drivers/addDocument', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            driver_id: this.driver.id,
+                            document_type_id: this.newDocumentId
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            this.documents.push(result.document);
+                            this.unassignedDocuments = this.unassignedDocuments.filter(d => d.id != this.newDocumentId);
+                            this.newDocumentId = '';
+                            toastr.success('Document requirement added successfully.');
+                            this.updateMissingDocsStatus();
+                        } else {
+                            toastr.error(result.message || 'Failed to add document.');
+                        }
+                    });
+            },
+
+            updateDocument(doc) {
+                fetch(URLROOT + '/drivers/updateDocument', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            driver_document_id: doc.id,
+                            status: doc.status,
+                            note: doc.note
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            toastr.success('Document updated successfully.');
+                            const updatedDoc = this.documents.find(d => d.id === doc.id);
+                            if (updatedDoc && result.document) {
+                                updatedDoc.updated_at = result.document.updated_at;
+                                updatedDoc.updated_by = result.document.updated_by;
+                            }
+                            this.updateMissingDocsStatus();
+                        } else {
+                            toastr.error(result.message || 'Failed to update document.');
+                        }
+                    });
+            },
+
+            removeDocument(docId) {
+                this.documentToRemove = docId;
+                this.isModalOpen = true;
+            },
+
+            confirmRemoveDocument() {
+                if (!this.documentToRemove) return;
+
+                fetch(URLROOT + '/drivers/removeDocument', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            driver_document_id: this.documentToRemove
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            const removedDoc = this.documents.find(d => d.id === this.documentToRemove);
+                            this.documents = this.documents.filter(d => d.id !== this.documentToRemove);
+                            if (removedDoc) {
+                                this.unassignedDocuments.push({
+                                    id: removedDoc.document_type_id,
+                                    name: removedDoc.name
+                                });
+                            }
+                            toastr.success('Document requirement removed.');
+                            this.updateMissingDocsStatus();
+                        } else {
+                            toastr.error(result.message || 'Failed to remove document.');
+                        }
+                        this.closeModal();
+                    });
+            },
+
+            updateMissingDocsStatus() {
+                this.driver.has_missing_documents = this.documents.some(d => d.status === 'missing' || d.status === 'rejected');
+            },
+
+            closeModal() {
+                this.isModalOpen = false;
+                this.documentToRemove = null;
+            }
+        }));
+    });
+</script>
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>

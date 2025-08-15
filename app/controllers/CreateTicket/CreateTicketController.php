@@ -12,7 +12,7 @@ class CreateTicketController extends Controller
     public function __construct()
     {
         parent::__construct();
-        $this->createTicketModel = new \App\Models\create_ticket\CreateTicketModel();
+        $this->createTicketModel = new \App\Models\Create_ticket\CreateTicketModel();
     }
 
     public function index()

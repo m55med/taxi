@@ -12,11 +12,11 @@ class Router
     ];
     private $latestRoute = null;
 
-    public static function load($file)
+    public function loadRoutes($file)
     {
-        $router = new static;
+        $router = $this;
         require $file;
-        return $router;
+        return $this;
     }
 
     public function get($uri, $controller)
@@ -76,6 +76,18 @@ class Router
 
     public function dispatch($uri, $requestType)
     {
+        // header('Content-Type: text/plain; charset=utf-8');
+        // echo "--- DEBUG INFO ---\n\n";
+        // echo "URI Requested: '$uri'\n";
+        // echo "Request Method: '$requestType'\n\n";
+        // echo "Registered GET Routes:\n";
+        // print_r(array_keys($this->routes['GET']));
+        // echo "\n";
+        // echo "Registered POST Routes:\n";
+        // print_r(array_keys($this->routes['POST']));
+        // echo "\n--- END DEBUG ---";
+        // exit;
+
         $uri = trim($uri, '/');
 
         // Check for direct static match first
@@ -140,7 +152,7 @@ class Router
     {
         http_response_code(404);
         error_log("404 Not Found: " . $message);
-        require_once '../app/views/errors/404.php';
+        require_once APPROOT . '/views/errors/404.php';
         exit;
     }
 }

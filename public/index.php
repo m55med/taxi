@@ -57,7 +57,7 @@ $base_url = preg_replace('/\/public$/', '', $base_url);
 
 
 define('URLROOT', $protocol . $host . $base_url);
-define('BASE_URL', $base_url);
+define('BASE_URL', URLROOT);
 
 // Debug output to browser console (optional)
 if (
@@ -81,7 +81,7 @@ require_once APPROOT . '/helpers/session_helper.php';
 require_once APPROOT . '/helpers/view_helper.php';
 
 // Load the main App class definition
-require_once APPROOT . '/core/App.php';
+require_once APPROOT . '/Core/App.php';
 
 // Load API routes
 require_once APPROOT . '/routes/api.php';

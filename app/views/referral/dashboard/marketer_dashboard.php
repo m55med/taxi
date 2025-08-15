@@ -1,5 +1,4 @@
 <?php require_once APPROOT . '/views/includes/header.php'; ?>
-
 <div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="{ activeTab: 'reports' }">
     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($data['page_main_title']); ?></h1>
 
@@ -48,13 +47,27 @@
 
         <!-- Profile Section -->
         <div x-show="activeTab === 'profile'" x-transition>
-             <?php // Note: We might need to create this partial if it doesn't exist.
+             <?php if (!empty($agentProfile)): ?>
+                <?php // Note: We might need to create this partial if it doesn't exist.
                 if (file_exists(APPROOT . '/views/referral/profile/_profile.php')) {
-                    include_once APPROOT . '/views/referral/profile/_profile.php';
+                    // Pass the necessary data to the partial view
+                    $profile_data = [
+                        'agentProfile' => $agentProfile,
+                        'working_hours' => $working_hours,
+                        'user' => (object) ['id' => $_SESSION['user_id']] // Pass user ID for the form action
+                    ];
+                    extract($profile_data);
+                    include APPROOT . '/views/referral/profile/_profile.php';
                 } else {
                     echo "<p>Profile view not found.</p>";
                 }
             ?>
+            <?php else: ?>
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+                    <p class="font-bold">ملف غير مكتمل</p>
+                    <p>يرجى إكمال ملفك الشخصي لبدء استخدام جميع الميزات. <a href="<?= URLROOT ?>/referral/editProfile/<?= $_SESSION['user_id'] ?>" class="font-bold underline">إكمال الآن</a></p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

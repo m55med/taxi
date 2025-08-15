@@ -8,6 +8,9 @@
 
     <script>var URLROOT = "<?= URLROOT ?>";</script>
     
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
     <!-- AlpineJS Collapse Plugin & Core -->
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -36,13 +39,27 @@
                 },
                 fetchNotifications() {
                     fetch('<?= URLROOT ?>/notifications/getNavNotifications')
-                        .then(res => res.json())
+                        .then(res => {
+                            if (!res.ok) {
+                                // If response is not ok (like a 401 or 500), throw an error to be caught by the .catch block
+                                throw new Error(`HTTP error! status: ${res.status}`);
+                            }
+                            return res.json();
+                        })
                         .then(data => {
-                            if (data) {
+                            if (data && data.notifications) {
                                 this.notifications = data.notifications.map(n => ({...n, timeAgo: this.formatTimeAgo(n.created_at)}));
                                 this.unreadCount = data.unread_count;
+                            } else {
+                                // Handle cases where data is not in the expected format, but the request was successful
+                                this.notifications = [];
+                                this.unreadCount = 0;
                             }
-                        }).catch(err => console.error('Error fetching nav notifications:', err));
+                        }).catch(err => {
+                            console.error('Error fetching nav notifications:', err);
+                            this.notifications = [];
+                            this.unreadCount = 0;
+                        });
                 },
                 markAsRead(id) {
                     const notification = this.notifications.find(n => n.id === id);

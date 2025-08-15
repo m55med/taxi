@@ -357,4 +357,83 @@ class DriverController extends Controller
             );
         }
     }
+
+
+    public function addDocument()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            $driverId = $data['driver_id'] ?? null;
+            $docTypeId = $data['document_type_id'] ?? null;
+
+            if (!$driverId || !$docTypeId) {
+                throw new Exception('Missing required parameters.', 400);
+            }
+
+            $newDocument = $this->documentModel->addDriverDocument($driverId, $docTypeId);
+            $this->documentModel->updateDriverMissingDocsFlag($driverId);
+
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Document requirement added successfully.',
+                'document' => $newDocument
+            ]);
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], $e->getCode() ?: 500);
+        }
+    }
+
+    public function updateDocument()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $driverDocId = $data['driver_document_id'] ?? null;
+            $status = $data['status'] ?? '';
+            $note = $data['note'] ?? '';
+
+            if (!$driverDocId || empty($status)) {
+                throw new Exception('Missing required parameters.', 400);
+            }
+
+            $updatedDocument = $this->documentModel->updateDriverDocument($driverDocId, $status, $note);
+            $driverId = $this->documentModel->getDriverIdByDriverDocumentId($driverDocId);
+            if ($driverId) {
+                $this->documentModel->updateDriverMissingDocsFlag($driverId);
+            }
+
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Document updated successfully.',
+                'document' => $updatedDocument
+            ]);
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], $e->getCode() ?: 500);
+        }
+    }
+
+    public function removeDocument()
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $driverDocId = $data['driver_document_id'] ?? null;
+
+            if (!$driverDocId) {
+                throw new Exception('Missing required parameters.', 400);
+            }
+
+            $driverId = $this->documentModel->getDriverIdByDriverDocumentId($driverDocId);
+            $this->documentModel->removeDriverDocumentById($driverDocId);
+            if ($driverId) {
+                $this->documentModel->updateDriverMissingDocsFlag($driverId);
+            }
+
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Document requirement removed successfully.'
+            ]);
+        } catch (Exception $e) {
+            $this->sendJsonResponse(['success' => false, 'message' => $e->getMessage()], $e->getCode() ?: 500);
+        }
+    }
 }

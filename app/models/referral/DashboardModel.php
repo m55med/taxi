@@ -55,13 +55,25 @@ class DashboardModel
     {
         $sql = "SELECT 
                     rv.*,
+                    u.username as affiliate_name,
                     d.name as driver_name
                 FROM referral_visits rv
-                LEFT JOIN drivers d ON rv.registered_driver_id = d.id
-                WHERE rv.affiliate_user_id = :user_id";
+                LEFT JOIN users u ON rv.affiliate_user_id = u.id
+                LEFT JOIN drivers d ON rv.registered_driver_id = d.id";
 
-        $params = [':user_id' => $user_id];
+        $params = [];
         $where = [];
+
+        // This handles marketer's own dashboard, and admin viewing a specific marketer's details page
+        if (!empty($user_id)) {
+            $where[] = "rv.affiliate_user_id = :user_id";
+            $params[':user_id'] = $user_id;
+        } 
+        // This handles the admin's filter on the main dashboard
+        elseif (!empty($filters['marketer_id'])) {
+            $where[] = "rv.affiliate_user_id = :marketer_id";
+            $params[':marketer_id'] = $filters['marketer_id'];
+        }
         
         if (!empty($filters['start_date'])) {
             $where[] = "DATE(rv.visit_recorded_at) >= :start_date";
@@ -73,7 +85,7 @@ class DashboardModel
         }
 
         if (!empty($where)) {
-            $sql .= " AND " . implode(' AND ', $where);
+            $sql .= " WHERE " . implode(' AND ', $where);
         }
 
         $sql .= " ORDER BY rv.visit_recorded_at DESC";
@@ -131,27 +143,52 @@ class DashboardModel
 
         $limit_clause = "ORDER BY count DESC LIMIT 5";
         
-        $query_referers = "SELECT referer_url, COUNT(v.id) as count $base_query $where_sql AND referer_url IS NOT NULL AND referer_url != '' GROUP BY referer_url $limit_clause";
+        // --- Top Referers ---
+        $where_referers = $where_clauses;
+        $where_referers[] = "v.referer_url IS NOT NULL";
+        $where_referers[] = "v.referer_url != ''";
+        $where_sql_referers = count($where_referers) > 0 ? "WHERE " . implode(' AND ', $where_referers) : "";
+        $query_referers = "SELECT v.referer_url, COUNT(v.id) as count $base_query $where_sql_referers GROUP BY v.referer_url $limit_clause";
         $stmt_referers = $this->db->prepare($query_referers);
         $stmt_referers->execute($params);
         $stats['top_referers'] = $stmt_referers->fetchAll(PDO::FETCH_ASSOC);
-        
-        $query_countries = "SELECT country, COUNT(v.id) as count $base_query $where_sql AND country IS NOT NULL AND country != '' GROUP BY country $limit_clause";
+
+        // --- Top Countries ---
+        $where_countries = $where_clauses;
+        $where_countries[] = "v.country IS NOT NULL";
+        $where_countries[] = "v.country != ''";
+        $where_sql_countries = count($where_countries) > 0 ? "WHERE " . implode(' AND ', $where_countries) : "";
+        $query_countries = "SELECT v.country, COUNT(v.id) as count $base_query $where_sql_countries GROUP BY v.country $limit_clause";
         $stmt_countries = $this->db->prepare($query_countries);
         $stmt_countries->execute($params);
         $stats['top_countries'] = $stmt_countries->fetchAll(PDO::FETCH_ASSOC);
 
-        $query_devices = "SELECT device_type, COUNT(v.id) as count $base_query $where_sql AND device_type IS NOT NULL AND device_type != 'Unknown' GROUP BY device_type $limit_clause";
+        // --- Top Devices ---
+        $where_devices = $where_clauses;
+        $where_devices[] = "v.device_type IS NOT NULL";
+        $where_devices[] = "v.device_type != 'Unknown'";
+        $where_sql_devices = count($where_devices) > 0 ? "WHERE " . implode(' AND ', $where_devices) : "";
+        $query_devices = "SELECT v.device_type, COUNT(v.id) as count $base_query $where_sql_devices GROUP BY v.device_type $limit_clause";
         $stmt_devices = $this->db->prepare($query_devices);
         $stmt_devices->execute($params);
         $stats['top_device_types'] = $stmt_devices->fetchAll(PDO::FETCH_ASSOC);
 
-        $query_browsers = "SELECT browser_name, COUNT(v.id) as count $base_query $where_sql AND browser_name IS NOT NULL AND browser_name != 'Unknown' GROUP BY browser_name $limit_clause";
+        // --- Top Browsers ---
+        $where_browsers = $where_clauses;
+        $where_browsers[] = "v.browser_name IS NOT NULL";
+        $where_browsers[] = "v.browser_name != 'Unknown'";
+        $where_sql_browsers = count($where_browsers) > 0 ? "WHERE " . implode(' AND ', $where_browsers) : "";
+        $query_browsers = "SELECT v.browser_name, COUNT(v.id) as count $base_query $where_sql_browsers GROUP BY v.browser_name $limit_clause";
         $stmt_browsers = $this->db->prepare($query_browsers);
         $stmt_browsers->execute($params);
         $stats['top_browsers'] = $stmt_browsers->fetchAll(PDO::FETCH_ASSOC);
 
-        $query_os = "SELECT operating_system, COUNT(v.id) as count $base_query $where_sql AND operating_system IS NOT NULL AND operating_system != 'Unknown' GROUP BY operating_system $limit_clause";
+        // --- Top OS ---
+        $where_os = $where_clauses;
+        $where_os[] = "v.operating_system IS NOT NULL";
+        $where_os[] = "v.operating_system != 'Unknown'";
+        $where_sql_os = count($where_os) > 0 ? "WHERE " . implode(' AND ', $where_os) : "";
+        $query_os = "SELECT v.operating_system, COUNT(v.id) as count $base_query $where_sql_os GROUP BY v.operating_system $limit_clause";
         $stmt_os = $this->db->prepare($query_os);
         $stmt_os->execute($params);
         $stats['top_os'] = $stmt_os->fetchAll(PDO::FETCH_ASSOC);

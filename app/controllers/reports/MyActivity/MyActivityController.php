@@ -50,7 +50,7 @@ class MyActivityController extends Controller
         $reportData = $this->UsersReportModel->getUsersReportWithPoints($filters);
         $user_activity_data = !empty($reportData['users']) ? $reportData['users'][0] : null;
 
-        $user_info = $this->UserModel->findById($user_id);
+        $user_info = $this->UserModel->getUserById($user_id);
 
         $data = [
             'title' => 'My Activity Report',

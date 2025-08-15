@@ -57,9 +57,9 @@ class DriversController extends Controller
             'main_system_status' => $_GET['main_system_status'] ?? '',
             'data_source' => $_GET['data_source'] ?? '',
             'has_missing_documents' => $_GET['has_missing_documents'] ?? '',
-            'date_from' => $_GET['date_from'] ?? date('Y-m-01'),
-            'date_to' => $_GET['date_to'] ?? date('Y-m-t'),
-            'period' => $_GET['period'] ?? 'custom',
+            'date_from' => $_GET['date_from'] ?? '',
+            'date_to' => $_GET['date_to'] ?? '',
+            'period' => $_GET['period'] ?? 'all',
         ];
 
         if (!empty($_GET['period']) && $_GET['period'] !== 'custom') {

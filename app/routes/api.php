@@ -15,6 +15,8 @@ function handle_api_routes($url) {
     array_shift($url);
 
     // Manually load controllers as needed for the routes below
+    require_once APPROOT . '/Controllers/Api/ApiController.php';
+    require_once APPROOT . '/Controllers/driver/DriverController.php';
     $controller = new ApiController();
     $driverController = new DriverController();
 
@@ -41,6 +43,19 @@ function handle_api_routes($url) {
     // Route: /api/drivers/search
     if (!empty($url[0]) && $url[0] === 'drivers' && !empty($url[1]) && $url[1] === 'search' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $driverController->search();
+        return true; // Route was handled
+    }
+
+    // Route: /api/restaurants/create
+    if (!empty($url[0]) && $url[0] === 'restaurants' && !empty($url[1]) && $url[1] === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $controller->createRestaurant();
+        return true; // Route was handled
+    }
+
+    // Route: /api/restaurants/upload-pdf/{id}
+    if (!empty($url[0]) && $url[0] === 'restaurants' && !empty($url[1]) && $url[1] === 'upload-pdf' && !empty($url[2]) && is_numeric($url[2]) && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $id = (int)$url[2];
+        $controller->updateRestaurantPdf($id);
         return true; // Route was handled
     }
 

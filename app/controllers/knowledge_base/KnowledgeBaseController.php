@@ -14,7 +14,7 @@ class KnowledgeBaseController extends Controller
         if (!Auth::isLoggedIn()) {
             redirect('/auth/login');
         }
-        $this->kbModel = $this->model('knowledge_base/KnowledgeBaseModel');
+        $this->kbModel = $this->model('Knowledge_base/KnowledgeBaseModel');
     }
 
     /**

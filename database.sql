@@ -837,3 +837,24 @@ CREATE TABLE employee_evaluations (
     CONSTRAINT chk_score CHECK (score >= 0 AND score <= 10),
     UNIQUE KEY uk_evaluation_period (user_id, applicable_month, applicable_year)
 );
+
+
+
+
+CREATE TABLE IF NOT EXISTS restaurants (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name_ar VARCHAR(255) NULL,
+    name_en VARCHAR(255) NULL,
+    category VARCHAR(100) NULL,
+    governorate VARCHAR(100) NULL,
+    city VARCHAR(100) NULL,
+    address TEXT NULL,
+    is_chain TINYINT(1) NULL, -- 0 أو 1
+    num_stores INT NULL,
+    contact_name VARCHAR(255) NULL,
+    email VARCHAR(255) NULL,
+    phone VARCHAR(50) NULL,
+    pdf_path VARCHAR(500) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

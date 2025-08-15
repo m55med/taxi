@@ -1,3 +1,11 @@
+
+            </main>
+
+            <footer class="border-t bg-white px-4 py-3 text-center text-sm text-gray-500">
+                &copy; <?= date('Y') ?> Taxi CS. All Rights Reserved.
+            </footer>
+        </div>
+    </div>
     <!-- Notifications Modal and Handling -->
     <div x-data="notificationsComponent" x-init="init()" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-show="modalOpen" @keydown.escape.window="modalOpen = false" style="display: none;">
         <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">

@@ -30,7 +30,7 @@ class DelegationTypesController extends Controller
 
             if (empty($name) || !is_numeric($percentage)) {
                 flash('error', 'Please fill in all fields correctly.');
-                redirect('delegation-types');
+                redirect('admin/delegation-types');
                 return;
             }
 
@@ -39,9 +39,9 @@ class DelegationTypesController extends Controller
             } else {
                 flash('error', 'Failed to create delegation type.');
             }
-            redirect('delegation-types');
+            redirect('admin/delegation-types');
         } else {
-            redirect('delegation-types');
+            redirect('admin/delegation-types');
         }
     }
     
@@ -54,7 +54,7 @@ class DelegationTypesController extends Controller
 
             if (empty($name) || !is_numeric($percentage) || empty($id)) {
                 flash('error', 'Invalid data provided.');
-                redirect('delegation-types');
+                redirect('admin/delegation-types');
                 return;
             }
 
@@ -63,9 +63,9 @@ class DelegationTypesController extends Controller
             } else {
                 flash('error', 'Failed to update delegation type.');
             }
-             redirect('delegation-types');
+             redirect('admin/delegation-types');
         } else {
-             redirect('delegation-types');
+             redirect('admin/delegation-types');
         }
     }
 
@@ -77,7 +77,7 @@ class DelegationTypesController extends Controller
             
             if (empty($id)) {
                 flash('error', 'Invalid ID.');
-                redirect('delegation-types');
+                redirect('admin/delegation-types');
                 return;
             }
 
@@ -86,9 +86,9 @@ class DelegationTypesController extends Controller
             } else {
                 flash('error', 'Failed to delete delegation type. It might be in use.');
             }
-            redirect('delegation-types');
+            redirect('admin/delegation-types');
         } else {
-            redirect('delegation-types');
+            redirect('admin/delegation-types');
         }
     }
 } 

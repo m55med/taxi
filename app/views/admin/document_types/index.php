@@ -9,14 +9,56 @@ if (isset($_SESSION['document_type_message'])) {
     unset($_SESSION['document_type_message'], $_SESSION['document_type_message_type']);
 }
 ?>
+<script>
+    function documentTypesPage(flashMessage) {
+        return {
+            toast: { show: false, message: '', type: 'success' },
+            deleteModal: { open: false, message: '', actionUrl: '' },
+            form: { id: null, name: '' },
 
+            init() {
+                if (flashMessage) {
+                    this.showToast(flashMessage.message, flashMessage.type);
+                }
+            },
 
-<body class="bg-gray-100" x-data="documentTypesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
+            showToast(message, type = 'success') {
+                this.toast = { show: true, message, type };
+                setTimeout(() => this.toast.show = false, 4000);
+            },
 
+            editType(docType) {
+                this.form.id = docType.id;
+                this.form.name = docType.name;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            resetForm() {
+                this.form.id = null;
+                this.form.name = '';
+            },
+
+            submitForm() {
+                const formRef = this.$refs.form;
+                formRef.action = this.form.id
+                    ? `<?= URLROOT ?>/admin/document_types/update`
+                    : `<?= URLROOT ?>/admin/document_types/store`;
+                formRef.submit();
+            },
+
+            confirmDelete(id, name) {
+                this.deleteModal.message = `Are you sure you want to delete the document type "<strong>${name}</strong>"? This action cannot be undone.`;
+                this.deleteModal.actionUrl = `<?= URLROOT ?>/admin/document_types/delete/${id}`;
+                this.deleteModal.open = true;
+            }
+        }
+    }
+</script>
+<div x-data="documentTypesPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()" x-cloak>
     <?php require_once __DIR__ . '/../../includes/header.php'; ?>
 
     <!-- Flash Message Toast -->
-    <div class="toast-container fixed top-5 right-5">
+    <div class="toast-container fixed top-5 right-5 z-50">
         <div x-show="toast.show" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 transform translate-y-2"
             x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -140,52 +182,4 @@ if (isset($_SESSION['document_type_message'])) {
     </form>
 
     <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
-
-    <script>
-        function documentTypesPage(flashMessage) {
-            return {
-                toast: { show: false, message: '', type: 'success' },
-                deleteModal: { open: false, message: '', actionUrl: '' },
-                form: { id: null, name: '' },
-
-                init() {
-                    if (flashMessage) {
-                        this.showToast(flashMessage.message, flashMessage.type);
-                    }
-                },
-
-                showToast(message, type = 'success') {
-                    this.toast = { show: true, message, type };
-                    setTimeout(() => this.toast.show = false, 4000);
-                },
-
-                editType(docType) {
-                    this.form.id = docType.id;
-                    this.form.name = docType.name;
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                },
-
-                resetForm() {
-                    this.form.id = null;
-                    this.form.name = '';
-                },
-
-                submitForm() {
-                    const formRef = this.$refs.form;
-                    formRef.action = this.form.id
-                        ? `<?= URLROOT ?>/admin/document_types/update`
-                        : `<?= URLROOT ?>/admin/document_types/store`;
-                    formRef.submit();
-                },
-
-                confirmDelete(id, name) {
-                    this.deleteModal.message = `Are you sure you want to delete the document type "<strong>${name}</strong>"? This action cannot be undone.`;
-                    this.deleteModal.actionUrl = `<?= URLROOT ?>/admin/document_types/delete/${id}`;
-                    this.deleteModal.open = true;
-                }
-            }
-        }
-    </script>
-</body>
-
-</html>
+</div>

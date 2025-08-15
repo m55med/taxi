@@ -1,5 +1,4 @@
 <?php require APPROOT . '/views/includes/header.php'; ?>
-
 <div class="container mx-auto p-6 bg-gray-50 min-h-screen">
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -111,7 +110,7 @@
                     <?php else: ?>
                         <?php foreach ($data['drivers'] as $driver): ?>
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4"><a href="<?= BASE_PATH ?>/drivers/details/<?= $driver['id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($driver['name']) ?></a></td>
+                                <td class="px-6 py-4"><a href="<?= URLROOT ?>/drivers/details/<?= $driver['id'] ?>" class="text-indigo-600 hover:underline font-semibold"><?= htmlspecialchars($driver['name']) ?></a></td>
                                 <td class="px-6 py-4 text-sm text-gray-600"><?= htmlspecialchars($driver['phone']) ?></td>
                                 <td class="px-6 py-4 text-sm text-gray-600"><?= htmlspecialchars($driver['country_name'] ?? 'N/A') ?></td>
                                 <td class="px-6 py-4 text-center">

@@ -23,7 +23,8 @@ class Document
     {
         $sql = "
             SELECT
-                dt.id,
+                ddr.id,
+                ddr.document_type_id,
                 dt.name,
                 ddr.status,
                 ddr.note,
@@ -109,14 +110,66 @@ class Document
         return $stmt->execute($params);
     }
 
-    /**
-     * Removes a document requirement for a driver.
-     */
-    public function removeDriverDocument($driverId, $docTypeId)
+    public function addDriverDocument($driverId, $docTypeId)
     {
-        $sql = "DELETE FROM driver_documents_required WHERE driver_id = :driver_id AND document_type_id = :doc_type_id";
+        $sql = "INSERT INTO driver_documents_required (driver_id, document_type_id, status, updated_by) VALUES (:driver_id, :doc_type_id, 'missing', :user_id)";
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':driver_id' => $driverId, ':doc_type_id' => $docTypeId]);
+        $stmt->execute([
+            ':driver_id' => $driverId,
+            ':doc_type_id' => $docTypeId,
+            ':user_id' => $_SESSION['user_id'] ?? null
+        ]);
+        $id = $this->db->lastInsertId();
+        return $this->getDriverDocumentById($id);
+    }
+
+    public function updateDriverDocument($driverDocId, $status, $note)
+    {
+        $sql = "UPDATE driver_documents_required SET status = :status, note = :note, updated_by = :user_id, updated_at = NOW() WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':status' => $status,
+            ':note' => $note,
+            ':user_id' => $_SESSION['user_id'] ?? null,
+            ':id' => $driverDocId
+        ]);
+        return $this->getDriverDocumentById($driverDocId);
+    }
+
+    public function removeDriverDocumentById($driverDocId)
+    {
+        $sql = "DELETE FROM driver_documents_required WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([':id' => $driverDocId]);
+    }
+
+    public function getDriverDocumentById($id)
+    {
+        $sql = "
+            SELECT
+                ddr.id,
+                ddr.document_type_id,
+                dt.name,
+                ddr.status,
+                ddr.note,
+                ddr.updated_at,
+                u.username AS updated_by
+            FROM driver_documents_required ddr
+            JOIN document_types dt ON ddr.document_type_id = dt.id
+            LEFT JOIN users u ON ddr.updated_by = u.id
+            WHERE ddr.id = :id
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getDriverIdByDriverDocumentId($driverDocId)
+    {
+        $sql = "SELECT driver_id FROM driver_documents_required WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $driverDocId]);
+        return $stmt->fetchColumn();
     }
 
     /**
