@@ -15,20 +15,22 @@
                     <tr>
                         <th scope="col" class="px-4 py-3">اسم المستخدم</th>
                         <th scope="col" class="px-4 py-3">الزيارات</th>
-                        <th scope="col" class="px-4 py-3">التسجيلات</th>
+                        <th scope="col" class="px-4 py-3">تسجيلات السائقين</th>
+                        <th scope="col" class="px-4 py-3">تسجيلات المطاعم</th>
                         <th scope="col" class="px-4 py-3">نسبة التحويل</th>
                         <th scope="col" class="px-4 py-3">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($data['marketers'])): ?>
-                        <tr><td colspan="5" class="px-6 py-4 text-center">لم يتم العثور على مسوقين.</td></tr>
+                        <tr><td colspan="6" class="px-6 py-4 text-center">لم يتم العثور على مسوقين.</td></tr>
                     <?php else: ?>
                         <?php foreach ($data['marketers'] as $marketer): ?>
                         <tr class="bg-white border-b hover:bg-gray-50">
                             <td class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap"><?= htmlspecialchars($marketer['username']) ?></td>
                             <td class="px-4 py-4"><?= number_format($marketer['total_visits'] ?? 0) ?></td>
                             <td class="px-4 py-4"><?= number_format($marketer['total_registrations'] ?? 0) ?></td>
+                            <td class="px-4 py-4"><?= number_format($marketer['total_restaurants'] ?? 0) ?></td>
                             <td class="px-4 py-4"><?= number_format($marketer['conversion_rate'] ?? 0, 2) ?>%</td>
                             <td class="px-4 py-4 whitespace-nowrap">
                                 <a href="<?= URLROOT ?>/referral/marketerDetails/<?= $marketer['id'] ?>" class="font-medium text-blue-600 hover:underline mr-4">تفاصيل</a>

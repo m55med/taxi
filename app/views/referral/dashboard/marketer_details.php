@@ -61,6 +61,42 @@
             </table>
         </div>
     </div>
+
+    <!-- Referred Restaurants Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mt-8">
+        <div class="p-4 sm:p-6">
+            <h2 class="text-xl font-semibold text-gray-700">المطاعم المسجلة</h2>
+            <p class="mt-1 text-sm text-gray-500">قائمة بكل مطعم تم تسجيله بواسطة رابط الإحالة الخاص بهذا المسوق.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">الاسم (انجليزي)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">الاسم (عربي)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">الهاتف</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">العنوان</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php if (empty($data['referredRestaurants'])): ?>
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">لا توجد مطاعم مسجلة بعد.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($data['referredRestaurants'] as $restaurant): ?>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($restaurant['name_en']) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($restaurant['name_ar']) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" dir="ltr"><?= htmlspecialchars($restaurant['phone']) ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($restaurant['address']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <?php require_once APPROOT . '/views/includes/footer.php'; ?> 

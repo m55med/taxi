@@ -77,6 +77,22 @@
     </div>
 </div>
 
+<!-- Restaurant Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+        <h3 class="text-sm font-medium text-gray-500">إجمالي زيارات المطاعم</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($restaurantStats['total_visits'] ?? 0); ?></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+        <h3 class="text-sm font-medium text-gray-500">إجمالي تسجيلات المطاعم</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($restaurantStats['total_registrations'] ?? 0); ?></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-pink-500">
+        <h3 class="text-sm font-medium text-gray-500">نسبة تحويل المطاعم</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($restaurantStats['conversion_rate'] ?? 0, 2); ?>%</p>
+    </div>
+</div>
+
 <!-- Detailed Stats -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">

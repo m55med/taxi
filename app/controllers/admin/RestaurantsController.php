@@ -4,6 +4,7 @@ namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\helpers\ExportHelper;
+use App\Core\Auth;
 
 class RestaurantsController extends Controller
 {
@@ -11,17 +12,47 @@ class RestaurantsController extends Controller
 
     public function __construct()
     {
-        parent::__construct();
+        // Use the centralized admin check for consistency.
+        Auth::checkAdmin();
         $this->restaurantModel = $this->model('Admin/Restaurant');
     }
 
     public function index()
     {
-        $restaurants = $this->restaurantModel->getAll();
+
+
+        $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $recordsPerPage = 25;
+
+        $filters = [
+            'search' => filter_input(INPUT_GET, 'search', FILTER_SANITIZE_SPECIAL_CHARS),
+            'governorate' => filter_input(INPUT_GET, 'governorate', FILTER_SANITIZE_SPECIAL_CHARS),
+            'category' => filter_input(INPUT_GET, 'category', FILTER_SANITIZE_SPECIAL_CHARS),
+            'marketer' => filter_input(INPUT_GET, 'marketer', FILTER_SANITIZE_NUMBER_INT),
+            'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_SPECIAL_CHARS),
+            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_SPECIAL_CHARS),
+        ];
+
+        $result = $this->restaurantModel->getFilteredRestaurants($filters, $currentPage, $recordsPerPage);
+        $restaurants = $result['data'];
+        $totalRecords = $result['total'];
+
+        $marketers = $this->restaurantModel->getMarketers();
+        $governorates = $this->restaurantModel->getGovernorates();
+        $categories = $this->restaurantModel->getCategories();
+        $stats = $this->restaurantModel->getStats($filters);
 
         $data = [
             'page_title' => 'Manage Restaurants',
             'restaurants' => $restaurants,
+            'marketers' => $marketers,
+            'governorates' => $governorates,
+            'categories' => $categories,
+            'stats' => $stats,
+            'filters' => $filters,
+            'currentPage' => $currentPage,
+            'totalPages' => ceil($totalRecords / $recordsPerPage),
+            'totalRecords' => $totalRecords
         ];
 
         $this->view('admin/restaurants/index', $data);
@@ -29,6 +60,10 @@ class RestaurantsController extends Controller
 
     public function export($format = 'excel')
     {
+        if (!isLoggedIn() || !isAdmin()) {
+            redirect('auth/login');
+        }
+        
         $restaurants = $this->restaurantModel->getAll();
         
         $fileName = 'restaurants_' . date('Y-m-d');
@@ -69,6 +104,10 @@ class RestaurantsController extends Controller
 
     public function edit($id)
     {
+        if (!isLoggedIn() || !isAdmin()) {
+            redirect('auth/login');
+        }
+
         $restaurant = $this->restaurantModel->getById($id);
         if (!$restaurant) {
             // Handle not found error, maybe redirect with a message
@@ -85,6 +124,10 @@ class RestaurantsController extends Controller
 
     public function update($id)
     {
+        if (!isLoggedIn() || !isAdmin()) {
+            redirect('auth/login');
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('admin/restaurants');
         }
@@ -136,6 +179,10 @@ class RestaurantsController extends Controller
 
     public function viewPdf($id)
     {
+        if (!isLoggedIn() || !isAdmin()) {
+            redirect('auth/login');
+        }
+        
         $restaurant = $this->restaurantModel->getById($id);
 
         if (!$restaurant || empty($restaurant['pdf_path'])) {
@@ -206,6 +253,10 @@ class RestaurantsController extends Controller
 
     public function delete($id)
     {
+        if (!isLoggedIn() || !isAdmin()) {
+            redirect('auth/login');
+        }
+
         // Before deleting the record, delete the associated PDF file
         $restaurant = $this->restaurantModel->getById($id);
         $uploadDir = APPROOT . '/uploads/pdfs/';

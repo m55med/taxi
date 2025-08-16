@@ -855,6 +855,34 @@ CREATE TABLE IF NOT EXISTS restaurants (
     email VARCHAR(255) NULL,
     phone VARCHAR(50) NULL,
     pdf_path VARCHAR(500) NULL,
+    referred_by_user_id INT NULL DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_restaurants_referred_by
+        FOREIGN KEY (referred_by_user_id)
+        REFERENCES users(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- إنشاء جدول restaurant_referral_visits
+CREATE TABLE IF NOT EXISTS restaurant_referral_visits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    affiliate_user_id INT NULL DEFAULT NULL,
+    visit_recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT DEFAULT NULL,
+    referer_url TEXT DEFAULT NULL,
+    registration_status ENUM(
+        'visit_only',
+        'form_opened',
+        'attempted',
+        'successful'
+    ) DEFAULT 'visit_only',
+    registered_restaurant_id INT UNSIGNED NULL DEFAULT NULL,
+    visit_date DATE AS (DATE(visit_recorded_at)) STORED,
+    INDEX idx_affiliate_user_id (affiliate_user_id),
+    INDEX idx_registered_restaurant_id (registered_restaurant_id),
+    FOREIGN KEY (affiliate_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (registered_restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

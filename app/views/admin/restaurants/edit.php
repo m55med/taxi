@@ -68,6 +68,12 @@ include_once APPROOT . '/views/includes/header.php';
                     <input type="email" id="email" name="email" value="<?= htmlspecialchars($restaurant['email']) ?>" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 </div>
 
+                <!-- Referred By -->
+                <div class="md:col-span-2">
+                    <label for="referred_by" class="block text-sm font-medium text-gray-700">Referred By</label>
+                    <input type="text" id="referred_by" name="referred_by" value="<?= htmlspecialchars($restaurant['marketer_name'] ?? 'Direct Registration') ?>" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
+                </div>
+
                 <!-- Is Chain -->
                 <div class="flex items-center">
                     <input type="checkbox" id="is_chain" name="is_chain" value="1" <?= $restaurant['is_chain'] ? 'checked' : '' ?> class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">

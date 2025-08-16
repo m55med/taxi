@@ -536,6 +536,12 @@ class User
         return $this->getUserById($id);
     }
     
+    public function findByUsername($username)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     
     public function getUserStats() {
@@ -571,6 +577,90 @@ class User
                 'banned_users' => 0,
                 'pending_users' => 0,
             ];
+        }
+    }
+    
+    public function getAllAgentsDetails()
+    {
+        try {
+            $sql = "
+                SELECT
+                    u.id as user_id,
+                    u.name,
+                    a.id as agent_id,
+                    a.phone,
+                    a.state AS address,
+                    a.latitude,
+                    a.longitude,
+                    a.map_url AS google_map_url,
+                    a.is_online_only,
+                    wh.day_of_week,
+                    wh.start_time,
+                    wh.end_time,
+                    wh.is_closed
+                FROM
+                    users u
+                JOIN
+                    roles r ON u.role_id = r.id
+                JOIN
+                    agents a ON u.id = a.user_id
+                LEFT JOIN
+                    working_hours wh ON a.id = wh.agent_id
+                WHERE
+                    r.name = 'marketer'
+                ORDER BY
+                    u.id, wh.id
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $agents = [];
+            foreach ($results as $row) {
+                $agentId = $row['agent_id'];
+                if (!isset($agents[$agentId])) {
+                    $agents[$agentId] = [
+                        'name' => $row['name'],
+                        'coordinates' => [
+                            'latitude' => $row['latitude'],
+                            'longitude' => $row['longitude']
+                        ],
+                        'google_map_url' => $row['google_map_url'],
+                        'phone' => $row['phone'],
+                        'service_type' => $row['is_online_only'] ? 'اونلاين فقط' : 'نقاط شحن',
+                        'address' => $row['address'],
+                        'working_hours' => []
+                    ];
+                }
+
+                if ($row['day_of_week']) {
+                    $day = strtolower($row['day_of_week']);
+                    $startTime = $row['start_time'] ? date('h:i A', strtotime($row['start_time'])) : '';
+                    $endTime = $row['end_time'] ? date('h:i A', strtotime($row['end_time'])) : '';
+                    
+                    $agents[$agentId]['working_hours'][$day] = $row['is_closed']
+                        ? 'مغلق'
+                        : 'مفتوح من ' . $startTime . ' إلى ' . $endTime;
+                }
+            }
+
+            // Fill in missing days for working_hours
+            $daysOfWeek = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            foreach ($agents as &$agent) {
+                $existingDays = array_keys($agent['working_hours']);
+                foreach ($daysOfWeek as $day) {
+                    if (!in_array($day, $existingDays)) {
+                        $agent['working_hours'][$day] = 'غير محدد';
+                    }
+                }
+            }
+
+            return array_values($agents); // Re-index the array
+
+        } catch (PDOException $e) {
+            error_log("Error fetching agent details: " . $e->getMessage());
+            return [];
         }
     }
 }

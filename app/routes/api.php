@@ -59,6 +59,13 @@ function handle_api_routes($url) {
         return true; // Route was handled
     }
 
+    // Route: /api/restaurants/referred-by/{marketerId}
+    if (!empty($url[0]) && $url[0] === 'restaurants' && !empty($url[1]) && $url[1] === 'referred-by' && !empty($url[2]) && is_numeric($url[2]) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $marketerId = (int)$url[2];
+        $controller->getReferredRestaurants($marketerId);
+        return true; // Route was handled
+    }
+
     // Route: /api/discussions/{id}/replies
     if (!empty($url[0]) && $url[0] === 'discussions' && isset($url[1]) && is_numeric($url[1]) && isset($url[2]) && $url[2] === 'replies' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // Manually include and instantiate the DiscussionsController just for this route

@@ -28,6 +28,18 @@ class ProfileModel
     }
 
     /**
+     * Finds an agent's profile by their user ID.
+     * Alias for getAgentByUserId for backward compatibility.
+     *
+     * @param int $userId The ID of the logged-in user.
+     * @return array|false The agent's data or false if not found.
+     */
+    public function getAgentProfileByUserId(int $userId)
+    {
+        return $this->getAgentByUserId($userId);
+    }
+
+    /**
      * Retrieves all agents and joins their corresponding user information.
      *
      * @return array A list of all agents with their user details.
@@ -156,13 +168,13 @@ class ProfileModel
             $stmt = $this->db->prepare($sql);
 
             foreach ($hoursData as $day => $times) {
-                $is_closed = isset($times['is_closed']) ? 1 : 0;
+                $is_closed = !empty($times['is_closed']) && $times['is_closed'] === '1';
                 $stmt->execute([
                     ':agent_id' => $agentId,
                     ':day_of_week' => $day,
                     ':start_time' => !$is_closed ? $times['start_time'] : null,
                     ':end_time' => !$is_closed ? $times['end_time'] : null,
-                    ':is_closed' => $is_closed
+                    ':is_closed' => (int)$is_closed
                 ]);
             }
 
@@ -170,6 +182,34 @@ class ProfileModel
         } catch (\PDOException $e) {
             $this->db->rollBack();
             error_log("Working Hours Save Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getReferredRestaurantsByMarketer(int $marketerId)
+    {
+        try {
+            $sql = "SELECT 
+                        r.id,
+                        r.name_ar,
+                        r.name_en,
+                        r.address,
+                        r.phone
+                    FROM restaurants r
+                    WHERE r.referred_by_user_id = :marketer_id
+                    ORDER BY r.created_at DESC";
+            
+            $stmt = $this->db->prepare($sql);
+            
+            // Bind parameter explicitly to ensure correct type
+            $stmt->bindParam(':marketer_id', $marketerId, PDO::PARAM_INT);
+            
+            $stmt->execute();
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (\PDOException $e) {
+            error_log("Error in getReferredRestaurantsByMarketer: " . $e->getMessage());
             return false;
         }
     }

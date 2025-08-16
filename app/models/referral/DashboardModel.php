@@ -202,4 +202,212 @@ class DashboardModel
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function getRestaurantReferralStats($filters = []) {
+        // 1. Get visit stats from restaurant_referral_visits
+        $visit_base_query = "FROM restaurant_referral_visits v";
+        $visit_where_clauses = [];
+        $visit_params = [];
+
+        if (!empty($filters['start_date'])) {
+            $visit_where_clauses[] = "DATE(v.visit_recorded_at) >= :start_date";
+            $visit_params[':start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $visit_where_clauses[] = "DATE(v.visit_recorded_at) <= :end_date";
+            $visit_params[':end_date'] = $filters['end_date'];
+        }
+        if (!empty($filters['marketer_id'])) {
+            $visit_where_clauses[] = "v.affiliate_user_id = :marketer_id";
+            $visit_params[':marketer_id'] = $filters['marketer_id'];
+        }
+
+        $visit_where_sql = !empty($visit_where_clauses) ? "WHERE " . implode(' AND ', $visit_where_clauses) : "";
+        $query_visits = "SELECT COUNT(v.id) as total_visits $visit_base_query $visit_where_sql";
+        
+        $stmt_visits = $this->db->prepare($query_visits);
+        $stmt_visits->execute($visit_params);
+        $total_visits = (int) $stmt_visits->fetchColumn();
+
+        // 2. Get registration stats from the actual restaurants table
+        $reg_base_query = "FROM restaurants r";
+        $reg_where_clauses = [];
+        $reg_params = [];
+
+        if (!empty($filters['start_date'])) {
+            $reg_where_clauses[] = "DATE(r.created_at) >= :start_date";
+            $reg_params[':start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $reg_where_clauses[] = "DATE(r.created_at) <= :end_date";
+            $reg_params[':end_date'] = $filters['end_date'];
+        }
+        
+        if (!empty($filters['marketer_id'])) {
+            $reg_where_clauses[] = "r.referred_by_user_id = :marketer_id";
+            $reg_params[':marketer_id'] = $filters['marketer_id'];
+        } else {
+            // For admin dashboard without filter, count all referred restaurants
+            $reg_where_clauses[] = "r.referred_by_user_id IS NOT NULL";
+        }
+
+        $reg_where_sql = !empty($reg_where_clauses) ? "WHERE " . implode(' AND ', $reg_where_clauses) : "";
+        $query_regs = "SELECT COUNT(r.id) $reg_base_query $reg_where_sql";
+
+        $stmt_regs = $this->db->prepare($query_regs);
+        $stmt_regs->execute($reg_params);
+        $total_registrations = (int) $stmt_regs->fetchColumn();
+        
+        // 3. Combine and return stats
+        return [
+            'total_visits' => $total_visits,
+            'total_registrations' => $total_registrations,
+            'conversion_rate' => ($total_visits > 0) ? (($total_registrations / $total_visits) * 100) : 0
+        ];
+    }
+
+    /**
+     * Fetches detailed statistics for each marketer.
+     * This version is more robust and correctly handles marketers with no visits.
+     *
+     * @return array An array of marketers with their performance stats.
+     */
+    public function getMarketersPerformance()
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.username,
+                COALESCE(vs.total_visits, 0) as total_visits,
+                COALESCE(vs.total_registrations, 0) as total_registrations,
+                IF(COALESCE(vs.total_visits, 0) > 0, (COALESCE(vs.total_registrations, 0) / vs.total_visits) * 100, 0) AS conversion_rate,
+                (SELECT COUNT(r.id) FROM restaurants r WHERE r.referred_by_user_id = u.id) as total_restaurants
+            FROM 
+                users u
+            LEFT JOIN (
+                SELECT
+                    affiliate_user_id,
+                    COUNT(id) AS total_visits,
+                    SUM(CASE WHEN registration_status = 'successful' THEN 1 ELSE 0 END) AS total_registrations
+                FROM referral_visits
+                GROUP BY affiliate_user_id
+            ) AS vs ON u.id = vs.affiliate_user_id
+            WHERE 
+                u.role_id = (SELECT id FROM roles WHERE name = 'marketer')
+            GROUP BY 
+                u.id, u.username
+            ORDER BY 
+                total_registrations DESC, total_visits DESC;
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getSummaryStats()
+    {
+        $sql = "
+            SELECT 
+                (SELECT COUNT(id) FROM users WHERE role_id = (SELECT id FROM roles WHERE name = 'marketer')) as total_marketers,
+                (SELECT COUNT(id) FROM referral_visits) as total_visits,
+                (SELECT COUNT(id) FROM referral_visits WHERE registration_status = 'successful') as total_registrations
+        ";
+        $stmt = $this->db->query($sql);
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Prevent errors if the query fails or returns no rows
+        if (!$summary) {
+            $summary = ['total_marketers' => 0, 'total_visits' => 0, 'total_registrations' => 0];
+        }
+
+        // Ensure the conversion rate is calculated safely.
+        $summary['conversion_rate'] = ($summary['total_visits'] > 0) ? ($summary['total_registrations'] / $summary['total_visits']) * 100 : 0;
+        return $summary;
+    }
+
+    public function getVisits($filters = [], $page = 1, $perPage = 20) {
+        $offset = ($page - 1) * $perPage;
+    
+        $baseQuery = "FROM referral_visits rv
+                      LEFT JOIN users u ON rv.affiliate_user_id = u.id
+                      LEFT JOIN drivers d ON rv.registered_driver_id = d.id";
+    
+        $whereClauses = [];
+        $params = [];
+    
+        if (!empty($filters['marketer_id'])) {
+            $whereClauses[] = "rv.affiliate_user_id = :marketer_id";
+            $params[':marketer_id'] = $filters['marketer_id'];
+        }
+        if (!empty($filters['start_date'])) {
+            $whereClauses[] = "DATE(rv.visit_recorded_at) >= :start_date";
+            $params[':start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $whereClauses[] = "DATE(rv.visit_recorded_at) <= :end_date";
+            $params[':end_date'] = $filters['end_date'];
+        }
+        if (!empty($filters['registration_status'])) {
+            $whereClauses[] = "rv.registration_status = :registration_status";
+            $params[':registration_status'] = $filters['registration_status'];
+        }
+        if (!empty($filters['device_type'])) {
+            $whereClauses[] = "rv.device_type = :device_type";
+            $params[':device_type'] = $filters['device_type'];
+        }
+    
+        $whereSql = empty($whereClauses) ? '' : 'WHERE ' . implode(' AND ', $whereClauses);
+    
+        $sql = "SELECT rv.*, u.username as affiliate_name, d.name as driver_name
+                $baseQuery
+                $whereSql
+                ORDER BY rv.visit_recorded_at DESC
+                LIMIT :limit OFFSET :offset";
+        
+        $stmt = $this->db->prepare($sql);
+        // Bind parameters
+        foreach ($params as $key => &$val) {
+            $stmt->bindParam($key, $val);
+        }
+        $stmt->bindValue(':limit', (int) $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    public function getTotalVisits($filters = []) {
+        $baseQuery = "FROM referral_visits rv";
+        $whereClauses = [];
+        $params = [];
+    
+        if (!empty($filters['marketer_id'])) {
+            $whereClauses[] = "rv.affiliate_user_id = :marketer_id";
+            $params[':marketer_id'] = $filters['marketer_id'];
+        }
+        if (!empty($filters['start_date'])) {
+            $whereClauses[] = "DATE(rv.visit_recorded_at) >= :start_date";
+            $params[':start_date'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $whereClauses[] = "DATE(rv.visit_recorded_at) <= :end_date";
+            $params[':end_date'] = $filters['end_date'];
+        }
+        if (!empty($filters['registration_status'])) {
+            $whereClauses[] = "rv.registration_status = :registration_status";
+            $params[':registration_status'] = $filters['registration_status'];
+        }
+        if (!empty($filters['device_type'])) {
+            $whereClauses[] = "rv.device_type = :device_type";
+            $params[':device_type'] = $filters['device_type'];
+        }
+    
+        $whereSql = empty($whereClauses) ? '' : 'WHERE ' . implode(' AND ', $whereClauses);
+    
+        $sql = "SELECT COUNT(rv.id) $baseQuery $whereSql";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn();
+    }
 } 

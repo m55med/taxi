@@ -156,6 +156,9 @@ class ReferralController extends Controller
 
     private function adminDashboard($dashboardModel)
     {
+        $page = $_GET['page'] ?? 1;
+        $perPage = 20;
+
         $filters = [
             'marketer_id' => filter_input(INPUT_GET, 'marketer_id', FILTER_VALIDATE_INT),
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
@@ -167,14 +170,11 @@ class ReferralController extends Controller
         $allMarketers = $this->model('Referral/ProfileModel')->getAllAgentsWithUsers();
         $dashboardStats = $dashboardModel->getDashboardStats($filters);
         $visits = $dashboardModel->getVisitsForMarketer(null, $filters);
-
-
-        $summary_stats = [
-            'total_marketers' => count($allMarketers),
-            'total_visits' => $dashboardStats['total_visits'],
-            'total_registrations' => $dashboardStats['total_registrations'],
-            'conversion_rate' => $dashboardStats['conversion_rate']
-        ];
+        $restaurantStats = $dashboardModel->getRestaurantReferralStats($filters);
+        $summary_stats = $dashboardModel->getSummaryStats();
+        $marketers = $dashboardModel->getMarketersPerformance(); // Updated method
+        $visits = $dashboardModel->getVisits($filters, $page, $perPage);
+        $totalVisits = $dashboardModel->getTotalVisits($filters);
 
         $data = [
             'page_main_title' => 'Admin - Referral Dashboard',
@@ -182,50 +182,64 @@ class ReferralController extends Controller
             'summary_stats' => $summary_stats,
             'filters' => $filters,
             'dashboardStats' => $dashboardStats,
+            'restaurantStats' => $restaurantStats,
             'visits' => $visits,
         ];
 
         $this->view('referral/dashboard/admin_dashboard', $data);
     }
 
-    private function marketerDashboard($dashboardModel, $userId)
+    public function marketerDashboard()
     {
-        $profileModel = $this->model('Referral/ProfileModel');
-        $userModel = $this->model('User/User'); // Assuming a general user model exists
+        if (!isLoggedIn() || !isMarketer()) {
+            redirect('Auth/login');
+        }
 
+        $userId = $_SESSION['user_id'];
+        $page = $_GET['page'] ?? 1;
+        $perPage = 20;
+
+        // Get filters from URL, but always enforce the current marketer's ID
         $filters = [
-            'marketer_id' => $userId, // Marketer can only see their own data
-            'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'registration_status' => filter_input(INPUT_GET, 'registration_status', FILTER_SANITIZE_FULL_SPECIAL_CHARS),
-            'device_type' => filter_input(INPUT_GET, 'device_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS)
+            'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_SPECIAL_CHARS),
+            'end_date' => filter_input(INPUT_GET, 'end_date', FILTER_SANITIZE_SPECIAL_CHARS),
+            'registration_status' => filter_input(INPUT_GET, 'registration_status', FILTER_SANITIZE_SPECIAL_CHARS),
+            'device_type' => filter_input(INPUT_GET, 'device_type', FILTER_SANITIZE_SPECIAL_CHARS),
         ];
 
-        $dashboardStats = $dashboardModel->getDashboardStats($filters);
-        $visits = $dashboardModel->getVisitsForMarketer($userId, $filters);
-        
-        // Fetch base user info and agent profile separately
-        $user_info = $userModel->findUserById($userId);
-        $agentProfile = $profileModel->getAgentByUserId($userId);
+        // Remove any empty filters but always keep marketer_id
+        $filters = array_filter($filters, function ($value) {
+            return $value !== null && $value !== '';
+        });
+        $filters['marketer_id'] = $userId;
 
-        // Merge user info into agent profile if it exists, otherwise use user info as the base
-        if ($agentProfile) {
-            $agentProfile = array_merge((array)$user_info, (array)$agentProfile);
-        } else {
-            $agentProfile = (array)$user_info;
-        }
-        
-        $workingHours = isset($agentProfile['id']) ? $profileModel->getWorkingHoursByAgentId($agentProfile['id']) : [];
+        $dashboardModel = $this->model('Referral/DashboardModel');
+        $profileModel = $this->model('Referral/ProfileModel');
+
+        $dashboardStats = $dashboardModel->getDashboardStats($filters);
+        $restaurantStats = $dashboardModel->getRestaurantReferralStats($filters);
+        $visits = $dashboardModel->getVisits($filters, $page, $perPage);
+        $totalVisits = $dashboardModel->getTotalVisits($filters);
+        $agentProfile = $profileModel->getAgentProfileByUserId($userId);
+        $working_hours = $profileModel->getWorkingHoursByAgentId($agentProfile['id'] ?? null);
+        $referredRestaurants = $profileModel->getReferredRestaurantsByMarketer($userId);
+
 
         $data = [
-            'page_main_title' => 'لوحة تحكم المناديب',
-            'dashboardStats' => $dashboardStats,
-            'visits' => $visits,
-            'filters' => $filters,
-            'agentProfile' => $agentProfile,
-            'working_hours' => $workingHours,
+            'page_main_title' => 'لوحة التحكم الخاصة بك',
             'referral_link' => URLROOT . '/referral/register?ref=' . $_SESSION['username'],
-            'user_role' => 'marketer'
+            'restaurant_referral_link' => 'https://taxif.om/partner?ref=' . $_SESSION['username'],
+            'dashboardStats' => $dashboardStats,
+            'restaurantStats' => $restaurantStats,
+            'visits' => $visits,
+            'agentProfile' => $agentProfile,
+            'working_hours' => $working_hours,
+            'referredRestaurants' => $referredRestaurants,
+            'filters' => $filters,
+            'user_role' => 'marketer',
+            'currentPage' => $page,
+            'totalPages' => ceil($totalVisits / $perPage),
+            'totalRecords' => $totalVisits
         ];
 
         $this->view('referral/dashboard/marketer_dashboard', $data);
@@ -288,19 +302,20 @@ class ReferralController extends Controller
         // We can add filtering later if needed
         $filters = ['start_date' => null, 'end_date' => null];
         $visits = $dashboardModel->getVisitsForMarketer($userId, $filters);
+        $referredRestaurants = $this->model('Referral/ProfileModel')->getReferredRestaurantsByMarketer($userId);
 
         $data = [
             'page_main_title' => 'Visit Details for ' . htmlspecialchars($marketer['username']),
             'marketer' => $marketer,
             'visits' => $visits,
-            'filters' => $filters
+            'filters' => $filters,
+            'referredRestaurants' => $referredRestaurants
         ];
 
         $this->view('referral/dashboard/marketer_details', $data);
     }
 
-    public function saveAgentProfile()
-    {
+    public function saveAgentProfile() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
             return;

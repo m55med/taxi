@@ -23,36 +23,10 @@ class ApiController extends Controller
     public function getAgents()
     {
         header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *'); // Allow requests from any origin
-
-        $agentsWithUsers = $this->profileModel->getAllAgentsWithUsers();
-        
-        $response_data = [];
-
-        foreach ($agentsWithUsers as $agent) {
-            if (empty($agent['agent_id'])) {
-                continue; // Skip users who are marketers but haven't set up a profile
-            }
-            
-            $workingHours = $this->profileModel->getWorkingHoursByAgentId($agent['agent_id']);
-            
-            $agent_data = [
-                'name' => $agent['username'],
-                'coordinates' => [
-                    'latitude' => $agent['latitude'] ?? null,
-                    'longitude' => $agent['longitude'] ?? null,
-                ],
-                'google_map_url' => $agent['map_url'],
-                'phone' => $agent['phone'],
-                'service_type' => $agent['is_online_only'] ? 'اونلاين فقط' : 'نقاط شحن',
-                'address' => $agent['state'],
-                'working_hours' => $this->formatWorkingHours($workingHours),
-            ];
-
-            $response_data[] = $agent_data;
-        }
-
-        echo json_encode($response_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $userModel = new \App\Models\User\User();
+        $agents = $userModel->getAllAgentsDetails();
+        echo json_encode($agents, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     private function formatWorkingHours($workingHours)
@@ -119,7 +93,17 @@ class ApiController extends Controller
             'email' => $input['email'] ?? null,
             'phone' => $input['phone'] ?? null,
             'pdf_path' => null,
+            'referred_by_user_id' => null // Initialize
         ];
+
+        // Handle referral
+        if (!empty($input['ref'])) {
+            $userModel = new \App\Models\User\User();
+            $referringUser = $userModel->findByUsername($input['ref']);
+            if ($referringUser) {
+                $data['referred_by_user_id'] = $referringUser['id'];
+            }
+        }
 
         // Basic validation
         if (empty($data['name_en'])) {
@@ -195,5 +179,20 @@ class ApiController extends Controller
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'No PDF file was uploaded or an error occurred.']);
         }
+    }
+
+    public function getReferredRestaurants($marketerId)
+    {
+        header('Content-Type: application/json');
+        
+        $restaurants = $this->profileModel->getReferredRestaurantsByMarketer($marketerId);
+        
+        if ($restaurants === false) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to retrieve restaurants.']);
+            return;
+        }
+        
+        echo json_encode(['success' => true, 'restaurants' => $restaurants], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 }
