@@ -61,4 +61,24 @@ class TicketCategoriesController extends Controller {
         }
         redirect('admin/ticket_categories');
     }
+
+    public function update($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim(htmlspecialchars($_POST['name']));
+            if (!empty($name)) {
+                $ticketCategoryModel = new TicketCategory();
+                if ($ticketCategoryModel->update($id, $name)) {
+                    $_SESSION['ticket_category_message'] = 'Category updated successfully.';
+                    $_SESSION['ticket_category_message_type'] = 'success';
+                } else {
+                    $_SESSION['ticket_category_message'] = 'Error updating category.';
+                    $_SESSION['ticket_category_message_type'] = 'error';
+                }
+            } else {
+                $_SESSION['ticket_category_message'] = 'Category name cannot be empty.';
+                $_SESSION['ticket_category_message_type'] = 'error';
+            }
+        }
+        redirect('admin/ticket_categories');
+    }
 } 

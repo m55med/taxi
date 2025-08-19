@@ -15,6 +15,6 @@ class Platform extends Model
     public function getAll(): array
     {
         $stmt = $this->db->query("SELECT id, name FROM platforms ORDER BY name ASC");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 } 

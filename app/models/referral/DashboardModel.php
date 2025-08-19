@@ -66,13 +66,15 @@ class DashboardModel
 
         // This handles marketer's own dashboard, and admin viewing a specific marketer's details page
         if (!empty($user_id)) {
-            $where[] = "rv.affiliate_user_id = :user_id";
+            $where[] = "(rv.affiliate_user_id = :user_id OR d.added_by = :user_id_driver)";
             $params[':user_id'] = $user_id;
-        } 
+            $params[':user_id_driver'] = $user_id;
+        }
         // This handles the admin's filter on the main dashboard
         elseif (!empty($filters['marketer_id'])) {
-            $where[] = "rv.affiliate_user_id = :marketer_id";
-            $params[':marketer_id'] = $filters['marketer_id'];
+            $where[] = "(rv.affiliate_user_id = :marketer_id_1 OR d.added_by = :marketer_id_2)";
+            $params[':marketer_id_1'] = $filters['marketer_id'];
+            $params[':marketer_id_2'] = $filters['marketer_id'];
         }
         
         if (!empty($filters['start_date'])) {
@@ -96,7 +98,7 @@ class DashboardModel
     }
 
     public function getDashboardStats($filters = []) {
-        $base_query = "FROM referral_visits v LEFT JOIN users u ON v.affiliate_user_id = u.id";
+        $base_query = "FROM referral_visits v LEFT JOIN users u ON v.affiliate_user_id = u.id LEFT JOIN drivers d ON v.registered_driver_id = d.id";
         $where_clauses = [];
         $params = [];
 
@@ -109,8 +111,9 @@ class DashboardModel
             $params[':end_date'] = $filters['end_date'];
         }
         if (!empty($filters['marketer_id'])) {
-            $where_clauses[] = "v.affiliate_user_id = :marketer_id";
-            $params[':marketer_id'] = $filters['marketer_id'];
+            $where_clauses[] = "(v.affiliate_user_id = :marketer_id_1 OR d.added_by = :marketer_id_2)";
+            $params[':marketer_id_1'] = $filters['marketer_id'];
+            $params[':marketer_id_2'] = $filters['marketer_id'];
         }
 
         $where_sql = count($where_clauses) > 0 ? "WHERE " . implode(' AND ', $where_clauses) : "";
@@ -118,9 +121,11 @@ class DashboardModel
         // --- Main Stats ---
         $query = "SELECT
                     COUNT(v.id) as total_visits,
-                    SUM(CASE WHEN v.registration_status = 'successful' THEN 1 ELSE 0 END) as total_registrations
+                    SUM(CASE WHEN v.registration_status = 'successful' THEN 1 ELSE 0 END) as total_registrations,
+                    SUM(CASE WHEN v.registered_driver_id IS NOT NULL THEN 1 ELSE 0 END) as total_driver_visits,
+                    SUM(CASE WHEN v.registration_status = 'successful' AND v.registered_driver_id IS NOT NULL THEN 1 ELSE 0 END) as total_driver_registrations
                   $base_query $where_sql";
-
+        
         $stmt = $this->db->prepare($query);
         $stmt->execute($params);
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -129,6 +134,8 @@ class DashboardModel
             return [
                 'total_visits' => 0,
                 'total_registrations' => 0,
+                'total_driver_visits' => 0,
+                'total_driver_registrations' => 0,
                 'conversion_rate' => 0,
                 'top_referers' => [],
                 'top_countries' => [],
@@ -139,6 +146,8 @@ class DashboardModel
         }
         
         $stats['total_registrations'] = $stats['total_registrations'] ?? 0;
+        $stats['total_driver_visits'] = $stats['total_driver_visits'] ?? 0;
+        $stats['total_driver_registrations'] = $stats['total_driver_registrations'] ?? 0;
         $stats['conversion_rate'] = ($stats['total_visits'] > 0) ? ($stats['total_registrations'] / $stats['total_visits']) * 100 : 0;
 
         $limit_clause = "ORDER BY count DESC LIMIT 5";
@@ -193,7 +202,24 @@ class DashboardModel
         $stmt_os->execute($params);
         $stats['top_os'] = $stmt_os->fetchAll(PDO::FETCH_ASSOC);
 
+        if (!empty($filters['marketer_id'])) {
+            $driver_stats = $this->getDriverStatsForMarketer($filters['marketer_id']);
+            $stats['total_driver_visits'] = $driver_stats['total_driver_visits'];
+            $stats['total_driver_registrations'] = $driver_stats['total_driver_registrations'];
+        }
         return $stats;
+    }
+
+    private function getDriverStatsForMarketer($marketer_id) {
+        $sql = "SELECT
+                    COUNT(rv.id) as total_driver_visits,
+                    SUM(CASE WHEN rv.registration_status = 'successful' THEN 1 ELSE 0 END) as total_driver_registrations
+                FROM drivers d
+                LEFT JOIN referral_visits rv ON d.id = rv.registered_driver_id
+                WHERE d.added_by = :marketer_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':marketer_id' => $marketer_id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
     public function getMarketers()
@@ -337,8 +363,9 @@ class DashboardModel
         $params = [];
     
         if (!empty($filters['marketer_id'])) {
-            $whereClauses[] = "rv.affiliate_user_id = :marketer_id";
-            $params[':marketer_id'] = $filters['marketer_id'];
+            $whereClauses[] = "(rv.affiliate_user_id = :marketer_id_1 OR d.added_by = :marketer_id_2)";
+            $params[':marketer_id_1'] = $filters['marketer_id'];
+            $params[':marketer_id_2'] = $filters['marketer_id'];
         }
         if (!empty($filters['start_date'])) {
             $whereClauses[] = "DATE(rv.visit_recorded_at) >= :start_date";
@@ -378,13 +405,14 @@ class DashboardModel
     }
     
     public function getTotalVisits($filters = []) {
-        $baseQuery = "FROM referral_visits rv";
+        $baseQuery = "FROM referral_visits rv LEFT JOIN drivers d ON rv.registered_driver_id = d.id";
         $whereClauses = [];
         $params = [];
     
         if (!empty($filters['marketer_id'])) {
-            $whereClauses[] = "rv.affiliate_user_id = :marketer_id";
-            $params[':marketer_id'] = $filters['marketer_id'];
+            $whereClauses[] = "(rv.affiliate_user_id = :marketer_id_1 OR d.added_by = :marketer_id_2)";
+            $params[':marketer_id_1'] = $filters['marketer_id'];
+            $params[':marketer_id_2'] = $filters['marketer_id'];
         }
         if (!empty($filters['start_date'])) {
             $whereClauses[] = "DATE(rv.visit_recorded_at) >= :start_date";

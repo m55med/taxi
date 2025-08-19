@@ -18,7 +18,7 @@ class TicketCode
     public function getAll()
     {
         try {
-            $stmt = $this->db->prepare("SELECT tc.id, tc.name, ts.name as subcategory_name FROM ticket_codes tc JOIN ticket_subcategories ts ON tc.subcategory_id = ts.id ORDER BY ts.name, tc.name ASC");
+            $stmt = $this->db->prepare("SELECT tc.id, tc.name, tc.subcategory_id, ts.name as subcategory_name FROM ticket_codes tc JOIN ticket_subcategories ts ON tc.subcategory_id = ts.id ORDER BY ts.name, tc.name ASC");
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -42,6 +42,31 @@ class TicketCode
     {
         try {
             $stmt = $this->db->prepare("DELETE FROM ticket_codes WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    public function getById($id)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM ticket_codes WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    public function update($id, $name, $subcategory_id)
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE ticket_codes SET name = :name, subcategory_id = :subcategory_id WHERE id = :id");
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':subcategory_id', $subcategory_id, PDO::PARAM_INT);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             return $stmt->execute();
         } catch (PDOException $e) {

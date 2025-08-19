@@ -47,4 +47,28 @@ class TicketCategory
             return false;
         }
     }
+
+    public function getById($id)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM ticket_categories WHERE id = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    public function update($id, $name)
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE ticket_categories SET name = :name WHERE id = :id");
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }

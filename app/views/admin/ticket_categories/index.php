@@ -136,6 +136,11 @@ if (isset($_SESSION['ticket_category_message'])) {
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($category['name']) ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                                            <button type="button" class="text-indigo-600 hover:text-indigo-900 mr-3 edit-btn" title="Edit"
+                                                data-id="<?= $category['id'] ?>"
+                                                data-name="<?= htmlspecialchars($category['name']) ?>">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
                                             <form action="<?= BASE_URL ?>/admin/ticket_categories/delete/<?= $category['id'] ?>" method="POST" class="inline delete-form">
                                                 <button type="button" class="text-red-600 hover:text-red-900 delete-btn" title="Delete">
                                                     <i class="fas fa-trash-alt"></i>
@@ -168,6 +173,23 @@ if (isset($_SESSION['ticket_category_message'])) {
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Edit Category</h3>
+        <form id="edit-form" action="" method="POST">
+            <div class="mb-4">
+                <label for="edit-name" class="block text-sm font-medium text-gray-700">Category Name</label>
+                <input type="text" name="name" id="edit-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div class="mt-6 flex justify-end gap-4">
+                <button type="button" id="cancel-edit" class="px-6 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium">Cancel</button>
+                <button type="submit" class="px-6 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 font-medium">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // --- Toast Notification Logic ---
@@ -197,36 +219,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Confirmation Modal Logic ---
-    const modal = document.getElementById('confirmation-modal');
-    const cancelBtn = document.getElementById('cancel-delete');
-    const confirmBtn = document.getElementById('confirm-delete');
+    const deleteModal = document.getElementById('confirmation-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
     let formToSubmit = null;
 
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             formToSubmit = this.closest('.delete-form');
-            modal.classList.add('show');
+            deleteModal.classList.add('show');
         });
     });
 
-    function closeModal() {
-        modal.classList.remove('show');
+    function closeDeleteModal() {
+        deleteModal.classList.remove('show');
         formToSubmit = null;
     }
 
-    cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal();
+    cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+            closeDeleteModal();
         }
     });
 
-    confirmBtn.addEventListener('click', function() {
+    confirmDeleteBtn.addEventListener('click', function() {
         if (formToSubmit) {
             formToSubmit.submit();
         }
     });
+
+    // --- Edit Modal Logic ---
+    const editModal = document.getElementById('edit-modal');
+    if (editModal) {
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const editForm = document.getElementById('edit-form');
+        const editNameInput = document.getElementById('edit-name');
+
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                
+                if (editNameInput) {
+                    editNameInput.value = name;
+                }
+                
+                if (editForm) {
+                    editForm.action = `<?= BASE_URL ?>/admin/ticket_categories/update/${id}`;
+                }
+                
+                editModal.classList.add('show');
+            });
+        });
+
+        function closeEditModal() {
+            editModal.classList.remove('show');
+        }
+
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', function(e) {
+            if (e.target === editModal) {
+                closeEditModal();
+            }
+        });
+    }
 });
 </script>
 

@@ -26,7 +26,7 @@
         </div>
 
         <!-- User -->
-        <?php if (in_array($userRole, ['admin', 'developer', 'quality_manager', 'Team_leader'])): ?>
+        <?php if (in_array($userRole, ['admin', 'developer', 'quality_manager', 'Team_leader', 'Quality'])): ?>
             <div>
                 <label for="user_id" class="block text-sm font-medium text-gray-700">Employee</label>
                 <select name="user_id" id="user_id"
@@ -41,7 +41,7 @@
         <?php endif; ?>
 
         <!-- Team -->
-        <?php if (in_array($userRole, ['admin', 'developer', 'quality_manager', 'Team_leader'])): ?>
+        <?php if (in_array($userRole, ['admin', 'developer', 'quality_manager', 'Team_leader', 'Quality'])): ?>
             <div>
                 <label for="team_id" class="block text-sm font-medium text-gray-700">Team</label>
                 <select name="team_id" id="team_id"

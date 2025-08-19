@@ -1,7 +1,6 @@
 
 
     <?php include_once APPROOT . '/views/includes/header.php'; ?>
-
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800"><?= htmlspecialchars($page_main_title); ?></h1>
@@ -133,6 +132,44 @@
         const bulkActionsMenu = document.getElementById('bulk-actions-menu');
         const selectedCountSpan = document.getElementById('selected-activities-count');
         const exportSelectedBtns = document.querySelectorAll('.js-export-selected');
+
+        // --- LIVE SEARCH/FILTER LOGIC ---
+        const globalSearchInput = document.getElementById('search');
+        const activityTableBody = document.querySelector('table tbody');
+
+        if (globalSearchInput && activityTableBody) {
+            let debounceTimer;
+
+            const filterTable = () => {
+                const searchTerm = globalSearchInput.value.toLowerCase().trim();
+                const rows = activityTableBody.querySelectorAll('tr');
+
+                rows.forEach(row => {
+                    const detailsCell = row.cells[2];
+                    const employeeCell = row.cells[3];
+                    const teamCell = row.cells[4];
+
+                    if (detailsCell && employeeCell && teamCell) {
+                        const rowText = (
+                            detailsCell.textContent + ' ' +
+                            employeeCell.textContent + ' ' +
+                            teamCell.textContent
+                        ).toLowerCase();
+
+                        if (rowText.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    }
+                });
+            };
+
+            globalSearchInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(filterTable, 300); // 300ms debounce
+            });
+        }
 
         // MODAL LOGIC
         function openModal() { if (exportModal) exportModal.classList.remove('hidden'); }

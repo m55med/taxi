@@ -1,4 +1,5 @@
 <!-- Filters -->
+
 <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
     <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
         <h3 class="text-lg font-semibold text-gray-700 lg:col-span-1">الفلاتر:</h3>
@@ -93,6 +94,22 @@
     </div>
 </div>
 
+<!-- Captain Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-cyan-500">
+        <h3 class="text-sm font-medium text-gray-500">إجمالي زيارات الكباتن</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($dashboardStats['total_driver_visits'] ?? 0); ?></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-500">
+        <h3 class="text-sm font-medium text-gray-500">إجمالي تسجيلات الكباتن</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format($dashboardStats['total_driver_registrations'] ?? 0); ?></p>
+    </div>
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-lime-500">
+        <h3 class="text-sm font-medium text-gray-500">نسبة تحويل الكباتن</h3>
+        <p class="mt-2 text-3xl font-bold text-gray-900"><?= number_format(($dashboardStats['total_driver_visits'] > 0 ? ($dashboardStats['total_driver_registrations'] / $dashboardStats['total_driver_visits']) * 100 : 0), 2); ?>%</p>
+    </div>
+</div>
+
 <!-- Detailed Stats -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
@@ -156,11 +173,12 @@
                     <th scope="col" class="px-4 py-3">المصدر</th>
                     <th scope="col" class="px-4 py-3">حالة التسجيل</th>
                     <th scope="col" class="px-4 py-3">السائق المسجل</th>
+                    <th scope="col" class="px-4 py-3">نوع الإحالة</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($visits)): ?>
-                    <tr><td colspan="<?php echo (($user_role ?? '') === 'admin') ? '7' : '6'; ?>" class="px-6 py-4 text-center">لا توجد بيانات تطابق الفلاتر المحددة.</td></tr>
+                    <tr><td colspan="<?php echo (($user_role ?? '') === 'admin') ? '8' : '7'; ?>" class="px-6 py-4 text-center">لا توجد بيانات تطابق الفلاتر المحددة.</td></tr>
                 <?php else: ?>
                     <?php foreach ($visits as $visit): ?>
                     <tr class="bg-white border-b hover:bg-gray-50">
@@ -171,6 +189,12 @@
                         <td class="px-4 py-4"><?php $referer = $visit['referer_url'] ?? ''; $source = 'Direct'; if (!empty($referer)) { $host = parse_url($referer, PHP_URL_HOST); if($host) { $source = str_replace('www.', '', $host); } } echo htmlspecialchars($source); ?></td>
                         <td class="px-4 py-4"><span class="px-2 py-1 font-semibold leading-tight rounded-full text-xs <?php switch ($visit['registration_status']) { case 'successful': echo 'bg-green-100 text-green-800'; break; case 'duplicate_phone': echo 'bg-yellow-100 text-yellow-800'; break; case 'failed_other': echo 'bg-red-100 text-red-800'; break; default: echo 'bg-gray-200 text-gray-800'; } ?>"><?php echo htmlspecialchars($visit['registration_status']); ?></span></td>
                         <td class="px-4 py-4"><?php echo htmlspecialchars($visit['driver_name'] ?? 'N/A'); ?></td>
+                        <td class="px-4 py-4">
+                            <span class="px-2 py-1 font-semibold leading-tight rounded-full text-xs
+                                <?php echo !empty($visit['registered_driver_id']) ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'; ?>">
+                                <?php echo !empty($visit['registered_driver_id']) ? 'كابتن' : 'مطعم'; ?>
+                            </span>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

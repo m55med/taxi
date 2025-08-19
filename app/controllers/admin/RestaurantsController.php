@@ -60,7 +60,7 @@ class RestaurantsController extends Controller
 
     public function export($format = 'excel')
     {
-        if (!isLoggedIn() || !isAdmin()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
             redirect('auth/login');
         }
         
@@ -104,7 +104,7 @@ class RestaurantsController extends Controller
 
     public function edit($id)
     {
-        if (!isLoggedIn() || !isAdmin()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
             redirect('auth/login');
         }
 
@@ -124,7 +124,7 @@ class RestaurantsController extends Controller
 
     public function update($id)
     {
-        if (!isLoggedIn() || !isAdmin()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
             redirect('auth/login');
         }
 
@@ -179,7 +179,7 @@ class RestaurantsController extends Controller
 
     public function viewPdf($id)
     {
-        if (!isLoggedIn() || !isAdmin()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
             redirect('auth/login');
         }
         
@@ -192,11 +192,19 @@ class RestaurantsController extends Controller
             exit;
         }
         
-        // Use basename to handle both old paths and new filenames securely
-        $fileName = basename($restaurant['pdf_path']);
-        $filePath = APPROOT . '/uploads/pdfs/' . $fileName;
+        // The pdf_path is relative to the uploads/pdfs directory.
+        $relativePath = $restaurant['pdf_path'];
 
-        if (!file_exists($filePath)) {
+        // Security check to prevent directory traversal.
+        if (strpos($relativePath, '..') !== false) {
+            http_response_code(400);
+            echo "Invalid file path.";
+            exit;
+        }
+
+        $filePath = APPROOT . '/uploads/pdfs/' . $relativePath;
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
             http_response_code(404);
             echo "File not found on server.";
             exit;
@@ -253,7 +261,7 @@ class RestaurantsController extends Controller
 
     public function delete($id)
     {
-        if (!isLoggedIn() || !isAdmin()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
             redirect('auth/login');
         }
 

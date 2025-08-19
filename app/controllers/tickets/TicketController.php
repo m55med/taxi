@@ -313,7 +313,7 @@ class TicketController extends Controller
 
         $ticket = $this->ticketModel->findById($ticketId);
         // User must be the ticket creator, or a manager/leader to add an objection/reply.
-        if ($_SESSION['user_id'] != $ticket['created_by'] && !in_array($_SESSION['role_name'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
+        if ($_SESSION['user_id'] != $ticket['created_by'] && !in_array($_SESSION['role_name'], ['Quality', 'Team_leader', 'admin', 'developer'])) {
             redirect('tickets/details/' . $ticketId);
         }
 
@@ -335,7 +335,7 @@ class TicketController extends Controller
     public function closeDiscussion($ticketId, $discussionId)
     {
         // Add authorization check to ensure only specific roles can close discussions
-        if (!in_array($_SESSION['role_name'], ['quality_manager', 'Team_leader', 'admin', 'developer'])) {
+        if (!in_array($_SESSION['role_name'], ['Quality', 'Team_leader', 'admin', 'developer'])) {
             // Or use $this->authorize([...]) if you have it set up
             redirect('tickets/details/' . $ticketId);
         }
@@ -417,5 +417,61 @@ class TicketController extends Controller
         ];
 
         $this->view('tickets/index', $data);
+    }
+
+    public function edit($detailId)
+    {
+        if (!Auth::hasRole('admin') && !Auth::hasRole('developer')) {
+            $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
+            redirect('tickets/view/' . $ticketId);
+            return;
+        }
+    
+        $ticketDetail = $this->ticketModel->findDetailById($detailId);
+        if (!$ticketDetail) {
+            redirect('tickets/view');
+            return;
+        }
+    
+        $categoryModel = $this->model('Tickets/Category');
+        $platformModel = $this->model('Tickets/Platform');
+        $teamModel = $this->model('Admin/Team');
+        $countryModel = $this->model('Admin/Country');
+    
+        $data = [
+            'page_main_title' => 'Edit Ticket Details',
+            'ticket' => $ticketDetail, // Pass the specific detail
+            'categories' => $categoryModel->getAll(),
+            'platforms' => $platformModel->getAll(),
+            'team_leaders' => $teamModel->getAllTeamLeaders(),
+            'countries' => $countryModel->getAll(),
+        ];
+    
+        $this->view('tickets/edit', $data);
+    }
+
+    public function update($detailId)
+    {
+        $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Auth::hasRole('admin') && !Auth::hasRole('developer')) {
+                redirect('tickets/view/' . $ticketId);
+                return;
+            }
+
+            $data = $_POST;
+            $userId = Auth::getUserId();
+
+            if ($this->ticketModel->addTicketDetail($ticketId, $data, $userId)) {
+                $_SESSION['success_message'] = 'Ticket details updated successfully.';
+            } else {
+                $_SESSION['error_message'] = 'Failed to update ticket details.';
+            }
+
+            redirect('tickets/view/' . $ticketId);
+        } else {
+            redirect('tickets/view/' . $ticketId);
+        }
     }
 }

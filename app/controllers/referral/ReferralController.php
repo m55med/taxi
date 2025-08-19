@@ -27,8 +27,9 @@ class ReferralController extends Controller
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
         $debug_info = $this->referralModel->getIpInfoForDebug($ip_address);
 
-        // 1. Get affiliate ID if it exists
-        $affiliate_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        // 1. Get affiliate ID/username from the 'ref' parameter
+        $ref = filter_input(INPUT_GET, 'ref', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $affiliate_id = null;
         $affiliate_name_for_display = null;
         $visit_id = null; // To store the ID of the visit log
 
@@ -54,17 +55,17 @@ class ReferralController extends Controller
             'source_specific_welcome_message' => '',
             'debug_info' => $debug_info // Pass debug info to the view
         ];
-
-        if ($affiliate_id) {
-            $affiliate_user = $this->referralModel->findUserById($affiliate_id);
+        
+        if ($ref) {
+            // Find user by username
+            $affiliate_user = $this->referralModel->findUserByUsername($ref);
             if ($affiliate_user) {
+                $affiliate_id = $affiliate_user['id'];
+                $data['affiliate_id'] = $affiliate_id;
                 $data['affiliate_name_for_display'] = $affiliate_user['username'];
-            } else {
-                $data['affiliate_id'] = null;
-                $affiliate_id = null;
             }
         }
-
+        
         // Log the visit and get the visit ID
         // We will update this record upon registration attempt/success
         $visit_id = $this->referralModel->logVisit($affiliate_id, 'form_opened');
@@ -184,21 +185,21 @@ class ReferralController extends Controller
             'dashboardStats' => $dashboardStats,
             'restaurantStats' => $restaurantStats,
             'visits' => $visits,
+            'totalVisits' => $totalVisits,
         ];
 
         $this->view('referral/dashboard/admin_dashboard', $data);
     }
 
-    public function marketerDashboard()
+    public function marketerDashboard($dashboardModel, $userId)
     {
-        if (!isLoggedIn() || !isMarketer()) {
+        if (!Auth::isLoggedIn() || !Auth::hasRole('marketer')) {
             redirect('Auth/login');
         }
-
-        $userId = $_SESSION['user_id'];
+    
         $page = $_GET['page'] ?? 1;
         $perPage = 20;
-
+    
         // Get filters from URL, but always enforce the current marketer's ID
         $filters = [
             'start_date' => filter_input(INPUT_GET, 'start_date', FILTER_SANITIZE_SPECIAL_CHARS),
@@ -206,25 +207,23 @@ class ReferralController extends Controller
             'registration_status' => filter_input(INPUT_GET, 'registration_status', FILTER_SANITIZE_SPECIAL_CHARS),
             'device_type' => filter_input(INPUT_GET, 'device_type', FILTER_SANITIZE_SPECIAL_CHARS),
         ];
-
-        // Remove any empty filters but always keep marketer_id
+    
         $filters = array_filter($filters, function ($value) {
             return $value !== null && $value !== '';
         });
         $filters['marketer_id'] = $userId;
 
-        $dashboardModel = $this->model('Referral/DashboardModel');
+        // $dashboardModel = $this->model('Referral/DashboardModel'); // This line was causing an issue
         $profileModel = $this->model('Referral/ProfileModel');
-
+    
         $dashboardStats = $dashboardModel->getDashboardStats($filters);
         $restaurantStats = $dashboardModel->getRestaurantReferralStats($filters);
         $visits = $dashboardModel->getVisits($filters, $page, $perPage);
         $totalVisits = $dashboardModel->getTotalVisits($filters);
         $agentProfile = $profileModel->getAgentProfileByUserId($userId);
-        $working_hours = $profileModel->getWorkingHoursByAgentId($agentProfile['id'] ?? null);
+        $working_hours = !empty($agentProfile['id']) ? $profileModel->getWorkingHoursByAgentId($agentProfile['id']) : [];
         $referredRestaurants = $profileModel->getReferredRestaurantsByMarketer($userId);
-
-
+    
         $data = [
             'page_main_title' => 'لوحة التحكم الخاصة بك',
             'referral_link' => URLROOT . '/referral/register?ref=' . $_SESSION['username'],
@@ -239,11 +238,13 @@ class ReferralController extends Controller
             'user_role' => 'marketer',
             'currentPage' => $page,
             'totalPages' => ceil($totalVisits / $perPage),
-            'totalRecords' => $totalVisits
+            'totalRecords' => $totalVisits,
+            'totalVisits' => $totalVisits
         ];
-
+    
         $this->view('referral/dashboard/marketer_dashboard', $data);
     }
+    
 
     /**
      * Shows the profile editing form for a specific user (for admins).
@@ -353,16 +354,17 @@ class ReferralController extends Controller
         $latitude = filter_input(INPUT_POST, 'latitude', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $longitude = filter_input(INPUT_POST, 'longitude', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $google_map_url_input = trim(filter_input(INPUT_POST, 'google_map_url', FILTER_SANITIZE_URL));
-        $map_url_to_save = null;
+        $map_url_to_save = $google_map_url_input; // Save the user's input by default
 
         if (!empty($google_map_url_input)) {
             $resolvedUrl = $this->resolveGoogleMapsShortLink($google_map_url_input);
             $coordinates = $this->extractCoordinates($resolvedUrl);
 
             if ($coordinates) {
+                // Prioritize coordinates from the URL over any hidden inputs
                 $latitude = $coordinates['latitude'];
                 $longitude = $coordinates['longitude'];
-                $map_url_to_save = $resolvedUrl;
+                $map_url_to_save = $resolvedUrl; // Save the full resolved URL
             } else {
                 $_SESSION['error'] = 'Could not extract coordinates from the link. Please check the link and try again.';
                 // Redirect back to the correct page
@@ -370,6 +372,7 @@ class ReferralController extends Controller
                 return;
             }
         } elseif ($latitude && $longitude) {
+            // If no URL is provided but lat/lng exist (e.g., from geolocation), create a standard URL
             $map_url_to_save = "https://www.google.com/maps?q={$latitude},{$longitude}";
         }
 
@@ -377,7 +380,7 @@ class ReferralController extends Controller
             'user_id' => $targetUserId,
             'state' => trim(htmlspecialchars($_POST['state'] ?? '')),
             'phone' => trim(htmlspecialchars($_POST['phone'] ?? '')),
-            'is_online_only' => isset($_POST['is_online_only']) ? 1 : 0,
+            'is_online_only' => !empty($_POST['is_online_only']) && $_POST['is_online_only'] === '1' ? 1 : 0,
             'latitude' => $latitude,
             'longitude' => $longitude,
             'map_url' => $map_url_to_save
@@ -415,6 +418,8 @@ class ReferralController extends Controller
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // يسمح بمتابعة التحويلات
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_NOBODY, true); // لا نحتاج لمحتوى الصفحة
+        // Add a common user agent to mimic a browser
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
         curl_exec($ch);
         $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
@@ -426,26 +431,35 @@ class ReferralController extends Controller
     // دالة لاستخراج الإحداثيات من الرابط الكامل
     private function extractCoordinates($url)
     {
-        // New pattern for /search/lat,lng and /place/name/@lat,lng
-        if (preg_match('/@([\d\.-]+),([\d\.-]+)/', $url, $matches)) {
-            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
-        }
-
-        // Pattern for /maps/search/lat,+lng
-        if (preg_match('/\/search\/([\d\.-]+),\+?([\d\.-]+)/', $url, $matches)) {
-            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
-        }
-
-        // From !3d and !4d parameters
+        // 1. من !3d و !4d
         if (preg_match('/!3d([\d\.-]+)!4d([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-
-        // From q=lat,long parameter
+    
+        // 2. من @lat,lng
+        if (preg_match('/@([\d\.-]+),([\d\.-]+)/', $url, $matches)) {
+            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
+        }
+    
+        // 3. من /search/lat,lng
+        if (preg_match('/\/search\/([\d\.-]+),\s*([\d\.-]+)/', $url, $matches)) {
+            return ['latitude' => $matches[1], 'longitude' => $matches[2]];
+        }
+    
+        // 4. من q=lat,lng
         if (preg_match('/[?&]q=([\d\.-]+),([\d\.-]+)/', $url, $matches)) {
             return ['latitude' => $matches[1], 'longitude' => $matches[2]];
         }
-
+    
+        // 5. fallback: بعض اللينكات بتكون بنص درجات زي: 30°09'23.0"N 31°20'21.5"E
+        if (preg_match('/(\d{1,2})[°](\d{1,2})[\'’](\d{1,2}(?:\.\d+)?)["”]N.*?(\d{1,3})[°](\d{1,2})[\'’](\d{1,2}(?:\.\d+)?)["”]E/', $url, $matches)) {
+            // نحول من درجات/دقايق/ثواني إلى decimal
+            $lat = $matches[1] + ($matches[2]/60) + ($matches[3]/3600);
+            $lng = $matches[4] + ($matches[5]/60) + ($matches[6]/3600);
+            return ['latitude' => $lat, 'longitude' => $lng];
+        }
+    
         return null;
     }
+    
 }

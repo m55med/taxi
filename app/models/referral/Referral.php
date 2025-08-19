@@ -35,6 +35,13 @@ class Referral
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
+    public function findUserByUsername($username)
+    {
+        $stmt = $this->db->prepare("SELECT id, username, email FROM users WHERE username = :username");
+        $stmt->execute(['username' => $username]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Finds a driver by their phone number.
      *

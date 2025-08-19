@@ -137,7 +137,7 @@ if (isset($add_review_url)) {
                             $discussion_partial_data = [
                                 'discussions' => $review['discussions'] ?? [],
                                 'add_url' => BASE_URL . "/discussions/add/review/" . $review['id'],
-                                'can_add_discussion' => in_array($currentUser['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']),
+                                'can_add_discussion' => in_array($currentUser['role'], ['Quality', 'Team_leader', 'admin', 'developer']),
                                 'currentUser' => $currentUser // Pass the user context down
                             ];
                             render_partial('tickets/partials/discussions_section.php', $discussion_partial_data);

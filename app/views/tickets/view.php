@@ -1,5 +1,4 @@
 <?php include_once __DIR__ . '/../includes/header.php'; ?>
-
 <div class="container mx-auto p-4 sm:p-6 lg:p-8" x-data="ticketDetails()">
     <!-- Flash Messages -->
     <?php include_once __DIR__ . '/../includes/flash_messages.php'; ?>

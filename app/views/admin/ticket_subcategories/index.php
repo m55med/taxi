@@ -150,6 +150,12 @@ if (isset($_SESSION['ticket_subcategory_message'])) {
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($subcategory['name']) ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= htmlspecialchars($categories_map[$subcategory['category_id']] ?? 'Unknown') ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                                            <button type="button" class="text-indigo-600 hover:text-indigo-900 mr-3 edit-btn" title="Edit"
+                                                data-id="<?= $subcategory['id'] ?>"
+                                                data-name="<?= htmlspecialchars($subcategory['name']) ?>"
+                                                data-category-id="<?= $subcategory['category_id'] ?>">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
                                             <form action="<?= BASE_URL ?>/admin/ticket_subcategories/delete/<?= $subcategory['id'] ?>" method="POST" class="inline delete-form">
                                                 <button type="button" class="text-red-600 hover:text-red-900 delete-btn" title="Delete">
                                                     <i class="fas fa-trash-alt"></i>
@@ -182,6 +188,31 @@ if (isset($_SESSION['ticket_subcategory_message'])) {
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Edit Subcategory</h3>
+        <form id="edit-form" action="" method="POST">
+            <div class="mb-4">
+                <label for="edit-name" class="block text-sm font-medium text-gray-700">Subcategory Name</label>
+                <input type="text" name="name" id="edit-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+            </div>
+            <div class="mb-4">
+                <label for="edit-category-id" class="block text-sm font-medium text-gray-700">Category</label>
+                <select name="category_id" id="edit-category-id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    <?php foreach ($data['ticket_categories'] as $category): ?>
+                        <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mt-6 flex justify-end gap-4">
+                <button type="button" id="cancel-edit" class="px-6 py-2 rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 font-medium">Cancel</button>
+                <button type="submit" class="px-6 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700 font-medium">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // --- Toast Notification Logic ---
@@ -193,13 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.className = `toast ${type}`;
         toast.innerHTML = `${text}<div class="toast-progress"></div>`;
         toastContainer.appendChild(toast);
-
-        // Animate in
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 100);
-
-        // Animate out and remove
+        setTimeout(() => toast.classList.add('show'), 100);
         setTimeout(() => {
             toast.classList.remove('show');
             toast.addEventListener('transitionend', () => toast.remove());
@@ -210,37 +235,57 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast(flashMessage.text, flashMessage.type);
     }
 
-    // --- Confirmation Modal Logic ---
-    const modal = document.getElementById('confirmation-modal');
-    const cancelBtn = document.getElementById('cancel-delete');
-    const confirmBtn = document.getElementById('confirm-delete');
-    let formToSubmit = null;
+    // --- Confirmation Modal Logic (for delete) ---
+    const deleteModal = document.getElementById('confirmation-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+    let deleteFormToSubmit = null;
 
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            formToSubmit = this.closest('.delete-form');
-            modal.classList.add('show');
+            deleteFormToSubmit = this.closest('.delete-form');
+            deleteModal.classList.add('show');
         });
     });
 
-    function closeModal() {
-        modal.classList.remove('show');
-        formToSubmit = null;
+    function closeDeleteModal() {
+        deleteModal.classList.remove('show');
     }
 
-    cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
+    cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+    deleteModal.addEventListener('click', (e) => e.target === deleteModal && closeDeleteModal());
+    confirmDeleteBtn.addEventListener('click', () => deleteFormToSubmit && deleteFormToSubmit.submit());
 
-    confirmBtn.addEventListener('click', function() {
-        if (formToSubmit) {
-            formToSubmit.submit();
+    // --- Edit Modal Logic ---
+    const editModal = document.getElementById('edit-modal');
+    if (editModal) {
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const editForm = document.getElementById('edit-form');
+        const editNameInput = document.getElementById('edit-name');
+        const editCategoryIdSelect = document.getElementById('edit-category-id');
+
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const categoryId = this.dataset.categoryId;
+                
+                editNameInput.value = name;
+                editCategoryIdSelect.value = categoryId;
+                editForm.action = `<?= BASE_URL ?>/admin/ticket_subcategories/update/${id}`;
+                
+                editModal.classList.add('show');
+            });
+        });
+
+        function closeEditModal() {
+            editModal.classList.remove('show');
         }
-    });
+
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', (e) => e.target === editModal && closeEditModal());
+    }
 });
 </script>
 

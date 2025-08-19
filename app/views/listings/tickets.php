@@ -83,11 +83,18 @@
 
     <!-- Results Table -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <?php
+        $is_agent = \App\Core\Auth::hasRole('agent');
+        $is_editor = \App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer');
+        $colspan = 6;
+        if (!$is_agent) $colspan++;
+        if ($is_editor) $colspan++;
+        ?>
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket #</th>
-                    <?php if (!\App\Core\Auth::hasRole('agent')): ?>
+                    <?php if (!$is_agent): ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
                     <?php endif; ?>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform</th>
@@ -95,12 +102,15 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Classification</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">VIP</th>
+                    <?php if ($is_editor): ?>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 <?php if (empty($data['tickets'])): ?>
                     <tr>
-                        <td colspan="7" class="text-center py-10 text-gray-500">No tickets found.</td>
+                        <td colspan="<?= $colspan ?>" class="text-center py-10 text-gray-500">No tickets found.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($data['tickets'] as $ticket): ?>
@@ -108,7 +118,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                                 <a href="<?= URLROOT ?>/tickets/view/<?= $ticket['ticket_id'] ?>" target="_blank" class="hover:underline"><?= htmlspecialchars($ticket['ticket_number']) ?></a>
                             </td>
-                            <?php if (!\App\Core\Auth::hasRole('agent')): ?>
+                            <?php if (!$is_agent): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?= htmlspecialchars($ticket['created_by_username']) ?></td>
                             <?php endif; ?>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600"><?= htmlspecialchars($ticket['platform_name']) ?></td>
@@ -129,6 +139,13 @@
                                     ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Yes</span>' 
                                     : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">No</span>' ?>
                             </td>
+                            <?php if ($is_editor): ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="<?= URLROOT ?>/tickets/edit/<?= $ticket['ticket_id'] ?>" class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -139,6 +156,82 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const filterForm = document.getElementById('filter-form');
+    const ticketsTbody = document.querySelector('tbody');
+    const initialTickets = <?= json_encode($data['tickets']) ?>;
+
+    const updateTickets = (tickets) => {
+        ticketsTbody.innerHTML = '';
+        if (tickets.length === 0) {
+            ticketsTbody.innerHTML = `<tr><td colspan="100%" class="text-center py-10 text-gray-500">No tickets found.</td></tr>`;
+            return;
+        }
+
+        const isAgent = <?= json_encode(\App\Core\Auth::hasRole('agent')) ?>;
+        const isEditor = <?= json_encode(\App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer')) ?>;
+
+        tickets.forEach(ticket => {
+            const classification = [ticket.category_name, ticket.subcategory_name, ticket.code_name].filter(Boolean).join(' > ');
+            const createdAt = new Date(ticket.created_at).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
+
+            const vipBadge = ticket.is_vip == 1 
+                ? `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Yes</span>` 
+                : `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">No</span>`;
+
+            let rowHtml = `<tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                    <a href="<?= URLROOT ?>/tickets/view/${ticket.ticket_id}" target="_blank" class="hover:underline">${ticket.ticket_number}</a>
+                </td>`;
+
+            if (!isAgent) {
+                rowHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${ticket.created_by_username}</td>`;
+            }
+
+            rowHtml += `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${ticket.platform_name}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${ticket.phone || ''}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    <span class="block truncate max-w-xs" title="${classification}">${classification}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${createdAt}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">${vipBadge}</td>`;
+
+            if (isEditor) {
+                rowHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="<?= URLROOT ?>/tickets/edit/${ticket.ticket_id}" class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>`;
+            }
+
+            rowHtml += `</tr>`;
+            ticketsTbody.innerHTML += rowHtml;
+        });
+    };
+
+    const filterTickets = () => {
+        const searchTerm = document.getElementById('search_term').value.toLowerCase();
+        const createdBy = document.getElementById('created_by')?.value;
+        
+        const filteredTickets = initialTickets.filter(ticket => {
+            const searchTermMatch = searchTerm === '' || 
+                                    ticket.ticket_number.toLowerCase().includes(searchTerm) || 
+                                    (ticket.phone && ticket.phone.toLowerCase().includes(searchTerm));
+
+            const createdByMatch = !createdBy || ticket.created_by == createdBy;
+
+            return searchTermMatch && createdByMatch;
+        });
+
+        updateTickets(filteredTickets);
+    };
+
+    let debounceTimer;
+    filterForm.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(filterTickets, 300);
+    });
+
     flatpickr("#date_range", {
         mode: 'range',
         dateFormat: 'Y-m-d',
@@ -146,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedDates.length === 2) {
                 document.getElementById('start_date').value = instance.formatDate(selectedDates[0], "Y-m-d");
                 document.getElementById('end_date').value = instance.formatDate(selectedDates[1], "Y-m-d");
+                filterForm.submit(); // Submit for server-side filtering
             }
         }
     });
@@ -167,6 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const exportHandler = (format) => {
         const currentUrl = new URL(window.location.href);
+        // Use the form's current state for export
+        const formData = new FormData(filterForm);
+        for (const [key, value] of formData.entries()) {
+            currentUrl.searchParams.set(key, value);
+        }
         currentUrl.searchParams.set('export', format);
         window.location.href = currentUrl.href;
     };

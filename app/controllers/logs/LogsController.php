@@ -15,7 +15,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 class LogsController extends Controller
 {
     private $logModel;
-    private $rolesWithPointsAccess = ['Admin', 'admin', 'Team_leader', 'Quality', 'quality'];
+    private $rolesWithPointsAccess = ['Admin', 'admin', 'Team_leader', 'Quality', 'quality', 'developer'];
 
     public function __construct()
     {

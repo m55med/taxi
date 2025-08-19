@@ -66,6 +66,18 @@ function handle_api_routes($url) {
         return true; // Route was handled
     }
 
+    // Route: /api/contracts/generate
+    if (!empty($url[0]) && $url[0] === 'contracts' && !empty($url[1]) && $url[1] === 'generate' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $controller->generateContract();
+        return true;
+    }
+
+    // Route: /api/downloadContract?file=...&expires=...&signature=...
+    if (!empty($url[0]) && $url[0] === 'downloadContract' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $controller->downloadContract();
+        return true;
+    }
+
     // Route: /api/discussions/{id}/replies
     if (!empty($url[0]) && $url[0] === 'discussions' && isset($url[1]) && is_numeric($url[1]) && isset($url[2]) && $url[2] === 'replies' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // Manually include and instantiate the DiscussionsController just for this route

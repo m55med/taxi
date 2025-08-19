@@ -413,4 +413,19 @@ class Ticket extends Model
         $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
+
+    public function findDetailById(int $detailId)
+    {
+        $sql = "SELECT 
+                    td.*,
+                    t.ticket_number,
+                    t.id as ticket_id
+                FROM ticket_details td
+                JOIN tickets t ON td.ticket_id = t.id
+                WHERE td.id = :detail_id";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':detail_id' => $detailId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 } 

@@ -68,4 +68,26 @@ class TicketCodesController extends Controller {
         }
         redirect('admin/ticket_codes');
     }
+
+    public function update($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name']);
+            $subcategoryId = filter_input(INPUT_POST, 'subcategory_id', FILTER_VALIDATE_INT);
+
+            if (!empty($name) && $subcategoryId) {
+                $ticketCodeModel = new TicketCode();
+                if ($ticketCodeModel->update($id, $name, $subcategoryId)) {
+                    $_SESSION['ticket_code_message'] = 'Code updated successfully.';
+                    $_SESSION['ticket_code_message_type'] = 'success';
+                } else {
+                    $_SESSION['ticket_code_message'] = 'Error updating code.';
+                    $_SESSION['ticket_code_message_type'] = 'error';
+                }
+            } else {
+                $_SESSION['ticket_code_message'] = 'Code name and subcategory are required.';
+                $_SESSION['ticket_code_message_type'] = 'error';
+            }
+        }
+        redirect('admin/ticket_codes');
+    }
 } 

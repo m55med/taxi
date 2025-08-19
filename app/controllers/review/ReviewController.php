@@ -141,7 +141,7 @@ class ReviewController extends Controller
 
     public function add($reviewable_type, $reviewable_id)
     {
-        $allowed_roles = ['quality_manager', 'Team_leader', 'admin', 'developer'];
+        $allowed_roles = ['Quality', 'Team_leader', 'admin', 'developer'];
         if (!in_array(Auth::getUserRole(), $allowed_roles)) {
             http_response_code(403);
 

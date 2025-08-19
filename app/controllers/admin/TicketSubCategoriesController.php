@@ -68,4 +68,26 @@ class TicketSubCategoriesController extends Controller {
         }
         redirect('admin/ticket_subcategories');
     }
+
+    public function update($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name']);
+            $categoryId = filter_input(INPUT_POST, 'category_id', FILTER_VALIDATE_INT);
+
+            if (!empty($name) && $categoryId) {
+                $ticketSubCategoryModel = new TicketSubCategory();
+                if ($ticketSubCategoryModel->update($id, $name, $categoryId)) {
+                    $_SESSION['ticket_subcategory_message'] = 'Subcategory updated successfully.';
+                    $_SESSION['ticket_subcategory_message_type'] = 'success';
+                } else {
+                    $_SESSION['ticket_subcategory_message'] = 'Error updating subcategory.';
+                    $_SESSION['ticket_subcategory_message_type'] = 'error';
+                }
+            } else {
+                $_SESSION['ticket_subcategory_message'] = 'Subcategory name and category are required.';
+                $_SESSION['ticket_subcategory_message_type'] = 'error';
+            }
+        }
+        redirect('admin/ticket_subcategories');
+    }
 }

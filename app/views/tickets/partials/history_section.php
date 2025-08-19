@@ -15,12 +15,22 @@
                     <h4 class="text-lg font-bold <?= $index === 0 ? 'text-green-700' : 'text-blue-700' ?>">
                         <?= $index === 0 ? 'Current Status' : 'Previous Version' ?>
                     </h4>
-                    <div class="text-sm text-gray-600">
-                        <i class="fas fa-user-edit mr-1"></i>
-                        Updated by: <strong><?= htmlspecialchars($history['editor_name']) ?></strong>
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-clock mr-1"></i>
-                        <?= date('Y-m-d H:i', strtotime($history['created_at'])) ?>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-user-edit mr-1"></i>
+                            Updated by: <strong><?= htmlspecialchars($history['editor_name']) ?></strong>
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-clock mr-1"></i>
+                            <?= date('Y-m-d H:i', strtotime($history['created_at'])) ?>
+                        </div>
+
+                        <?php if ($index === 0 && (\App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer'))): ?>
+                            <a href="<?= BASE_URL ?>/tickets/edit/<?= $history['id'] ?>" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-xs font-medium flex items-center">
+                                <i class="fas fa-edit mr-2"></i>
+                                Edit Details
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -91,7 +101,7 @@
                     render_partial('tickets/partials/reviews_section.php', [
                         'reviews' => $history['reviews'] ?? [],
                         'add_review_url' => BASE_URL . "/review/add/ticket_detail/" . $history['id'],
-                        'can_add_review' => in_array($data['currentUser']['role'], ['quality_manager', 'Team_leader', 'admin', 'developer']),
+                        'can_add_review' => in_array($data['currentUser']['role'], ['Quality', 'Team_leader', 'admin', 'developer']),
                         'currentUser' => $data['currentUser'],
                         'ticket_categories' => $data['ticket_categories'] ?? [] // Pass categories down
                     ]);
