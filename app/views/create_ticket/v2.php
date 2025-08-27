@@ -5,7 +5,7 @@
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8" 
      x-data="createTicketForm(
         <?php echo htmlspecialchars(json_encode($data['platforms'])); ?>,
-        <?php echo htmlspecialchars(json_encode($data['marketers'])); ?>
+        <?php echo htmlspecialchars(json_encode($data['vip_users'])); ?>
      )"
      @option-selected.window="formData[event.detail.model] = event.detail.value">
     <!-- Page Header -->
@@ -259,7 +259,7 @@
         </div>
     </form>
 
-    <!-- VIP Marketer Assignment Modal -->
+    <!-- VIP User Assignment Modal -->
     <div x-show="isVipModalOpen" 
          x-cloak
          x-transition:enter="ease-out duration-300"
@@ -294,17 +294,17 @@
                         </h3>
                         <div class="mt-2">
                             <p class="text-sm text-gray-500">
-                                This is a VIP ticket. Please assign it to a marketer.
+                                This is a VIP ticket. Please assign it to a VIP user.
                             </p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-5">
-                    <label for="marketer_id_modal" class="block text-sm font-medium text-gray-700">Assign Marketer <span class="text-red-500">*</span></label>
-                    <div x-data="searchableSelect(<?php echo htmlspecialchars(json_encode(array_map(function($m) { return ['id' => $m['id'], 'name' => $m['username']]; }, $data['marketers']))); ?>)"
-                         x-init="$el.dataset.initialValue = formData.marketer_id"
-                         data-model-name="marketer_id"
-                         data-placeholder="Select a marketer..."
+                    <label for="vip_user_id_modal" class="block text-sm font-medium text-gray-700">Assign VIP User <span class="text-red-500">*</span></label>
+                    <div x-data="searchableSelect(<?php echo htmlspecialchars(json_encode(array_map(function($m) { return ['id' => $m['id'], 'name' => $m['username']]; }, $data['vip_users']))); ?>)"
+                         x-init="$el.dataset.initialValue = formData.vip_user_id"
+                         data-model-name="vip_user_id"
+                         data-placeholder="Select a VIP user..."
                          class="relative mt-1">
                         <button @click="toggle" type="button" class="relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                             <span class="block truncate" x-text="selectedLabel"></span>
@@ -313,10 +313,10 @@
                             </span>
                         </button>
                         <div x-show="open" @click.away="open = false" x-transition x-cloak class="absolute mt-1 w-full rounded-md bg-white shadow-lg z-500">
-                            <div class="p-2"><input type="text" x-model="searchTerm" x-ref="search" class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Search marketers..."></div>
+                            <div class="p-2"><input type="text" x-model="searchTerm" x-ref="search" class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Search VIP users..."></div>
                             <ul class="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                                 <template x-for="option in filteredOptions" :key="option.id"><li @click="selectOption(option)" class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white" :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }"><span class="block truncate" x-text="option.name"></span><template x-if="selected && selected.id == option.id"><span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white"><svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></span></template></li></template>
-                                <template x-if="filteredOptions.length === 0"><li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">No marketers found.</li></template>
+                                <template x-if="filteredOptions.length === 0"><li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">No VIP users found.</li></template>
                             </ul>
                         </div>
                     </div>

@@ -16,7 +16,7 @@ class UsersController extends Controller {
     private $activeUserService;
 
     public function __construct() {
-        Auth::checkAdmin();
+        Auth::requireRole(['admin', 'developer']);
         parent::__construct();
         $this->userModel = new User();
         $this->roleModel = new Role();
@@ -176,5 +176,125 @@ class UsersController extends Controller {
         } else {
             $this->sendJsonResponse(['status' => 'error', 'message' => 'Invalid request.'], 400);
         }
+    }
+
+    /**
+     * Display the VIP Users management page
+     */
+    public function addVip() {
+        // Get VIP users (role_id = 11)
+        $vipUsers = $this->userModel->getUsersByRole(11);
+        
+        $data = [
+            'vip_users' => $vipUsers,
+            'title' => 'VIP Users Management'
+        ];
+
+        $this->view('admin/users/add_vip', $data);
+    }
+
+    /**
+     * Store a new VIP user with random email and password
+     */
+    public function storeVip() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name'] ?? '');
+            
+            if (empty($name)) {
+                $_SESSION['vip_user_message'] = 'الاسم مطلوب.';
+                $_SESSION['vip_user_message_class'] = 'error';
+                header('Location: ' . URLROOT . '/admin/users/vip');
+                exit;
+            }
+
+            // Generate random email and password
+            $randomEmail = $this->generateRandomEmail($name);
+            $randomPassword = $this->generateRandomPassword();
+            $username = $this->generateUsername($name);
+
+            $data = [
+                'username' => $username,
+                'name' => $name,
+                'email' => $randomEmail,
+                'password' => $randomPassword, 
+                'role_id' => 11, // VIP role
+                'status' => 'active'
+            ];
+
+            // Check if username exists
+            if ($this->userModel->isUsernameExists($data['username'])) {
+                // Add random numbers to make it unique
+                $data['username'] = $username . '_' . rand(100, 999);
+            }
+
+            $newUserId = $this->userModel->createUser($data);
+            if ($newUserId) {
+                $_SESSION['vip_user_message'] = 'تم إضافة المستخدم VIP بنجاح. البريد الإلكتروني: ' . $randomEmail . ' | كلمة المرور: ' . $randomPassword;
+                $_SESSION['vip_user_message_class'] = 'success';
+            } else {
+                $_SESSION['vip_user_message'] = 'فشل في إضافة المستخدم VIP.';
+                $_SESSION['vip_user_message_class'] = 'error';
+            }
+        }
+        header('Location: ' . URLROOT . '/admin/users/vip');
+        exit;
+    }
+
+    /**
+     * Delete a VIP user
+     */
+    public function deleteVip($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify that user has role_id = 11 (VIP)
+            $user = $this->userModel->getUserById($id);
+            if (!$user || $user->role_id != 11) {
+                $_SESSION['vip_user_message'] = 'مستخدم غير صحيح أو ليس من نوع VIP.';
+                $_SESSION['vip_user_message_class'] = 'error';
+                header('Location: ' . URLROOT . '/admin/users/vip');
+                exit;
+            }
+
+            if ($this->userModel->deleteUser($id)) {
+                $_SESSION['vip_user_message'] = 'تم حذف المستخدم VIP بنجاح.';
+                $_SESSION['vip_user_message_class'] = 'success';
+            } else {
+                $_SESSION['vip_user_message'] = 'فشل في حذف المستخدم VIP.';
+                $_SESSION['vip_user_message_class'] = 'error';
+            }
+        }
+        header('Location: ' . URLROOT . '/admin/users/vip');
+        exit;
+    }
+
+    /**
+     * Generate a random email based on username
+     */
+    private function generateRandomEmail($name) {
+        $domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'example.com'];
+        $domain = $domains[array_rand($domains)];
+        $randomNumber = rand(100, 9999);
+        $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', transliterator_transliterate('Any-Latin; Latin-ASCII', $name));
+        return strtolower($cleanName . $randomNumber . '@' . $domain);
+    }
+
+    /**
+     * Generate a random password
+     */
+    private function generateRandomPassword($length = 8) {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $password = '';
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[rand(0, strlen($chars) - 1)];
+        }
+        return $password;
+    }
+
+    /**
+     * Generate username from name
+     */
+    private function generateUsername($name) {
+        // Remove special characters and spaces, convert to lowercase
+        $username = preg_replace('/[^a-zA-Z0-9]/', '', transliterator_transliterate('Any-Latin; Latin-ASCII', $name));
+        return strtolower($username);
     }
 } 

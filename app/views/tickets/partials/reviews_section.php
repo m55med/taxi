@@ -30,7 +30,10 @@ if (isset($add_review_url)) {
 
     <!-- Review Form -->
     <div x-show="openReviewForm" x-transition class="bg-gray-50 p-4 rounded-lg border mb-4" id="review-form-<?= $review_unique_id_suffix ?>" 
-         x-data="reviewFormPartial({ categories: <?= htmlspecialchars(json_encode($ticket_categories ?? [])) ?> })">
+         x-data="reviewFormPartial({ 
+             categories: <?= htmlspecialchars(json_encode($ticket_categories ?? [])) ?>, 
+             ticketDetails: <?= htmlspecialchars(json_encode($ticket_details ?? [])) ?> 
+         })">
         <form action="<?= isset($add_review_url) ? $add_review_url : '' ?>" method="POST">
             <!-- RATING -->
             <div class="mb-4">
@@ -41,11 +44,17 @@ if (isset($add_review_url)) {
                 </div>
             </div>
 
-            <!-- CLASSIFICATION -->
-            <div class="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- CLASSIFICATION - HIDDEN -->
+            <div class="mb-4" style="display: none;">
+                <div class="flex items-center mb-2">
+                    <i class="fas fa-sitemap text-blue-500 mr-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Classification</span>
+                    <span class="text-xs text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">(Auto-filled from ticket details)</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label for="category_id_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select name="ticket_category_id" id="category_id_<?= $review_unique_id_suffix ?>" x-model="categoryId" @change="fetchSubcategories" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    <select id="category_id_<?= $review_unique_id_suffix ?>" x-model="categoryId" @change="fetchSubcategories" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
                         <option value="">Select Category</option>
                         <template x-for="category in categories" :key="category.id">
                             <option :value="category.id" x-text="category.name"></option>
@@ -54,7 +63,7 @@ if (isset($add_review_url)) {
                 </div>
                 <div>
                     <label for="subcategory_id_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
-                    <select name="ticket_subcategory_id" id="subcategory_id_<?= $review_unique_id_suffix ?>" x-model="subcategoryId" @change="fetchCodes" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!categoryId || subcategoriesLoading">
+                    <select id="subcategory_id_<?= $review_unique_id_suffix ?>" x-model="subcategoryId" @change="fetchCodes" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!categoryId || subcategoriesLoading">
                         <template x-if="subcategoriesLoading"><option>Loading...</option></template>
                         <template x-if="!subcategoriesLoading"><option value="">Select Subcategory</option></template>
                         <template x-for="subcategory in subcategories" :key="subcategory.id">
@@ -64,7 +73,7 @@ if (isset($add_review_url)) {
                 </div>
                 <div>
                     <label for="code_id_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Code</label>
-                    <select name="ticket_code_id" id="code_id_<?= $review_unique_id_suffix ?>" x-model="codeId" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!subcategoryId || codesLoading">
+                    <select id="code_id_<?= $review_unique_id_suffix ?>" x-model="codeId" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" :disabled="!subcategoryId || codesLoading">
                         <template x-if="codesLoading"><option>Loading...</option></template>
                         <template x-if="!codesLoading"><option value="">Select Code</option></template>
                         <template x-for="code in codes" :key="code.id">
@@ -73,11 +82,68 @@ if (isset($add_review_url)) {
                     </select>
                 </div>
             </div>
+            </div>
+
+            <!-- Hidden inputs to ensure values are submitted -->
+            <input type="hidden" name="ticket_category_id" :value="categoryId">
+            <input type="hidden" name="ticket_subcategory_id" :value="subcategoryId">
+            <input type="hidden" name="ticket_code_id" :value="codeId">
+
+            <!-- Classification Display (Read-only) -->
+            <div class="mb-4" x-show="categoryId">
+                <div class="flex items-center mb-2">
+                    <i class="fas fa-sitemap text-green-500 mr-2"></i>
+                    <span class="text-sm font-medium text-gray-700">Classification</span>
+                    <span class="text-xs text-green-600 ml-2 bg-green-50 px-2 py-1 rounded">(Auto-filled from ticket details)</span>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div class="flex flex-wrap items-center gap-x-2 text-sm text-gray-600">
+                        <span class="font-semibold" x-text="ticketDetails.category_name || 'Loading...'"></span>
+                        <span class="text-gray-400 mx-1" x-show="ticketDetails.subcategory_name">&gt;</span>
+                        <span x-text="ticketDetails.subcategory_name" x-show="ticketDetails.subcategory_name"></span>
+                        <span class="text-gray-400 mx-1" x-show="ticketDetails.code_name">&gt;</span>
+                        <span class="bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full text-xs font-medium" x-text="ticketDetails.code_name" x-show="ticketDetails.code_name"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REVIEW REASONS (when rating < 100) -->
+            <div class="mb-4" x-show="rating < 100" x-transition>
+                <label for="review_reasons_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
+                    Review Reasons (Select applicable issues)
+                </label>
+                <select id="review_reasons_<?= $review_unique_id_suffix ?>" x-model="selectedReason" @change="addReasonToNotes" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-200">
+                    <option value="">-- Select reason to add to notes --</option>
+                    <option value="Ticket investigation" :disabled="addedReasons.includes('Ticket investigation')">Ticket investigation</option>
+                    <option value="Deduction and Refund" :disabled="addedReasons.includes('Deduction and Refund')">Deduction and Refund</option>
+                    <option value="Message content" :disabled="addedReasons.includes('Message content')">Message content</option>
+                    <option value="Cancellation fees" :disabled="addedReasons.includes('Cancellation fees')">Cancellation fees</option>
+                    <option value="Following Updates" :disabled="addedReasons.includes('Following Updates')">Following Updates</option>
+                    <option value="Company's profile" :disabled="addedReasons.includes('Company&apos;s profile')">Company's profile</option>
+                    <option value="Handling Skills" :disabled="addedReasons.includes('Handling Skills')">Handling Skills</option>
+                </select>
+                <!-- Display added reasons -->
+                <div x-show="addedReasons.length > 0" class="mt-2 flex flex-wrap gap-2">
+                    <template x-for="reason in addedReasons" :key="reason">
+                        <span class="inline-flex items-center px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                            <span x-text="reason"></span>
+                            <button type="button" @click="removeReason(reason)" class="ml-1 text-orange-600 hover:text-orange-800">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </span>
+                    </template>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Selected reasons will be automatically added to the notes below
+                </p>
+            </div>
 
             <!-- NOTES -->
             <div class="mb-4">
                 <label for="review_notes_<?= $review_unique_id_suffix ?>" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <textarea name="review_notes" id="review_notes_<?= $review_unique_id_suffix ?>" rows="3" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Add notes..."></textarea>
+                <textarea name="review_notes" id="review_notes_<?= $review_unique_id_suffix ?>" x-model="reviewNotes" rows="4" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-200" placeholder="Add notes..."></textarea>
             </div>
 
             <!-- ACTIONS -->
@@ -158,36 +224,114 @@ function reviewFormPartial(initialData) {
     return {
         rating: 50,
         categories: initialData.categories || [],
-        categoryId: null,
-        subcategoryId: null,
-        codeId: null,
+        ticketDetails: initialData.ticketDetails || {},
+        categoryId: initialData.ticketDetails ? initialData.ticketDetails.category_id : null,
+        subcategoryId: initialData.ticketDetails ? initialData.ticketDetails.subcategory_id : null,
+        codeId: initialData.ticketDetails ? initialData.ticketDetails.code_id : null,
         subcategories: [],
         codes: [],
         subcategoriesLoading: false,
         codesLoading: false,
+        selectedReason: '',
+        reviewNotes: '',
+        addedReasons: [],
         fetchSubcategories() {
             if (!this.categoryId) {
-                this.subcategoryId = null; this.subcategories = []; return;
+                this.subcategoryId = null; this.subcategories = []; 
+                return Promise.resolve();
             }
-            this.subcategoriesLoading = true; this.subcategoryId = null; this.codeId = null;
-            fetch(`<?= URLROOT ?>/calls/subcategories/${this.categoryId}`)
+            this.subcategoriesLoading = true; 
+            // Don't reset subcategoryId and codeId when auto-loading
+            if (!this.ticketDetails || !this.ticketDetails.subcategory_id) {
+                this.subcategoryId = null; 
+                this.codeId = null;
+            }
+            return fetch(`<?= URLROOT ?>/calls/subcategories/${this.categoryId}`)
                 .then(res => res.json())
-                .then(data => { this.subcategories = data; this.subcategoriesLoading = false; });
+                .then(data => { 
+                    this.subcategories = data; 
+                    this.subcategoriesLoading = false; 
+                });
         },
         fetchCodes() {
             if (!this.subcategoryId) {
-                this.codeId = null; this.codes = []; return;
+                this.codeId = null; this.codes = []; 
+                return Promise.resolve();
             }
-            this.codesLoading = true; this.codeId = null;
-            fetch(`<?= URLROOT ?>/calls/codes/${this.subcategoryId}`)
+            this.codesLoading = true; 
+            // Don't reset codeId when auto-loading
+            if (!this.ticketDetails || !this.ticketDetails.code_id) {
+                this.codeId = null;
+            }
+            return fetch(`<?= URLROOT ?>/calls/codes/${this.subcategoryId}`)
                 .then(res => res.json())
-                .then(data => { this.codes = data; this.codesLoading = false; });
+                .then(data => { 
+                    this.codes = data; 
+                    this.codesLoading = false; 
+                });
+        },
+        addReasonToNotes() {
+            if (this.selectedReason && !this.addedReasons.includes(this.selectedReason)) {
+                // Add reason to tracking array to prevent duplicates
+                this.addedReasons.push(this.selectedReason);
+                
+                // Add reason to notes with proper formatting
+                const reasonText = `• ${this.selectedReason}`;
+                
+                if (this.reviewNotes.trim() === '') {
+                    // If notes are empty, start with the reason
+                    this.reviewNotes = reasonText;
+                } else {
+                    // If notes exist, add reason on new line
+                    this.reviewNotes += '\n' + reasonText;
+                }
+                
+                // Reset selection
+                this.selectedReason = '';
+            }
+        },
+        removeReason(reasonToRemove) {
+            // Remove from tracking array
+            this.addedReasons = this.addedReasons.filter(reason => reason !== reasonToRemove);
+            
+            // Remove from notes
+            const reasonText = `• ${reasonToRemove}`;
+            this.reviewNotes = this.reviewNotes.replace(reasonText, '').replace(/\n\n/g, '\n').trim();
         },
         init() {
              this.$watch('rating', value => {
                 if (value > 100) this.rating = 100;
                 if (value < 0) this.rating = 0;
+                
+                // Clear added reasons when rating becomes 100
+                if (value >= 100) {
+                    // Remove all added reasons from notes
+                    this.addedReasons.forEach(reason => {
+                        const reasonText = `• ${reason}`;
+                        this.reviewNotes = this.reviewNotes.replace(reasonText, '');
+                    });
+                    this.reviewNotes = this.reviewNotes.replace(/\n\n/g, '\n').trim();
+                    
+                    this.addedReasons = [];
+                    this.selectedReason = '';
+                }
             });
+            
+            // Auto-load subcategories and codes if ticket details are provided
+            if (this.ticketDetails && this.categoryId) {
+                this.fetchSubcategories().then(() => {
+                    // Restore subcategory selection after subcategories are loaded
+                    if (this.ticketDetails.subcategory_id) {
+                        this.subcategoryId = this.ticketDetails.subcategory_id;
+                        this.fetchCodes().then(() => {
+                            // Restore code selection after codes are loaded
+                            if (this.ticketDetails.code_id) {
+                                this.codeId = this.ticketDetails.code_id;
+                            }
+                        });
+                    }
+                });
+            }
         }
     }
 }

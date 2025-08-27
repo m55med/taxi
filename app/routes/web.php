@@ -152,6 +152,11 @@ $router->get("admin/users/edit/{id}", "admin/UsersController@edit");
 $router->post("admin/users/update/{id}", "admin/UsersController@update");
 $router->post("admin/users/destroy", "admin/UsersController@destroy");
 
+// VIP Users Routes
+$router->get("admin/users/vip", "admin/UsersController@addVip");
+$router->post("admin/users/vip/store", "admin/UsersController@storeVip");
+$router->post("admin/users/vip/delete/{id}", "admin/UsersController@deleteVip");
+
 // Custom routes for TeamsController
 $router->get("admin/teams", "admin/TeamsController@index");
 $router->get("admin/teams/create", "admin/TeamsController@create");
@@ -280,6 +285,8 @@ $router->get('tickets/ajaxSearch', 'tickets/TicketController@ajaxSearch');
 // Quality Management Routes
 $router->get('quality/reviews', 'quality/QualityController@reviews')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get('quality/get_reviews_api', 'quality/QualityController@get_reviews_api');
+$router->post('quality/update_review', 'quality/QualityController@update_review');
+$router->post('quality/delete_review', 'quality/QualityController@delete_review');
 $router->get('quality/discussions', 'quality/QualityController@discussions')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get('quality/get_discussions_api', 'quality/QualityController@get_discussions_api');
 

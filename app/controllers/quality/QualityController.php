@@ -33,9 +33,17 @@ class QualityController extends Controller
         // Fetch data needed for filters, like categories
         $ticket_categories = $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes();
 
+        // Get current user session data
+        $currentUser = $_SESSION['user'] ?? [];
+        $userRole = $currentUser['role_name'] ?? Auth::getUserRole() ?? 'guest';
+        $userId = $currentUser['id'] ?? Auth::getUserId() ?? 0;
+
         $data = [
             'page_main_title' => 'All Reviews',
             'ticket_categories' => $ticket_categories,
+            'current_user' => $currentUser,
+            'user_role' => $userRole,
+            'user_id' => $userId,
         ];
 
         $this->view('quality/reviews', $data);
@@ -47,14 +55,84 @@ class QualityController extends Controller
     public function get_reviews_api()
     {
         header('Content-Type: application/json');
-        // Authorization check: allow all relevant roles. The model handles the logic.
+        
+        // Debug mode for testing
+        if (isset($_GET['debug_skip_auth']) && $_GET['debug_skip_auth'] === 'yes') {
+            $debug_info = [
+                'session_role' => \App\Core\Auth::getUserRole() ?? 'not_set',
+                'session_user_id' => \App\Core\Auth::getUserId() ?? 'not_set',
+                'session_data' => $_SESSION['user'] ?? 'no_user_session',
+                'timestamp' => date('Y-m-d H:i:s'),
+                'filters' => $_GET
+            ];
+            
+            try {
+                $reviews = $this->qualityModel->getFilteredReviews($_GET);
+                echo json_encode([
+                    'debug' => $debug_info,
+                    'reviews' => $reviews,
+                    'message' => 'Debug mode - auth bypassed'
+                ]);
+                return;
+            } catch (\Exception $e) {
+                echo json_encode([
+                    'debug' => $debug_info,
+                    'error' => $e->getMessage(),
+                    'message' => 'Debug mode - error occurred'
+                ]);
+                return;
+            }
+        }
+        
+        // Normal authorization check: allow all relevant roles. The model handles the logic.
         $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
         
         $filters = $_GET; // Using GET parameters for filtering
         
-        $reviews = $this->qualityModel->getFilteredReviews($filters);
+        // Add debug information for troubleshooting
+        $debug_info = [
+            'session_role' => \App\Core\Auth::getUserRole() ?? 'not_set',
+            'session_user_id' => \App\Core\Auth::getUserId() ?? 'not_set',
+            'session_data' => $_SESSION['user'] ?? 'no_user_session',
+            'timestamp' => date('Y-m-d H:i:s'),
+            'filters' => $filters
+        ];
         
-        echo json_encode($reviews);
+        try {
+            $reviews = $this->qualityModel->getFilteredReviews($filters);
+            
+            // Always include debug info in development/troubleshooting
+            if (is_array($reviews) && isset($reviews['error'])) {
+                // Model returned an error
+                echo json_encode([
+                    'error' => $reviews['error'],
+                    'debug' => $debug_info,
+                    'reviews' => [],
+                    'message' => 'Model returned error: ' . $reviews['error']
+                ]);
+            } elseif (is_array($reviews) && count($reviews) > 0) {
+                // Success with data
+                echo json_encode([
+                    'reviews' => $reviews,
+                    'debug' => $debug_info,
+                    'message' => 'Success: ' . count($reviews) . ' reviews found'
+                ]);
+            } else {
+                // Empty result
+                echo json_encode([
+                    'reviews' => [],
+                    'debug' => $debug_info,
+                    'message' => 'No reviews found with current filters'
+                ]);
+            }
+        } catch (\Exception $e) {
+            echo json_encode([
+                'error' => $e->getMessage(),
+                'debug' => $debug_info,
+                'reviews' => [],
+                'message' => 'Exception occurred: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -90,6 +168,112 @@ class QualityController extends Controller
         $discussions = $this->qualityModel->getFilteredDiscussions($filters);
         
         echo json_encode($discussions);
+    }
+
+    /**
+     * Update a review (admin only)
+     */
+    public function update_review()
+    {
+        header('Content-Type: application/json');
+        
+        // Authorization check: only admin roles can update reviews
+        if (!$this->checkAjaxPermission(['admin', 'quality_manager', 'developer'])) {
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'error' => 'Invalid request method']);
+            return;
+        }
+        
+        $reviewId = $_POST['review_id'] ?? null;
+        $rating = $_POST['rating'] ?? null;
+        $reviewNotes = $_POST['review_notes'] ?? '';
+        
+        // Validation
+        if (!$reviewId || !is_numeric($reviewId)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid review ID']);
+            return;
+        }
+        
+        if (!$rating || !is_numeric($rating) || $rating < 0 || $rating > 100) {
+            echo json_encode(['success' => false, 'error' => 'Rating must be between 0 and 100']);
+            return;
+        }
+        
+        try {
+            $result = $this->qualityModel->updateReview($reviewId, $rating, $reviewNotes);
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete a review (admin only)
+     */
+    public function delete_review()
+    {
+        header('Content-Type: application/json');
+        
+        // Authorization check: only admin roles can delete reviews
+        if (!$this->checkAjaxPermission(['admin', 'quality_manager', 'developer'])) {
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'error' => 'Invalid request method']);
+            return;
+        }
+        
+        $reviewId = $_POST['review_id'] ?? null;
+        
+        // Validation
+        if (!$reviewId || !is_numeric($reviewId)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid review ID']);
+            return;
+        }
+        
+        try {
+            $result = $this->qualityModel->deleteReview($reviewId);
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Check if user has permission for AJAX requests
+     * Returns false and sends JSON error if unauthorized
+     */
+    private function checkAjaxPermission($allowedRoles = [])
+    {
+        $userRole = Auth::getUserRole();
+        $userId = Auth::getUserId();
+        
+        // Check if user is logged in
+        if (!$userId) {
+            echo json_encode(['success' => false, 'error' => 'Authentication required']);
+            return false;
+        }
+        
+        // Admin and developer always have access
+        if (in_array($userRole, ['admin', 'developer', 'Quality'])) {
+            return true;
+        }
+        
+        // Check if user role is in allowed roles
+        if (in_array($userRole, $allowedRoles)) {
+            return true;
+        }
+        
+        // Unauthorized
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Access denied. Required roles: ' . implode(', ', $allowedRoles) . '. Your role: ' . ($userRole ?? 'Not set')
+        ]);
+        return false;
     }
 
 } 

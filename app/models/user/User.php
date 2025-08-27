@@ -480,9 +480,21 @@ class User
 
     public function getUsersByRole(int $roleId)
     {
-        $stmt = $this->db->prepare("SELECT id, username, email FROM users WHERE role_id = :role_id");
+        $stmt = $this->db->prepare("SELECT 
+            u.id, 
+            u.username, 
+            u.name,
+            u.email, 
+            u.status,
+            u.created_at,
+            u.updated_at,
+            r.name as role_name 
+            FROM users u 
+            LEFT JOIN roles r ON u.role_id = r.id 
+            WHERE u.role_id = :role_id 
+            ORDER BY u.created_at DESC");
         $stmt->execute([':role_id' => $roleId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
     
     public function setForceLogout(int $userId, bool $status): bool

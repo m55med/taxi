@@ -45,10 +45,27 @@
                 </div>
             <?php endif; ?>
         </div>
-        <a href="<?= URLROOT ?>/knowledge_base" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center">
-            <i class="fas fa-arrow-right ml-2"></i>
-            العودة إلى القائمة
-        </a>
+        <div class="flex items-center space-x-2">
+            <?php if ($data['can_edit']) : ?>
+                <a href="<?= URLROOT ?>/knowledge_base/edit/<?= $data['article']['id'] ?>" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                    <i class="fas fa-edit ml-2"></i>
+                    تعديل
+                </a>
+            <?php endif; ?>
+            <?php if ($data['can_delete']) : ?>
+                <form action="<?= URLROOT ?>/knowledge_base/destroy" method="POST" class="inline-block" onsubmit="return confirm('هل أنت متأكد من حذف هذا المقال؟');">
+                    <input type="hidden" name="id" value="<?= $data['article']['id'] ?>">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                        <i class="fas fa-trash-alt ml-2"></i>
+                        حذف
+                    </button>
+                </form>
+            <?php endif; ?>
+            <a href="<?= URLROOT ?>/knowledge_base" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center">
+                <i class="fas fa-arrow-right ml-2"></i>
+                العودة إلى القائمة
+            </a>
+        </div>
     </div>
 
     <!-- Article Content -->

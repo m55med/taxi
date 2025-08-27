@@ -78,8 +78,7 @@ $remaining_count = $total_tasks > 0 ? $total_tasks - $completed_count : 0;
 $avg_time_per_task_seconds = 30 * 60; // Average 30 minutes per task
 $total_seconds_remaining = $remaining_count * $avg_time_per_task_seconds;
 
-?>
-<!DOCTYPE html>
+?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

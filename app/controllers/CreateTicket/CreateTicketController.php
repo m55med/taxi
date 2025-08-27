@@ -17,12 +17,14 @@ class CreateTicketController extends Controller
 
     public function index()
     {
-        // Dummy data for now, will be replaced by model calls
+        // Load category model for complete hierarchical data
+        $categoryModel = new \App\Models\Tickets\Category();
+        
         $data = [
             'countries' => $this->createTicketModel->getCountries(),
             'platforms' => $this->createTicketModel->getPlatforms(),
-            'categories' => $this->createTicketModel->getCategories(),
-            'marketers' => $this->createTicketModel->getMarketers(),
+            'categories' => $categoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
+            'vip_users' => $this->createTicketModel->getVipUsers(),
             'title' => 'Create New Ticket'
         ];
 
@@ -31,12 +33,15 @@ class CreateTicketController extends Controller
 
     public function v2()
     {
+        // Load category model for complete hierarchical data
+        $categoryModel = new \App\Models\Tickets\Category();
+        
         // Data for the V2 form
         $data = [
             'countries' => $this->createTicketModel->getCountries(),
             'platforms' => $this->createTicketModel->getPlatforms(),
-            'categories' => $this->createTicketModel->getCategories(),
-            'marketers' => $this->createTicketModel->getMarketers(),
+            'categories' => $categoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
+            'vip_users' => $this->createTicketModel->getVipUsers(),
             'title' => 'Create New Ticket V2'
         ];
 
@@ -142,9 +147,9 @@ class CreateTicketController extends Controller
              return;
         }
 
-        // VIP Marketer validation
-        if (!empty($data['is_vip']) && empty($data['marketer_id'])) {
-            $this->sendJsonResponse(['success' => false, 'message' => 'Please select a marketer for VIP tickets.'], 400);
+        // VIP User validation
+        if (!empty($data['is_vip']) && empty($data['vip_user_id'])) {
+            $this->sendJsonResponse(['success' => false, 'message' => 'Please select a VIP user for VIP tickets.'], 400);
             return;
         }
 

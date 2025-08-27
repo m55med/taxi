@@ -36,10 +36,7 @@ function getGreeting() {
                     <div class="flex flex-col items-start md:items-end gap-2 text-right">
                         <div class="flex items-center gap-2 text-sm opacity-90">
                             <i class="fas fa-clock"></i>
-                            <div class="flex items-center gap-2 text-sm opacity-90">
-    <i class="fas fa-clock"></i>
-    <span id="local-time">--:--:--</span> <!-- سيتم ملؤه من JavaScript -->
-</div>
+                            <span id="local-time">--:--:--</span>
                         </div>
                         <div class="flex items-center gap-2 text-sm opacity-90">
                             <i class="fas fa-calendar-alt"></i>
@@ -76,65 +73,107 @@ function getGreeting() {
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Tickets Stat Card -->
-            <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-sm font-medium text-gray-500">Tickets</p>
-                        <p class="text-3xl font-bold text-gray-800"><?= $d['ticket_stats']['total_details'] ?? 0 ?></p>
-                        <p class="text-xs text-gray-500">VIP: <?= $d['ticket_stats']['vip_details'] ?? 0 ?> | Normal: <?= $d['ticket_stats']['normal_details'] ?? 0 ?></p>
+            <a href="<?= URLROOT ?>/listings/tickets" class="block">
+                <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-gray-500">Tickets</p>
+                            <p class="text-3xl font-bold text-gray-800"><?= $d['ticket_stats']['total_details'] ?? 0 ?></p>
+                            <p class="text-xs text-gray-500">VIP: <?= $d['ticket_stats']['vip_details'] ?? 0 ?> | Normal: <?= $d['ticket_stats']['normal_details'] ?? 0 ?></p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-cyan-400 to-blue-500">
+                            <i class="fas fa-ticket-alt fa-lg"></i>
+                        </div>
                     </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-cyan-400 to-blue-500">
-                        <i class="fas fa-ticket-alt fa-lg"></i>
+                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
+                    <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-external-link-alt text-gray-400 text-sm"></i>
                     </div>
                 </div>
-                <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-cyan-400 to-blue-500"></div>
-            </div>
+            </a>
 
             <!-- Calls Stat Card -->
-            <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-sm font-medium text-gray-500">Calls</p>
-                        <p class="text-3xl font-bold text-gray-800"><?= ($d['call_stats']['incoming'] ?? 0) + ($d['call_stats']['outgoing'] ?? 0) ?></p>
-                        <p class="text-xs text-gray-500">Outgoing: <?= $d['call_stats']['outgoing'] ?? 0 ?> | Incoming: <?= $d['call_stats']['incoming'] ?? 0 ?></p>
+            <a href="<?= URLROOT ?>/listings/calls" class="block">
+                <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-gray-500">Calls</p>
+                            <p class="text-3xl font-bold text-gray-800"><?= ($d['call_stats']['incoming'] ?? 0) + ($d['call_stats']['outgoing'] ?? 0) ?></p>
+                            <p class="text-xs text-gray-500">Outgoing: <?= $d['call_stats']['outgoing'] ?? 0 ?> | Incoming: <?= $d['call_stats']['incoming'] ?? 0 ?></p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-green-400 to-teal-500">
+                            <i class="fas fa-phone-alt fa-lg"></i>
+                        </div>
                     </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-green-400 to-teal-500">
-                        <i class="fas fa-phone-alt fa-lg"></i>
+                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-green-400 to-teal-500"></div>
+                    <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-external-link-alt text-gray-400 text-sm"></i>
                     </div>
                 </div>
-                <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-green-400 to-teal-500"></div>
-            </div>
+            </a>
 
             <!-- Drivers Stat Card -->
-            <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-sm font-medium text-gray-500">Drivers</p>
-                        <p class="text-3xl font-bold text-gray-800"><?= $d['driver_stats']['total'] ?? 0 ?></p>
-                        <p class="text-xs text-gray-500">Active: <?= $d['driver_stats']['active'] ?? 0 ?> | Missing Docs: <?= $d['driver_stats']['missing_documents'] ?? 0 ?></p>
+            <a href="<?= URLROOT ?>/listings/drivers" class="block">
+                <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-gray-500">Drivers</p>
+                            <p class="text-3xl font-bold text-gray-800"><?= $d['driver_stats']['total'] ?? 0 ?></p>
+                            <p class="text-xs text-gray-500">Active: <?= $d['driver_stats']['active'] ?? 0 ?> | Missing Docs: <?= $d['driver_stats']['missing_documents'] ?? 0 ?></p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-yellow-400 to-amber-500">
+                            <i class="fas fa-car fa-lg"></i>
+                        </div>
                     </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-yellow-400 to-amber-500">
-                        <i class="fas fa-car fa-lg"></i>
+                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-yellow-400 to-amber-500"></div>
+                    <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-external-link-alt text-gray-400 text-sm"></i>
                     </div>
                 </div>
-                <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-yellow-400 to-amber-500"></div>
-            </div>
+            </a>
+
+            <!-- Reviews Stat Card -->
+            <?php if (isset($d['review_discussion_stats']['reviews'])): ?>
+            <a href="<?= URLROOT ?>/quality/reviews" class="block">
+                <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-gray-500">Reviews</p>
+                            <p class="text-3xl font-bold text-gray-800"><?= $d['review_discussion_stats']['reviews'] ?? 0 ?></p>
+                            <p class="text-xs text-gray-500">Quality reviews completed</p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-pink-400 to-rose-500">
+                            <i class="fas fa-star fa-lg"></i>
+                        </div>
+                    </div>
+                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-pink-400 to-rose-500"></div>
+                    <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-external-link-alt text-gray-400 text-sm"></i>
+                    </div>
+                </div>
+            </a>
+            <?php endif; ?>
 
             <!-- Users Stat Card -->
             <?php if (($d['user_role'] ?? '') === 'admin' && isset($d['user_stats'])): ?>
-            <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-white rounded-xl p-6">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
-                        <p class="text-sm font-medium text-gray-500">Users</p>
-                        <p class="text-3xl font-bold text-gray-800"><?= $d['user_stats']['total'] ?? 0 ?></p>
-                        <p class="text-xs text-gray-500">Online: <?= $d['user_stats']['online'] ?? 0 ?> | Banned: <?= $d['user_stats']['banned'] ?? 0 ?></p>
+            <a href="<?= URLROOT ?>/admin/users" class="block">
+                <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-1">
+                            <p class="text-sm font-medium text-gray-500">Users</p>
+                            <p class="text-3xl font-bold text-gray-800"><?= $d['user_stats']['total'] ?? 0 ?></p>
+                            <p class="text-xs text-gray-500">Online: <?= $d['user_stats']['online'] ?? 0 ?> | Banned: <?= $d['user_stats']['banned'] ?? 0 ?></p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-purple-500 to-indigo-500">
+                            <i class="fas fa-users fa-lg"></i>
+                        </div>
                     </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl text-white bg-gradient-to-r from-purple-500 to-indigo-500">
-                        <i class="fas fa-users fa-lg"></i>
+                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+                    <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity duration-300">
+                        <i class="fas fa-external-link-alt text-gray-400 text-sm"></i>
                     </div>
                 </div>
-                <div class="absolute -right-4 -top-4 h-24 w-24 rounded-full opacity-10 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
-            </div>
+            </a>
             <?php endif; ?>
         </div>
 
@@ -202,7 +241,7 @@ function getGreeting() {
                             <h3 class="font-semibold text-gray-800">Top Incoming Handlers</h3>
                         </div>
                         <div class="space-y-3">
-                           <?php foreach (array_slice($d['leaderboards']['incoming_calls'] ?? [], 0, 5) as $i => $entry): ?>
+                            <?php foreach (array_slice($d['leaderboards']['incoming_calls'] ?? [], 0, 5) as $i => $entry): ?>
                             <div class="flex items-center gap-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
                                 <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
@@ -237,6 +276,10 @@ function getGreeting() {
                         <a href="<?= URLROOT ?>/discussions" class="h-auto p-4 flex flex-col items-start gap-2 group bg-gray-200 text-gray-800 rounded-lg">
                             <div class="flex items-center gap-2 w-full"><i class="fas fa-comments"></i><span class="font-medium">Discussions</span></div>
                              <span class="text-xs text-gray-500">View discussions</span>
+                        </a>
+                        <a href="https://cs.taxif.com/quality/reviews" target="_blank" class="h-auto p-4 flex flex-col items-start gap-2 group bg-pink-500 text-white rounded-lg">
+                            <div class="flex items-center gap-2 w-full"><i class="fas fa-star"></i><span class="font-medium">Reviews</span></div>
+                            <span class="text-xs opacity-80">Quality reviews</span>
                         </a>
                          <a href="<?= URLROOT ?>/profile" class="h-auto p-4 flex flex-col items-start gap-2 group bg-gray-200 text-gray-800 rounded-lg">
                             <div class="flex items-center gap-2 w-full"><i class="fas fa-user"></i><span class="font-medium">Profile</span></div>

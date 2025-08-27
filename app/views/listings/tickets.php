@@ -44,6 +44,29 @@
                     </select>
                 </div>
                 <div>
+                    <label for="classification_filter" class="block text-sm font-medium text-gray-600 mb-1">Classification</label>
+                    <div class="relative">
+                        <input type="text" id="classification_search" class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" placeholder="Select classification..." autocomplete="off" readonly>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                        </div>
+                        <input type="hidden" id="classification_filter" name="classification_filter" value="<?= htmlspecialchars($data['filters']['classification_filter'] ?? '') ?>">
+                        <div id="classification_dropdown" class="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
+                            <div class="p-1">
+                                <div class="sticky top-0 bg-white p-2 border-b border-gray-200">
+                                    <input type="text" id="classification_dropdown_search" class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type to search...">
+                                </div>
+                                <div id="classification_options" class="py-1">
+                                    <div class="classification-option px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm" data-value="">
+                                        <span class="text-gray-600 italic">All Classifications</span>
+                                    </div>
+                                    <!-- Classification options will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
                     <label for="is_vip" class="block text-sm font-medium text-gray-600 mb-1">VIP</label>
                     <select id="is_vip" name="is_vip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">All</option>
@@ -83,6 +106,8 @@
 
     <!-- Results Table -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <!-- Responsive table wrapper -->
+        <div class="overflow-x-auto">
         <?php
         $is_agent = \App\Core\Auth::hasRole('agent');
         $is_editor = \App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer');
@@ -151,6 +176,27 @@
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div id="pagination-container" class="bg-white border-t border-gray-200 px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing <span id="showing-from">1</span> to <span id="showing-to">50</span> of <span id="total-results">0</span> results
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="prev-page" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <div id="page-numbers" class="flex space-x-1">
+                        <!-- Page numbers will be inserted here -->
+                    </div>
+                    <button id="next-page" class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -159,18 +205,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterForm = document.getElementById('filter-form');
     const ticketsTbody = document.querySelector('tbody');
     const initialTickets = <?= json_encode($data['tickets']) ?>;
+    
+    // Pagination variables
+    let currentPage = 1;
+    const itemsPerPage = 50;
+    let filteredTickets = [...initialTickets];
+    let uniqueClassifications = [];
 
-    const updateTickets = (tickets) => {
+    // Generate unique classifications
+    const generateClassifications = () => {
+        const classifications = new Set();
+        initialTickets.forEach(ticket => {
+            const classification = [ticket.category_name, ticket.subcategory_name, ticket.code_name].filter(Boolean).join(' > ');
+            if (classification) {
+                classifications.add(classification);
+            }
+        });
+        uniqueClassifications = [...classifications].sort();
+        populateClassificationDropdown();
+    };
+
+    const populateClassificationDropdown = () => {
+        const container = document.getElementById('classification_options');
+        
+        // Clear existing options (keep "All Classifications")
+        const allOption = container.querySelector('[data-value=""]');
+        container.innerHTML = '';
+        container.appendChild(allOption);
+        
+        uniqueClassifications.forEach(classification => {
+            const option = document.createElement('div');
+            option.className = 'classification-option px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm';
+            option.setAttribute('data-value', classification);
+            option.textContent = classification;
+            container.appendChild(option);
+        });
+    };
+
+    const updateTickets = (tickets, page = 1) => {
         ticketsTbody.innerHTML = '';
-        if (tickets.length === 0) {
-            ticketsTbody.innerHTML = `<tr><td colspan="100%" class="text-center py-10 text-gray-500">No tickets found.</td></tr>`;
+        
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const ticketsToShow = tickets.slice(startIndex, endIndex);
+        
+        if (ticketsToShow.length === 0) {
+            const isAgent = <?= json_encode(\App\Core\Auth::hasRole('agent')) ?>;
+            const isEditor = <?= json_encode(\App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer')) ?>;
+            let colspan = 6;
+            if (!isAgent) colspan++;
+            if (isEditor) colspan++;
+            
+            ticketsTbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-10 text-gray-500">No tickets found.</td></tr>`;
+            updatePaginationInfo(0, 0, 0);
+            updatePaginationControls(0);
             return;
         }
 
         const isAgent = <?= json_encode(\App\Core\Auth::hasRole('agent')) ?>;
         const isEditor = <?= json_encode(\App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer')) ?>;
 
-        tickets.forEach(ticket => {
+        ticketsToShow.forEach(ticket => {
             const classification = [ticket.category_name, ticket.subcategory_name, ticket.code_name].filter(Boolean).join(' > ');
             const createdAt = new Date(ticket.created_at).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '');
 
@@ -207,30 +302,211 @@ document.addEventListener('DOMContentLoaded', () => {
             rowHtml += `</tr>`;
             ticketsTbody.innerHTML += rowHtml;
         });
+        
+        // Update pagination info and controls
+        const showingFrom = tickets.length > 0 ? startIndex + 1 : 0;
+        const showingTo = Math.min(endIndex, tickets.length);
+        updatePaginationInfo(showingFrom, showingTo, tickets.length);
+        updatePaginationControls(tickets.length);
+    };
+
+    const updatePaginationInfo = (from, to, total) => {
+        document.getElementById('showing-from').textContent = from;
+        document.getElementById('showing-to').textContent = to;
+        document.getElementById('total-results').textContent = total;
+    };
+
+    const updatePaginationControls = (totalItems) => {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        const pageNumbersContainer = document.getElementById('page-numbers');
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        
+        // Clear existing page numbers
+        pageNumbersContainer.innerHTML = '';
+        
+        // Update prev/next buttons
+        prevButton.disabled = currentPage <= 1;
+        nextButton.disabled = currentPage >= totalPages;
+        
+        // Generate page numbers (show max 5 pages around current page)
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // Add "First" button if not showing page 1
+        if (startPage > 1) {
+            const firstButton = createPageButton(1, '1');
+            pageNumbersContainer.appendChild(firstButton);
+            
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'px-3 py-1 text-sm text-gray-500';
+                ellipsis.textContent = '...';
+                pageNumbersContainer.appendChild(ellipsis);
+            }
+        }
+        
+        // Add page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = createPageButton(i, i.toString());
+            pageNumbersContainer.appendChild(pageButton);
+        }
+        
+        // Add "Last" button if not showing last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'px-3 py-1 text-sm text-gray-500';
+                ellipsis.textContent = '...';
+                pageNumbersContainer.appendChild(ellipsis);
+            }
+            
+            const lastButton = createPageButton(totalPages, totalPages.toString());
+            pageNumbersContainer.appendChild(lastButton);
+        }
+    };
+
+    const createPageButton = (pageNumber, label) => {
+        const button = document.createElement('button');
+        button.className = pageNumber === currentPage 
+            ? 'px-3 py-1 text-sm bg-blue-600 text-white border border-blue-600 rounded-md' 
+            : 'px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50';
+        button.textContent = label;
+        button.addEventListener('click', () => {
+            currentPage = pageNumber;
+            updateTickets(filteredTickets, currentPage);
+        });
+        return button;
     };
 
     const filterTickets = () => {
         const searchTerm = document.getElementById('search_term').value.toLowerCase();
         const createdBy = document.getElementById('created_by')?.value;
+        const classificationFilter = document.getElementById('classification_filter').value;
         
-        const filteredTickets = initialTickets.filter(ticket => {
+        filteredTickets = initialTickets.filter(ticket => {
             const searchTermMatch = searchTerm === '' || 
                                     ticket.ticket_number.toLowerCase().includes(searchTerm) || 
                                     (ticket.phone && ticket.phone.toLowerCase().includes(searchTerm));
 
             const createdByMatch = !createdBy || ticket.created_by == createdBy;
+            
+            const classificationMatch = !classificationFilter || 
+                                       [ticket.category_name, ticket.subcategory_name, ticket.code_name]
+                                       .filter(Boolean).join(' > ') === classificationFilter;
 
-            return searchTermMatch && createdByMatch;
+            return searchTermMatch && createdByMatch && classificationMatch;
         });
-
-        updateTickets(filteredTickets);
+        
+        // Reset to first page when filtering
+        currentPage = 1;
+        updateTickets(filteredTickets, currentPage);
     };
+
+    // Classification dropdown event listeners
+    const classificationSearch = document.getElementById('classification_search');
+    const classificationDropdown = document.getElementById('classification_dropdown');
+    const classificationDropdownSearch = document.getElementById('classification_dropdown_search');
+    const classificationFilter = document.getElementById('classification_filter');
+    
+    // Show/hide dropdown
+    classificationSearch.addEventListener('click', () => {
+        classificationDropdown.classList.remove('hidden');
+        classificationDropdownSearch.focus();
+        classificationDropdownSearch.value = '';
+        // Reset all options visibility
+        const options = classificationDropdown.querySelectorAll('.classification-option');
+        options.forEach(option => option.style.display = 'block');
+    });
+    
+    // Search within classifications
+    classificationDropdownSearch.addEventListener('input', (e) => {
+        const searchValue = e.target.value.toLowerCase();
+        const options = classificationDropdown.querySelectorAll('.classification-option');
+        
+        options.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchValue) || option.getAttribute('data-value') === '') {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    });
+    
+    // Handle classification selection
+    classificationDropdown.addEventListener('click', (e) => {
+        if (e.target.classList.contains('classification-option')) {
+            const value = e.target.getAttribute('data-value');
+            const text = value || 'All Classifications';
+            
+            classificationFilter.value = value;
+            classificationSearch.value = text;
+            classificationDropdown.classList.add('hidden');
+            
+            // Trigger filtering
+            filterTickets();
+        }
+    });
+    
+    // Prevent dropdown from closing when clicking on search input
+    classificationDropdownSearch.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!classificationSearch.contains(e.target) && !classificationDropdown.contains(e.target)) {
+            classificationDropdown.classList.add('hidden');
+        }
+    });
+    
+    // Initialize classification search display
+    const initializeClassificationDisplay = () => {
+        const currentValue = classificationFilter.value;
+        if (currentValue) {
+            classificationSearch.value = currentValue;
+        } else {
+            classificationSearch.value = 'All Classifications';
+        }
+    };
+
+    // Pagination event listeners
+    document.getElementById('prev-page').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            updateTickets(filteredTickets, currentPage);
+        }
+    });
+
+    document.getElementById('next-page').addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            updateTickets(filteredTickets, currentPage);
+        }
+    });
 
     let debounceTimer;
     filterForm.addEventListener('input', (e) => {
+        // Don't trigger debounced filtering for classification searches
+        if (e.target.id === 'classification_search' || e.target.id === 'classification_dropdown_search') {
+            return;
+        }
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(filterTickets, 300);
     });
+    
+    // Initialize classifications and table
+    generateClassifications();
+    initializeClassificationDisplay();
+    updateTickets(filteredTickets, currentPage);
 
     flatpickr("#date_range", {
         mode: 'range',

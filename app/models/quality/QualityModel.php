@@ -76,19 +76,30 @@ class QualityModel extends Model
         $params = [];
 
         // --- AUTHORIZATION LOGIC ---
-        $role = $_SESSION['role_name'] ?? 'guest';
-        $userId = $_SESSION['user_id'] ?? 0;
+        // Use proper Auth class methods for consistency, with fallback to session
+        $role = \App\Core\Auth::getUserRole();
+        $userId = \App\Core\Auth::getUserId();
+        
+        // Fallback: If Auth class returns null, try reading from session directly
+        if (!$role && isset($_SESSION['user']['role_name'])) {
+            $role = $_SESSION['user']['role_name'];
+        }
+        if (!$userId && isset($_SESSION['user']['id'])) {
+            $userId = $_SESSION['user']['id'];
+        }
+        
+        // Final fallback values
+        $role = $role ?? 'guest';
+        $userId = $userId ?? 0;
 
-        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
 
         if ($role === 'agent') {
-            // Agent can only see reviews of their own work
             $whereClauses[] = "(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)";
             $params[':agent_review_user_id_ticket'] = $userId;
             $params[':agent_review_user_id_call'] = $userId;
         } elseif (!in_array($role, $highAccessRoles)) {
-            // If user is not an agent and not a high-access role, return nothing.
-            return [];
+            return ['error' => 'Access denied for role: ' . $role . '. Allowed roles: ' . implode(', ', $highAccessRoles) . ', agent'];
         }
 
         // --- FILTERING LOGIC ---
@@ -135,11 +146,18 @@ class QualityModel extends Model
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Add debug information if result is empty
+            if (empty($result)) {
+                error_log('QualityModel: No reviews found. Role: ' . $role . ', User ID: ' . $userId . ', Query: ' . $sql);
+            }
+            
+            return $result;
         } catch (\PDOException $e) {
             // It's good practice to log the error
-            error_log('QualityModel Error: ' . $e->getMessage());
-            return ['error' => 'Database query failed'];
+            error_log('QualityModel Error: ' . $e->getMessage() . ' SQL: ' . $sql);
+            return ['error' => 'Database query failed: ' . $e->getMessage()];
         }
     }
 
@@ -187,19 +205,30 @@ class QualityModel extends Model
         $params = [];
 
         // --- AUTHORIZATION LOGIC ---
-        $role = $_SESSION['role_name'] ?? 'guest';
-        $userId = $_SESSION['user_id'] ?? 0;
+        // Use proper Auth class methods for consistency, with fallback to session
+        $role = \App\Core\Auth::getUserRole();
+        $userId = \App\Core\Auth::getUserId();
+        
+        // Fallback: If Auth class returns null, try reading from session directly
+        if (!$role && isset($_SESSION['user']['role_name'])) {
+            $role = $_SESSION['user']['role_name'];
+        }
+        if (!$userId && isset($_SESSION['user']['id'])) {
+            $userId = $_SESSION['user']['id'];
+        }
+        
+        // Final fallback values
+        $role = $role ?? 'guest';
+        $userId = $userId ?? 0;
 
         $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer'];
 
         if ($role === 'agent') {
-            // Agent can only see discussions about their work
             $whereClauses[] = "(td.edited_by = :agent_discussion_user_id_ticket OR dc.call_by = :agent_discussion_user_id_call)";
             $params[':agent_discussion_user_id_ticket'] = $userId;
             $params[':agent_discussion_user_id_call'] = $userId;
         } elseif (!in_array($role, $highAccessRoles)) {
-            // If user is not an agent and not a high-access role, return nothing.
-            return [];
+            return ['error' => 'Access denied for role: ' . $role . '. Allowed roles: ' . implode(', ', $highAccessRoles) . ', agent'];
         }
 
         // --- FILTERING LOGIC ---
@@ -257,6 +286,74 @@ class QualityModel extends Model
         } catch (\PDOException $e) {
             error_log('QualityModel Discussions Error: ' . $e->getMessage());
             return ['error' => 'Database query failed'];
+        }
+    }
+
+    /**
+     * Update a review
+     */
+    public function updateReview($reviewId, $rating, $reviewNotes)
+    {
+        try {
+            // Check if review exists
+            $checkSql = "SELECT id FROM reviews WHERE id = :review_id";
+            $checkStmt = $this->db->prepare($checkSql);
+            $checkStmt->bindParam(':review_id', $reviewId, PDO::PARAM_INT);
+            $checkStmt->execute();
+            
+            if (!$checkStmt->fetch()) {
+                return ['success' => false, 'error' => 'Review not found'];
+            }
+
+            // Update the review
+            $sql = "UPDATE reviews SET 
+                        rating = :rating, 
+                        review_notes = :review_notes
+                    WHERE id = :review_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':rating', $rating, PDO::PARAM_INT);
+            $stmt->bindParam(':review_notes', $reviewNotes, PDO::PARAM_STR);
+            $stmt->bindParam(':review_id', $reviewId, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Review updated successfully'];
+            } else {
+                return ['success' => false, 'error' => 'Failed to update review'];
+            }
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Delete a review
+     */
+    public function deleteReview($reviewId)
+    {
+        try {
+            // Check if review exists
+            $checkSql = "SELECT id FROM reviews WHERE id = :review_id";
+            $checkStmt = $this->db->prepare($checkSql);
+            $checkStmt->bindParam(':review_id', $reviewId, PDO::PARAM_INT);
+            $checkStmt->execute();
+            
+            if (!$checkStmt->fetch()) {
+                return ['success' => false, 'error' => 'Review not found'];
+            }
+
+            // Delete the review
+            $sql = "DELETE FROM reviews WHERE id = :review_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':review_id', $reviewId, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Review deleted successfully'];
+            } else {
+                return ['success' => false, 'error' => 'Failed to delete review'];
+            }
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
         }
     }
 }

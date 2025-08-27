@@ -75,6 +75,68 @@ if (isset($_SESSION['user_message'])) {
                     </a>
                 </div>
 
+                <!-- Filters Section -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-800">
+                            <i class="fas fa-filter mr-2"></i>Filters
+                            <span x-show="getActiveFiltersCount() > 0" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800" x-text="getActiveFiltersCount() + ' active'"></span>
+                        </h3>
+                        <button @click="resetFilters()" :class="getActiveFiltersCount() > 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'" class="text-white px-3 py-1 rounded-md text-sm transition-colors duration-200">
+                            <i class="fas fa-undo mr-1"></i>Reset Filters
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                            <input type="text" x-model="filters.id" @input="applyFilters()" placeholder="Search by ID..." :class="filters.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input type="text" x-model="filters.username" @input="applyFilters()" placeholder="Search by username..." :class="filters.username ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input type="text" x-model="filters.name" @input="applyFilters()" placeholder="Search by name..." :class="filters.name ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="text" x-model="filters.email" @input="applyFilters()" placeholder="Search by email..." :class="filters.email ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                            <select x-model="filters.role" @change="applyFilters()" :class="filters.role ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                                <option value="">All Roles</option>
+                                <option value="admin">Admin</option>
+                                <option value="Agent">Agent</option>
+                                <option value="user">User</option>
+                                <option value="employee">Employee</option>
+                                <option value="Marketer">Marketer</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select x-model="filters.status" @change="applyFilters()" :class="filters.status ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="banned">Banned</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+                            <input type="date" x-model="filters.dateFrom" @change="applyFilters()" :class="filters.dateFrom ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+                            <input type="date" x-model="filters.dateTo" @change="applyFilters()" :class="filters.dateTo ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-600">
+                        <span x-text="getFilteredRowsCount()"></span> users displayed
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -179,12 +241,21 @@ if (isset($_SESSION['user_message'])) {
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr>
+                                <tr id="no-users-row">
                                     <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                                         No users found.
                                     </td>
                                 </tr>
                             <?php endif; ?>
+                            <tr id="no-filtered-results" style="display: none;">
+                                <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                                    <div class="py-8">
+                                        <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                                        <p class="text-lg font-medium text-gray-600">No users match your filters</p>
+                                        <p class="text-sm text-gray-500 mt-2">Try adjusting your search criteria or <button @click="resetFilters()" class="text-indigo-600 hover:text-indigo-800 underline">reset all filters</button></p>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -238,10 +309,163 @@ function usersPage(flashMessage) {
             userId: null,
             username: ''
         },
+        filters: {
+            id: '',
+            username: '',
+            name: '',
+            email: '',
+            role: '',
+            status: '',
+            dateFrom: '',
+            dateTo: ''
+        },
         init() {
             if (flashMessage && flashMessage.message) {
                 this.showToast(flashMessage.message, flashMessage.type);
             }
+        },
+        applyFilters() {
+            const tableBody = document.querySelector('tbody');
+            const rows = tableBody.querySelectorAll('tr');
+            let visibleRowsCount = 0;
+            let hasActiveFilters = this.hasActiveFilters();
+            
+            rows.forEach(row => {
+                // Skip the special rows (no-users and no-filtered-results)
+                if (row.id === 'no-users-row' || row.id === 'no-filtered-results') return;
+                if (row.cells.length < 8) return; // Skip any other special rows
+                
+                const rowData = {
+                    id: row.cells[0].textContent.trim(),
+                    username: row.cells[1].textContent.trim(),
+                    name: row.cells[2].textContent.trim(), 
+                    email: row.cells[3].textContent.trim(),
+                    role: row.cells[4].textContent.trim().toLowerCase(),
+                    status: row.cells[5].textContent.trim().toLowerCase(),
+                    lastActivity: row.cells[6].textContent.trim()
+                };
+                
+                let shouldShow = true;
+                
+                // Filter by ID
+                if (this.filters.id && !rowData.id.includes(this.filters.id)) {
+                    shouldShow = false;
+                }
+                
+                // Filter by username
+                if (this.filters.username && !rowData.username.toLowerCase().includes(this.filters.username.toLowerCase())) {
+                    shouldShow = false;
+                }
+                
+                // Filter by name  
+                if (this.filters.name && !rowData.name.toLowerCase().includes(this.filters.name.toLowerCase())) {
+                    shouldShow = false;
+                }
+                
+                // Filter by email
+                if (this.filters.email && !rowData.email.toLowerCase().includes(this.filters.email.toLowerCase())) {
+                    shouldShow = false;
+                }
+                
+                // Filter by role
+                if (this.filters.role && !rowData.role.includes(this.filters.role.toLowerCase())) {
+                    shouldShow = false;
+                }
+                
+                // Filter by status
+                if (this.filters.status && !rowData.status.includes(this.filters.status.toLowerCase())) {
+                    shouldShow = false;
+                }
+                
+                // Filter by date range
+                if (this.filters.dateFrom || this.filters.dateTo) {
+                    const lastActivityDate = this.parseDate(rowData.lastActivity);
+                    if (lastActivityDate) {
+                        if (this.filters.dateFrom) {
+                            const fromDate = new Date(this.filters.dateFrom);
+                            if (lastActivityDate < fromDate) {
+                                shouldShow = false;
+                            }
+                        }
+                        if (this.filters.dateTo) {
+                            const toDate = new Date(this.filters.dateTo);
+                            toDate.setHours(23, 59, 59); // Include the whole day
+                            if (lastActivityDate > toDate) {
+                                shouldShow = false;
+                            }
+                        }
+                    } else if (this.filters.dateFrom || this.filters.dateTo) {
+                        // If we have date filters but no valid date in the row, hide it
+                        shouldShow = false;
+                    }
+                }
+                
+                row.style.display = shouldShow ? '' : 'none';
+                if (shouldShow) visibleRowsCount++;
+            });
+            
+            // Show/hide the "no filtered results" message
+            const noFilteredResults = document.getElementById('no-filtered-results');
+            const noUsersRow = document.getElementById('no-users-row');
+            
+            if (hasActiveFilters && visibleRowsCount === 0) {
+                if (noFilteredResults) noFilteredResults.style.display = '';
+                if (noUsersRow) noUsersRow.style.display = 'none';
+            } else {
+                if (noFilteredResults) noFilteredResults.style.display = 'none';
+                // Show original "no users" message only if no filters are active and no data rows exist
+                if (noUsersRow && !hasActiveFilters) {
+                    const dataRows = Array.from(rows).filter(row => 
+                        row.id !== 'no-users-row' && 
+                        row.id !== 'no-filtered-results' && 
+                        row.cells.length >= 8
+                    );
+                    noUsersRow.style.display = dataRows.length === 0 ? '' : 'none';
+                } else if (noUsersRow) {
+                    noUsersRow.style.display = 'none';
+                }
+            }
+        },
+        hasActiveFilters() {
+            return Object.values(this.filters).some(value => value !== '');
+        },
+        getActiveFiltersCount() {
+            return Object.values(this.filters).filter(value => value !== '').length;
+        },
+        resetFilters() {
+            this.filters = {
+                id: '',
+                username: '',
+                name: '',
+                email: '',
+                role: '',
+                status: '',
+                dateFrom: '',
+                dateTo: ''
+            };
+            this.applyFilters();
+        },
+        getFilteredRowsCount() {
+            const tableBody = document.querySelector('tbody');
+            const rows = tableBody.querySelectorAll('tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                // Skip special rows and only count data rows
+                if (row.id === 'no-users-row' || row.id === 'no-filtered-results') return;
+                if (row.style.display !== 'none' && row.cells.length >= 8) {
+                    visibleCount++;
+                }
+            });
+            
+            return visibleCount;
+        },
+        parseDate(dateString) {
+            if (!dateString || dateString === 'N/A') return null;
+            
+            // Try to parse different date formats
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? null : date;
         },
         showToast(message, type = 'success') {
             this.toast.message = message;

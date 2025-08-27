@@ -103,7 +103,15 @@
                         'add_review_url' => BASE_URL . "/review/add/ticket_detail/" . $history['id'],
                         'can_add_review' => in_array($data['currentUser']['role'], ['Quality', 'Team_leader', 'admin', 'developer']),
                         'currentUser' => $data['currentUser'],
-                        'ticket_categories' => $data['ticket_categories'] ?? [] // Pass categories down
+                        'ticket_categories' => $data['ticket_categories'] ?? [], // Pass categories down
+                        'ticket_details' => [
+                            'category_id' => $data['ticket']['category_id'] ?? null,
+                            'subcategory_id' => $data['ticket']['subcategory_id'] ?? null,
+                            'code_id' => $data['ticket']['code_id'] ?? null,
+                            'category_name' => $data['ticket']['category_name'] ?? null,
+                            'subcategory_name' => $data['ticket']['subcategory_name'] ?? null,
+                            'code_name' => $data['ticket']['code_name'] ?? null
+                        ]
                     ]);
                     ?>
                 </div>

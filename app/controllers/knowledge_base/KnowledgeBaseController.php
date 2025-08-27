@@ -34,7 +34,11 @@ class KnowledgeBaseController extends Controller
             'page_main_title' => 'Knowledge Base',
             'articles' => $articles,
             'searchQuery' => $searchQuery,
-'is_admin' => isset($_SESSION['user']['role_name']) && in_array($_SESSION['user']['role_name'], ['admin', 'developer']),
+'can_create' => self::canPerformKBAction('create'),
+            'can_edit' => self::canPerformKBAction('edit'),
+            'can_delete' => self::canPerformKBAction('destroy'),
+            // Keep is_admin for backward compatibility
+            'is_admin' => isset($_SESSION['user']['role_name']) && in_array($_SESSION['user']['role_name'], ['admin', 'developer']),
         ];
 
         $this->view('knowledge_base/index', $data);
@@ -52,7 +56,9 @@ class KnowledgeBaseController extends Controller
 
         $data = [
             'page_main_title' => $article['title'],
-            'article' => $article
+            'article' => $article,
+            'can_edit' => self::canPerformKBAction('edit'),
+            'can_delete' => self::canPerformKBAction('destroy')
         ];
 
         $this->view('knowledge_base/show', $data);
@@ -63,7 +69,7 @@ class KnowledgeBaseController extends Controller
      */
     public function create()
     {
-        $this->requireAdmin();
+        $this->requireKnowledgeBasePermission('create');
         $data = [
             'page_main_title' => 'Add New Article',
             'ticket_codes' => $this->kbModel->getAllTicketCodes(),
@@ -82,7 +88,7 @@ class KnowledgeBaseController extends Controller
      */
     public function store()
     {
-        $this->requireAdmin();
+        $this->requireKnowledgeBasePermission('store');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('/knowledge_base');
@@ -115,7 +121,7 @@ class KnowledgeBaseController extends Controller
      */
     public function edit($id)
     {
-        $this->requireAdmin();
+        $this->requireKnowledgeBasePermission('edit');
         $article = $this->kbModel->findById($id);
         if (!$article) {
             redirect('/knowledge_base');
@@ -124,7 +130,8 @@ class KnowledgeBaseController extends Controller
         $data = [
             'page_main_title' => 'Edit Article',
             'ticket_codes' => $this->kbModel->getAllTicketCodes(),
-            'article' => $article
+            'article' => $article,
+            'can_delete' => self::canPerformKBAction('destroy')
         ];
         $this->view('knowledge_base/edit', $data);
     }
@@ -134,7 +141,7 @@ class KnowledgeBaseController extends Controller
      */
     public function update($id)
     {
-        $this->requireAdmin();
+        $this->requireKnowledgeBasePermission('update');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('/knowledge_base');
         }
@@ -164,7 +171,7 @@ class KnowledgeBaseController extends Controller
      */
     public function destroy()
     {
-        $this->requireAdmin();
+        $this->requireKnowledgeBasePermission('destroy');
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('/knowledge_base');
         }
@@ -206,9 +213,67 @@ class KnowledgeBaseController extends Controller
 
     /**
      * Helper function to check for admin privileges.
+     * @deprecated Use requireKnowledgeBasePermission instead
      */
     private function requireAdmin()
     {
         Auth::checkAdmin();
+    }
+
+    /**
+     * Helper function to check for Knowledge Base permissions.
+     * Admins and developers have all permissions, others need specific permissions.
+     */
+    private function requireKnowledgeBasePermission($action)
+    {
+        // Admin and developer roles have full access (preserve existing behavior)
+        if (Auth::hasRole('admin') || Auth::hasRole('developer')) {
+            return;
+        }
+
+        // For other users, check specific permission directly from database
+        $permissionKey = 'KnowledgeBase/' . $action;
+        if (!self::hasPermissionFromDB($permissionKey)) {
+            http_response_code(403);
+            require_once APPROOT . '/views/errors/403.php';
+            exit;
+        }
+    }
+
+    /**
+     * Helper function to check if current user can perform KB actions.
+     * Used in views to show/hide buttons.
+     */
+    public static function canPerformKBAction($action)
+    {
+        // Admin and developer roles have full access
+        if (Auth::hasRole('admin') || Auth::hasRole('developer')) {
+            return true;
+        }
+
+        // For other users, check permission directly from database to avoid session cache issues
+        $permissionKey = 'KnowledgeBase/' . $action;
+        return self::hasPermissionFromDB($permissionKey);
+    }
+
+    /**
+     * Check permission directly from database (bypasses session cache)
+     */
+    private static function hasPermissionFromDB($permissionKey)
+    {
+        $userId = Auth::getUserId();
+        if (!$userId) {
+            return false;
+        }
+
+        $db = \App\Core\Database::getInstance();
+        $stmt = $db->prepare("
+            SELECT COUNT(*) 
+            FROM user_permissions up
+            JOIN permissions p ON up.permission_id = p.id
+            WHERE up.user_id = ? AND p.permission_key = ?
+        ");
+        $stmt->execute([$userId, $permissionKey]);
+        return $stmt->fetchColumn() > 0;
     }
 }

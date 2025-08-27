@@ -1,5 +1,4 @@
 <?php require_once APPROOT . '/views/includes/header.php'; ?>
-
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <?php flash('kb_message'); ?>
@@ -11,7 +10,7 @@
                 <h1 class="text-3xl font-bold text-gray-800">Knowledge Base</h1>
                 <p class="mt-1 text-gray-600">Find articles, tutorials, and answers to common questions.</p>
             </div>
-            <?php if ($data['is_admin']) : ?>
+            <?php if ($data['can_create']) : ?>
                 <a href="<?= URLROOT ?>/knowledge_base/create" class="mt-4 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 ease-in-out flex items-center">
                     <i class="fas fa-plus mr-2"></i> Create New Article
                 </a>
@@ -66,10 +65,12 @@
                             <a :href="`<?= URLROOT ?>/knowledge_base/show/${article.id}`" class="text-gray-500 hover:text-indigo-600" title="View">
                                 <i class="fas fa-eye fa-fw"></i>
                             </a>
-                            <?php if ($data['is_admin']) : ?>
+                            <?php if ($data['can_edit']) : ?>
                                 <a :href="`<?= URLROOT ?>/knowledge_base/edit/${article.id}`" class="text-gray-500 hover:text-yellow-500" title="Edit">
                                     <i class="fas fa-edit fa-fw"></i>
                                 </a>
+                            <?php endif; ?>
+                            <?php if ($data['can_delete']) : ?>
                                 <form action="<?= URLROOT ?>/knowledge_base/destroy" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this article?');">
                                     <input type="hidden" name="id" :value="article.id">
                                     <button type="submit" class="text-gray-500 hover:text-red-600" title="Delete"><i class="fas fa-trash-alt fa-fw"></i></button>

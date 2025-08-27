@@ -117,6 +117,7 @@ function getAdminNavItems($role) {
             'permissions' => ['admin', 'developer', 'quality_manager', 'Team_leader'],
             'children' => [
                 ['title' => 'User Management', 'href' => '/admin/users', 'icon' => 'fas fa-users-cog'],
+                ['title' => 'VIP Users', 'href' => '/admin/users/vip', 'icon' => 'fas fa-crown', 'permissions' => ['admin', 'developer']],
                 ['title' => 'Teams Management', 'href' => '/admin/teams', 'icon' => 'fas fa-sitemap'],
                 ['title' => 'Team Members', 'href' => '/admin/team_members', 'icon' => 'fas fa-user-friends'],
                 [
@@ -178,7 +179,16 @@ function renderNavItem($item, $currentPath) {
         echo "</button>";
         echo "<div x-show='open && !isSidebarCollapsed' x-collapse class='pl-4 mt-1 space-y-1'>";
         foreach ($item['children'] as $child) {
-            renderNavItem($child, $currentPath);
+            // Check permissions for child items
+            $hasPermission = true;
+            if (!empty($child['permissions'])) {
+                $userRole = $_SESSION['user']['role_name'] ?? 'agent';
+                $hasPermission = in_array($userRole, $child['permissions']);
+            }
+            
+            if ($hasPermission) {
+                renderNavItem($child, $currentPath);
+            }
         }
         echo "</div></div>";
     } else {
