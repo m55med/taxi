@@ -43,28 +43,28 @@ if (!empty($_SESSION['vip_user_message'])) {
 <?php endif; ?>
 
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">إضافة مستخدم VIP</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Add VIP User</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Add New VIP User Form Card -->
         <div class="md:col-span-1">
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">إضافة مستخدم VIP جديد</h2>
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Add New VIP User</h2>
                 <form action="<?= URLROOT ?>/admin/users/vip/store" method="POST">
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">الاسم</label>
-                        <input type="text" name="name" id="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="ادخل اسم المستخدم">
+                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter user name">
                     </div>
                     <div class="mt-4">
                         <p class="text-sm text-gray-600">
                             <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                            سيتم إنشاء البريد الإلكتروني وكلمة المرور تلقائياً مع role VIP (ID: 11)
+                            Email and password will be automatically generated with VIP role (ID: 11)
                         </p>
                     </div>
                     <div class="flex items-center mt-6">
                         <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium flex items-center justify-center">
                             <i class="fas fa-user-plus"></i>
-                            <span class="ml-2">إضافة مستخدم VIP</span>
+                            <span class="ml-2">Add VIP User</span>
                         </button>
                     </div>
                 </form>
@@ -75,23 +75,23 @@ if (!empty($_SESSION['vip_user_message'])) {
         <div class="md:col-span-2">
             <div class="bg-white rounded-lg shadow-md">
                 <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-800">المستخدمين VIP الموجودين</h2>
+                    <h2 class="text-xl font-semibold text-gray-800">Existing VIP Users</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">الرقم</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">الاسم</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">البريد الإلكتروني</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">تاريخ الإضافة</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">الإجراءات</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Added Date</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php if (empty($data['vip_users'])): ?>
-                                <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">لا توجد مستخدمين VIP.</td></tr>
+                                <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No VIP users found.</td></tr>
                             <?php else: ?>
                                 <?php foreach ($data['vip_users'] as $user): ?>
                                     <tr>
@@ -116,7 +116,7 @@ if (!empty($_SESSION['vip_user_message'])) {
                                                 $created_at = new DateTime($user->created_at);
                                                 echo $created_at->format('Y-m-d H:i');
                                             } else {
-                                                echo 'غير محدد';
+                                                echo 'Not specified';
                                             }
                                             ?>
                                         </td>
@@ -127,7 +127,7 @@ if (!empty($_SESSION['vip_user_message'])) {
                                         </td>
                                         <td class="px-6 py-4 text-left text-sm font-medium">
                                             <form action="<?= URLROOT ?>/admin/users/vip/delete/<?= $user->id ?>" method="POST" class="inline-form" onsubmit="return showDeleteConfirm(event, '<?= htmlspecialchars(addslashes($user->name)) ?>', this);">
-                                                <button type="submit" class="text-red-600 hover:text-red-900" title="حذف"><i class="fas fa-trash-alt"></i></button>
+                                                <button type="submit" class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash-alt"></i></button>
                                             </form>
                                         </td>
                                     </tr>
@@ -144,11 +144,11 @@ if (!empty($_SESSION['vip_user_message'])) {
 <!-- Delete Confirmation Modal -->
 <div id="delete-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden" onclick="closeModal(event)">
     <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md" onclick="event.stopPropagation()">
-        <h2 class="text-xl font-bold mb-4">تأكيد الحذف</h2>
+        <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
         <p id="delete-confirm-message" class="mb-6"></p>
         <div class="flex justify-end space-x-4">
-            <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 ml-2">إلغاء</button>
-            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">نعم، احذف</button>
+            <button onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 ml-2">Cancel</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Yes, Delete</button>
         </div>
     </div>
 </div>
@@ -200,7 +200,7 @@ const messageEl = document.getElementById('delete-confirm-message');
 function showDeleteConfirm(event, userName, form) {
     event.preventDefault();
     formToSubmit = form;
-    messageEl.innerHTML = `هل أنت متأكد من حذف المستخدم "<strong>${userName}</strong>"؟ هذا الإجراء لا يمكن التراجع عنه.`;
+    messageEl.innerHTML = `Are you sure you want to delete the user "<strong>${userName}</strong>"? This action cannot be undone.`;
     modal.classList.remove('hidden');
     return false; // Prevent form submission
 }

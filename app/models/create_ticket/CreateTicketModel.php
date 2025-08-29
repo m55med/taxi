@@ -51,7 +51,22 @@ class CreateTicketModel extends Model
         return $this->resultSet();
     }
 
-    public function getVipUsers()
+    public function getAllClassifications()
+    {
+        $this->query("
+            SELECT 
+                c.id as category_id, c.name as category_name,
+                s.id as subcategory_id, s.name as subcategory_name,
+                co.id as code_id, co.name as code_name
+            FROM ticket_categories c
+            LEFT JOIN ticket_subcategories s ON c.id = s.category_id
+            LEFT JOIN ticket_codes co ON s.id = co.subcategory_id
+            ORDER BY c.name, s.name, co.name
+        ");
+        return $this->resultSet();
+    }
+
+    public function getMarketers()
     {
         $this->query("SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'VIP' ORDER BY u.username ASC");
         return $this->resultSet();
@@ -131,11 +146,11 @@ class CreateTicketModel extends Model
             // Step 2: Create ticket details record
             $ticketDetailId = $this->createTicketDetailEntry($ticketId, $data, $teamIdAtAction);
 
-            // Step 3: Assign VIP user if it's a VIP ticket
-            if (!empty($data['is_vip']) && !empty($data['vip_user_id'])) {
-                $this->query("INSERT INTO ticket_vip_assignments (ticket_detail_id, vip_user_id) VALUES (:ticket_detail_id, :vip_user_id)");
+            // Step 3: Assign marketer if it's a VIP ticket
+            if (!empty($data['is_vip']) && !empty($data['marketer_id'])) {
+                $this->query("INSERT INTO ticket_vip_assignments (ticket_detail_id, marketer_id) VALUES (:ticket_detail_id, :marketer_id)");
                 $this->bind(':ticket_detail_id', $ticketDetailId);
-                $this->bind(':vip_user_id', $data['vip_user_id']);
+                $this->bind(':marketer_id', $data['marketer_id']);
                 $this->execute();
             }
 
