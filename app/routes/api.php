@@ -78,6 +78,14 @@ function handle_api_routes($url) {
         return true;
     }
 
+    // Route: /api/establishments/create
+    if (!empty($url[0]) && $url[0] === 'establishments' && !empty($url[1]) && $url[1] === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        require_once APPROOT . '/Controllers/Establishments/EstablishmentsController.php';
+        $establishmentsController = new \App\Controllers\Establishments\EstablishmentsController();
+        $establishmentsController->createEstablishment();
+        return true;
+    }
+
     // Route: /api/discussions/{id}/replies
     if (!empty($url[0]) && $url[0] === 'discussions' && isset($url[1]) && is_numeric($url[1]) && isset($url[2]) && $url[2] === 'replies' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         // Manually include and instantiate the DiscussionsController just for this route

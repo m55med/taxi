@@ -298,6 +298,16 @@ $router->get('referral/marketerDetails/{id}', 'referral/ReferralController@marke
 $router->get('referral/editProfile/{id}', 'referral/ReferralController@editProfile')->middleware(['admin', 'developer', 'Quality', 'team_leader', 'marketer']);
 $router->post('referral/saveAgentProfile', 'referral/ReferralController@saveAgentProfile')->middleware(['admin', 'developer', 'Quality', 'team_leader', 'marketer']);
 
+// Establishments Routes
+$router->get('referral/establishments', 'Establishments/EstablishmentsController@index')->middleware(['admin', 'developer', 'marketer']);
+$router->get('referral/establishments/export', 'Establishments/EstablishmentsController@export')->middleware(['admin', 'developer', 'marketer']);
+$router->get('referral/establishments/edit/{id}', 'Establishments/EstablishmentsController@edit')->middleware(['admin', 'developer']);
+$router->post('referral/establishments/edit/{id}', 'Establishments/EstablishmentsController@edit')->middleware(['admin', 'developer']);
+$router->post('referral/establishments/delete/{id}', 'Establishments/EstablishmentsController@delete')->middleware(['admin', 'developer']);
+
+// Establishment Image Routes
+$router->get('establishment/image/{imagePath:.*}', 'Establishments/EstablishmentsController@serveImage')->middleware(['admin', 'developer', 'marketer']);
+
 // Listings
 $router->get('listings/tickets', 'listings/ListingsController@tickets')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get('listings/get_tickets_api', 'listings/ListingsController@get_tickets_api');

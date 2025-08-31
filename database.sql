@@ -886,3 +886,30 @@ CREATE TABLE IF NOT EXISTS restaurant_referral_visits (
     FOREIGN KEY (affiliate_user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (registered_restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+
+CREATE TABLE establishments (
+    id INT AUTO_INCREMENT PRIMARY KEY, -- معرف أساسي تلقائي للمنشأة
+    establishment_name VARCHAR(255) NULL, -- اسم المنشأة
+    legal_name VARCHAR(255) NULL, -- الاسم القانوني
+    taxpayer_number VARCHAR(50) NULL, -- الرقم الضريبي (اختياري)
+    street VARCHAR(255) NULL, -- الشارع
+    house_number VARCHAR(50) NULL, -- رقم المنزل
+    postal_zip VARCHAR(20) NULL, -- الرمز البريدي
+    establishment_email VARCHAR(255) NULL, -- ايميل المنشأة
+    establishment_phone VARCHAR(50) NULL, -- رقم هاتف المنشأة
+    owner_full_name VARCHAR(255) NULL, -- الاسم الكامل للمالك
+    owner_position VARCHAR(100) NULL, -- منصب المالك
+    owner_email VARCHAR(255) NULL, -- ايميل المالك
+    owner_phone VARCHAR(50) NULL, -- هاتف المالك
+    description TEXT NULL, -- وصف (اختياري)
+    establishment_logo TEXT NULL, -- اللوجو (رابط أو base64)
+    establishment_header_image TEXT NULL, -- صورة الرأس (رابط أو base64)
+    marketer_id INT NULL, -- معرف المسوق المرتبط بالمنشأة
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- تاريخ الإنشاء
+
+    FOREIGN KEY (marketer_id) REFERENCES users(id) 
+        ON DELETE SET NULL -- لو المستخدم اتشال، يتحول العمود NULL
+        ON UPDATE CASCADE  -- لو اتغير id المستخدم يتحدث تلقائيًا
+);

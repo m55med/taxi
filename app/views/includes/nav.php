@@ -47,6 +47,7 @@ function getNavigationItems($role) {
             'children' => [
                 ['title' => "Referral Dashboard", 'href' => '/referral/dashboard', 'icon' => 'fas fa-chart-line'],
                 ['title' => "Marketer Registration", 'href' => '/referral/register', 'icon' => 'fas fa-user-plus'],
+                ['title' => "Establishments", 'href' => '/referral/establishments', 'icon' => 'fas fa-building'],
             ]
         ],
         [
