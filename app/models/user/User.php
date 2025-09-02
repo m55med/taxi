@@ -675,4 +675,28 @@ class User
             return [];
         }
     }
+
+    /**
+     * Search users by username or name
+     */
+    public function searchUsers($query)
+    {
+        try {
+            $sql = "SELECT u.id, u.username, u.name, u.email, r.name as role_name
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    WHERE (u.username LIKE :query OR u.name LIKE :query)
+                    AND u.status = 'active'
+                    ORDER BY u.username
+                    LIMIT 20";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':query' => '%' . $query . '%']);
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error searching users: " . $e->getMessage());
+            return [];
+        }
+    }
 }

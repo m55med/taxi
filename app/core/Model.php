@@ -89,4 +89,10 @@ class Model
     {
         return $this->db->rollBack();
     }
+    
+    // Get database connection
+    public function getDb()
+    {
+        return $this->db;
+    }
 }

@@ -58,13 +58,22 @@ function getGreeting() {
                     <label for="date_to" class="block text-sm font-medium text-gray-700">To</label>
                     <input type="date" id="date_to" name="date_to" value="<?= htmlspecialchars($_GET['date_to'] ?? '') ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
-                <div class="pt-5">
+                <div class="pt-5 flex gap-2">
+                    <!-- زر الفلترة -->
                     <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="fas fa-filter mr-2"></i> Filter
                     </button>
+
+                    <!-- زر الريست -->
+                    <a href="<?= URLROOT ?>/dashboard" 
+                    class="w-full md:w-auto inline-flex items-center justify-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                        <i class="fas fa-undo mr-2"></i> Reset
+                    </a>
                 </div>
             </form>
         </div>
+
+
 
         <!-- Stats Grid -->
         <div class="text-sm text-gray-500 mb-4">
@@ -182,7 +191,7 @@ function getGreeting() {
             <!-- Left Column -->
             <div class="lg:col-span-2 space-y-8">
                 <!-- Activity Chart -->
-                <?php if ($isPrivileged && isset($d['daily_trends'])): ?>
+                <?php if ($isPrivileged && isset($d['daily_trends']) && !empty($d['daily_trends'])): ?>
                 <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
                     <div class="mb-6">
                         <h3 class="text-xl font-semibold text-gray-800">Activity Trend</h3>
@@ -192,10 +201,20 @@ function getGreeting() {
                         <canvas id="activityChart"></canvas>
                     </div>
                 </div>
+                <?php elseif ($isPrivileged): ?>
+                <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-800">Activity Trend</h3>
+                        <p class="text-sm text-gray-500">Last 15 days performance overview</p>
+                    </div>
+                    <div class="h-80 flex items-center justify-center">
+                        <p class="text-gray-500">No activity data available for the selected period</p>
+                    </div>
+                </div>
                 <?php endif; ?>
                 
                 <!-- Leaderboards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <!-- Top Ticket Creators -->
                     <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
                         <div class="flex items-center gap-3 mb-4">
@@ -249,6 +268,46 @@ function getGreeting() {
                                 </div>
                                 <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
                                 <span class="text-sm font-bold text-indigo-600"><?= $entry['count'] ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <!-- Top Reviews -->
+                    <?php if (!empty($d['top_reviews'])): ?>
+                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 rounded-lg bg-pink-100 text-pink-600"><i class="fas fa-star"></i></div>
+                            <h3 class="font-semibold text-gray-800">Latest Reviews</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <?php foreach (array_slice($d['top_reviews'] ?? [], 0, 5) as $i => $entry): ?>
+                            <div class="flex items-center gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                                    <?= mb_substr($entry['reviewer_name'], 0, 2) ?>
+                                </div>
+                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['reviewer_name']) ?></p>
+                                <span class="text-xs text-gray-500"><?= date('M j, Y', strtotime($entry['reviewed_at'])) ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <!-- Top Reviews Leaderboard -->
+                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 rounded-lg bg-pink-100 text-pink-600"><i class="fas fa-star"></i></div>
+                            <h3 class="font-semibold text-gray-800">Top Reviews</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <?php foreach (array_slice($d['leaderboards']['reviews'] ?? [], 0, 5) as $i => $entry): ?>
+                            <div class="flex items-center gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                                    <?= mb_substr($entry['name'], 0, 2) ?>
+                                </div>
+                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
+                                <span class="text-sm font-bold text-pink-600"><?= $entry['count'] ?></span>
                             </div>
                             <?php endforeach; ?>
                         </div>
@@ -320,26 +379,34 @@ function getGreeting() {
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     function updateLocalTimeAndDate() {
-    const now = new Date();
+        const now = new Date();
 
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const seconds = now.getSeconds().toString().padStart(2, '0');
+        let hours = now.getHours();
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
 
-    const timeString = `${hours}:${minutes}:${seconds}`;
+        // تحديد AM أو PM
+        const ampm = hours >= 12 ? 'PM' : 'AM';
 
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const dateString = now.toLocaleDateString(undefined, options);
+        // تحويل من 24 ساعة إلى 12 ساعة
+        hours = hours % 12;
+        hours = hours ? hours : 12; // لو 0 نخليه 12
 
-    const timeEl = document.getElementById('local-time');
-    const dateEl = document.getElementById('local-date');
+        const timeString = `${hours}:${minutes}:${seconds} ${ampm}`;
 
-    if (timeEl) timeEl.textContent = timeString;
-    if (dateEl) dateEl.textContent = dateString;
-}
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateString = now.toLocaleDateString(undefined, options);
 
-setInterval(updateLocalTimeAndDate, 1000); // يحدث كل ثانية
-updateLocalTimeAndDate(); // تشغيل أول مرة مباشرة
+        const timeEl = document.getElementById('local-time');
+        const dateEl = document.getElementById('local-date');
+
+        if (timeEl) timeEl.textContent = timeString;
+        if (dateEl) dateEl.textContent = dateString;
+    }
+
+    setInterval(updateLocalTimeAndDate, 1000);
+    updateLocalTimeAndDate();
+
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -374,13 +441,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Bar Chart for Activity Trend
-    <?php if ($isPrivileged && isset($d['daily_trends'])): ?>
+    <?php if ($isPrivileged && isset($d['daily_trends']) && !empty($d['daily_trends'])): ?>
     const activityCtx = document.getElementById('activityChart')?.getContext('2d');
     if (activityCtx) {
         const trendData = <?= json_encode($d['daily_trends']) ?>;
+        console.log('Dashboard Debug Info:');
+        console.log('- User Role:', '<?= $d['user_role'] ?>');
+        console.log('- Is Privileged:', <?= $isPrivileged ? 'true' : 'false' ?>);
+        console.log('- Activity Trend Data:', trendData);
+        console.log('- Review Stats:', <?= json_encode($d['review_discussion_stats']) ?>);
+        console.log('- Leaderboards:', <?= json_encode($d['leaderboards'] ?? []) ?>);
         const labels = trendData.map(d => new Date(d.action_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         const ticketData = trendData.map(d => d.tickets);
         const callData = trendData.map(d => d.calls);
+        const reviewData = trendData.map(d => d.reviews);
 
         new Chart(activityCtx, {
             type: 'line',
@@ -409,6 +483,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         fill: true,
                         tension: 0.4,
                         pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        pointRadius: 4,
+                    },
+                    {
+                        label: 'Reviews',
+                        data: reviewData,
+                        backgroundColor: 'rgba(236, 72, 153, 0.1)', // pink-500
+                        borderColor: 'rgba(236, 72, 153, 1)', // pink-500
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(236, 72, 153, 1)',
                         pointBorderColor: '#fff',
                         pointHoverRadius: 6,
                         pointRadius: 4,
@@ -445,6 +532,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     <?php endif; ?>
 });
+
+// Debug info for all users (privileged and non-privileged)
+console.log('=== Dashboard Debug Info ===');
+console.log('User Role:', '<?= $d['user_role'] ?>');
+console.log('Is Privileged:', <?= $isPrivileged ? 'true' : 'false' ?>);
+console.log('Review Stats:', <?= json_encode($d['review_discussion_stats'] ?? []) ?>);
+<?php if (!$isPrivileged): ?>
+console.log('Non-Privileged User - Individual Reviews:', <?= json_encode($d['review_discussion_stats']['individual_reviews'] ?? []) ?>);
+<?php endif; ?>
+console.log('========================');
 </script>
 
 <?php require_once APPROOT . '/views/includes/footer.php'; ?>

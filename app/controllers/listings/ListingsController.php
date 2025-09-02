@@ -33,23 +33,44 @@ class ListingsController extends Controller
         $this->authorize('listings/tickets');
 
         $filters = $_GET;
+        
+        // Debug logging
+        error_log('ListingsController::tickets - Filters received: ' . json_encode($filters));
 
         // If the user is an agent, force filter by their user ID
         if (Auth::hasRole('agent')) {
             $filters['created_by'] = Auth::getUserId();
         }
 
-        $tickets = $this->listingModel->getFilteredTickets($filters);
-
         // Check for export request
         if (isset($filters['export'])) {
-            $this->exportTickets($tickets, $filters['export']);
+            $tickets = $this->listingModel->getFilteredTickets($filters, false); // Get all for export
+            $this->exportTickets($tickets['data'], $filters['export']);
             return; // Stop further execution
         }
 
+        // Get initial data for page load (server-side pagination)
+        $ticketsData = $this->listingModel->getFilteredTickets($filters, true);
+        $stats = $this->listingModel->getTicketStats($filters);
+        
+        // Debug logging
+        error_log('ListingsController::tickets - Tickets data: ' . json_encode([
+            'total' => $ticketsData['total'] ?? 0,
+            'count' => count($ticketsData['data'] ?? []),
+            'first_ticket' => !empty($ticketsData['data']) ? $ticketsData['data'][0]['ticket_number'] : 'N/A'
+        ]));
+        error_log('ListingsController::tickets - Stats: ' . json_encode($stats));
+
         $data = [
             'page_main_title' => 'All Tickets',
-            'tickets' => $tickets, // Pass tickets to the view
+            'tickets' => $ticketsData['data'] ?? [],
+            'pagination' => [
+                'total' => $ticketsData['total'] ?? 0,
+                'total_pages' => $ticketsData['total_pages'] ?? 1,
+                'current_page' => $ticketsData['current_page'] ?? 1,
+                'limit' => $ticketsData['limit'] ?? 25,
+            ],
+            'stats' => $stats,
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
             'platforms' => $this->platformModel->getAll(),
             'users' => $this->userModel->getAllUsers(),
@@ -101,13 +122,60 @@ class ListingsController extends Controller
 
 
     /**
-     * API endpoint to fetch filtered tickets.
+     * API endpoint to fetch filtered tickets with pagination.
      */
     public function get_tickets_api()
     {
         header('Content-Type: application/json');
         $this->authorize('listings/tickets');
-        echo json_encode($this->listingModel->getFilteredTickets($_GET));
+
+        $filters = $_GET;
+        
+        // If the user is an agent, force filter by their user ID
+        if (Auth::hasRole('agent')) {
+            $filters['created_by'] = Auth::getUserId();
+        }
+
+        echo json_encode($this->listingModel->getFilteredTickets($filters, true));
+    }
+
+    /**
+     * API endpoint for search suggestions.
+     */
+    public function search_suggestions_api()
+    {
+        header('Content-Type: application/json');
+        $this->authorize('listings/tickets');
+
+        $query = $_GET['q'] ?? '';
+        $type = $_GET['type'] ?? 'ticket'; // ticket, phone, user
+
+        if (strlen($query) < 2) {
+            echo json_encode([]);
+            return;
+        }
+
+        $suggestions = $this->listingModel->getSearchSuggestions($query, $type);
+        echo json_encode($suggestions);
+    }
+
+    /**
+     * API endpoint for user search.
+     */
+    public function search_users_api()
+    {
+        header('Content-Type: application/json');
+        $this->authorize('listings/tickets');
+
+        $query = $_GET['q'] ?? '';
+        
+        if (strlen($query) < 2) {
+            echo json_encode([]);
+            return;
+        }
+
+        $users = $this->userModel->searchUsers($query);
+        echo json_encode($users);
     }
 
     /**

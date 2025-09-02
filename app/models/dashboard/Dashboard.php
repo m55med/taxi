@@ -33,22 +33,33 @@ class Dashboard
         if ($isPrivileged) {
             // Privileged users get all stats
             $data['driver_stats'] = ($role === 'admin') ? $this->getDriverStats() : $this->getDriverStats($dateFrom, $dateTo);
-            $data['leaderboards'] = $this->getLeaderboards($dateFrom, $dateTo);
+            $data['leaderboards'] = $this->getLeaderboards($dateFrom, $dateTo, null);
             $data['user_stats'] = $this->getUserStats(); // User stats are not time-dependent
             $data['ticket_stats'] = $this->getTicketStats(null, $dateFrom, $dateTo);
             $data['review_discussion_stats'] = $this->getReviewDiscussionStats(null, $dateFrom, $dateTo);
             $data['call_stats'] = $this->getCallStats(null, $dateFrom, $dateTo);
             $data['call_ratio'] = $this->getCallRatio(null, $dateFrom, $dateTo);
             $data['daily_trends'] = $this->getDailyTrends($dateFrom, $dateTo);
+            $data['top_reviews'] = $this->getTopReviews(null, 10);
             if (in_array($role, ['admin', 'developer', 'marketer'])) {
                 $data['marketer_stats'] = $this->getMarketerStats(null, $dateFrom, $dateTo);
             }
         } else {
-            // Non-privileged users get their own stats
+            // Non-privileged users get their own stats only
             $data['ticket_stats'] = $this->getTicketStats($userId, $dateFrom, $dateTo);
             $data['review_discussion_stats'] = $this->getReviewDiscussionStats($userId, $dateFrom, $dateTo);
             $data['call_stats'] = $this->getCallStats($userId, $dateFrom, $dateTo);
             $data['call_ratio'] = $this->getCallRatio($userId, $dateFrom, $dateTo);
+            $data['top_reviews'] = $this->getTopReviews($userId, 10);
+            
+            // Don't show leaderboards for non-privileged users
+            $data['leaderboards'] = [
+                'tickets' => [],
+                'outgoing_calls' => [],
+                'incoming_calls' => [],
+                'reviews' => []
+            ];
+            
             if ($role === 'marketer') {
                 $data['marketer_stats'] = $this->getMarketerStats($userId, $dateFrom, $dateTo);
             }
@@ -59,52 +70,54 @@ class Dashboard
 
     private function getDailyTrends($dateFrom, $dateTo)
     {
-        $sql = "
-        WITH RECURSIVE all_dates(a_date) AS (
-            SELECT :date_from
-            UNION ALL
-            SELECT a_date + INTERVAL 1 DAY
-            FROM all_dates
-            WHERE a_date < :date_to
-        ),
-        tickets AS (
-            SELECT DATE(created_at) as t_date, COUNT(id) as ticket_count
-            FROM ticket_details
-            WHERE DATE(created_at) BETWEEN :date_from_tickets AND :date_to_tickets
-            GROUP BY t_date
-        ),
-        calls AS (
-             SELECT DATE(created_at) as c_date, COUNT(id) as call_count
-             FROM driver_calls
-             WHERE DATE(created_at) BETWEEN :date_from_calls AND :date_to_calls
-             GROUP BY c_date
-        )
-        SELECT 
-            ad.a_date as action_date,
-            COALESCE(t.ticket_count, 0) as tickets,
-            COALESCE(c.call_count, 0) as calls
-        FROM all_dates ad
-        LEFT JOIN tickets t ON ad.a_date = t.t_date
-        LEFT JOIN calls c ON ad.a_date = c.c_date
-        ORDER BY ad.a_date ASC
-        ";
+        // Create a simple date range using PHP
+        $dates = [];
+        $currentDate = strtotime($dateFrom);
+        $endDate = strtotime($dateTo);
 
-        try {
-            $stmt = $this->db->prepare($sql);
-            $params = [
-                ':date_from' => $dateFrom,
-                ':date_to' => $dateTo,
-                ':date_from_tickets' => $dateFrom,
-                ':date_to_tickets' => $dateTo,
-                ':date_from_calls' => $dateFrom,
-                ':date_to_calls' => $dateTo,
-            ];
-            $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-            error_log("Error in getDailyTrends: " . $e->getMessage());
-            return [];
+        while ($currentDate <= $endDate) {
+            $dates[] = date('Y-m-d', $currentDate);
+            $currentDate = strtotime('+1 day', $currentDate);
         }
+
+        $results = [];
+
+        foreach ($dates as $date) {
+            try {
+                // Get tickets for this date
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM ticket_details WHERE DATE(created_at) = ?");
+                $stmt->execute([$date]);
+                $ticketCount = (int) $stmt->fetchColumn();
+
+                // Get calls for this date
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM driver_calls WHERE DATE(created_at) = ?");
+                $stmt->execute([$date]);
+                $callCount = (int) $stmt->fetchColumn();
+
+                // Get reviews for this date
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM reviews WHERE DATE(reviewed_at) = ?");
+                $stmt->execute([$date]);
+                $reviewCount = (int) $stmt->fetchColumn();
+
+                $results[] = [
+                    'action_date' => $date,
+                    'tickets' => $ticketCount,
+                    'calls' => $callCount,
+                    'reviews' => $reviewCount
+                ];
+            } catch (\PDOException $e) {
+                error_log("Error getting data for date $date: " . $e->getMessage());
+                // Add empty data for this date
+                $results[] = [
+                    'action_date' => $date,
+                    'tickets' => 0,
+                    'calls' => 0,
+                    'reviews' => 0
+                ];
+            }
+        }
+
+        return $results;
     }
 
     private function getUserStats()
@@ -230,33 +243,109 @@ class Dashboard
 
     private function getReviewDiscussionStats($userId, $dateFrom, $dateTo)
     {
-        $defaults = ['reviews' => 0, 'discussions' => 0];
+        $defaults = ['reviews' => 0, 'discussions' => 0, 'individual_reviews' => []];
         $stats = [];
-        $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
-        $userWhereReviews = '';
-        $userWhereDiscussions = '';
 
-        if ($userId) {
-            $userWhereReviews = " AND td.edited_by = :user_id";
-            $userWhereDiscussions = " AND opened_by = :user_id";
-            $params[':user_id'] = $userId;
+        // Get user role to determine filtering logic
+        $role = $userId ? $this->getUserRole($userId) : 'admin'; // Default to admin if no userId
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
+
+        // === REVIEWS COUNT ===
+        $reviewsParams = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $whereClauses = [];
+
+        // Reviews filtering logic (same as QualityModel)
+        if ($role === 'agent' && $userId) {
+            $whereClauses[] = "(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)";
+            $reviewsParams[':agent_review_user_id_ticket'] = $userId;
+            $reviewsParams[':agent_review_user_id_call'] = $userId;
+        } elseif (!in_array($role, $highAccessRoles) && $userId) {
+            // For other non-admin roles, access denied - return 0
+            return $defaults;
         }
 
-        $reviewsQuery = "SELECT COUNT(r.id) FROM reviews r JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'TicketDetail' WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to" . $userWhereReviews;
-        $stmt_reviews = $this->db->prepare($reviewsQuery);
-        $stmt_reviews->execute($params);
-        $stats['reviews'] = (int) $stmt_reviews->fetchColumn();
+        // Build the WHERE clause for reviews
+        $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
 
-        if (!$userId) {
-            unset($params[':user_id']);
+        $reviewsQuery = "
+            SELECT COUNT(r.id)
+            FROM reviews r
+            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
+            LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to" . $whereSql;
+
+        try {
+            $stmt_reviews = $this->db->prepare($reviewsQuery);
+            $stmt_reviews->execute($reviewsParams);
+            $stats['reviews'] = (int) $stmt_reviews->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log("Error in getReviewDiscussionStats (reviews): " . $e->getMessage());
+            $stats['reviews'] = 0;
+        }
+
+        // === INDIVIDUAL REVIEWS ===
+        if ($userId && $role === 'agent') {
+            $individualReviewsQuery = "
+                SELECT r.review_notes
+                FROM reviews r
+                LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
+                LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+                WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to
+                AND (td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)
+                ORDER BY r.reviewed_at DESC
+                LIMIT 5
+            ";
+            try {
+                $stmt_individual_reviews = $this->db->prepare($individualReviewsQuery);
+                $stmt_individual_reviews->execute($reviewsParams);
+                $stats['individual_reviews'] = $stmt_individual_reviews->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                error_log("Error in getReviewDiscussionStats (individual_reviews): " . $e->getMessage());
+                $stats['individual_reviews'] = [];
+            }
+        }
+
+        // === DISCUSSIONS COUNT ===
+        $discussionsParams = [':date_from' => $dateFrom, ':date_to' => $dateTo];
+        $userWhereDiscussions = '';
+
+        if ($userId && !in_array($role, $highAccessRoles)) {
+            $userWhereDiscussions = " AND opened_by = :user_id";
+            $discussionsParams[':user_id'] = $userId;
         }
 
         $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhereDiscussions;
-        $stmt_discussions = $this->db->prepare($discussionsQuery);
-        $stmt_discussions->execute($params);
-        $stats['discussions'] = (int) $stmt_discussions->fetchColumn();
         
+        try {
+            $stmt_discussions = $this->db->prepare($discussionsQuery);
+            $stmt_discussions->execute($discussionsParams);
+            $stats['discussions'] = (int) $stmt_discussions->fetchColumn();
+        } catch (\PDOException $e) {
+            error_log("Error in getReviewDiscussionStats (discussions): " . $e->getMessage());
+            $stats['discussions'] = 0;
+        }
+
         return array_merge($defaults, $stats);
+    }
+
+    private function getUserRole($userId)
+    {
+        if (!$userId) return 'guest';
+
+        try {
+            $stmt = $this->db->prepare("
+                SELECT r.name as role_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE u.id = :user_id
+            ");
+            $stmt->execute([':user_id' => $userId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['role_name'] : 'guest';
+        } catch (\PDOException $e) {
+            error_log("Error getting user role: " . $e->getMessage());
+            return 'guest';
+        }
     }
 
     private function getMarketerStats($userId, $dateFrom, $dateTo)
@@ -351,12 +440,13 @@ class Dashboard
         ];
     }
 
-    private function getLeaderboards($dateFrom, $dateTo)
+    private function getLeaderboards($dateFrom, $dateTo, $userId = null)
     {
         $leaderboards = [
             'tickets' => [],
             'outgoing_calls' => [],
             'incoming_calls' => [],
+            'reviews' => [],
         ];
         $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
 
@@ -399,6 +489,93 @@ class Dashboard
         $stmt->execute($params);
         $leaderboards['incoming_calls'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+        // Reviews leaderboard with same filtering logic
+        $role = $userId ? $this->getUserRole($userId) : 'admin'; // Default to admin if no userId
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
+
+        if ($role === 'agent' && $userId) {
+            // For agents, only show reviews for actions they performed
+            $reviewsWhereClauses = ["(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)"];
+            $reviewsParams = array_merge($params, [
+                ':agent_review_user_id_ticket' => $userId,
+                ':agent_review_user_id_call' => $userId
+            ]);
+        } elseif (!in_array($role, $highAccessRoles) && $userId) {
+            // For other non-admin roles, return empty leaderboard
+            $leaderboards['reviews'] = [];
+            return $leaderboards;
+        } else {
+            // For admin/privileged users, show all reviews
+            $reviewsWhereClauses = [];
+            $reviewsParams = $params;
+        }
+
+        $reviewsWhereSql = count($reviewsWhereClauses) > 0 ? " AND " . implode(' AND ', $reviewsWhereClauses) : "";
+
+        $reviewsQuery = "
+            SELECT u.name, COUNT(r.id) as count
+            FROM reviews r
+            JOIN users u ON r.reviewed_by = u.id
+            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
+            LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to{$reviewsWhereSql}
+            GROUP BY u.id, u.name
+            ORDER BY count DESC
+            LIMIT 10
+        ";
+        
+        try {
+            $stmt = $this->db->prepare($reviewsQuery);
+            $stmt->execute($reviewsParams);
+            $leaderboards['reviews'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            error_log("Error in getLeaderboards (reviews): " . $e->getMessage());
+            $leaderboards['reviews'] = [];
+        }
+
         return $leaderboards;
+    }
+
+    private function getTopReviews($userId = null, $limit = 10)
+    {
+        $role = $userId ? $this->getUserRole($userId) : 'admin'; // Default to admin if no userId
+        $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
+
+        // Use the same filtering logic as QualityModel
+        $whereClauses = [];
+        $params = [];
+
+        if ($role === 'agent' && $userId) {
+            $whereClauses[] = "(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)";
+            $params[':agent_review_user_id_ticket'] = $userId;
+            $params[':agent_review_user_id_call'] = $userId;
+        } elseif (!in_array($role, $highAccessRoles) && $userId) {
+            // For other non-admin roles, return empty array
+            return [];
+        }
+
+        // Build the WHERE clause
+        $whereSql = count($whereClauses) > 0 ? " WHERE " . implode(' AND ', $whereClauses) : "";
+
+        $query = "
+            SELECT r.rating, r.reviewed_at, u.name as reviewer_name
+            FROM reviews r
+            JOIN users u ON r.reviewed_by = u.id
+            LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
+            LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+            {$whereSql}
+            ORDER BY r.reviewed_at DESC
+            LIMIT :limit
+        ";
+
+        try {
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Error in getTopReviews: " . $e->getMessage());
+            return [];
+        }
     }
 }

@@ -34,9 +34,9 @@ class DashboardController extends Controller
             return;
         }
 
-        // Get date range from GET parameters, with defaults
-        $dateFrom = $_GET['date_from'] ?? null;
-        $dateTo = $_GET['date_to'] ?? null;
+        // Get date range from GET parameters, with defaults (1st day -> last day of current month)
+        $dateFrom = $_GET['date_from'] ?? date('Y-m-01'); // أول يوم في الشهر
+        $dateTo   = $_GET['date_to']   ?? date('Y-m-t');  // آخر يوم في الشهر
 
         $userDataForModel = [
             'id' => $user->id,
@@ -46,7 +46,7 @@ class DashboardController extends Controller
         // Fetch all dashboard data using the centralized model method
         $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel, $dateFrom, $dateTo);
 
-        // This is a master data array passed to the view
+        // Pass everything to the view
         $data = [
             'title' => 'Dashboard',
             'dashboardData' => $dashboardData,
@@ -56,4 +56,5 @@ class DashboardController extends Controller
 
         $this->view('dashboard/index', $data);
     }
+
 }

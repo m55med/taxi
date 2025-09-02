@@ -311,6 +311,8 @@ $router->get('establishment/image/{imagePath:.*}', 'Establishments/Establishment
 // Listings
 $router->get('listings/tickets', 'listings/ListingsController@tickets')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get('listings/get_tickets_api', 'listings/ListingsController@get_tickets_api');
+$router->get('listings/search_suggestions_api', 'listings/ListingsController@search_suggestions_api');
+$router->get('listings/search_users_api', 'listings/ListingsController@search_users_api');
 $router->get('listings/drivers', 'listings/ListingsController@drivers')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get('listings/get_drivers_api', 'listings/ListingsController@get_drivers_api');
 $router->post('listings/bulk_update_drivers', 'listings/ListingsController@bulk_update_drivers')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
