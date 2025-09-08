@@ -1,24 +1,24 @@
-<?php
-// This partial will now check for specific flash messages we've set in the controllers
-// and display them using the new flash() helper function's output mechanism.
-
-// Display Discussion Flash Messages
-echo flash('discussion_success');
-echo flash('discussion_error');
-
-// Display Review Flash Messages
-echo flash('review_success');
-echo flash('review_error');
-
-// Display Driver Assignment Flash Messages
-echo flash('driver_assignment_success');
-echo flash('driver_assignment_error');
-
-// Display General Flash Messages
-echo flash('success');
-echo flash('error');
-echo flash('info');
-echo flash('warning');
-
-// You can add more flash message checks here as needed
+<?php
+// This partial will now check for specific flash messages we've set in the controllers
+// and display them using the new flash() helper function's output mechanism.
+
+// Display Discussion Flash Messages
+echo flash('discussion_success');
+echo flash('discussion_error');
+
+// Display Review Flash Messages
+echo flash('review_success');
+echo flash('review_error');
+
+// Display Driver Assignment Flash Messages
+echo flash('driver_assignment_success');
+echo flash('driver_assignment_error');
+
+// Display General Flash Messages
+echo flash('success');
+echo flash('error');
+echo flash('info');
+echo flash('warning');
+
+// You can add more flash message checks here as needed
 // e.g., echo flash('user_update_success'); 

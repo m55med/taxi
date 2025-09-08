@@ -1,16 +1,16 @@
-# Deny direct access to establishment images
-# Only accessible through the application with proper authentication
-
-Order Deny,Allow
-Deny from all
-
-# Block all file extensions
-<Files "*.*">
-    Deny from all
-</Files>
-
-# Additional security headers
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options nosniff
-    Header always set X-Frame-Options DENY
-</IfModule>
+# Deny direct access to establishment images
+# Only accessible through the application with proper authentication
+
+Order Deny,Allow
+Deny from all
+
+# Block all file extensions
+<Files "*.*">
+    Deny from all
+</Files>
+
+# Additional security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+</IfModule>

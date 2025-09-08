@@ -11,6 +11,7 @@ INSERT INTO roles (name) VALUES
 ('marketer'),
 ('quality_manager'),
 ('developer'),
+('VIP'),
 ('Team_leader');
 
 
@@ -912,4 +913,16 @@ CREATE TABLE establishments (
     FOREIGN KEY (marketer_id) REFERENCES users(id) 
         ON DELETE SET NULL -- لو المستخدم اتشال، يتحول العمود NULL
         ON UPDATE CASCADE  -- لو اتغير id المستخدم يتحدث تلقائيًا
+);
+
+CREATE TABLE breaks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME DEFAULT NULL,
+    duration_seconds INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

@@ -28,7 +28,117 @@
     </style>
 <!-- AlpineJS Data Store for Notifications -->
     <script>
+        function pageState() {
+            return {
+                // Sidebar state
+                isSidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+
+                // Break timer state
+                onBreak: false,
+                startTime: null,
+                timer: '00:00:00',
+                interval: null,
+                showModal: false,
+
+                init() {
+                    this.checkStatus();
+                    this.$watch('isSidebarCollapsed', val => localStorage.setItem('sidebarCollapsed', val));
+                },
+
+                checkStatus() {
+                    fetch('<?= URLROOT ?>/breaks/status')
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.on_break) {
+                                this.startLocalTimer(data.break.start_time);
+                            }
+                        });
+                },
+
+                startLocalTimer(startTime) {
+                    this.onBreak = true;
+                    this.startTime = new Date(startTime); // This startTime is already UTC from backend
+                    this.showModal = true;
+                    this.startTimer();
+                },
+
+                startTimer() {
+                    if (this.interval) clearInterval(this.interval);
+                    this.interval = setInterval(() => {
+                        const now = new Date();
+                        // Debugging logs
+                        console.log('Current time (now):', now.toISOString(), now.getTime());
+                        console.log('Start time (this.startTime):', this.startTime ? this.startTime.toISOString() : 'N/A', this.startTime ? this.startTime.getTime() : 'N/A');
+
+                        const diff = this.startTime ? Math.floor((now.getTime() - this.startTime.getTime()) / 1000) : 0;
+
+                        // More debugging for diff
+                        console.log('Calculated diff (seconds):', diff);
+
+                        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                        const s = String(diff % 60).padStart(2, '0');
+                        this.timer = `${h}:${m}:${s}`;
+                    }, 1000);
+                },
+
+                toggleBreak() {
+                    if (this.onBreak) {
+                        this.showModal = !this.showModal;
+                    } else {
+                        // Start break locally (show modal, set onBreak) but don't start timer yet
+                        this.onBreak = true;
+                        this.showModal = true;
+                        // Do NOT set this.startTime here, wait for server response
+
+                        fetch('<?= URLROOT ?>/breaks/start', { method: 'POST' })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'success' && data.break) {
+                                    this.startTime = new Date(data.break.start_time); // Set actual UTC start time from server
+                                    this.startTimer(); // Start timer ONLY after getting the correct time
+                                } else {
+                                    this.onBreak = false;
+                                    this.showModal = false;
+                                    if (this.interval) clearInterval(this.interval);
+                                    alert(data.message || 'Failed to start break.');
+                                }
+                            }).catch(error => {
+                                console.error("Failed to start break:", error);
+                                this.onBreak = false;
+                                this.showModal = false;
+                                if (this.interval) clearInterval(this.interval);
+                                alert('An error occurred while starting your break.');
+                            });
+                    }
+                },
+
+                stopBreak() {
+                    fetch('<?= URLROOT ?>/breaks/stop', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                this.onBreak = false;
+                                this.showModal = false;
+                                if (this.interval) clearInterval(this.interval);
+                                this.timer = '00:00:00';
+                                this.startTime = null;
+                            } else {
+                                alert(data.message);
+                            }
+                        });
+                },
+
+                getCurrentMinutes() {
+                    if (!this.startTime) return 0;
+                    const now = new Date();
+                    const diffSeconds = Math.floor((now - this.startTime) / 1000);
+                    return Math.floor(diffSeconds / 60);
+                }
+            }
+        }
         document.addEventListener('alpine:init', () => {
+            Alpine.data('pageState', pageState);
             Alpine.data('notifications', () => ({
                 open: false,
                 unreadCount: 0,
@@ -95,7 +205,38 @@
         });
     </script>
 </head>
-<body class="bg-gray-100" x-data="{ isSidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }" x-init="$watch('isSidebarCollapsed', val => localStorage.setItem('sidebarCollapsed', val))">
+<body class="bg-gray-100" x-data="pageState()">
+    
+    <!-- Break Timer Modal -->
+    <div x-show="showModal" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak 
+         class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div @click.away="showModal = false" 
+             class="bg-white rounded-lg p-6 shadow-xl text-center transform transition-all w-full max-w-sm" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             :class="{ 'bg-red-50 border-red-300 border-2': getCurrentMinutes() >= 25 }">
+            <h3 class="text-lg font-bold mb-4" :class="{'text-red-700': getCurrentMinutes() >= 25}">
+                <i class="fas fa-coffee mr-2"></i>On a Break
+            </h3>
+            <div class="text-5xl font-mono bg-gray-100 p-4 rounded-lg mb-6" :class="{'bg-red-100 text-red-800': getCurrentMinutes() >= 25}" x-text="timer"></div>
+            <button @click="stopBreak()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full w-full transition-colors text-lg">
+                <i class="fas fa-stop-circle mr-2"></i>Stop Break
+            </button>
+            <p x-show="getCurrentMinutes() >= 25" class="text-red-600 text-sm mt-3 animate-pulse">Your break is longer than 25 minutes.</p>
+        </div>
+    </div>
+
     <div class="flex h-screen bg-gray-100">
         <!-- Sidebar -->
         <?php require_once APPROOT . '/views/includes/nav.php'; ?>
@@ -111,6 +252,15 @@
                         </form>
                     </div>
                     <div class="flex items-center gap-4" x-data="notifications">
+
+                        <!-- Break Button -->
+                        <div>
+                            <button @click="toggleBreak()" class="relative text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md transition-colors" :class="{ 'bg-yellow-100 text-yellow-700': onBreak }">
+                                <i class="fas fa-coffee fa-lg"></i>
+                                <span x-show="onBreak" class="ml-2 font-mono text-sm" x-text="timer"></span>
+                            </button>
+                        </div>
+
                         <!-- Notification Center -->
                         <div class="relative">
                              <button @click="open = !open" class="relative text-gray-500 hover:text-gray-700">

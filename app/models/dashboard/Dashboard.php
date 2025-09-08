@@ -268,7 +268,7 @@ class Dashboard
         $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
 
         $reviewsQuery = "
-            SELECT COUNT(r.id)
+            SELECT AVG(r.rating) as average_rating
             FROM reviews r
             LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
             LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
@@ -277,7 +277,7 @@ class Dashboard
         try {
             $stmt_reviews = $this->db->prepare($reviewsQuery);
             $stmt_reviews->execute($reviewsParams);
-            $stats['reviews'] = (int) $stmt_reviews->fetchColumn();
+            $stats['reviews'] = (float) $stmt_reviews->fetchColumn(); // Cast to float
         } catch (\PDOException $e) {
             error_log("Error in getReviewDiscussionStats (reviews): " . $e->getMessage());
             $stats['reviews'] = 0;
