@@ -3,18 +3,15 @@
 namespace App\Models\Reports\Users;
 
 use App\Core\Database;
-use App\Services\PointsService;
 use PDO;
 
 class UsersReport
 {
     private $db;
-    private $pointsService;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
-        $this->pointsService = new PointsService();
     }
 
     private function getAllActivitiesForUsers(array $userIds, $dateFrom, $dateTo)
@@ -99,7 +96,7 @@ class UsersReport
         foreach ($activities as $activity) {
             if(!isset($userStats[$activity->user_id])) continue;
 
-            $this->pointsService->calculateForActivity($activity);
+            $activity->points = $this->calculateActivityPoints($activity);
             $userStats[$activity->user_id]['total_points'] += $activity->points;
 
             switch ($activity->activity_type) {
@@ -292,7 +289,7 @@ class UsersReport
                     r.rating,
                     r.reviewed_at
                 FROM reviews r
-                JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type = 'ticket_detail'
+                JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
                 WHERE td.edited_by IN ({$userIdsPlaceholders}) {$dateConditionsSql}
 
                 UNION ALL
@@ -302,7 +299,7 @@ class UsersReport
                     r.rating,
                     r.reviewed_at
                 FROM reviews r
-                JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type = 'driver_call'
+                JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
                 WHERE dc.call_by IN ({$userIdsPlaceholders}) {$dateConditionsSql}
             ) AS all_reviews
             GROUP BY user_id
@@ -321,7 +318,81 @@ class UsersReport
         }
         return $scores;
     }
-    
+
+    private function calculateActivityPoints($activity) {
+        $points = 0;
+
+        switch ($activity->activity_type) {
+            case 'Outgoing Call':
+                $points = $this->getCallPoints('outgoing', $activity->activity_date);
+                break;
+
+            case 'Incoming Call':
+                $points = $this->getCallPoints('incoming', $activity->activity_date);
+                break;
+
+            case 'Ticket':
+                $points = $this->getTicketPoints($activity->activity_id, $activity->activity_date);
+                break;
+        }
+
+        return $points;
+    }
+
+    private function getCallPoints($callType, $activityDate) {
+        $stmt = $this->db->prepare("SELECT points FROM call_points WHERE call_type = :call_type AND valid_from <= :activity_date_from AND (valid_to >= :activity_date_to OR valid_to IS NULL) ORDER BY valid_from DESC LIMIT 1");
+
+        $stmt->execute([
+            ':call_type' => $callType,
+            ':activity_date_from' => $activityDate,
+            ':activity_date_to' => $activityDate
+        ]);
+
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result ? (float)$result->points : 0;
+    }
+
+    private function getTicketPoints($ticketDetailId, $activityDate) {
+        // First, get ticket details including platform name
+        $stmt = $this->db->prepare("
+            SELECT td.platform_id, p.name as platform_name, td.is_vip, td.code_id
+            FROM ticket_details td
+            JOIN platforms p ON td.platform_id = p.id
+            WHERE td.id = :ticket_detail_id
+        ");
+
+        $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
+        $ticketDetail = $stmt->fetch(PDO::FETCH_OBJ);
+
+        if (!$ticketDetail) {
+            return 0;
+        }
+
+        $platformName = strtolower(str_replace('_', ' ', $ticketDetail->platform_name));
+        if ($platformName === 'incoming call' || $platformName === 'incoming calls') {
+            return 0;
+        }
+
+        // get points based on code and VIP status
+        $stmt = $this->db->prepare("
+            SELECT points FROM ticket_code_points
+            WHERE code_id = :code_id
+            AND is_vip = :is_vip
+            AND valid_from <= :activity_date_from AND (valid_to >= :activity_date_to OR valid_to IS NULL)
+            ORDER BY valid_from DESC LIMIT 1
+        ");
+
+        $stmt->execute([
+            ':code_id' => $ticketDetail->code_id,
+            ':is_vip' => $ticketDetail->is_vip,
+            ':activity_date_from' => $activityDate,
+            ':activity_date_to' => $activityDate
+        ]);
+
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result ? (float)$result->points : 0;
+    }
+
     private function getBonusesForUsers($userIds, $from, $to)
     {
          if (empty($userIds)) return [];

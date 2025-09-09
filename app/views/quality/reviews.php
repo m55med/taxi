@@ -72,6 +72,22 @@
                     </template>
                 </select>
             </div>
+
+            <!-- Agent Reviewed Filter -->
+            <div>
+                <label for="agent_id" class="block text-sm font-medium text-gray-600 mb-1">Agent Reviewed</label>
+                <select id="agent_id" x-model="filters.agent_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Agents</option>
+                    <?php
+                    $selectedAgentId = $_GET['agent_id'] ?? '';
+                    foreach ($data['agents'] as $agent):
+                        $selected = ($selectedAgentId == $agent['id']) ? 'selected' : '';
+                    ?>
+                        <option value="<?= $agent['id'] ?>" <?= $selected ?>><?= htmlspecialchars($agent['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
         </div>
         <div class="mt-6 flex justify-end space-x-4">
             <button @click="resetFilters" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">Reset</button>
@@ -92,6 +108,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewer</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Reviewed</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Context</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
@@ -103,7 +120,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     <template x-if="isLoading">
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-gray-500">
+                            <td colspan="8" class="text-center py-10 text-gray-500">
                                 <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <p class="mt-2">Loading data...</p>
                             </td>
@@ -112,7 +129,7 @@
 
                     <template x-if="!isLoading && reviews.length === 0">
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-gray-500">
+                            <td colspan="8" class="text-center py-10 text-gray-500">
                                 <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                                 <p class="mt-2 text-lg font-semibold text-gray-700">No reviews found</p>
                                 <p class="text-sm text-gray-500 mb-4">There are no reviews matching your current filters.</p>
@@ -131,6 +148,7 @@
                     <template x-for="review in reviews" :key="review.review_id">
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="review.reviewer_name"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800" x-text="review.agent_name || 'N/A'"></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 <a :href="getContextUrl(review)" target="_blank" class="text-blue-600 hover:underline font-semibold">
                                     <span x-text="getContextText(review)"></span>
@@ -323,6 +341,7 @@ function reviewsPage() {
         category_id: '',
         subcategory_id: '',
         code_id: '',
+        agent_id: '',
     },
     activePeriod: '',
     // For cascading dropdowns
@@ -355,6 +374,33 @@ function reviewsPage() {
     lastApiResponse: null,
 
     init() {
+        // Read URL parameters and set initial filter values
+        const urlParams = new URLSearchParams(window.location.search);
+        this.filters.agent_id = urlParams.get('agent_id') || '';
+        this.filters.start_date = urlParams.get('start_date') || '';
+        this.filters.end_date = urlParams.get('end_date') || '';
+        this.filters.context_type = urlParams.get('context_type') || '';
+        this.filters.category_id = urlParams.get('category_id') || '';
+        this.filters.subcategory_id = urlParams.get('subcategory_id') || '';
+        this.filters.code_id = urlParams.get('code_id') || '';
+
+        // Set selected values for dropdowns
+        this.selectedCategory = this.filters.category_id;
+        this.selectedSubcategory = this.filters.subcategory_id;
+
+        // Load subcategories and codes if category/subcategory are provided
+        if (this.filters.category_id) {
+            this.onCategoryChange();
+        }
+        if (this.filters.subcategory_id) {
+            // Small delay to ensure subcategories are loaded
+            setTimeout(() => {
+                this.onSubcategoryChange();
+            }, 50);
+        }
+
+        // Use $nextTick to ensure the DOM element is ready for flatpickr
+        this.$nextTick(() => {
         try {
             if (typeof flatpickr !== 'undefined') {
                 this.flatpickrInstance = flatpickr(this.$refs.daterangepicker, {
@@ -368,10 +414,18 @@ function reviewsPage() {
                         this.activePeriod = ''; // Clear active period button style
                     }
                 });
+
+                // Set flatpickr dates if they exist in URL
+                if (this.filters.start_date && this.filters.end_date) {
+                    this.flatpickrInstance.setDate([this.filters.start_date, this.filters.end_date]);
+                }
+                } else {
+                    console.warn('Flatpickr library not found.');
             }
         } catch (e) {
-            // Error initializing flatpickr
+                console.error('Error initializing flatpickr:', e);
         }
+        });
 
         this.$watch('selectedCategory', () => {
             this.filters.category_id = this.selectedCategory;
@@ -380,10 +434,16 @@ function reviewsPage() {
         this.$watch('selectedSubcategory', () => {
              this.filters.subcategory_id = this.selectedSubcategory;
         });
-        
-        // Set default to "All Time" and load initial data
+
+        // Load initial data immediately if agent_id is provided, otherwise set default period
         setTimeout(() => {
-            this.setPeriod('all');
+            if (this.filters.agent_id) {
+                // If agent_id is provided, fetch reviews immediately
+                this.fetchReviews();
+            } else {
+                // Otherwise set default to "All Time"
+                this.setPeriod('all');
+            }
         }, 100);
     },
     
@@ -492,7 +552,7 @@ function reviewsPage() {
     },
     
     resetFilters() {
-        this.filters = { start_date: '', end_date: '', context_type: '', category_id: '', subcategory_id: '', code_id: '' };
+        this.filters = { start_date: '', end_date: '', context_type: '', category_id: '', subcategory_id: '', code_id: '', agent_id: '' };
         this.selectedCategory = '';
         this.selectedSubcategory = '';
         this.subcategories = [];

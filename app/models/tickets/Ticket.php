@@ -1872,6 +1872,66 @@ class Ticket extends Model
 
     }
 
+    /**
+     * Log ticket edit changes
+     */
+    public function logEdit($ticketDetailId, $editedBy, $fieldName, $oldValue, $newValue)
+    {
+        $sql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at) 
+                VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, NOW())";
+        
+        $this->db->query($sql);
+        $this->db->bind(':ticket_detail_id', $ticketDetailId);
+        $this->db->bind(':edited_by', $editedBy);
+        $this->db->bind(':field_name', $fieldName);
+        $this->db->bind(':old_value', $oldValue);
+        $this->db->bind(':new_value', $newValue);
+        
+        return $this->db->execute();
+    }
+
+    /**
+     * Get edit logs for a ticket detail (admin only)
+     */
+    public function getEditLogs($ticketDetailId)
+    {
+        $sql = "SELECT 
+                    tel.*,
+                    u.name as editor_name,
+                    u.username as editor_username
+                FROM ticket_edit_logs tel
+                LEFT JOIN users u ON tel.edited_by = u.id
+                WHERE tel.ticket_detail_id = :ticket_detail_id
+                ORDER BY tel.created_at DESC";
+        
+        $this->db->query($sql);
+        $this->db->bind(':ticket_detail_id', $ticketDetailId);
+        
+        return $this->db->fetchAll();
+    }
+
+    /**
+     * Get all edit logs for a ticket (all its details)
+     */
+    public function getAllEditLogsForTicket($ticketId)
+    {
+        $sql = "SELECT 
+                    tel.*,
+                    u.name as editor_name,
+                    u.username as editor_username,
+                    td.created_at as detail_created_at
+                FROM ticket_edit_logs tel
+                LEFT JOIN users u ON tel.edited_by = u.id
+                LEFT JOIN ticket_details td ON tel.ticket_detail_id = td.id
+                WHERE td.ticket_id = :ticket_id
+                ORDER BY tel.created_at DESC";
+        
+        $this->db->query($sql);
+        $this->db->bind(':ticket_id', $ticketId);
+        
+        return $this->db->resultSet();
+    }
+
 
 
 } 

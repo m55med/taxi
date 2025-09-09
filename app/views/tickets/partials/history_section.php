@@ -64,6 +64,16 @@
 
                         <?php endif; ?>
 
+                        <!-- Edit Logs Button (Admin Only) -->
+                        <?php if (\App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer')): ?>
+                            <a href="<?= BASE_URL ?>/tickets/edit-logs/<?= $data['ticket']['id'] ?>" 
+                               class="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 text-xs font-medium flex items-center ml-2"
+                               title="View Edit History">
+                                <i class="fas fa-history mr-1"></i>
+                                Logs
+                            </a>
+                        <?php endif; ?>
+
                     </div>
 
                 </div>

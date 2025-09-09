@@ -46,7 +46,7 @@ class App
 
 
 
-    $excludedPrefixes = ['/login', '/register', '/auth/login', '/auth/register'];
+    $excludedPrefixes = ['/login', '/register', '/auth/login', '/auth/register', '/tickets/edit-logs/'];
 
 
 

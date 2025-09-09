@@ -44,53 +44,52 @@
     <!-- Search -->
     <div class="md:col-span-1">
         <label for="search_employee" class="block text-sm font-medium text-gray-700 mb-1">Search Employee</label>
-        <div x-data='searchableSelect(<?= json_encode($data["users"]) ?>)'
-     x-init="$el.dataset.initialValue = '<?= htmlspecialchars($data['filters']['user_id'] ?? '') ?>';
-              $el.dataset.initialLabel = '<?= htmlspecialchars($data['selected_user_name'] ?? '') ?>';
-              $el.dataset.modelName = 'user_id';
-              $el.dataset.placeholder = 'Select an employee...';
-              init()"
-     data-model-name="user_id"
-     data-placeholder="Select an employee..."
-     class="relative">
+        <div x-data='searchableSelect(<?= json_encode($data["users"] ?? []) ?>)'
+             x-init="init()"
+             data-initial-value="<?= htmlspecialchars($data['filters']['user_id'] ?? '') ?>"
+             data-initial-label="<?= htmlspecialchars($data['selected_user_name'] ?? '') ?>"
+             data-model-name="user_id"
+             data-placeholder="Select an employee..."
+             class="relative">
 
+            <input type="hidden" :name="modelName" :value="selected ? selected.id : ''">
 
-    <button @click="toggle" type="button"
-            class="relative w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-        <span class="block truncate" x-text="selectedLabel"></span>
-        <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-            <i class="fas fa-chevron-down h-5 w-5 text-gray-400"></i>
-        </span>
-    </button>
+            <button @click="toggle" type="button"
+                    class="relative w-full bg-white border border-gray-300 rounded-lg shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <span class="block truncate" x-text="selectedLabel"></span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <i class="fas fa-chevron-down h-5 w-5 text-gray-400"></i>
+                </span>
+            </button>
 
-    <div x-show="open" @click.away="open = false" x-transition x-cloak
-         class="absolute mt-1 w-full rounded-md bg-white shadow-lg z-10">
-        <div class="p-2">
-            <input type="text" x-model="searchTerm" x-ref="search"
-                   class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                   placeholder="Search employees..." autocomplete="off">
-        </div>
-        <ul class="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-y-auto focus:outline-none sm:text-sm">
-            <template x-for="option in filteredOptions" :key="option.id">
-                <li @click="selectOption(option)"
-                    class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white"
-                    :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }">
-                    <span class="block truncate" x-text="option.name"></span>
-                    <template x-if="selected && selected.id == option.id">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
-                            <i class="fas fa-check h-5 w-5"></i>
-                        </span>
+            <div x-show="open" @click.away="open = false" x-transition x-cloak
+                 class="absolute mt-1 w-full rounded-md bg-white shadow-lg z-10">
+                <div class="p-2">
+                    <input type="text" x-model="searchTerm" x-ref="search"
+                           class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                           placeholder="Search employees..." autocomplete="off">
+                </div>
+                <ul class="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-y-auto focus:outline-none sm:text-sm">
+                    <template x-for="option in filteredOptions" :key="option.id">
+                        <li @click="selectOption(option)"
+                            class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white"
+                            :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }">
+                            <span class="block truncate" x-text="option.name"></span>
+                            <template x-if="selected && selected.id == option.id">
+                                <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
+                                    <i class="fas fa-check h-5 w-5"></i>
+                                </span>
+                            </template>
+                        </li>
                     </template>
-                </li>
-            </template>
-            <template x-if="filteredOptions.length === 0">
-                <li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">
-                    No employees found.
-                </li>
-            </template>
-        </ul>
-    </div>
-</div>
+                    <template x-if="filteredOptions.length === 0">
+                        <li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">
+                            No employees found.
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        </div>
 
     </div>
     <!-- Date Range -->

@@ -926,3 +926,21 @@ CREATE TABLE breaks (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- جدول لتسجيل تعديلات التذاكر
+CREATE TABLE ticket_edit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_detail_id INT NOT NULL,
+    edited_by INT NOT NULL,
+    field_name VARCHAR(100) NOT NULL,
+    old_value TEXT DEFAULT NULL,
+    new_value TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (ticket_detail_id) REFERENCES ticket_details(id) ON DELETE CASCADE,
+    FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE CASCADE,
+    
+    INDEX idx_ticket_detail_id (ticket_detail_id),
+    INDEX idx_edited_by (edited_by),
+    INDEX idx_created_at (created_at)
+);

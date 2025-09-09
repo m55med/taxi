@@ -9,6 +9,7 @@ class QualityController extends Controller
 {
     private $qualityModel;
     private $ticketCategoryModel;
+    private $userModel;
 
 
     public function __construct()
@@ -18,6 +19,7 @@ class QualityController extends Controller
         // We will create this model in the next step
         $this->qualityModel = $this->model('Quality/QualityModel');
         $this->ticketCategoryModel = $this->model('Tickets/Category');
+        $this->userModel = $this->model('User/User'); // Load User model
 
     }
 
@@ -32,6 +34,9 @@ class QualityController extends Controller
 
         // Fetch data needed for filters, like categories
         $ticket_categories = $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes();
+        
+        // Fetch users for the 'reviewed person' filter
+        $agents = $this->userModel->getUsersByRoles(['agent', 'Team_leader']);
 
         // Get current user session data
         $currentUser = $_SESSION['user'] ?? [];
@@ -41,6 +46,7 @@ class QualityController extends Controller
         $data = [
             'page_main_title' => 'All Reviews',
             'ticket_categories' => $ticket_categories,
+            'agents' => $agents, // Pass agents to the view
             'current_user' => $currentUser,
             'user_role' => $userRole,
             'user_id' => $userId,

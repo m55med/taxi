@@ -22,22 +22,11 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    // إنشاء جدول breaks
-    $sqlBreaks = "
-    CREATE TABLE IF NOT EXISTS breaks (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        start_time DATETIME NOT NULL,
-        end_time DATETIME DEFAULT NULL,
-        duration_seconds INT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ";
+    // حذف البريكات الخاصة باليوزر ID = 9
+    $stmt = $pdo->prepare("DELETE FROM breaks WHERE user_id = :user_id");
+    $stmt->execute([':user_id' => 9]);
 
-    $pdo->exec($sqlBreaks);
-    echo "✅ تم إنشاء الجدول breaks بنجاح<br>";
+    echo "✅ تم حذف " . $stmt->rowCount() . " بريك.";
 
 } catch (PDOException $e) {
     echo "❌ خطأ: " . $e->getMessage();

@@ -121,6 +121,12 @@ class BreakModel
 
         $params = [];
 
+        // Filter by specific user if provided
+        if (!empty($filters['user_id'])) {
+            $sql .= " AND u.id = :user_id";
+            $params[':user_id'] = $filters['user_id'];
+        }
+
         if (!empty($filters['search'])) {
             $sql .= " AND u.name LIKE :search";
             $params[':search'] = '%' . $filters['search'] . '%';
@@ -157,6 +163,12 @@ class BreakModel
                 WHERE b.duration_seconds IS NOT NULL";
 
         $params = [];
+
+        // Filter by specific user if provided
+        if (!empty($filters['user_id'])) {
+            $sql .= " AND u.id = :user_id";
+            $params[':user_id'] = $filters['user_id'];
+        }
 
         if (!empty($filters['search'])) {
             $sql .= " AND u.name LIKE :search";

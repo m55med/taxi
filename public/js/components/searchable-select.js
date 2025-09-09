@@ -1,14 +1,14 @@
-function searchableSelect(options) {
+function searchableSelect(optionsData = []) {
     return {
         open: false,
         searchTerm: '',
-        options: [],
+        options: optionsData || [],
         selected: null,
         modelName: '',
         placeholder: 'Select an option...',
 
         init() {
-            this.options = Array.isArray(options) ? options : [];
+            this.options = Array.isArray(optionsData) ? optionsData : [];
             this.modelName = this.$el.dataset.modelName;
             this.placeholder = this.$el.dataset.placeholder;
         },

@@ -1353,4 +1353,35 @@ class User
 
     }
 
+    /**
+     * Get users by a list of role names.
+     *
+     * @param array $roles An array of role names (e.g., ['agent', 'Team_leader'])
+     * @return array An array of user objects
+     */
+    public function getUsersByRoles(array $roles)
+    {
+        if (empty($roles)) {
+            return [];
+        }
+
+        try {
+            // Create placeholders for the IN clause
+            $placeholders = implode(',', array_fill(0, count($roles), '?'));
+
+            $sql = "SELECT u.id, u.name, u.username
+                    FROM users u
+                    JOIN roles r ON u.role_id = r.id
+                    WHERE r.name IN ($placeholders)
+                    ORDER BY u.name ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($roles);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (PDOException $e) {
+            error_log("Error in getUsersByRoles: " . $e->getMessage());
+            return [];
+        }
+    }
 }

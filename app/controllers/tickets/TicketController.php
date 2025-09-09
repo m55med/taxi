@@ -451,10 +451,17 @@ class TicketController extends Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
-            $data = $_POST;
-            $userId = Auth::getUserId();
+            // Get current ticket details before updating
+            $currentDetails = $this->ticketModel->findDetailById($detailId);
 
-            if ($this->ticketModel->addTicketDetail($ticketId, $data, $userId)) {
+            $data = $_POST;
+            $userId = Auth::getUserId() ?? 0; // Default to 0 if no user is logged in
+
+            // Log changes before updating
+            $this->logTicketChanges($detailId, $currentDetails, $data, $userId);
+
+            // UPDATE the existing ticket detail instead of creating a new one
+            if ($this->ticketModel->updateTicketDetail($detailId, $data, $userId)) {
                 $_SESSION['success_message'] = 'Ticket details updated successfully.';
             } else {
                 $_SESSION['error_message'] = 'Failed to update ticket details.';
@@ -464,5 +471,123 @@ class TicketController extends Controller
         } else {
             redirect('tickets/view/' . $ticketId);
         }
+    }
+
+    /**
+     * Log changes made to ticket details
+     */
+    private function logTicketChanges($detailId, $currentDetails, $newData, $userId)
+    {
+        $fieldsToTrack = [
+            'platform_id' => 'Platform',
+            'phone' => 'Phone',
+            'category_id' => 'Category',
+            'subcategory_id' => 'Subcategory',
+            'code_id' => 'Code',
+            'country_id' => 'Country',
+            'is_vip' => 'VIP Status',
+            'notes' => 'Notes'
+        ];
+
+        foreach ($fieldsToTrack as $field => $fieldName) {
+            $oldValue = $currentDetails[$field] ?? null;
+            $newValue = $newData[$field] ?? null;
+
+            // Convert checkbox values
+            if ($field === 'is_vip') {
+                $oldValue = $oldValue ? 'Yes' : 'No';
+                $newValue = isset($newData[$field]) ? 'Yes' : 'No';
+            }
+
+            // Convert IDs to readable names for better logging
+            if (in_array($field, ['platform_id', 'category_id', 'subcategory_id', 'code_id', 'country_id'])) {
+                $oldValue = $this->getReadableValue($field, $oldValue, $currentDetails);
+                $newValue = $this->getReadableValue($field, $newValue, $newData);
+            }
+
+            // Only log if there's a change
+            if ($oldValue != $newValue) {
+                $this->ticketModel->logEdit($detailId, $userId, $fieldName, $oldValue, $newValue);
+            }
+        }
+    }
+
+    /**
+     * Get readable value for IDs (convert ID to name)
+     */
+    private function getReadableValue($field, $value, $data)
+    {
+        if (empty($value)) return 'N/A';
+
+        switch ($field) {
+            case 'platform_id':
+                return $data['platform_name'] ?? "Platform ID: $value";
+            case 'category_id':
+                return $data['category_name'] ?? "Category ID: $value";
+            case 'subcategory_id':
+                return $data['subcategory_name'] ?? "Subcategory ID: $value";
+            case 'code_id':
+                return $data['code_name'] ?? "Code ID: $value";
+            case 'country_id':
+                return $data['country_name'] ?? "Country ID: $value";
+            default:
+                return $value;
+        }
+    }
+
+    /**
+     * Show edit logs for a ticket (admin only)
+     */
+    public function editLogs($ticketId)
+    {
+        
+        // Check if user is logged in
+        if (!Auth::isLoggedIn()) {
+            $_SESSION['error_message'] = 'Please log in to access this page.';
+            redirect('login');
+            return;
+        }
+
+        // Debug: Check current user role
+        $currentRole = Auth::getUserRole();
+        error_log("Edit Logs Access - User Role: " . ($currentRole ?? 'null'));
+        
+        // Check if user is admin or developer
+        if (!Auth::hasAnyRole(['admin', 'developer'])) {
+            $_SESSION['error_message'] = "Access denied. Admin privileges required. Your role: " . ($currentRole ?? 'unknown');
+            redirect('tickets/view/' . $ticketId);
+            return;
+        }
+
+        // First try to find ticket by ID
+        $ticket = $this->ticketModel->findById($ticketId);
+        $actualTicketId = $ticketId;
+        
+        // If not found, maybe the ID is a ticket detail ID, try to get ticket from detail
+        if (!$ticket) {
+            $actualTicketId = $this->ticketModel->getTicketIdFromDetailId($ticketId);
+            if ($actualTicketId) {
+                $ticket = $this->ticketModel->findById($actualTicketId);
+            }
+        }
+        
+        if (!$ticket) {
+            $_SESSION['error_message'] = "Ticket with ID #{$ticketId} not found.";
+            redirect('tickets/view');
+            return;
+        }
+
+        $editLogs = $this->ticketModel->getAllEditLogsForTicket($actualTicketId);
+
+        // Debug: Log successful access
+        error_log("Edit Logs Access SUCCESS - Input ID: $ticketId, Actual Ticket ID: $actualTicketId, User Role: $currentRole, Logs Count: " . count($editLogs));
+
+        $data = [
+            'page_main_title' => 'Edit Logs',
+            'ticket' => $ticket,
+            'editLogs' => $editLogs
+        ];
+
+        $this->view('tickets/edit_logs', $data);
     }
 }

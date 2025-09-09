@@ -154,7 +154,10 @@ class BreaksController extends Controller
     
         $summary = $this->breakModel->getBreaksSummary($filters);
         $stats = $this->breakModel->getOverallSummaryStats($filters);
-        $users = $this->userModel->getActiveUsers(); // Fetch all active users
+        
+        // Fetch all agents and team leaders to populate the filter dropdown
+        $users = $this->userModel->getUsersByRoles(['agent', 'Team_leader', 'admin', 'quality_manager', 'developer']);
+        // The `getUsersByRoles` method already orders by name ASC.
 
         // Hardcoded dummy data for testing
         // $users = [

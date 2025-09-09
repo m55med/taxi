@@ -900,6 +900,10 @@ $router->get('tickets/edit/{id}', 'tickets/TicketController@edit');
 
 $router->post('tickets/update/{id}', 'tickets/TicketController@update');
 
+$router->get('tickets/edit-logs/{id}', 'tickets/TicketController@editLogs');
+
+$router->get('test/auth', 'tickets/TestController@testAuth');
+
 
 
 $router->get('create_ticket', 'CreateTicket/CreateTicketController@index')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
@@ -1041,6 +1045,11 @@ $router->get('create_ticket/fetch_trengo_ticket/{ticketId}', 'CreateTicket/Creat
 $router->get('discussions', 'discussions/DiscussionsController@index')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
 $router->get('api/discussions', 'discussions/DiscussionsController@index');
+
+// Search Routes
+$router->get('search', 'SearchController@index');
+$router->get('search/suggestions', 'SearchController@suggestions');
+$router->get('search/results', 'SearchController@search');
 
 
 

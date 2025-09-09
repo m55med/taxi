@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taxi CS</title>
 
+    <!-- Favicon -->
+    <link rel="icon" href="https://taxif.om/assets/images/PROFILE.png" type="image/png" sizes="32x32">
+    <link rel="shortcut icon" href="https://taxif.om/assets/images/PROFILE.png" type="image/png">
+    <link rel="apple-touch-icon" href="https://taxif.om/assets/images/PROFILE.png">
+    <meta name="msapplication-TileImage" content="https://taxif.om/assets/images/PROFILE.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+
     <script>var URLROOT = "<?= URLROOT ?>";</script>
     
     <!-- jQuery -->
@@ -59,25 +66,44 @@
                     this.onBreak = true;
                     this.startTime = new Date(startTime); // This startTime is already UTC from backend
                     this.showModal = true;
+
+                    // Validate startTime is not in the future (which would cause negative timer)
+                    const now = new Date();
+                    if (this.startTime > now) {
+                        console.warn('Start time is in the future, using current time instead');
+                        this.startTime = now;
+                    }
+
                     this.startTimer();
                 },
 
                 startTimer() {
                     if (this.interval) clearInterval(this.interval);
+
+                    // Set timer to 00:00:00 initially when starting
+                    this.timer = '00:00:00';
+
                     this.interval = setInterval(() => {
                         const now = new Date();
-                        // Debugging logs
-                        console.log('Current time (now):', now.toISOString(), now.getTime());
-                        console.log('Start time (this.startTime):', this.startTime ? this.startTime.toISOString() : 'N/A', this.startTime ? this.startTime.getTime() : 'N/A');
 
-                        const diff = this.startTime ? Math.floor((now.getTime() - this.startTime.getTime()) / 1000) : 0;
+                        if (!this.startTime) {
+                            console.warn('No startTime set, cannot calculate timer');
+                            return;
+                        }
 
-                        // More debugging for diff
-                        console.log('Calculated diff (seconds):', diff);
+                        const diff = Math.floor((now.getTime() - this.startTime.getTime()) / 1000);
 
-                        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-                        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                        const s = String(diff % 60).padStart(2, '0');
+                        // Ensure diff is not negative (in case of time sync issues)
+                        const safeDiff = Math.max(0, diff);
+
+                        // Debugging logs (only log occasionally to avoid console spam)
+                        if (safeDiff % 10 === 0) { // Log every 10 seconds
+                            console.log('Timer diff (seconds):', safeDiff);
+                        }
+
+                        const h = String(Math.floor(safeDiff / 3600)).padStart(2, '0');
+                        const m = String(Math.floor((safeDiff % 3600) / 60)).padStart(2, '0');
+                        const s = String(safeDiff % 60).padStart(2, '0');
                         this.timer = `${h}:${m}:${s}`;
                     }, 1000);
                 },
@@ -89,6 +115,7 @@
                         // Start break locally (show modal, set onBreak) but don't start timer yet
                         this.onBreak = true;
                         this.showModal = true;
+                        this.timer = '00:00:00'; // Reset timer to 00:00:00 initially
                         // Do NOT set this.startTime here, wait for server response
 
                         fetch('<?= URLROOT ?>/breaks/start', { method: 'POST' })
@@ -96,10 +123,19 @@
                             .then(data => {
                                 if (data.status === 'success' && data.break) {
                                     this.startTime = new Date(data.break.start_time); // Set actual UTC start time from server
+
+                                    // Validate startTime is not in the future
+                                    const now = new Date();
+                                    if (this.startTime > now) {
+                                        console.warn('Server start time is in the future, using current time instead');
+                                        this.startTime = now;
+                                    }
+
                                     this.startTimer(); // Start timer ONLY after getting the correct time
                                 } else {
                                     this.onBreak = false;
                                     this.showModal = false;
+                                    this.timer = '00:00:00';
                                     if (this.interval) clearInterval(this.interval);
                                     alert(data.message || 'Failed to start break.');
                                 }
@@ -107,6 +143,7 @@
                                 console.error("Failed to start break:", error);
                                 this.onBreak = false;
                                 this.showModal = false;
+                                this.timer = '00:00:00';
                                 if (this.interval) clearInterval(this.interval);
                                 alert('An error occurred while starting your break.');
                             });
@@ -121,11 +158,14 @@
                                 this.onBreak = false;
                                 this.showModal = false;
                                 if (this.interval) clearInterval(this.interval);
-                                this.timer = '00:00:00';
-                                this.startTime = null;
+                                this.timer = '00:00:00'; // Reset timer to 00:00:00
+                                this.startTime = null; // Clear start time
                             } else {
                                 alert(data.message);
                             }
+                        }).catch(error => {
+                            console.error("Failed to stop break:", error);
+                            alert('An error occurred while stopping your break.');
                         });
                 },
 
@@ -133,7 +173,7 @@
                     if (!this.startTime) return 0;
                     const now = new Date();
                     const diffSeconds = Math.floor((now - this.startTime) / 1000);
-                    return Math.floor(diffSeconds / 60);
+                    return Math.max(0, Math.floor(diffSeconds / 60)); // Ensure non-negative result
                 }
             }
         }
@@ -203,6 +243,105 @@
                 }
             }));
         });
+
+        // Simple Search for Header
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('header-search');
+            const suggestionsContainer = document.getElementById('header-suggestions');
+            let searchTimeout = null;
+
+            if (!searchInput || !suggestionsContainer) {
+                console.log('Header search elements not found');
+                return;
+            }
+
+            searchInput.addEventListener('input', function() {
+                const term = this.value.trim();
+
+                if (term.length < 2) {
+                    suggestionsContainer.innerHTML = '';
+                    suggestionsContainer.classList.add('hidden');
+                    return;
+                }
+
+                // Clear previous timeout
+                clearTimeout(searchTimeout);
+
+                // Debounce search
+                searchTimeout = setTimeout(() => {
+                    fetchSuggestions(term);
+                }, 300);
+            });
+
+            function fetchSuggestions(term) {
+                console.log('Fetching suggestions for:', term);
+
+                fetch(`${URLROOT}/tickets/ajaxSearch?term=${encodeURIComponent(term)}`)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Received data:', data);
+
+                        if (Array.isArray(data) && data.length > 0) {
+                            let suggestionsHtml = '<div class="p-2">';
+                            suggestionsHtml += '<div class="text-xs text-gray-500 mb-2 px-2">Search Results:</div>';
+
+                            data.forEach(item => {
+                                suggestionsHtml += `
+                                    <a href="${URLROOT}/tickets/view/${item.id}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-b-0">
+                                        <div class="flex items-center space-x-2">
+                                            <i class="fas fa-ticket-alt text-blue-500"></i>
+                                            <span class="font-medium text-gray-900">${item.label}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">Ticket</div>
+                                    </a>
+                                `;
+                            });
+
+                            suggestionsHtml += `
+                                <div class="border-t border-gray-200 p-2">
+                                    <a href="${URLROOT}/tickets/search" class="block w-full text-center py-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                        View all results →
+                                    </a>
+                                </div>
+                            `;
+
+                            suggestionsHtml += '</div>';
+
+                            suggestionsContainer.innerHTML = suggestionsHtml;
+                            suggestionsContainer.classList.remove('hidden');
+                        } else {
+                            suggestionsContainer.innerHTML = '<div class="px-4 py-2 text-gray-500">No suggestions found</div>';
+                            suggestionsContainer.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        suggestionsContainer.innerHTML = '<div class="px-4 py-2 text-red-500">Error loading suggestions</div>';
+                        suggestionsContainer.classList.remove('hidden');
+                    });
+            }
+
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== searchInput && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.classList.add('hidden');
+                }
+            });
+
+            // Submit form on Enter
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    if (form) {
+                        form.submit();
+                    }
+                }
+            });
+        });
     </script>
 </head>
 <body class="bg-gray-100" x-data="pageState()">
@@ -246,9 +385,17 @@
             <header class="sticky top-0 z-30 w-full border-b bg-white bg-opacity-80 backdrop-blur">
                 <div class="flex h-16 items-center justify-between px-4 lg:px-6">
                     <div class="flex-1 max-w-md">
-                        <form action="/search" method="get" class="relative">
+                        <form action="<?= URLROOT ?>/tickets/search" method="get" class="relative">
                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                            <input type="search" name="q" placeholder="Search..." class="w-full pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="search" id="header-search" name="search_term"
+                                   placeholder="e.g., T-12345 or 968..."
+                                   class="w-full pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   autocomplete="off">
+
+                            <!-- Search Suggestions Dropdown -->
+                            <div id="header-suggestions" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto hidden">
+                                <!-- Suggestions will be populated by JavaScript -->
+                            </div>
                         </form>
                     </div>
                     <div class="flex items-center gap-4" x-data="notifications">
