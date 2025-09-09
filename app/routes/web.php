@@ -896,9 +896,9 @@ $router->get('tickets/view/{id}', 'tickets/TicketController@show')->middleware([
 
 $router->get('tickets/search', 'tickets/TicketController@search')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
-$router->get('tickets/edit/{id}', 'tickets/TicketController@edit')->middleware(['admin', 'developer']);
+$router->get('tickets/edit/{id}', 'tickets/TicketController@edit');
 
-$router->post('tickets/update/{id}', 'tickets/TicketController@update')->middleware(['admin', 'developer']);
+$router->post('tickets/update/{id}', 'tickets/TicketController@update');
 
 
 

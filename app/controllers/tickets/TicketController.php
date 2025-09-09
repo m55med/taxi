@@ -51,7 +51,7 @@ class TicketController extends Controller
         foreach ($ticketHistory as $key => $historyItem) {
             if (!empty($historyItem['is_vip'])) {
                 $marketer_info = $this->ticketModel->getVipMarketerForDetail($historyItem['id']);
-                $ticketHistory[$key]['marketer_name'] = $marketer_info ? $marketer_info['username'] : null;
+                $ticketHistory[$key]['marketer_name'] = $marketer_info ? $marketer_info['name'] : null;
             } else {
                 $ticketHistory[$key]['marketer_name'] = null;
             }
@@ -421,11 +421,6 @@ class TicketController extends Controller
 
     public function edit($detailId)
     {
-        if (!Auth::hasRole('admin') && !Auth::hasRole('developer')) {
-            $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
-            redirect('tickets/view/' . $ticketId);
-            return;
-        }
     
         $ticketDetail = $this->ticketModel->findDetailById($detailId);
         if (!$ticketDetail) {
@@ -455,11 +450,7 @@ class TicketController extends Controller
         $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!Auth::hasRole('admin') && !Auth::hasRole('developer')) {
-                redirect('tickets/view/' . $ticketId);
-                return;
-            }
-
+            
             $data = $_POST;
             $userId = Auth::getUserId();
 
