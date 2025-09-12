@@ -421,18 +421,32 @@ class TicketController extends Controller
 
     public function edit($detailId)
     {
-    
+
         $ticketDetail = $this->ticketModel->findDetailById($detailId);
         if (!$ticketDetail) {
             redirect('tickets/view');
             return;
         }
-    
+
+        // التحقق من الصلاحيات قبل عرض صفحة التعديل
+        $userId = Auth::getUserId() ?? 0;
+        $userRole = Auth::getUserRole() ?? 'guest';
+
+        // يمكن لأي شخص تعديل التذاكر التي أنشأها
+        // ولكن التذاكر التي لم ينشأها يمكن تعديلها من الادمن أو مسؤول الجودة فقط
+        if ($ticketDetail['edited_by'] != $userId) {
+            // إذا لم يكن هو المنشئ الأصلي
+            if (!in_array($userRole, ['admin', 'quality_manager', 'Quality'])) {
+                $_SESSION['error_message'] = 'You do not have permission to edit this ticket. Only the original creator, admin, or quality manager can edit it.';
+                redirect('tickets/view/' . $ticketDetail['ticket_id']);
+            }
+        }
+
         $categoryModel = $this->model('Tickets/Category');
         $platformModel = $this->model('Tickets/Platform');
         $teamModel = $this->model('Admin/Team');
         $countryModel = $this->model('Admin/Country');
-    
+
         $data = [
             'page_main_title' => 'Edit Ticket Details',
             'ticket' => $ticketDetail, // Pass the specific detail
@@ -440,8 +454,11 @@ class TicketController extends Controller
             'platforms' => $platformModel->getAll(),
             'team_leaders' => $teamModel->getAllTeamLeaders(),
             'countries' => $countryModel->getAll(),
+            'user_can_edit' => true, // تم التحقق من الصلاحيات بالفعل
+            'user_role' => $userRole,
+            'current_user_id' => $userId
         ];
-    
+
         $this->view('tickets/edit', $data);
     }
 
@@ -450,12 +467,30 @@ class TicketController extends Controller
         $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
+
             // Get current ticket details before updating
             $currentDetails = $this->ticketModel->findDetailById($detailId);
 
-            $data = $_POST;
+            if (!$currentDetails) {
+                $_SESSION['error_message'] = 'Ticket not found.';
+                redirect('tickets/view/' . $ticketId);
+            }
+
             $userId = Auth::getUserId() ?? 0; // Default to 0 if no user is logged in
+            $userRole = Auth::getUserRole() ?? 'guest';
+
+            // التحقق من الصلاحيات
+            // يمكن لأي شخص تعديل التذاكر التي أنشأها
+            // ولكن التذاكر التي لم ينشأها يمكن تعديلها من الادمن أو مسؤول الجودة فقط
+            if ($currentDetails['edited_by'] != $userId) {
+                // إذا لم يكن هو المنشئ الأصلي
+                if (!in_array($userRole, ['admin', 'quality_manager', 'Quality'])) {
+                    $_SESSION['error_message'] = 'You do not have permission to edit this ticket. Only the original creator, admin, or quality manager can edit it.';
+                    redirect('tickets/view/' . $ticketId);
+                }
+            }
+
+            $data = $_POST;
 
             // Log changes before updating
             $this->logTicketChanges($detailId, $currentDetails, $data, $userId);

@@ -921,11 +921,60 @@ CREATE TABLE breaks (
     start_time DATETIME NOT NULL,
     end_time DATETIME DEFAULT NULL,
     duration_seconds INT DEFAULT NULL,
+    is_active TINYINT(1) DEFAULT 0, -- 1 = currently on break, 0 = break ended
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    INDEX idx_user_active (user_id, is_active),
+    INDEX idx_is_active (is_active)
 );
+
+-- تحديث البيانات الموجودة لتعيين is_active للبريك النشطة
+UPDATE breaks SET is_active = 1 WHERE end_time IS NULL;
+
+-- جدول فولدرات قاعدة المعرفة
+CREATE TABLE knowledge_base_folders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT DEFAULT NULL,
+    color VARCHAR(20) DEFAULT '#3B82F6', -- لون الفولدر للتمييز
+    icon VARCHAR(50) DEFAULT 'fas fa-folder', -- أيقونة الفولدر
+    parent_id INT DEFAULT NULL, -- لدعم الفولدرات الفرعية
+    is_active BOOLEAN DEFAULT 1,
+    created_by INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_id) REFERENCES knowledge_base_folders(id) ON DELETE CASCADE,
+
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_created_by (created_by),
+    INDEX idx_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- إضافة بعض الفولدرات الافتراضية
+INSERT INTO knowledge_base_folders (name, description, color, icon) VALUES
+('عام', 'مقالات عامة ومتنوعة', '#6B7280', 'fas fa-folder'),
+('دعم فني', 'مشاكل تقنية وحلولها', '#EF4444', 'fas fa-tools'),
+('أسئلة شائعة', 'الأسئلة الأكثر تكراراً', '#10B981', 'fas fa-question-circle'),
+('دليل المستخدم', 'إرشادات الاستخدام', '#3B82F6', 'fas fa-book'),
+('تحديثات النظام', 'التحديثات والمميزات الجديدة', '#8B5CF6', 'fas fa-rocket');
+
+-- إضافة عمود folder_id لجدول knowledge_base
+ALTER TABLE knowledge_base ADD COLUMN folder_id INT DEFAULT NULL AFTER ticket_code_id;
+
+-- إضافة المفتاح الخارجي
+ALTER TABLE knowledge_base ADD CONSTRAINT knowledge_base_folder_id_foreign
+    FOREIGN KEY (folder_id) REFERENCES knowledge_base_folders(id) ON DELETE SET NULL;
+
+-- إضافة فهرس للأداء
+ALTER TABLE knowledge_base ADD INDEX idx_folder_id (folder_id);
+
+-- تعيين الفولدر الافتراضي "عام" للمقالات الموجودة
+UPDATE knowledge_base SET folder_id = (SELECT id FROM knowledge_base_folders WHERE name = 'عام' LIMIT 1);
 
 -- جدول لتسجيل تعديلات التذاكر
 CREATE TABLE ticket_edit_logs (
@@ -939,7 +988,7 @@ CREATE TABLE ticket_edit_logs (
 
     FOREIGN KEY (ticket_detail_id) REFERENCES ticket_details(id) ON DELETE CASCADE,
     FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE CASCADE,
-    
+
     INDEX idx_ticket_detail_id (ticket_detail_id),
     INDEX idx_edited_by (edited_by),
     INDEX idx_created_at (created_at)

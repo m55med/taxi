@@ -3,8 +3,41 @@
 <script defer src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
 
 <style>
-    [x-cloak] { 
-        display: none !important; 
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Custom scrollbar for better mobile experience */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Mobile scroll indicator animation */
+    @keyframes scrollHint {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(10px); }
+    }
+
+    .scroll-hint {
+        animation: scrollHint 2s infinite;
     }
 </style>
 
@@ -103,18 +136,39 @@
 
     <!-- Results Table -->
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <div class="overflow-x-auto">
+        <!-- Scroll indicator for mobile -->
+        <div class="md:hidden px-4 py-2 bg-blue-50 border-b text-xs text-blue-700 text-center scroll-hint">
+            <i class="fas fa-arrows-alt-h mr-1"></i>
+            Swipe to scroll horizontally
+        </div>
+
+        <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewer</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Reviewed</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Context</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <span class="hidden sm:inline">Reviewer</span>
+                            <span class="sm:hidden">Reviewer</span>
+                        </th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <span class="hidden sm:inline">Agent Reviewed</span>
+                            <span class="sm:hidden">Agent</span>
+                        </th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <span class="hidden sm:inline">Context</span>
+                            <span class="sm:hidden">Context</span>
+                        </th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <span class="hidden md:inline">Classification</span>
+                            <span class="md:hidden">Class</span>
+                        </th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Rating</th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                            <span class="hidden lg:inline">Notes</span>
+                            <span class="lg:hidden">Notes</span>
+                        </th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                        <th scope="col" class="px-2 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -147,24 +201,24 @@
 
                     <template x-for="review in reviews" :key="review.review_id">
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="review.reviewer_name"></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800" x-text="review.agent_name || 'N/A'"></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="review.reviewer_name"></td>
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800" x-text="review.agent_name || 'N/A'"></td>
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 <a :href="getContextUrl(review)" target="_blank" class="text-blue-600 hover:underline font-semibold">
                                     <span x-text="getContextText(review)"></span>
                                 </a>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                <span x-text="getClassificationText(review)" class="block truncate max-w-xs" :title="getClassificationText(review)"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="getRatingColor(review.rating)" x-text="review.rating + ' / 100'"></span>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
+                            <td class="px-2 md:px-6 py-4 text-sm text-gray-600">
                                 <span class="block truncate max-w-xs" :title="review.review_notes" x-text="review.review_notes || '-'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" x-text="new Date(review.reviewed_at).toLocaleDateString()"></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm text-gray-600" x-text="new Date(review.reviewed_at).toLocaleDateString()"></td>
+                            <td class="px-2 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex items-center space-x-2">
                                     <!-- Discussion Link (existing) -->
                                     <a :href="`<?= URLROOT ?>/discussions#discussion-${review.discussion_id}`" x-show="review.open_discussion_count > 0" class="text-yellow-600 hover:text-yellow-900 flex items-center">

@@ -241,7 +241,7 @@
                     if (interval > 1) return Math.floor(interval) + " minutes ago";
                     return Math.floor(seconds) + " seconds ago";
                 }
-            }));
+            }            ));
         });
 
         // Simple Search for Header
@@ -335,6 +335,19 @@
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+
+                    // Check if there are suggestions visible
+                    const suggestions = suggestionsContainer.querySelectorAll('a[href]');
+                    if (suggestions.length > 0 && !suggestionsContainer.classList.contains('hidden')) {
+                        // If there are suggestions, go to first result
+                        const firstLink = suggestions[0];
+                        if (firstLink && firstLink.href) {
+                            window.location.href = firstLink.href;
+                            return;
+                        }
+                    }
+
+                    // If no suggestions or hidden, submit the form for general search
                     const form = this.closest('form');
                     if (form) {
                         form.submit();
@@ -407,6 +420,7 @@
                                 <span x-show="onBreak" class="ml-2 font-mono text-sm" x-text="timer"></span>
                             </button>
                         </div>
+
 
                         <!-- Notification Center -->
                         <div class="relative">

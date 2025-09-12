@@ -34,15 +34,19 @@ class KnowledgeBaseModel
     public function getAll()
     {
         $sql = "
-            SELECT 
+            SELECT
                 kb.id,
                 kb.title,
                 kb.updated_at,
                 u.username AS author_name,
-                tc.name AS ticket_code_name
+                tc.name AS ticket_code_name,
+                kf.name AS folder_name,
+                kf.color AS folder_color,
+                kf.icon AS folder_icon
             FROM knowledge_base kb
             LEFT JOIN users u ON kb.updated_by = u.id
             LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
+            LEFT JOIN knowledge_base_folders kf ON kb.folder_id = kf.id
             ORDER BY kb.updated_at DESC
         ";
     
@@ -59,15 +63,19 @@ class KnowledgeBaseModel
     public function findById($id)
     {
         $sql = "
-            SELECT 
+            SELECT
                 kb.*,
                 u_created.username AS created_by_name,
                 u_updated.username AS updated_by_name,
-                tc.name AS ticket_code_name
+                tc.name AS ticket_code_name,
+                kf.name AS folder_name,
+                kf.color AS folder_color,
+                kf.icon AS folder_icon
             FROM knowledge_base kb
             LEFT JOIN users u_created ON kb.created_by = u_created.id
             LEFT JOIN users u_updated ON kb.updated_by = u_updated.id
             LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
+            LEFT JOIN knowledge_base_folders kf ON kb.folder_id = kf.id
             WHERE kb.id = :id
         ";
         $stmt = $this->db->prepare($sql);
@@ -95,14 +103,15 @@ class KnowledgeBaseModel
         $clean_content = $this->purifier->purify($data['content']);
 
         $sql = "
-            INSERT INTO knowledge_base (title, content, ticket_code_id, created_by, updated_by)
-            VALUES (:title, :content, :ticket_code_id, :created_by, :updated_by)
+            INSERT INTO knowledge_base (title, content, ticket_code_id, folder_id, created_by, updated_by)
+            VALUES (:title, :content, :ticket_code_id, :folder_id, :created_by, :updated_by)
         ";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             ':title' => $data['title'],
             ':content' => $clean_content,
             ':ticket_code_id' => $data['ticket_code_id'] ?: null,
+            ':folder_id' => $data['folder_id'] ?: null,
             ':created_by' => $_SESSION['user_id'],
             ':updated_by' => $_SESSION['user_id']
         ]);
@@ -118,10 +127,11 @@ class KnowledgeBaseModel
 
         $sql = "
             UPDATE knowledge_base
-            SET 
+            SET
                 title = :title,
                 content = :content,
                 ticket_code_id = :ticket_code_id,
+                folder_id = :folder_id,
                 updated_by = :user_id
             WHERE id = :id
         ";
@@ -131,6 +141,7 @@ class KnowledgeBaseModel
             ':title' => $data['title'],
             ':content' => $clean_content,
             ':ticket_code_id' => $data['ticket_code_id'] ?: null,
+            ':folder_id' => $data['folder_id'] ?: null,
             ':user_id' => $_SESSION['user_id']
         ]);
     }
@@ -182,5 +193,201 @@ class KnowledgeBaseModel
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
+
+    /**
+     * Get all folders for the dropdown in create/edit forms.
+     */
+    public function getAllFolders()
+    {
+        $sql = "SELECT id, name, color, icon FROM knowledge_base_folders WHERE is_active = 1 ORDER BY name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get all folders with article count for the main page.
+     */
+    public function getFoldersWithCount()
+    {
+        $sql = "
+            SELECT
+                kf.id,
+                kf.name,
+                kf.color,
+                kf.icon,
+                kf.description,
+                COUNT(kb.id) as article_count
+            FROM knowledge_base_folders kf
+            LEFT JOIN knowledge_base kb ON kf.id = kb.folder_id
+            WHERE kf.is_active = 1
+            GROUP BY kf.id, kf.name, kf.color, kf.icon, kf.description
+            ORDER BY kf.name ASC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get articles by folder ID.
+     */
+    public function getArticlesByFolder($folderId)
+    {
+        $sql = "
+            SELECT
+                kb.id,
+                kb.title,
+                kb.updated_at,
+                u.username AS author_name,
+                tc.name AS ticket_code_name,
+                kf.name AS folder_name,
+                kf.color AS folder_color,
+                kf.icon AS folder_icon
+            FROM knowledge_base kb
+            LEFT JOIN users u ON kb.updated_by = u.id
+            LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
+            LEFT JOIN knowledge_base_folders kf ON kb.folder_id = kf.id
+            WHERE kb.folder_id = :folder_id
+            ORDER BY kb.updated_at DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':folder_id' => $folderId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Search articles with folder filter.
+     */
+    public function searchWithFolder($query, $folderId = null)
+    {
+        $whereClause = "";
+        $params = [
+            ':query1' => $query . '*',
+            ':query2' => $query . '*'
+        ];
+
+        if ($folderId) {
+            $whereClause = "AND kb.folder_id = :folder_id";
+            $params[':folder_id'] = $folderId;
+        }
+
+        $sql = "
+            SELECT
+                kb.id,
+                kb.title,
+                kb.updated_at,
+                u.username AS author_name,
+                tc.name AS ticket_code_name,
+                kf.name AS folder_name,
+                kf.color AS folder_color,
+                kf.icon AS folder_icon,
+                MATCH(kb.title, kb.content) AGAINST(:query1 IN BOOLEAN MODE) as relevance
+            FROM knowledge_base kb
+            LEFT JOIN users u ON kb.updated_by = u.id
+            LEFT JOIN ticket_codes tc ON kb.ticket_code_id = tc.id
+            LEFT JOIN knowledge_base_folders kf ON kb.folder_id = kf.id
+            WHERE MATCH(kb.title, kb.content) AGAINST(:query2 IN BOOLEAN MODE) {$whereClause}
+            ORDER BY relevance DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get database connection (public method to access private $db)
+     */
+    public function getDbConnection()
+    {
+        return $this->db;
+    }
+
+    /**
+     * Get folder by ID
+     */
+    public function getFolderById($folderId)
+    {
+        $sql = "SELECT * FROM knowledge_base_folders WHERE id = :id AND is_active = 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $folderId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Create new folder
+     */
+    public function createFolder($data)
+    {
+        $sql = "
+            INSERT INTO knowledge_base_folders (name, description, color, icon, created_by)
+            VALUES (:name, :description, :color, :icon, :created_by)
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':name' => $data['name'],
+            ':description' => $data['description'] ?? null,
+            ':color' => $data['color'] ?? '#3B82F6',
+            ':icon' => $data['icon'] ?? 'fas fa-folder',
+            ':created_by' => $data['created_by'] ?? null
+        ]);
+    }
+
+    /**
+     * Update folder
+     */
+    public function updateFolder($folderId, $data)
+    {
+        $sql = "
+            UPDATE knowledge_base_folders
+            SET name = :name, description = :description, color = :color, icon = :icon
+            WHERE id = :folder_id AND is_active = 1
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':folder_id' => $folderId,
+            ':name' => $data['name'],
+            ':description' => $data['description'] ?? null,
+            ':color' => $data['color'] ?? '#3B82F6',
+            ':icon' => $data['icon'] ?? 'fas fa-folder'
+        ]);
+    }
+
+    /**
+     * Delete folder (soft delete)
+     */
+    public function deleteFolder($folderId)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // Get the default "General" folder ID
+            $generalFolder = $this->db->prepare("SELECT id FROM knowledge_base_folders WHERE name = 'عام' LIMIT 1");
+            $generalFolder->execute();
+            $generalFolderId = $generalFolder->fetchColumn();
+
+            // Move all articles from this folder to General
+            $moveArticles = $this->db->prepare("UPDATE knowledge_base SET folder_id = :general_id WHERE folder_id = :folder_id");
+            $moveArticles->execute([
+                ':general_id' => $generalFolderId,
+                ':folder_id' => $folderId
+            ]);
+
+            // Soft delete the folder
+            $deleteFolder = $this->db->prepare("UPDATE knowledge_base_folders SET is_active = 0 WHERE id = :folder_id");
+            $deleteFolder->execute([':folder_id' => $folderId]);
+
+            $this->db->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            return false;
+        }
+    }
+
 } 

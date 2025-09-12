@@ -4,14 +4,17 @@ namespace App\Models\Break;
 
 use App\Core\Database;
 use PDO;
+use App\Models\Break\BreakStorage;
 
 class BreakModel
 {
     private $db;
+    private $breakStorage;
 
     public function __construct()
     {
         $this->db = Database::getInstance();
+        $this->breakStorage = new BreakStorage();
     }
 
     /**
@@ -25,10 +28,25 @@ class BreakModel
             return false; // Or handle as an error, e.g., return the existing break ID
         }
 
-        $sql = "INSERT INTO breaks (user_id, start_time) VALUES (:user_id, UTC_TIMESTAMP())";
+        $sql = "INSERT INTO breaks (user_id, start_time, is_active) VALUES (:user_id, UTC_TIMESTAMP(), 1)";
         $stmt = $this->db->prepare($sql);
         if ($stmt->execute([':user_id' => $userId])) {
-            return $this->db->lastInsertId();
+            $breakId = $this->db->lastInsertId();
+
+            // Get user info for JSON storage
+            $userInfo = $this->getUserInfo($userId);
+            if ($userInfo) {
+                $breakData = (object) [
+                    'id' => $breakId,
+                    'user_id' => $userId,
+                    'user_name' => $userInfo->name,
+                    'team_name' => $userInfo->team_name,
+                    'start_time' => date('Y-m-d H:i:s')
+                ];
+                $this->breakStorage->addActiveBreak($breakData);
+            }
+
+            return $breakId;
         }
         return false;
     }
@@ -38,12 +56,21 @@ class BreakModel
      */
     public function stop($breakId)
     {
-        $sql = "UPDATE breaks 
-                SET end_time = UTC_TIMESTAMP(), 
-                    duration_seconds = TIMESTAMPDIFF(SECOND, start_time, UTC_TIMESTAMP()) 
-                WHERE id = :id AND end_time IS NULL";
+        $sql = "UPDATE breaks
+                SET end_time = UTC_TIMESTAMP(),
+                    duration_seconds = TIMESTAMPDIFF(SECOND, start_time, UTC_TIMESTAMP()),
+                    is_active = 0
+                WHERE id = :id AND is_active = 1";
+
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':id' => $breakId]);
+        $result = $stmt->execute([':id' => $breakId]);
+
+        // Remove from JSON storage
+        if ($result) {
+            $this->breakStorage->removeActiveBreak($breakId);
+        }
+
+        return $result;
     }
     
     /**
@@ -51,9 +78,9 @@ class BreakModel
      */
     public function getOngoingBreak($userId)
     {
-        $sql = "SELECT id, user_id, start_time, end_time, duration_seconds, created_at, updated_at 
-                FROM breaks 
-                WHERE user_id = :user_id AND end_time IS NULL 
+        $sql = "SELECT id, user_id, start_time, end_time, duration_seconds, created_at, updated_at
+                FROM breaks
+                WHERE user_id = :user_id AND is_active = 1
                 ORDER BY start_time DESC LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':user_id' => $userId]);
@@ -109,15 +136,23 @@ class BreakModel
      */
     public function getBreaksSummary($filters = [])
     {
-        $sql = "SELECT 
-                    u.id as user_id, 
-                    u.name as user_name, 
+        $sql = "SELECT
+                    u.id as user_id,
+                    u.name as user_name,
+                    t.name as team_name,
+                    tm.team_id,
                     SUM(b.duration_seconds) as total_duration_seconds,
                     SEC_TO_TIME(SUM(b.duration_seconds)) as total_duration_formatted,
-                    COUNT(b.id) as total_breaks
+                    COUNT(b.id) as total_breaks,
+                    ROUND(SUM(b.duration_seconds) / 60, 0) as total_minutes,
+                    MAX(CASE WHEN b.is_active = 1 THEN 1 ELSE 0 END) as currently_on_break,
+                    MAX(CASE WHEN b.is_active = 1 THEN b.start_time END) as current_break_start,
+                    MAX(CASE WHEN b.is_active = 1 THEN TIMESTAMPDIFF(MINUTE, b.start_time, UTC_TIMESTAMP()) END) as current_break_minutes
                 FROM breaks b
                 JOIN users u ON b.user_id = u.id
-                WHERE b.duration_seconds IS NOT NULL";
+                LEFT JOIN team_members tm ON u.id = tm.user_id
+                LEFT JOIN teams t ON tm.team_id = t.id
+                WHERE b.end_time IS NOT NULL";
 
         $params = [];
 
@@ -125,6 +160,12 @@ class BreakModel
         if (!empty($filters['user_id'])) {
             $sql .= " AND u.id = :user_id";
             $params[':user_id'] = $filters['user_id'];
+        }
+
+        // Filter by team if provided
+        if (!empty($filters['team_id'])) {
+            $sql .= " AND tm.team_id = :team_id";
+            $params[':team_id'] = $filters['team_id'];
         }
 
         if (!empty($filters['search'])) {
@@ -142,11 +183,67 @@ class BreakModel
             $params[':to_date'] = $filters['to_date'];
         }
 
-        $sql .= " GROUP BY u.id, u.name ORDER BY total_duration_seconds DESC";
-        
+        // Handle sorting
+        $sortBy = $filters['sort_by'] ?? 'total_duration_seconds';
+        $sortOrder = strtoupper($filters['sort_order'] ?? 'DESC');
+
+        // Validate sort parameters
+        $allowedSortFields = ['total_duration_seconds', 'total_breaks', 'user_name'];
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'total_duration_seconds';
+        }
+        if (!in_array($sortOrder, ['ASC', 'DESC'])) {
+            $sortOrder = 'DESC';
+        }
+
+        // Map sort fields to actual column names
+        $sortFieldMap = [
+            'total_duration_seconds' => 'total_duration_seconds',
+            'total_breaks' => 'total_breaks',
+            'user_name' => 'u.name'
+        ];
+
+        $actualSortField = $sortFieldMap[$sortBy] ?? 'total_duration_seconds';
+
+        $sql .= " GROUP BY u.id, u.name, t.name, tm.team_id ORDER BY {$actualSortField} {$sortOrder}";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        $results = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+        // Get current break details for users currently on break
+        $currentBreaksSql = "
+            SELECT
+                b.user_id,
+                b.start_time,
+                TIMESTAMPDIFF(MINUTE, b.start_time, UTC_TIMESTAMP()) as minutes_elapsed
+            FROM breaks b
+            WHERE b.is_active = 1
+        ";
+
+        $stmt2 = $this->db->prepare($currentBreaksSql);
+        $stmt2->execute();
+        $currentBreaks = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+        // Create a map of user_id to current break info
+        $currentBreakMap = [];
+        foreach ($currentBreaks as $break) {
+            $currentBreakMap[$break['user_id']] = [
+                'start_time' => $break['start_time'],
+                'minutes_elapsed' => $break['minutes_elapsed']
+            ];
+        }
+
+        // Add current break info to results
+        foreach ($results as $result) {
+            if (isset($currentBreakMap[$result->user_id])) {
+                $result->current_break_info = $currentBreakMap[$result->user_id];
+            } else {
+                $result->current_break_info = null;
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -228,6 +325,71 @@ class BreakModel
         }
         
         return $result;
+    }
+
+    /**
+     * Get all teams for filtering
+     */
+    public function getAllTeams()
+    {
+        $sql = "SELECT id, name FROM teams ORDER BY name ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Get current ongoing breaks for all users (from database using is_active)
+     */
+    public function getCurrentOngoingBreaks()
+    {
+        $sql = "SELECT
+                    b.id,
+                    b.user_id,
+                    b.start_time,
+                    u.name as user_name,
+                    t.name as team_name,
+                    TIMESTAMPDIFF(MINUTE, b.start_time, UTC_TIMESTAMP()) as minutes_elapsed
+                FROM breaks b
+                JOIN users u ON b.user_id = u.id
+                LEFT JOIN team_members tm ON u.id = tm.user_id
+                LEFT JOIN teams t ON tm.team_id = t.id
+                WHERE b.is_active = 1
+                ORDER BY b.start_time ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    /**
+     * Get count of users currently on break
+     */
+    public function getCurrentBreakCount()
+    {
+        $sql = "SELECT COUNT(*) as count FROM breaks WHERE is_active = 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_OBJ);
+        return $result->count ?? 0;
+    }
+
+    /**
+     * Get user info for JSON storage
+     */
+    private function getUserInfo($userId)
+    {
+        $sql = "SELECT
+                    u.name,
+                    t.name as team_name
+                FROM users u
+                LEFT JOIN team_members tm ON u.id = tm.user_id
+                LEFT JOIN teams t ON tm.team_id = t.id
+                WHERE u.id = :user_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetch(PDO::FETCH_OBJ);
     }
 
     private function formatSeconds($seconds) {

@@ -97,6 +97,8 @@ function getNavigationItems($role) {
                 ['title' => "Marketer Registration", 'href' => '/referral/register', 'icon' => 'fas fa-user-plus'],
 
                 ['title' => "Establishments", 'href' => '/referral/establishments', 'icon' => 'fas fa-building'],
+                
+                ['title' => 'Restaurants', 'href' => '/admin/restaurants', 'icon' => 'fas fa-utensils'],
 
             ]
 

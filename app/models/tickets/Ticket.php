@@ -1782,8 +1782,6 @@ class Ticket extends Model
 
 
 
-                        edited_by = :edited_by
-
 
 
                     WHERE id = :detail_id";

@@ -214,102 +214,115 @@ function getGreeting() {
                 <?php endif; ?>
                 
                 <!-- Leaderboards -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 gap-4 md:gap-6">
                     <!-- Top Ticket Creators -->
-                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 rounded-lg bg-blue-100 text-blue-600"><i class="fas fa-trophy"></i></div>
-                            <h3 class="font-semibold text-gray-800">Top Ticket Creators</h3>
+                    <div class="bg-white p-4 md:p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                            <div class="p-1.5 md:p-2 rounded-lg bg-blue-100 text-blue-600"><i class="fas fa-trophy text-sm md:text-base"></i></div>
+                            <h3 class="font-semibold text-gray-800 text-sm md:text-base">Top Ticket Creators</h3>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-2 md:space-y-3">
                             <?php foreach (array_slice($d['leaderboards']['tickets'] ?? [], 0, 5) as $i => $entry): ?>
-                            <div class="flex items-center gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                            <a href="https://cs.taxif.com/logs?agent_id=<?= $entry['user_id'] ?? $entry['agent_id'] ?? '' ?>" target="_blank"
+                               class="flex items-center gap-2 md:gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                                <span class="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold border border-blue-200 text-blue-600 bg-blue-50"><?= $i + 1 ?></span>
+                                <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
                                     <?= mb_substr($entry['name'], 0, 2) ?>
                                 </div>
-                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
-                                <span class="text-sm font-bold text-blue-600"><?= $entry['count'] ?></span>
+                                <div class="flex-1">
+                                    <p class="text-xs md:text-sm font-medium text-gray-800"><?= htmlspecialchars($entry['name']) ?></p>
                             </div>
+                                <span class="text-xs md:text-sm font-bold text-blue-600 flex-shrink-0"><?= $entry['count'] ?></span>
+                            </a>
                             <?php endforeach; ?>
                         </div>
                     </div>
+
                     <!-- Top Outgoing Callers -->
-                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 rounded-lg bg-green-100 text-green-600"><i class="fas fa-phone-volume"></i></div>
-                            <h3 class="font-semibold text-gray-800">Top Outgoing Callers</h3>
+                    <div class="bg-white p-4 md:p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                            <div class="p-1.5 md:p-2 rounded-lg bg-green-100 text-green-600"><i class="fas fa-phone-volume text-sm md:text-base"></i></div>
+                            <h3 class="font-semibold text-gray-800 text-sm md:text-base">Top Outgoing Callers</h3>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-2 md:space-y-3">
                             <?php foreach (array_slice($d['leaderboards']['outgoing_calls'] ?? [], 0, 5) as $i => $entry): ?>
-                            <div class="flex items-center gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                            <a href="https://cs.taxif.com/logs?agent_id=<?= $entry['user_id'] ?? $entry['agent_id'] ?? '' ?>" target="_blank"
+                               class="flex items-center gap-2 md:gap-3 p-2 rounded-lg hover:bg-green-50 transition-colors cursor-pointer">
+                                <span class="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold border border-green-200 text-green-600 bg-green-50"><?= $i + 1 ?></span>
+                                <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
                                     <?= mb_substr($entry['name'], 0, 2) ?>
                                 </div>
-                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
-                                <span class="text-sm font-bold text-green-600"><?= $entry['count'] ?></span>
+                                <div class="flex-1">
+                                    <p class="text-xs md:text-sm font-medium text-gray-800"><?= htmlspecialchars($entry['name']) ?></p>
                             </div>
+                                <span class="text-xs md:text-sm font-bold text-green-600 flex-shrink-0"><?= $entry['count'] ?></span>
+                            </a>
                             <?php endforeach; ?>
                         </div>
                     </div>
+
                     <!-- Top Incoming Handlers -->
-                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 rounded-lg bg-indigo-100 text-indigo-600"><i class="fas fa-headset"></i></div>
-                            <h3 class="font-semibold text-gray-800">Top Incoming Handlers</h3>
+                    <div class="bg-white p-4 md:p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                            <div class="p-1.5 md:p-2 rounded-lg bg-indigo-100 text-indigo-600"><i class="fas fa-headset text-sm md:text-base"></i></div>
+                            <h3 class="font-semibold text-gray-800 text-sm md:text-base">Top Incoming Handlers</h3>
                         </div>
-                        <div class="space-y-3">
+                        <div class="space-y-2 md:space-y-3">
                             <?php foreach (array_slice($d['leaderboards']['incoming_calls'] ?? [], 0, 5) as $i => $entry): ?>
-                            <div class="flex items-center gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                            <a href="https://cs.taxif.com/logs?agent_id=<?= $entry['user_id'] ?? $entry['agent_id'] ?? '' ?>" target="_blank"
+                               class="flex items-center gap-2 md:gap-3 p-2 rounded-lg hover:bg-indigo-50 transition-colors cursor-pointer">
+                                <span class="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold border border-indigo-200 text-indigo-600 bg-indigo-50"><?= $i + 1 ?></span>
+                                <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
                                     <?= mb_substr($entry['name'], 0, 2) ?>
                                 </div>
-                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
-                                <span class="text-sm font-bold text-indigo-600"><?= $entry['count'] ?></span>
+                                <div class="flex-1">
+                                    <p class="text-xs md:text-sm font-medium text-gray-800"><?= htmlspecialchars($entry['name']) ?></p>
                             </div>
+                                <span class="text-xs md:text-sm font-bold text-indigo-600 flex-shrink-0"><?= $entry['count'] ?></span>
+                            </a>
                             <?php endforeach; ?>
                         </div>
                     </div>
+
                     <!-- Top Reviews -->
-                    <?php if (!empty($d['top_reviews'])): ?>
-                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 rounded-lg bg-pink-100 text-pink-600"><i class="fas fa-star"></i></div>
-                            <h3 class="font-semibold text-gray-800">Latest Reviews</h3>
+                    <div class="bg-white p-4 md:p-6 border-0 shadow-lg rounded-xl">
+                        <div class="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                            <div class="p-1.5 md:p-2 rounded-lg bg-pink-100 text-pink-600"><i class="fas fa-star text-sm md:text-base"></i></div>
+                            <h3 class="font-semibold text-gray-800 text-sm md:text-base">Top Reviews</h3>
                         </div>
-                        <div class="space-y-3">
-                            <?php foreach (array_slice($d['top_reviews'] ?? [], 0, 5) as $i => $entry): ?>
-                            <div class="flex items-center gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
-                                    <?= mb_substr($entry['reviewer_name'], 0, 2) ?>
+                        <div class="space-y-2 md:space-y-3">
+                            <?php
+                            // أفضل الموظفين من حيث متوسط التقييمات المستلمة
+                            $topReviewedEmployees = $d['leaderboards']['reviews'] ?? [];
+
+                            // Take top 5 employees
+                            if (!empty($topReviewedEmployees) && is_array($topReviewedEmployees)) {
+                                $topReviewedEmployees = array_slice($topReviewedEmployees, 0, 5);
+                            } else {
+                                $topReviewedEmployees = [];
+                            }
+                            ?>
+
+                            <?php if (!empty($topReviewedEmployees)): ?>
+                                <?php foreach ($topReviewedEmployees as $i => $employee): ?>
+                                <a href="<?= URLROOT ?>/quality/reviews?agent_id=<?= $employee['user_id'] ?>" target="_blank"
+                                   class="flex items-center gap-2 md:gap-3 p-2 rounded-lg hover:bg-pink-50 transition-colors cursor-pointer">
+                                    <span class="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold border border-pink-200 text-pink-600 bg-pink-50"><?= $i + 1 ?></span>
+                                    <div class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
+                                        <?= mb_substr($employee['name'], 0, 2) ?>
                                 </div>
-                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['reviewer_name']) ?></p>
-                                <span class="text-xs text-gray-500"><?= date('M j, Y', strtotime($entry['reviewed_at'])) ?></span>
+                                    <div class="flex-1">
+                                        <p class="text-xs md:text-sm font-medium text-gray-800"><?= htmlspecialchars($employee['name']) ?></p>
+                                        <p class="text-xs text-gray-500">Avg: <?= $employee['average_rating'] ?>/100</p>
                             </div>
+                                    <span class="text-xs md:text-sm font-bold text-pink-600 flex-shrink-0"><?= $employee['total_reviews'] ?></span>
+                                </a>
                             <?php endforeach; ?>
-                        </div>
+                            <?php else: ?>
+                                <div class="text-center py-4 text-gray-500">
+                                    <p class="text-xs md:text-sm">No reviews data available</p>
                     </div>
                     <?php endif; ?>
-                    <!-- Top Reviews Leaderboard -->
-                    <div class="bg-white p-6 border-0 shadow-lg rounded-xl">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 rounded-lg bg-pink-100 text-pink-600"><i class="fas fa-star"></i></div>
-                            <h3 class="font-semibold text-gray-800">Top Reviews</h3>
-                        </div>
-                        <div class="space-y-3">
-                            <?php foreach (array_slice($d['leaderboards']['reviews'] ?? [], 0, 5) as $i => $entry): ?>
-                            <div class="flex items-center gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border"><?= $i + 1 ?></span>
-                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-500 text-xs">
-                                    <?= mb_substr($entry['name'], 0, 2) ?>
-                                </div>
-                                <p class="text-sm font-medium text-gray-800 truncate flex-1"><?= htmlspecialchars($entry['name']) ?></p>
-                                <span class="text-sm font-bold text-pink-600"><?= $entry['count'] ?></span>
-                            </div>
-                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
@@ -445,12 +458,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const activityCtx = document.getElementById('activityChart')?.getContext('2d');
     if (activityCtx) {
         const trendData = <?= json_encode($d['daily_trends']) ?>;
-        console.log('Dashboard Debug Info:');
-        console.log('- User Role:', '<?= $d['user_role'] ?>');
-        console.log('- Is Privileged:', <?= $isPrivileged ? 'true' : 'false' ?>);
-        console.log('- Activity Trend Data:', trendData);
-        console.log('- Review Stats:', <?= json_encode($d['review_discussion_stats']) ?>);
-        console.log('- Leaderboards:', <?= json_encode($d['leaderboards'] ?? []) ?>);
         const labels = trendData.map(d => new Date(d.action_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         const ticketData = trendData.map(d => d.tickets);
         const callData = trendData.map(d => d.calls);
@@ -534,14 +541,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Debug info for all users (privileged and non-privileged)
-console.log('=== Dashboard Debug Info ===');
-console.log('User Role:', '<?= $d['user_role'] ?>');
-console.log('Is Privileged:', <?= $isPrivileged ? 'true' : 'false' ?>);
-console.log('Review Stats:', <?= json_encode($d['review_discussion_stats'] ?? []) ?>);
-<?php if (!$isPrivileged): ?>
-console.log('Non-Privileged User - Individual Reviews:', <?= json_encode($d['review_discussion_stats']['individual_reviews'] ?? []) ?>);
-<?php endif; ?>
-console.log('========================');
 </script>
 
 <?php require_once APPROOT . '/views/includes/footer.php'; ?>

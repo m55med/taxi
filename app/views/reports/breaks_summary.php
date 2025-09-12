@@ -1,10 +1,19 @@
 <?php require APPROOT . '/views/includes/header.php'; ?>
 <div class="p-4 lg:p-6" x-data="dateFilters('<?= $data['filters']['from_date'] ?>', '<?= $data['filters']['to_date'] ?>')">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-3xl font-bold text-gray-800 flex items-center">
-            <i class="fas fa-pause-circle mr-3 text-indigo-500"></i>
-            <span>Breaks Report</span>
-        </h1>
+        <div class="flex items-center gap-6">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+                <i class="fas fa-pause-circle mr-3 text-indigo-500"></i>
+                <span>Breaks Report</span>
+            </h1>
+            <!-- Current Break Count Label -->
+            <div class="bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 text-sm font-semibold px-4 py-2 rounded-full border border-orange-300 shadow-sm">
+                <i class="fas fa-user-clock mr-2"></i>
+                <span x-data="{ count: <?= $data['current_break_count'] ?? 0 ?> }" x-text="count"></span> Currently on Break
+                <span class="inline-block w-2 h-2 bg-orange-500 rounded-full ml-2 animate-pulse"></span>
+                <span class="text-xs opacity-75 ml-1">(Live)</span>
+            </div>
+        </div>
     </div>
 
     <!-- Stats Cards -->
@@ -32,7 +41,7 @@
                 <i class="fas fa-users fa-2x"></i>
             </div>
             <div>
-                <p class="text-gray-500 text-sm">Employees on Break</p>
+                <p class="text-gray-500 text-sm">Total Employees</p>
                 <p class="text-2xl font-bold text-gray-800"><?= htmlspecialchars($data['stats']->total_users ?? '0') ?></p>
             </div>
         </div>
@@ -40,8 +49,8 @@
 
     <!-- Filters -->
     <div class="bg-white p-6 rounded-xl shadow-md mb-6">
-    <form action="<?= URLROOT ?>/reports/breaks" method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <!-- Search -->
+    <form action="<?= URLROOT ?>/reports/breaks" method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <!-- Search Employee -->
     <div class="md:col-span-1">
         <label for="search_employee" class="block text-sm font-medium text-gray-700 mb-1">Search Employee</label>
         <div x-data='searchableSelect(<?= json_encode($data["users"] ?? []) ?>)'
@@ -92,6 +101,18 @@
         </div>
 
     </div>
+    <!-- Filter by Team -->
+    <div class="md:col-span-1">
+        <label for="team_filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Team</label>
+        <select id="team_filter" name="team_id" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="">All Teams</option>
+            <?php foreach ($data['teams'] ?? [] as $team): ?>
+                <option value="<?= $team->id ?>" <?= (isset($data['filters']['team_id']) && $data['filters']['team_id'] == $team->id) ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($team->name) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
     <!-- Date Range -->
     <div class="md:col-span-2 grid grid-cols-2 gap-4">
         <div>
@@ -104,7 +125,7 @@
         </div>
     </div>
     <!-- Action Buttons -->
-    <div class="md:col-span-1 flex items-end gap-2">
+    <div class="md:col-span-1 flex items-end gap-2" style="grid-column: span 5;">
         <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors w-full">Filter</button>
         <a href="<?= URLROOT ?>/reports/breaks" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">Reset</a>
     </div>
@@ -123,33 +144,87 @@
 
     <!-- Summary Table -->
     <div class="overflow-x-auto bg-white rounded-xl shadow-md p-6">
+        <!-- Last Updated Indicator -->
+        <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+            <div class="text-sm text-gray-600">
+                <i class="fas fa-clock mr-1"></i>
+                Last updated: <span id="last-updated" class="font-mono"><?= date('H:i:s') ?></span>
+            </div>
+            <div class="flex items-center text-xs text-green-600">
+                <i class="fas fa-circle mr-1 animate-pulse"></i>
+                Auto-refresh every 30s
+            </div>
+        </div>
         <table class="min-w-full bg-white">
             <thead class="border-b-2 border-gray-200">
                 <tr>
-                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Employee</th>
-                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Total Breaks</th>
-                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Total Duration</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600 cursor-pointer hover:bg-gray-100" onclick="sortBy('user_name')">Employee <span id="user_name-indicator">↓</span></th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Team</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Current Break</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600 cursor-pointer hover:bg-gray-100" onclick="sortBy('total_breaks')">Total Breaks <span id="total_breaks-indicator">↓</span></th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600 cursor-pointer hover:bg-gray-100" onclick="sortBy('total_duration_seconds')">Total Duration <span id="total_duration_seconds-indicator">↓</span></th>
                     <th class="text-left py-3 px-4 uppercase font-semibold text-sm text-gray-600">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-700">
                 <?php if (empty($data['summary'])): ?>
                     <tr>
-                        <td colspan="4" class="text-center py-10 text-gray-500">
+                        <td colspan="6" class="text-center py-10 text-gray-500">
                             <i class="fas fa-info-circle fa-3x mb-3"></i>
                             <p>No break data found for the selected criteria.</p>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($data['summary'] as $row): ?>
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <?php
+                        $isOverLimit = isset($row->total_minutes) && $row->total_minutes > 900;
+                        $rowClass = $isOverLimit ? 'border-b border-gray-200 hover:bg-red-50 bg-red-25' : 'border-b border-gray-200 hover:bg-gray-50';
+                        ?>
+                        <tr class="<?= $rowClass ?>" data-user-id="<?= $row->user_id ?>">
                             <td class="py-4 px-4">
                                 <a href="<?= URLROOT ?>/reports/breaks/user/<?= $row->user_id ?>" class="text-indigo-600 font-medium hover:underline">
                                     <?= htmlspecialchars($row->user_name) ?>
                                 </a>
                             </td>
+                            <td class="py-4 px-4">
+                                <?= htmlspecialchars($row->team_name ?? 'No Team') ?>
+                            </td>
+                            <td class="py-4 px-4">
+                                <?php if ($row->current_break_info): ?>
+                                    <?php
+                                    $minutes = $row->current_break_info['minutes_elapsed'] ?? 0;
+                                    $startTime = $row->current_break_info['start_time'] ?? '';
+                                    $isLongBreak = $minutes >= 30;
+                                    ?>
+                                    <div class="flex flex-col space-y-1">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                                            <span class="text-sm font-medium text-orange-700">On Break</span>
+                                        </div>
+                                        <div class="text-xs text-gray-600">
+                                            <div>Started: <?= date('H:i', strtotime($startTime)) ?></div>
+                                            <div class="flex items-center space-x-1">
+                                                <span>Duration:</span>
+                                                <span class="font-mono <?= $isLongBreak ? 'text-red-600 font-bold' : 'text-green-600' ?>">
+                                                    <?= floor($minutes / 60) ?>h <?= $minutes % 60 ?>m
+                                                </span>
+                                                <?php if ($isLongBreak): ?>
+                                                    <span class="text-xs text-red-500">(30+ min)</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">Not on break</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="py-4 px-4"><?= $row->total_breaks ?></td>
-                            <td class="py-4 px-4 font-mono"><?= htmlspecialchars($row->total_duration_formatted) ?></td>
+                            <td class="py-4 px-4 font-mono <?= $isOverLimit ? 'text-red-600 font-bold' : '' ?>">
+                                <?= htmlspecialchars($row->total_duration_formatted) ?>
+                                <?php if ($isOverLimit): ?>
+                                    <span class="text-xs text-red-500 ml-1">(Over 900 min)</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="py-4 px-4">
                                 <a href="<?= URLROOT ?>/reports/breaks/user/<?= $row->user_id ?>" class="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-semibold hover:bg-indigo-200 transition-colors">
                                     View Details
@@ -163,12 +238,109 @@
     </div>
 </div>
 
+
 <script>
     function dateFilters(fromDate, toDate) {
         return {
             fromDate: fromDate || '',
             toDate: toDate || '',
         }
+    }
+
+
+    // Sorting functionality
+    function sortBy(field) {
+        const url = new URL(window.location);
+        const currentSortBy = url.searchParams.get('sort_by');
+        const currentSortOrder = url.searchParams.get('sort_order');
+
+        if (currentSortBy === field) {
+            // Toggle sort order if same field
+            url.searchParams.set('sort_order', currentSortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            // New field, default to desc
+            url.searchParams.set('sort_by', field);
+            url.searchParams.set('sort_order', 'desc');
+        }
+
+        window.location.href = url.toString();
+    }
+
+    // Update sort indicators dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        const sortBy = '<?= $data['sort_by'] ?? 'total_duration_seconds' ?>';
+        const sortOrder = '<?= $data['sort_order'] ?? 'desc' ?>';
+
+        // Reset all indicators
+        document.getElementById('user_name-indicator').textContent = '↓';
+        document.getElementById('total_breaks-indicator').textContent = '↓';
+        document.getElementById('total_duration_seconds-indicator').textContent = '↓';
+
+        // Update current sort indicator
+        const indicatorElement = document.getElementById(sortBy + '-indicator');
+        if (indicatorElement) {
+            indicatorElement.textContent = sortOrder === 'asc' ? '↑' : '↓';
+        }
+
+        // Auto-refresh break information every 30 seconds
+        setInterval(function() {
+            updateBreakInformation();
+        }, 30000);
+    });
+
+    // Function to update break information dynamically
+    function updateBreakInformation() {
+        fetch('<?= URLROOT ?>/breaks/current')
+            .then(response => response.json())
+            .then(data => {
+                // Update current break count
+                const countElement = document.querySelector('[x-data*="count"]');
+                if (countElement && countElement.textContent !== data.length.toString()) {
+                    countElement.textContent = data.length;
+                }
+
+                // Update last updated timestamp
+                const now = new Date();
+                const lastUpdatedElement = document.getElementById('last-updated');
+                if (lastUpdatedElement) {
+                    lastUpdatedElement.textContent = now.toLocaleTimeString();
+                }
+
+                // Update table rows with current break status
+                data.forEach(breakItem => {
+                    const userRow = document.querySelector(`[data-user-id="${breakItem.user_id}"]`);
+                    if (userRow) {
+                        const breakCell = userRow.querySelector('td:nth-child(3)'); // Current Break column
+                        if (breakCell) {
+                            const minutes = breakItem.minutes_elapsed || 0;
+                            const startTime = breakItem.start_time;
+                            const isLongBreak = minutes >= 30;
+
+                            breakCell.innerHTML = `
+                                <div class="flex flex-col space-y-1">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                                        <span class="text-sm font-medium text-orange-700">On Break</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600">
+                                        <div>Started: ${new Date(startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                        <div class="flex items-center space-x-1">
+                                            <span>Duration:</span>
+                                            <span class="font-mono ${isLongBreak ? 'text-red-600 font-bold' : 'text-green-600'}">
+                                                ${Math.floor(minutes / 60)}h ${minutes % 60}m
+                                            </span>
+                                            ${isLongBreak ? '<span class="text-xs text-red-500">(30+ min)</span>' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error updating break information:', error);
+            });
     }
 </script>
 

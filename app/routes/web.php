@@ -180,6 +180,15 @@ $router->post('knowledge_base/destroy', 'knowledge_base/KnowledgeBaseController@
 
 $router->get('knowledge_base/findByCode/{ticketCodeId}', 'knowledge_base/KnowledgeBaseController@findByCode');
 
+$router->get('knowledge_base/folder/{folderId}', 'knowledge_base/KnowledgeBaseController@folder')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+
+$router->get('knowledge_base/folders/create', 'knowledge_base/KnowledgeBaseController@createFolder')->middleware(['admin', 'developer']);
+$router->post('knowledge_base/folders/store', 'knowledge_base/KnowledgeBaseController@storeFolder')->middleware(['admin', 'developer']);
+$router->get('knowledge_base/folders/edit/{folderId}', 'knowledge_base/KnowledgeBaseController@editFolder')->middleware(['admin', 'developer']);
+$router->post('knowledge_base/folders/update/{folderId}', 'knowledge_base/KnowledgeBaseController@updateFolder')->middleware(['admin', 'developer']);
+$router->get('knowledge_base/folders/delete/{folderId}', 'knowledge_base/KnowledgeBaseController@deleteFolder')->middleware(['admin', 'developer']);
+$router->post('knowledge_base/folders/destroy/{folderId}', 'knowledge_base/KnowledgeBaseController@destroyFolder')->middleware(['admin', 'developer']);
+
 $router->get('knowledge_base/search', 'knowledge_base/KnowledgeBaseController@searchApi');
 
 

@@ -512,15 +512,26 @@ class Dashboard
 
         $reviewsWhereSql = count($reviewsWhereClauses) > 0 ? " AND " . implode(' AND ', $reviewsWhereClauses) : "";
 
+        // Reviews leaderboard - أفضل الموظفين من حيث متوسط التقييمات المستلمة
         $reviewsQuery = "
-            SELECT u.name, COUNT(r.id) as count
+            SELECT
+                u.id as user_id,
+                u.name,
+                COUNT(r.id) as total_reviews,
+                ROUND(AVG(r.rating), 1) as average_rating
             FROM reviews r
-            JOIN users u ON r.reviewed_by = u.id
             LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
             LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+            JOIN users u ON (
+                CASE
+                    WHEN r.reviewable_type LIKE '%TicketDetail' THEN td.edited_by
+                    WHEN r.reviewable_type LIKE '%DriverCall' THEN dc.call_by
+                    ELSE NULL
+                END
+            ) = u.id
             WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to{$reviewsWhereSql}
             GROUP BY u.id, u.name
-            ORDER BY count DESC
+            ORDER BY average_rating DESC, total_reviews DESC
             LIMIT 10
         ";
         

@@ -84,10 +84,32 @@
                     </tr>
                 <?php else: ?>
                     <?php foreach ($data['breaks'] as $break): ?>
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <?php
+                        // Calculate duration in minutes for coloring
+                        $durationMinutes = 0;
+                        if ($break->duration_seconds) {
+                            $durationMinutes = round($break->duration_seconds / 60);
+                        } elseif ($break->end_time) {
+                            // If break has ended but no duration_seconds, calculate from timestamps
+                            $startTime = strtotime($break->start_time);
+                            $endTime = strtotime($break->end_time);
+                            $durationMinutes = round(($endTime - $startTime) / 60);
+                        }
+
+                        $isLongBreak = $durationMinutes >= 30;
+                        $rowClass = $isLongBreak ? 'border-b border-gray-200 hover:bg-red-50 bg-red-25' : 'border-b border-gray-200 hover:bg-gray-50';
+                        ?>
+                        <tr class="<?= $rowClass ?>">
                             <td class="py-4 px-4 font-mono"><?= date('Y-m-d h:i:s A', strtotime($break->start_time)) ?></td>
-                            <td class="py-4 px-4 font-mono"><?= $break->end_time ? date('Y-m-d h:i:s A', strtotime($break->end_time)) : '<span class="text-yellow-600 font-semibold">In Progress</span>' ?></td>
-                            <td class="py-4 px-4 font-mono"><?= $break->duration_formatted ?? 'N/A' ?></td>
+                            <td class="py-4 px-4 font-mono">
+                                <?= $break->end_time ? date('Y-m-d h:i:s A', strtotime($break->end_time)) : '<span class="text-yellow-600 font-semibold">In Progress</span>' ?>
+                            </td>
+                            <td class="py-4 px-4 font-mono <?= $isLongBreak ? 'text-red-600 font-bold' : '' ?>">
+                                <?= $break->duration_formatted ?? 'N/A' ?>
+                                <?php if ($isLongBreak && $break->duration_formatted): ?>
+                                    <span class="text-xs text-red-500 ml-1">(Exceeding break)</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

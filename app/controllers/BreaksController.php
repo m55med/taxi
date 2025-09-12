@@ -92,6 +92,56 @@ class BreaksController extends Controller
     }
 
     /**
+     * API endpoint to get current ongoing breaks for all users.
+     */
+    public function current()
+    {
+        header('Content-Type: application/json');
+
+        $currentBreaks = $this->breakModel->getCurrentOngoingBreaks();
+
+        // Convert objects to arrays for JSON response
+        $breaksArray = [];
+        foreach ($currentBreaks as $break) {
+            $breaksArray[] = [
+                'id' => $break['id'] ?? $break->id,
+                'user_id' => $break['user_id'] ?? $break->user_id,
+                'user_name' => $break['user_name'] ?? $break->user_name,
+                'team_name' => $break['team_name'] ?? $break->team_name,
+                'start_time' => $break['start_time'] ?? $break->start_time,
+                'minutes_elapsed' => $break['minutes_elapsed'] ?? $break->minutes_elapsed,
+                'is_long_break' => ($break['minutes_elapsed'] ?? $break->minutes_elapsed) >= 30
+            ];
+        }
+
+        $this->sendJsonResponse($breaksArray);
+    }
+
+    /**
+     * API endpoint to get current breaks count only (for live counter).
+     */
+    public function current_count()
+    {
+        header('Content-Type: application/json');
+
+        $currentBreaks = $this->breakModel->getCurrentOngoingBreaks();
+        $count = count($currentBreaks);
+        $longBreaks = 0;
+
+        foreach ($currentBreaks as $break) {
+            $minutes = $break['minutes_elapsed'] ?? $break->minutes_elapsed ?? 0;
+            if ($minutes >= 30) {
+                $longBreaks++;
+            }
+        }
+
+        $this->sendJsonResponse([
+            'total' => $count,
+            'long_breaks' => $longBreaks
+        ]);
+    }
+
+    /**
      * Display the main breaks report page.
      */
     public function report()
@@ -133,18 +183,36 @@ class BreaksController extends Controller
     
         $selectedUserId = $_GET['user_id'] ?? null;
         $selectedUserName = '';
-    
+        $selectedTeamId = $_GET['team_id'] ?? null;
+        $selectedTeamName = '';
+
         if (!empty($selectedUserId)) {
             $user = $this->userModel->getUserById($selectedUserId);
             if ($user) {
                 $selectedUserName = $user->name;
             }
         }
+
+        if (!empty($selectedTeamId)) {
+            // Get team name from teams table
+            $stmt = $this->db->prepare("SELECT name FROM teams WHERE id = ?");
+            $stmt->execute([$selectedTeamId]);
+            $team = $stmt->fetch(PDO::FETCH_OBJ);
+            if ($team) {
+                $selectedTeamName = $team->name;
+            }
+        }
     
+        $sortBy = $_GET['sort_by'] ?? 'total_duration_seconds';
+        $sortOrder = $_GET['sort_order'] ?? 'desc';
+
         $filters = [
             'user_id' => $selectedUserId,
+            'team_id' => $selectedTeamId,
             'from_date' => $fromDate,
             'to_date' => $toDate,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
         ];
     
         // Only add 'search' filter if no specific user is selected from dropdown
@@ -154,10 +222,14 @@ class BreaksController extends Controller
     
         $summary = $this->breakModel->getBreaksSummary($filters);
         $stats = $this->breakModel->getOverallSummaryStats($filters);
+        $currentBreakCount = $this->breakModel->getCurrentBreakCount();
         
         // Fetch all agents and team leaders to populate the filter dropdown
         $users = $this->userModel->getUsersByRoles(['agent', 'Team_leader', 'admin', 'quality_manager', 'developer']);
         // The `getUsersByRoles` method already orders by name ASC.
+
+        // Fetch all teams for filtering
+        $teams = $this->breakModel->getAllTeams();
 
         // Hardcoded dummy data for testing
         // $users = [
@@ -172,7 +244,12 @@ class BreaksController extends Controller
             'filters' => $filters,
             'period' => $period,
             'users' => $users, // Pass users to the view
-            'selected_user_name' => $selectedUserName // Pass selected user's name
+            'teams' => $teams, // Pass teams to the view
+            'selected_user_name' => $selectedUserName, // Pass selected user's name
+            'selected_team_name' => $selectedTeamName, // Pass selected team's name
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder,
+            'current_break_count' => $currentBreakCount // Pass current break count
         ]);
     }
     
