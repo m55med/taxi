@@ -465,48 +465,62 @@ class TicketController extends Controller
     public function update($detailId)
     {
         $ticketId = $this->ticketModel->getTicketIdFromDetailId($detailId);
-
+    
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
+    
             // Get current ticket details before updating
             $currentDetails = $this->ticketModel->findDetailById($detailId);
-
+    
             if (!$currentDetails) {
-                $_SESSION['error_message'] = 'Ticket not found.';
+                $_SESSION['error_message'] = '❌ التذكرة غير موجودة أو تم حذفها.';
                 redirect('tickets/view/' . $ticketId);
             }
-
+    
             $userId = Auth::getUserId() ?? 0; // Default to 0 if no user is logged in
             $userRole = Auth::getUserRole() ?? 'guest';
-
+    
+    
             // التحقق من الصلاحيات
-            // يمكن لأي شخص تعديل التذاكر التي أنشأها
-            // ولكن التذاكر التي لم ينشأها يمكن تعديلها من الادمن أو مسؤول الجودة فقط
             if ($currentDetails['edited_by'] != $userId) {
-                // إذا لم يكن هو المنشئ الأصلي
-                if (!in_array($userRole, ['admin', 'quality_manager', 'Quality'])) {
-                    $_SESSION['error_message'] = 'You do not have permission to edit this ticket. Only the original creator, admin, or quality manager can edit it.';
+                if (!in_array(strtolower($userRole), ['admin', 'quality_manager', 'quality'])) {
+                    $_SESSION['error_message'] = '🚫 ليس لديك صلاحية تعديل هذه التذكرة. يمكن فقط للمنشئ الأصلي أو المدير أو مسؤول الجودة تعديلها.';
                     redirect('tickets/view/' . $ticketId);
                 }
             }
-
+    
             $data = $_POST;
-
-            // Log changes before updating
+    
+    
+            // Ensure all required fields are present
+            if (empty($data['platform_id']) || empty($data['category_id']) || empty($data['subcategory_id']) || empty($data['code_id'])) {
+                $_SESSION['error_message'] = '⚠️ يرجى ملء جميع الحقول المطلوبة (المنصة، الفئة، الفئة الفرعية، الكود) قبل الحفظ.';
+                redirect('tickets/view/' . $ticketId);
+                return;
+            }
+    
+        
             $this->logTicketChanges($detailId, $currentDetails, $data, $userId);
-
+    
             // UPDATE the existing ticket detail instead of creating a new one
-            if ($this->ticketModel->updateTicketDetail($detailId, $data, $userId)) {
-                $_SESSION['success_message'] = 'Ticket details updated successfully.';
+           
+
+            $updateResult = $this->ticketModel->updateTicketDetail($detailId, $data, $userId);
+
+            // Handle the result and redirect with detailed messages
+            if ($updateResult) {
+                $_SESSION['success_message'] = '✅ تم تحديث تفاصيل التذكرة بنجاح! تم حفظ جميع التغييرات.';
             } else {
-                $_SESSION['error_message'] = 'Failed to update ticket details.';
+                $_SESSION['error_message'] = '❌ فشل في تحديث تفاصيل التذكرة. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.';
+                error_log("Ticket update failed for detail ID: $detailId, User: $userId");
             }
 
+            // Redirect back to ticket view
             redirect('tickets/view/' . $ticketId);
         } else {
             redirect('tickets/view/' . $ticketId);
         }
     }
+    
 
     /**
      * Log changes made to ticket details
@@ -542,7 +556,7 @@ class TicketController extends Controller
 
             // Only log if there's a change
             if ($oldValue != $newValue) {
-                $this->ticketModel->logEdit($detailId, $userId, $fieldName, $oldValue, $newValue);
+                $logResult = $this->ticketModel->logEdit($detailId, $userId, $fieldName, $oldValue, $newValue);
             }
         }
     }
@@ -607,7 +621,7 @@ class TicketController extends Controller
         }
         
         if (!$ticket) {
-            $_SESSION['error_message'] = "Ticket with ID #{$ticketId} not found.";
+            $_SESSION['error_message'] = "❌ التذكرة رقم #{$ticketId} غير موجودة أو تم حذفها.";
             redirect('tickets/view');
             return;
         }
@@ -616,6 +630,9 @@ class TicketController extends Controller
 
         // Debug: Log successful access
         error_log("Edit Logs Access SUCCESS - Input ID: $ticketId, Actual Ticket ID: $actualTicketId, User Role: $currentRole, Logs Count: " . count($editLogs));
+
+        // Log successful access for debugging (remove in production)
+        error_log("EditLogs Access - Ticket ID: " . ($ticket['id'] ?? 'NULL') . ", User: " . ($currentRole ?? 'unknown'));
 
         $data = [
             'page_main_title' => 'Edit Logs',

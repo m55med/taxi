@@ -8,10 +8,42 @@ use PDO;
 class UsersReport
 {
     private $db;
+    private $cache = [];
+    private $cacheTime = 300; // 5 minutes cache
 
     public function __construct()
     {
         $this->db = Database::getInstance();
+    }
+
+    private function getCacheKey($method, $params)
+    {
+        return md5($method . serialize($params));
+    }
+
+    private function getCached($key)
+    {
+        if (isset($this->cache[$key])) {
+            $cached = $this->cache[$key];
+            if (time() - $cached['time'] < $this->cacheTime) {
+                return $cached['data'];
+            }
+            unset($this->cache[$key]);
+        }
+        return null;
+    }
+
+    private function setCache($key, $data)
+    {
+        $this->cache[$key] = [
+            'data' => $data,
+            'time' => time()
+        ];
+
+        // Limit cache size
+        if (count($this->cache) > 50) {
+            array_shift($this->cache);
+        }
     }
 
     private function getAllActivitiesForUsers(array $userIds, $dateFrom, $dateTo)
@@ -34,7 +66,7 @@ class UsersReport
         $ticketParams = $userIds;
         if ($dateFrom) { $ticketsQuery .= " AND td.created_at >= ?"; $ticketParams[] = $dateFrom . ' 00:00:00'; }
         if ($dateTo)   { $ticketsQuery .= " AND td.created_at <= ?"; $ticketParams[] = $dateTo . ' 23:59:59'; }
-        $params = array_merge($params, $ticketParams);
+        $params = array_merge($params ?? [], $ticketParams);
 
         $outgoingCallsQuery = "
             SELECT 
@@ -66,120 +98,227 @@ class UsersReport
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
-    
-    public function getUsersReportWithPoints($filters)
+
+    private function getOptimizedUserStats(array $userIds, array $filters)
     {
-        $baseUsers = $this->getUsersReport($filters);
-        $users = $baseUsers['users'];
-        $userIds = array_column($users, 'id');
-
         if (empty($userIds)) {
-            return [
-                'users' => [],
-                'summary_stats' => [
-                    'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
-                    'total_points' => 0, 'total_quality_score' => 0, 'total_reviews' => 0,
-                ]
-            ];
+            return [];
         }
-
-        $activities = $this->getAllActivitiesForUsers($userIds, $filters['date_from'] ?? null, $filters['date_to'] ?? null);
-
-        $userStats = [];
-        foreach ($userIds as $id) {
-            $userStats[$id] = [
-                'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
-                'total_points' => 0
-            ];
+    
+        // Try cache first
+        $cacheKey = $this->getCacheKey('optimized_user_stats', [$userIds, $filters]);
+        $cached = $this->getCached($cacheKey);
+        if ($cached !== null) {
+            return $cached;
         }
-        
-        foreach ($activities as $activity) {
-            if(!isset($userStats[$activity->user_id])) continue;
-
-            $activity->points = $this->calculateActivityPoints($activity);
-            $userStats[$activity->user_id]['total_points'] += $activity->points;
-
-            switch ($activity->activity_type) {
-                case 'Ticket':
-                    $platformName = strtolower(str_replace('_', ' ', $activity->platform_name ?? ''));
-                    if ($platformName !== 'incoming call' && $platformName !== 'incoming calls') {
-                        if ($activity->is_vip) {
-                            $userStats[$activity->user_id]['vip_tickets']++;
-                        } else {
-                            $userStats[$activity->user_id]['normal_tickets']++;
-                        }
-                    }
-                    break;
-                case 'Incoming Call':
-                    $userStats[$activity->user_id]['incoming_calls']++;
-                    break;
-                case 'Outgoing Call':
-                    $userStats[$activity->user_id]['outgoing_calls']++;
-                    break;
-            }
-        }
-        
-        $qualityScores = $this->getQualityScores($userIds, $filters);
-        
-        // Fetch delegations for the given month
-        $delegations = [];
+    
+        // placeholders لليوزرز
+        $userIdsPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
+        $userParams = $userIds;
+    
+        // conditions للتاريخ
+        $dateConditions = "";
+        $dateParams = [];
         if (!empty($filters['date_from'])) {
-            $reportMonth = date('n', strtotime($filters['date_from']));
-            $reportYear = date('Y', strtotime($filters['date_from']));
-            $delegations = $this->getDelegationsForUsers($userIds, $reportMonth, $reportYear);
+            $dateConditions .= " AND activities.activity_date >= ?";
+            $dateParams[] = $filters['date_from'] . ' 00:00:00';
         }
-
-        foreach ($users as &$user) {
-            $userId = $user['id'];
-            if(isset($userStats[$userId])) {
-                $user = array_merge($user, $userStats[$userId]);
-            }
-
-            $user['quality_score'] = $qualityScores[$userId]['quality_score'] ?? 0;
-            $user['total_reviews'] = $qualityScores[$userId]['total_reviews'] ?? 0;
-
-            // Apply delegation bonus if exists
-            $user['delegation_applied'] = false;
-            if (isset($delegations[$userId])) {
-                $delegation = $delegations[$userId];
-                $original_points = $user['total_points'];
-                $bonus_percentage = $delegation['percentage'];
-                $bonus_amount = ($original_points * $bonus_percentage) / 100;
-                $new_total_points = $original_points + $bonus_amount;
-
-                $user['total_points'] = $new_total_points;
-                $user['delegation_applied'] = true;
-                $user['delegation_details'] = [
-                    'original_points' => $original_points,
-                    'percentage' => $bonus_percentage,
-                    'bonus_amount' => $bonus_amount,
-                    'reason' => $delegation['reason']
-                ];
-            }
+        if (!empty($filters['date_to'])) {
+            $dateConditions .= " AND activities.activity_date <= ?";
+            $dateParams[] = $filters['date_to'] . ' 23:59:59';
         }
-        unset($user);
+    
+        // الاستعلام
+        $sql = "
+            SELECT
+                user_id,
+                SUM(CASE WHEN activity_type = 'Ticket' 
+                          AND LOWER(REPLACE(platform_name, '_', ' ')) NOT IN ('incoming call', 'incoming calls') 
+                          AND is_vip = 1 THEN 1 ELSE 0 END) as vip_tickets,
+                SUM(CASE WHEN activity_type = 'Ticket' 
+                          AND LOWER(REPLACE(platform_name, '_', ' ')) NOT IN ('incoming call', 'incoming calls') 
+                          AND is_vip = 0 THEN 1 ELSE 0 END) as normal_tickets,
+                SUM(CASE WHEN activity_type = 'Incoming Call' THEN 1 ELSE 0 END) as incoming_calls,
+                SUM(CASE WHEN activity_type = 'Outgoing Call' THEN 1 ELSE 0 END) as outgoing_calls,
+                SUM(COALESCE(points, 0)) as total_points
+            FROM (
+                -- Tickets
+                SELECT
+                    td.edited_by as user_id,
+                    'Ticket' as activity_type,
+                    td.created_at as activity_date,
+                    td.is_vip,
+                    p.name as platform_name,
+                    COALESCE(tcp.points, 0) as points
+                FROM ticket_details td
+                JOIN platforms p ON td.platform_id = p.id
+                LEFT JOIN ticket_code_points tcp 
+                    ON tcp.code_id = td.code_id
+                   AND tcp.is_vip = td.is_vip
+                   AND tcp.valid_from <= td.created_at
+                   AND (tcp.valid_to >= td.created_at OR tcp.valid_to IS NULL)
+                WHERE td.edited_by IN ({$userIdsPlaceholders})
+    
+                UNION ALL
+    
+                -- Outgoing Calls
+                SELECT
+                    dc.call_by as user_id,
+                    'Outgoing Call' as activity_type,
+                    dc.created_at as activity_date,
+                    NULL as is_vip,
+                    NULL as platform_name,
+                    COALESCE(cp.points, 0) as points
+                FROM driver_calls dc
+                LEFT JOIN call_points cp 
+                    ON cp.call_type = 'outgoing'
+                   AND cp.valid_from <= dc.created_at
+                   AND (cp.valid_to >= dc.created_at OR cp.valid_to IS NULL)
+                WHERE dc.call_by IN ({$userIdsPlaceholders})
+    
+                UNION ALL
+    
+                -- Incoming Calls
+                SELECT
+                    ic.call_received_by as user_id,
+                    'Incoming Call' as activity_type,
+                    ic.call_started_at as activity_date,
+                    NULL as is_vip,
+                    NULL as platform_name,
+                    COALESCE(cp.points, 0) as points
+                FROM incoming_calls ic
+                LEFT JOIN call_points cp 
+                    ON cp.call_type = 'incoming'
+                   AND cp.valid_from <= ic.call_started_at
+                   AND (cp.valid_to >= ic.call_started_at OR cp.valid_to IS NULL)
+                WHERE ic.call_received_by IN ({$userIdsPlaceholders})
+            ) activities
+            WHERE 1=1 {$dateConditions}
+            GROUP BY user_id
+        ";
+    
+        // params = userIds × 3 + dateParams
+        $finalParams = array_merge($userParams, $userParams, $userParams, $dateParams);
+    
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($finalParams);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+        // Convert to associative array keyed by user_id
+        $userStats = [];
+        foreach ($results as $row) {
+            $userStats[$row['user_id']] = [
+                'normal_tickets' => (int)$row['normal_tickets'],
+                'vip_tickets' => (int)$row['vip_tickets'],
+                'incoming_calls' => (int)$row['incoming_calls'],
+                'outgoing_calls' => (int)$row['outgoing_calls'],
+                'total_points' => (float)$row['total_points']
+            ];
+        }
+    
+        // Cache the results
+        $this->setCache($cacheKey, $userStats);
+    
+        return $userStats;
+    }
+    
+    
 
-        $summaryStats = [
-             'normal_tickets' => array_sum(array_column($userStats, 'normal_tickets')),
-             'vip_tickets' => array_sum(array_column($userStats, 'vip_tickets')),
-             'incoming_calls' => array_sum(array_column($userStats, 'incoming_calls')),
-             'outgoing_calls' => array_sum(array_column($userStats, 'outgoing_calls')),
-             'total_points' => array_sum(array_column($users, 'total_points')), // Use the potentially modified points
-             'total_quality_score' => array_sum(array_column($qualityScores, 'quality_score')),
-             'total_reviews' => array_sum(array_column($qualityScores, 'total_reviews')),
-        ];
+    public function getUsersReportWithPoints($filters)
+{
+    $baseUsers = $this->getUsersReport($filters);
+    $users = $baseUsers['users'];
+    $userIds = array_column($users, 'id');
 
+    if (empty($userIds)) {
         return [
-            'users' => $users,
-            'summary_stats' => $summaryStats
+            'users' => [],
+            'summary_stats' => [
+                'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+                'total_points' => 0, 'avg_quality_score' => 0, 'total_reviews' => 0,
+            ]
         ];
     }
+
+    // Get all data in optimized queries
+    $userStats = $this->getOptimizedUserStats($userIds, $filters);
+    $qualityScores = $this->getQualityScores($userIds, $filters);
+
+    // Fetch delegations for the given month
+    $delegations = [];
+    if (!empty($filters['date_from'])) {
+        $reportMonth = date('n', strtotime($filters['date_from']));
+        $reportYear = date('Y', strtotime($filters['date_from']));
+        $delegations = $this->getDelegationsForUsers($userIds, $reportMonth, $reportYear);
+    }
+
+    foreach ($users as &$user) {
+        $userId = $user['id'];
+
+        // Merge stats with defaults
+        $user = array_merge($user, $userStats[$userId] ?? [
+            'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+            'total_points' => 0
+        ]);
+
+        $user['quality_score'] = $qualityScores[$userId]['quality_score'] ?? 0;
+        $user['total_reviews'] = $qualityScores[$userId]['total_reviews'] ?? 0;
+
+        // Apply delegation bonus if exists
+        $user['delegation_applied'] = false;
+        if (isset($delegations[$userId])) {
+            $delegation = $delegations[$userId];
+            $original_points = $user['total_points'];
+            $bonus_percentage = $delegation['percentage'];
+            $bonus_amount = ($original_points * $bonus_percentage) / 100;
+            $new_total_points = $original_points + $bonus_amount;
+
+            $user['total_points'] = $new_total_points;
+            $user['delegation_applied'] = true;
+            $user['delegation_details'] = [
+                'original_points' => $original_points,
+                'percentage' => $bonus_percentage,
+                'bonus_amount' => $bonus_amount,
+                'reason' => $delegation['reason']
+            ];
+        }
+    }
+    unset($user);
+
+    // ✅ Calculate summary stats properly
+    $summaryStats = [
+        'normal_tickets' => array_sum(array_column($userStats, 'normal_tickets')),
+        'vip_tickets' => array_sum(array_column($userStats, 'vip_tickets')),
+        'incoming_calls' => array_sum(array_column($userStats, 'incoming_calls')),
+        'outgoing_calls' => array_sum(array_column($userStats, 'outgoing_calls')),
+        'total_points' => array_sum(array_column($users, 'total_points')),
+        'total_reviews' => array_sum(array_column($qualityScores, 'total_reviews')),
+        'avg_quality_score' => 0,
+    ];
+
+    // ✅ fix Avg Quality = weighted average
+    $weightedSum = 0;
+    $totalReviews = 0;
+    foreach ($qualityScores as $row) {
+        $weightedSum += ($row['quality_score'] * $row['total_reviews']);
+        $totalReviews += $row['total_reviews'];
+    }
+    if ($totalReviews > 0) {
+        $summaryStats['avg_quality_score'] = round($weightedSum / $totalReviews, 2);
+    }
+
+    return [
+        'users' => $users,
+        'summary_stats' => $summaryStats
+    ];
+}
+
     
     public function getUsersReport($filters)
     {
         $mainConditions = [];
         $mainParams = [];
-
+    
         if (!empty($filters['role_id'])) {
             $mainConditions[] = 'u.role_id = :role_id';
             $mainParams[':role_id'] = $filters['role_id'];
@@ -196,9 +335,19 @@ class UsersReport
             $mainConditions[] = "u.id IN (SELECT user_id FROM team_members WHERE team_id = :team_id)";
             $mainParams[':team_id'] = $filters['team_id'];
         }
-        
+    
+        // ✅ استثناء الأدوار باستخدام named parameters فقط
+        $excludedRoles = ['developer', 'marketer', 'VIP'];
+        $excludedPlaceholders = [];
+        foreach ($excludedRoles as $idx => $roleName) {
+            $paramName = ":excluded_role_$idx";
+            $excludedPlaceholders[] = $paramName;
+            $mainParams[$paramName] = $roleName;
+        }
+        $mainConditions[] = "r.name NOT IN (" . implode(',', $excludedPlaceholders) . ")";
+    
         $mainWhereClause = !empty($mainConditions) ? 'WHERE ' . implode(' AND ', $mainConditions) : '';
-        
+    
         $sql = "SELECT 
                     u.id, u.username, u.email, u.status, u.is_online,
                     r.name as role_name,
@@ -211,13 +360,15 @@ class UsersReport
                 {$mainWhereClause}
                 GROUP BY u.id
                 ORDER BY u.created_at DESC";
-
+    
         $stmt = $this->db->prepare($sql);
         $stmt->execute($mainParams);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    
         return ['users' => $users];
     }
+    
+    
 
     private function getDelegationsForUsers(array $userIds, int $month, int $year): array
     {
@@ -264,6 +415,13 @@ class UsersReport
             return [];
         }
 
+        // Try cache first
+        $cacheKey = $this->getCacheKey('quality_scores', [$userIds, $filters]);
+        $cached = $this->getCached($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $dateConditionsSql = "";
         $dateParams = [];
 
@@ -284,8 +442,8 @@ class UsersReport
                 AVG(rating) AS quality_score,
                 COUNT(rating) AS total_reviews
             FROM (
-                SELECT 
-                    td.edited_by AS user_id, 
+                SELECT
+                    td.edited_by AS user_id,
                     r.rating,
                     r.reviewed_at
                 FROM reviews r
@@ -294,8 +452,8 @@ class UsersReport
 
                 UNION ALL
 
-                SELECT 
-                    dc.call_by AS user_id, 
+                SELECT
+                    dc.call_by AS user_id,
                     r.rating,
                     r.reviewed_at
                 FROM reviews r
@@ -316,82 +474,13 @@ class UsersReport
         foreach ($results as $row) {
             $scores[$row['user_id']] = $row;
         }
+
+        // Cache the results
+        $this->setCache($cacheKey, $scores);
+
         return $scores;
     }
 
-    private function calculateActivityPoints($activity) {
-        $points = 0;
-
-        switch ($activity->activity_type) {
-            case 'Outgoing Call':
-                $points = $this->getCallPoints('outgoing', $activity->activity_date);
-                break;
-
-            case 'Incoming Call':
-                $points = $this->getCallPoints('incoming', $activity->activity_date);
-                break;
-
-            case 'Ticket':
-                $points = $this->getTicketPoints($activity->activity_id, $activity->activity_date);
-                break;
-        }
-
-        return $points;
-    }
-
-    private function getCallPoints($callType, $activityDate) {
-        $stmt = $this->db->prepare("SELECT points FROM call_points WHERE call_type = :call_type AND valid_from <= :activity_date_from AND (valid_to >= :activity_date_to OR valid_to IS NULL) ORDER BY valid_from DESC LIMIT 1");
-
-        $stmt->execute([
-            ':call_type' => $callType,
-            ':activity_date_from' => $activityDate,
-            ':activity_date_to' => $activityDate
-        ]);
-
-        $result = $stmt->fetch(PDO::FETCH_OBJ);
-        return $result ? (float)$result->points : 0;
-    }
-
-    private function getTicketPoints($ticketDetailId, $activityDate) {
-        // First, get ticket details including platform name
-        $stmt = $this->db->prepare("
-            SELECT td.platform_id, p.name as platform_name, td.is_vip, td.code_id
-            FROM ticket_details td
-            JOIN platforms p ON td.platform_id = p.id
-            WHERE td.id = :ticket_detail_id
-        ");
-
-        $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
-        $ticketDetail = $stmt->fetch(PDO::FETCH_OBJ);
-
-        if (!$ticketDetail) {
-            return 0;
-        }
-
-        $platformName = strtolower(str_replace('_', ' ', $ticketDetail->platform_name));
-        if ($platformName === 'incoming call' || $platformName === 'incoming calls') {
-            return 0;
-        }
-
-        // get points based on code and VIP status
-        $stmt = $this->db->prepare("
-            SELECT points FROM ticket_code_points
-            WHERE code_id = :code_id
-            AND is_vip = :is_vip
-            AND valid_from <= :activity_date_from AND (valid_to >= :activity_date_to OR valid_to IS NULL)
-            ORDER BY valid_from DESC LIMIT 1
-        ");
-
-        $stmt->execute([
-            ':code_id' => $ticketDetail->code_id,
-            ':is_vip' => $ticketDetail->is_vip,
-            ':activity_date_from' => $activityDate,
-            ':activity_date_to' => $activityDate
-        ]);
-
-        $result = $stmt->fetch(PDO::FETCH_OBJ);
-        return $result ? (float)$result->points : 0;
-    }
 
     private function getBonusesForUsers($userIds, $from, $to)
     {
@@ -420,5 +509,113 @@ class UsersReport
              $bonuses[$row['user_id']][$row['bonus_year']][$row['bonus_month']] = $row['bonus_percent'];
          }
          return $bonuses;
+    }
+
+    public function getUsersReportWithPointsPaginated($filters)
+    {
+        $baseUsers = $this->getUsersReport($filters);
+        $allUsers = $baseUsers['users'];
+        $userIds = array_column($allUsers, 'id');
+
+        if (empty($userIds)) {
+            return [
+                'users' => [],
+                'summary_stats' => [
+                    'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+                    'total_points' => 0, 'total_quality_score' => 0, 'total_reviews' => 0,
+                ],
+                'pagination' => [
+                    'current_page' => 1,
+                    'per_page' => $filters['per_page'],
+                    'total' => 0,
+                    'total_pages' => 0,
+                    'has_next' => false,
+                    'has_prev' => false
+                ]
+            ];
+        }
+
+        // Get paginated users
+        $totalUsers = count($allUsers);
+        $perPage = $filters['per_page'];
+        $currentPage = $filters['page'];
+        $offset = ($currentPage - 1) * $perPage;
+
+        $paginatedUsers = array_slice($allUsers, $offset, $perPage);
+        $paginatedUserIds = array_column($paginatedUsers, 'id');
+
+        // Get data only for paginated users
+        $userStats = $this->getOptimizedUserStats($paginatedUserIds, $filters);
+        $qualityScores = $this->getQualityScores($paginatedUserIds, $filters);
+
+        // Fetch delegations for the given month
+        $delegations = [];
+        if (!empty($filters['date_from'])) {
+            $reportMonth = date('n', strtotime($filters['date_from']));
+            $reportYear = date('Y', strtotime($filters['date_from']));
+            $delegations = $this->getDelegationsForUsers($paginatedUserIds, $reportMonth, $reportYear);
+        }
+
+        foreach ($paginatedUsers as &$user) {
+            $userId = $user['id'];
+
+            // Merge stats with defaults
+            $user = array_merge($user, $userStats[$userId] ?? [
+                'normal_tickets' => 0, 'vip_tickets' => 0, 'incoming_calls' => 0, 'outgoing_calls' => 0,
+                'total_points' => 0
+            ]);
+
+            $user['quality_score'] = $qualityScores[$userId]['quality_score'] ?? 0;
+            $user['total_reviews'] = $qualityScores[$userId]['total_reviews'] ?? 0;
+
+            // Apply delegation bonus if exists
+            $user['delegation_applied'] = false;
+            if (isset($delegations[$userId])) {
+                $delegation = $delegations[$userId];
+                $original_points = $user['total_points'];
+                $bonus_percentage = $delegation['percentage'];
+                $bonus_amount = ($original_points * $bonus_percentage) / 100;
+                $new_total_points = $original_points + $bonus_amount;
+
+                $user['total_points'] = $new_total_points;
+                $user['delegation_applied'] = true;
+                $user['delegation_details'] = [
+                    'original_points' => $original_points,
+                    'percentage' => $bonus_percentage,
+                    'bonus_amount' => $bonus_amount,
+                    'reason' => $delegation['reason']
+                ];
+            }
+        }
+        unset($user);
+
+        // Get summary stats for ALL users (not just paginated)
+        $allUserStats = $this->getOptimizedUserStats($userIds, $filters);
+        $allQualityScores = $this->getQualityScores($userIds, $filters);
+
+        $summaryStats = [
+            'normal_tickets' => array_sum(array_column($allUserStats, 'normal_tickets')),
+            'vip_tickets' => array_sum(array_column($allUserStats, 'vip_tickets')),
+            'incoming_calls' => array_sum(array_column($allUserStats, 'incoming_calls')),
+            'outgoing_calls' => array_sum(array_column($allUserStats, 'outgoing_calls')),
+            'total_points' => array_sum(array_column($allUserStats, 'total_points')),
+            'total_quality_score' => array_sum(array_column($allQualityScores, 'quality_score')),
+            'total_reviews' => array_sum(array_column($allQualityScores, 'total_reviews')),
+        ];
+
+        $totalPages = ceil($totalUsers / $perPage);
+
+        return [
+            'users' => $paginatedUsers,
+            'summary_stats' => $summaryStats,
+            'pagination' => [
+                'current_page' => $currentPage,
+                'per_page' => $perPage,
+                'total' => $totalUsers,
+                'total_pages' => $totalPages,
+                'has_next' => $currentPage < $totalPages,
+                'has_prev' => $currentPage > 1
+            ]
+        ];
     }
 }

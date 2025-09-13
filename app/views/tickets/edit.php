@@ -10,6 +10,29 @@
 
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Edit Ticket #<?= htmlspecialchars($data['ticket']['ticket_number']) ?></h1>
 
+    <!-- Debug Panel (Remove after testing) -->
+    <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
+    <div class="bg-yellow-100 border border-yellow-400 p-4 mb-6 rounded-lg">
+        <h3 class="font-bold text-yellow-800 mb-2">Debug Information:</h3>
+        <div class="text-sm text-yellow-700 space-y-1">
+            <p><strong>Ticket ID:</strong> <?= $data['ticket']['id'] ?? 'N/A' ?></p>
+            <p><strong>Ticket Number:</strong> <?= $data['ticket']['ticket_number'] ?? 'N/A' ?></p>
+            <p><strong>Platform ID:</strong> <?= $data['ticket']['platform_id'] ?? 'N/A' ?></p>
+            <p><strong>Category ID:</strong> <?= $data['ticket']['category_id'] ?? 'N/A' ?></p>
+            <p><strong>Subcategory ID:</strong> <?= $data['ticket']['subcategory_id'] ?? 'N/A' ?></p>
+            <p><strong>Code ID:</strong> <?= $data['ticket']['code_id'] ?? 'N/A' ?></p>
+            <p><strong>Country ID:</strong> <?= $data['ticket']['country_id'] ?? 'N/A' ?></p>
+            <p><strong>Is VIP:</strong> <?= ($data['ticket']['is_vip'] ?? 0) ? 'Yes' : 'No' ?></p>
+            <p><strong>Edited By:</strong> <?= $data['ticket']['edited_by'] ?? 'N/A' ?></p>
+            <p><strong>Current User ID:</strong> <?= $data['current_user_id'] ?? 'N/A' ?></p>
+            <p><strong>User Role:</strong> <?= $data['user_role'] ?? 'N/A' ?></p>
+        </div>
+        <div class="mt-2">
+            <a href="?debug=1" class="text-xs bg-yellow-200 px-2 py-1 rounded">Refresh Debug</a>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if (isset($data['ticket']['edited_by']) && isset($data['current_user_id']) && $data['ticket']['edited_by'] == $data['current_user_id']): ?>
         <div class="max-w-4xl mx-auto mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
             <div class="flex items-center">
@@ -17,13 +40,27 @@
                 <span class="text-green-800 font-medium">You are the original creator of this ticket and can edit it.</span>
             </div>
         </div>
-    <?php elseif (isset($data['user_role']) && in_array($data['user_role'], ['admin', 'quality_manager', 'Quality'])): ?>
+    <?php elseif (isset($data['user_role']) && in_array(strtolower($data['user_role']), ['admin', 'quality_manager', 'quality'])): ?>
         <div class="max-w-4xl mx-auto mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div class="flex items-center">
                 <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
                 <span class="text-blue-800 font-medium">You have admin privileges and can edit any ticket.</span>
             </div>
         </div>
+    <?php endif; ?>
+
+    <!-- Debug Information (Remove after testing) -->
+    <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
+    <div class="max-w-4xl mx-auto mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 class="font-bold text-yellow-800 mb-2">Debug Information:</h3>
+        <div class="text-sm text-yellow-700">
+            <p><strong>Current User ID:</strong> <?= $data['current_user_id'] ?? 'Not set' ?></p>
+            <p><strong>User Role:</strong> <?= $data['user_role'] ?? 'Not set' ?></p>
+            <p><strong>Ticket Edited By:</strong> <?= $data['ticket']['edited_by'] ?? 'Not set' ?></p>
+            <p><strong>Ticket ID:</strong> <?= $data['ticket']['id'] ?? 'Not set' ?></p>
+            <p><strong>Ticket Number:</strong> <?= $data['ticket']['ticket_number'] ?? 'Not set' ?></p>
+        </div>
+    </div>
     <?php endif; ?>
 
 

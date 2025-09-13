@@ -52,16 +52,25 @@
 
 
 
-                        <?php if ($index === 0): ?>
+                        <?php
+                        // تحديد ما إذا كان المستخدم يمكنه تعديل هذه التفصيلة
+                        $canEditThisDetail = false;
 
-                            <a href="<?= BASE_URL ?>/tickets/edit/<?= $history['id'] ?>" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-xs font-medium flex items-center">
+                        // إذا كان المستخدم admin أو quality → يمكنه تعديل جميع التفاصيل
+                        if (in_array(strtolower($data['currentUser']['role']), ['admin', 'quality', 'quality_manager'])) {
+                            $canEditThisDetail = true;
+                        }
+                        // إذا كان المستخدم غير ذلك → يمكنه تعديل تفاصيله التي أنشأها فقط
+                        elseif (isset($history['edited_by']) && $history['edited_by'] == $data['currentUser']['id']) {
+                            $canEditThisDetail = true;
+                        }
 
-                                <i class="fas fa-edit mr-2"></i>
-
-                                Edit Details
-
-                            </a>
-
+                        if ($canEditThisDetail):
+                        ?>
+                        <a href="<?= BASE_URL ?>/tickets/edit/<?= $history['id'] ?>" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-xs font-medium flex items-center">
+                            <i class="fas fa-edit mr-2"></i>
+                            Edit Details
+                        </a>
                         <?php endif; ?>
 
                         <!-- Edit Logs Button (Admin Only) -->

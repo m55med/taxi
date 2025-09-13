@@ -4,14 +4,39 @@
     <!-- Flash Messages -->
     <?php include_once __DIR__ . '/../includes/flash_messages.php'; ?>
 
+    <?php
+    // Define variables early for breadcrumb navigation
+    $ticketId = $data['ticket']['id'] ?? null;
+    $ticketNumber = $data['ticket']['ticket_number'] ?? null;
+    $ticketTitle = $data['ticket']['title'] ?? 'Unknown Ticket';
+    $phone = $data['ticket']['phone'] ?? null;
+    $platformName = $data['ticket']['platform_name'] ?? null;
+    $categoryName = $data['ticket']['category_name'] ?? null;
+    ?>
+
+    <!-- Breadcrumb Navigation -->
+ 
+
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Edit Logs - Ticket #<?= htmlspecialchars($data['ticket']['ticket_number']) ?></h1>
-        <div class="flex gap-2">
-            <a href="<?= BASE_URL ?>/tickets/view/<?= $data['ticket']['id'] ?>" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Back to Ticket
-            </a>
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">
+                Edit Logs - Ticket #<?= $ticketNumber ? htmlspecialchars($ticketNumber) : 'Unknown' ?>
+            </h1>
+            <?php if ($ticketTitle && $ticketTitle !== 'Unknown Ticket'): ?>
+                <p class="text-gray-600 mt-1">
+                    <strong>Title:</strong> <?= htmlspecialchars($ticketTitle) ?>
+                    <?php if ($phone): ?>
+                        | <strong>Phone:</strong> <?= htmlspecialchars($phone) ?>
+                    <?php endif; ?>
+                    <?php if ($platformName): ?>
+                        | <strong>Platform:</strong> <?= htmlspecialchars($platformName) ?>
+                    <?php endif; ?>
+                    <?php if ($categoryName): ?>
+                        | <strong>Category:</strong> <?= htmlspecialchars($categoryName) ?>
+                    <?php endif; ?>
+                </p>
+            <?php endif; ?>
         </div>
     </div>
 

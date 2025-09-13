@@ -1725,167 +1725,79 @@ class Ticket extends Model
     }
 
 
-
-
-
-
-
     public function updateTicketDetail($detailId, array $data, $userId)
-
-
-
     {
-
-
-
         try {
-
-
-
             $sql = "UPDATE ticket_details SET
-
-
-
                         is_vip = :is_vip,
-
-
-
                         platform_id = :platform_id,
-
-
-
                         phone = :phone,
-
-
-
                         category_id = :category_id,
-
-
-
                         subcategory_id = :subcategory_id,
-
-
-
                         code_id = :code_id,
-
-
-
                         notes = :notes,
-
-
-
                         country_id = :country_id,
-
-
-
-                        assigned_team_leader_id = :assigned_team_leader_id,
-
-
-
-
-
+                        assigned_team_leader_id = :assigned_team_leader_id
                     WHERE id = :detail_id";
-
-
-
-            
-
-
-
+    
             $stmt = $this->db->prepare($sql);
-
-
-
-            
-
-
-
-            return $stmt->execute([
-
-
-
+    
+            $params = [
                 ':is_vip' => $data['is_vip'] ?? 0,
-
-
-
                 ':platform_id' => $data['platform_id'],
-
-
-
                 ':phone' => $data['phone'] ?? null,
-
-
-
                 ':category_id' => $data['category_id'],
-
-
-
                 ':subcategory_id' => $data['subcategory_id'],
-
-
-
                 ':code_id' => $data['code_id'],
-
-
-
                 ':notes' => $data['notes'] ?? null,
-
-
-
                 ':country_id' => $data['country_id'] ?? null,
-
-
-
-                ':assigned_team_leader_id' => $data['assigned_team_leader_id'],
-
-
-
-                ':edited_by' => $userId,
-
-
-
+                ':assigned_team_leader_id' => $data['assigned_team_leader_id'] ?? null,
                 ':detail_id' => $detailId
+            ];
+    
+            $success = $stmt->execute($params);
 
-
-
-            ]);
-
-
+            if ($success) {
+                return true; // Return true on successful update
+            } else {
+                return false; // Return false on failed update
+            }
 
         } catch (\Exception $e) {
-
-
-
-            error_log("Error in updateTicketDetail: " . $e->getMessage());
-
-
-
+            error_log("Exception in updateTicketDetail: " . $e->getMessage());
             return false;
-
-
-
         }
-
-
-
     }
+    
+    
+    
+
+
+
+
+ 
 
     /**
      * Log ticket edit changes
      */
     public function logEdit($ticketDetailId, $editedBy, $fieldName, $oldValue, $newValue)
     {
-        $sql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at) 
-                VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, NOW())";
-        
-        $this->db->query($sql);
-        $this->db->bind(':ticket_detail_id', $ticketDetailId);
-        $this->db->bind(':edited_by', $editedBy);
-        $this->db->bind(':field_name', $fieldName);
-        $this->db->bind(':old_value', $oldValue);
-        $this->db->bind(':new_value', $newValue);
-        
-        return $this->db->execute();
+        try {
+            $sql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at)
+                    VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, NOW())";
+
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':ticket_detail_id' => $ticketDetailId,
+                ':edited_by' => $editedBy,
+                ':field_name' => $fieldName,
+                ':old_value' => $oldValue,
+                ':new_value' => $newValue
+            ]);
+        } catch (\Exception $e) {
+            error_log("Error in logEdit: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
