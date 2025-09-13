@@ -1,23 +1,30 @@
 <?php require_once APPROOT . '/views/includes/header.php'; ?>
 
-
 <div class="container mx-auto p-4 sm:p-6 lg:p-8">
 
     <!-- Header -->
     <div class="mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Create New Article</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">
+            <?= htmlspecialchars($data['page_main_title'] ?? 'Create New Article') ?>
+        </h1>
     </div>
 
     <!-- Form Container -->
     <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8">
         <form id="kb-form" action="<?= URLROOT ?>/knowledge_base/store" method="POST">
-            <?php view('knowledge_base/_form', ['ticket_codes' => $data['ticket_codes'], 'article' => $data['article']]); ?>
+            <?php view('knowledge_base/_form', [
+                'ticket_codes' => $data['ticket_codes'],
+                'article'      => $data['article'],
+                'folders'      => $data['folders'],   // <<< هنا التعديل المهم
+            ]); ?>
 
             <div class="mt-8 flex justify-end space-x-4">
-                <a href="<?= URLROOT ?>/knowledge_base" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                <a href="<?= URLROOT ?>/knowledge_base" 
+                   class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
                     Cancel
                 </a>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                <button type="submit" 
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
                     Save Article
                 </button>
             </div>
@@ -26,4 +33,4 @@
 
 </div>
 
-<?php require_once APPROOT . '/views/includes/footer.php'; ?> 
+<?php require_once APPROOT . '/views/includes/footer.php'; ?>
