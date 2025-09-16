@@ -5,6 +5,10 @@ namespace App\Models\Reports\EmployeeActivityScore;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class EmployeeActivityScoreReport
 {
     private $db;
@@ -57,6 +61,11 @@ class EmployeeActivityScoreReport
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 } 

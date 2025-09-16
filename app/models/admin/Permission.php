@@ -9,6 +9,10 @@ use RecursiveDirectoryIterator;
 use ReflectionClass;
 use ReflectionMethod;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Permission
 {
     private $db;
@@ -155,7 +159,12 @@ class Permission
     {
         $stmt = $this->db->prepare("SELECT * FROM permissions ORDER BY permission_key ASC");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**

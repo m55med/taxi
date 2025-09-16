@@ -10,12 +10,14 @@ use App\Models\Admin\Team;
 use App\Models\Admin\Coupon;
 use App\Models\Discussion\Discussion;
 use App\Models\Review\Review;
+use App\Models\Listings\ListingModel;
 
 class TicketController extends Controller
 {
     private $ticketModel;
     private $discussionModel;
     private $reviewModel;
+    private $listingModel;
 
     public function __construct()
     {
@@ -26,13 +28,18 @@ class TicketController extends Controller
         $this->ticketModel = $this->model('Tickets/Ticket');
         $this->discussionModel = $this->model('Discussion/Discussion');
         $this->reviewModel = $this->model('Review/Review');
+        $this->listingModel = $this->model('Listings/ListingModel');
     }
 
     public function show($id = null)
     {
         if (empty($id)) {
             // If no ID is provided, show the search page
-            $this->view('tickets/search', ['page_main_title' => 'Search for a Ticket']);
+            $recentLogs = $this->listingModel->getTicketLogs(null, 10); // Get recent logs
+            $this->view('tickets/search', [
+                'page_main_title' => 'Search for a Ticket',
+                'recent_logs' => $recentLogs
+            ]);
             return;
         }
 
@@ -141,6 +148,7 @@ class TicketController extends Controller
             'relatedTickets' => $relatedTickets,
             'ticketDiscussions' => $ticketDiscussions, // Pass the fully-loaded ticket discussions
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
+            'listingModel' => $this->listingModel, // For logs functionality
             'currentUser' => [
                 'id' => $_SESSION['user_id'] ?? null,
                 'role' => $_SESSION['user']['role_name'] ?? $_SESSION['role_name'] ?? 'default_role'
@@ -478,6 +486,7 @@ class TicketController extends Controller
             'platforms' => $platformModel->getAll(),
             'team_leaders' => $teamModel->getAllTeamLeaders(),
             'countries' => $countryModel->getAll(),
+            'listingModel' => $this->listingModel, // For logs functionality
             'user_can_edit' => true, // تم التحقق من الصلاحيات بالفعل
             'user_role' => $userRole,
             'current_user_id' => $userId
@@ -564,6 +573,8 @@ class TicketController extends Controller
      */
     private function logTicketChanges($detailId, $currentDetails, $newData, $userId)
     {
+        error_log("LOGGING TICKET CHANGES: Detail ID: $detailId, User: $userId");
+
         $fieldsToTrack = [
             'platform_id' => 'Platform',
             'phone' => 'Phone',
@@ -674,7 +685,8 @@ class TicketController extends Controller
         $data = [
             'page_main_title' => 'Edit Logs',
             'ticket' => $ticket,
-            'editLogs' => $editLogs
+            'editLogs' => $editLogs,
+            'listingModel' => $this->listingModel // For additional logs functionality
         ];
 
         $this->view('tickets/edit_logs', $data);

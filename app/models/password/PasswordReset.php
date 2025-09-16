@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class PasswordReset
 {
     private $db;
@@ -57,7 +61,19 @@ class PasswordReset
             $sql = "SELECT * FROM password_resets WHERE token = :token";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':token' => $token]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            if ($result) {
+
+                return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+            }
+
+
+            return $result;
         } catch (PDOException $e) {
             error_log("Error finding password reset token: " . $e->getMessage());
             return false;

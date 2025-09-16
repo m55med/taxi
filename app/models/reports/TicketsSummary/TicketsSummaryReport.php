@@ -54,6 +54,10 @@ class TicketsSummaryReport
                 LEFT JOIN reviews r ON r.reviewable_id = t.id AND r.reviewable_type = 'ticket'
                 {$where}
                 GROUP BY status";
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         return $this->db->prepare($sql)->execute($params)->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
     }
 

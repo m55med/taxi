@@ -1012,21 +1012,28 @@
 
         $is_agent = \App\Core\Auth::hasRole('agent');
 
+        $current_user_id = $_SESSION['user_id'] ?? null;
+        $current_user_role = $_SESSION['user']['role_name'] ?? $_SESSION['role_name'] ?? null;
 
+        // Admin and Quality can see all edit/delete buttons
+        $is_admin_or_quality = in_array(strtolower($current_user_role), ['admin', 'quality_manager', 'quality', 'developer']);
 
-        $is_editor = \App\Core\Auth::hasRole('admin') || \App\Core\Auth::hasRole('developer');
+        // Team leaders can see edit/delete for their team tickets
+        $is_team_leader = strtolower($current_user_role) === 'team_leader';
+
+        // Regular users can only edit/delete their own tickets
+        $is_regular_user = !in_array(strtolower($current_user_role), ['admin', 'quality_manager', 'quality', 'developer', 'team_leader', 'agent']);
+
+        // Show actions column if user can perform actions on at least some tickets
+        $show_actions_column = !$is_agent;
 
 
 
         $colspan = 7; // Base columns: Ticket #, Platform, Phone, Classification, Reviews, Created At, VIP
 
-
-
         if (!$is_agent) $colspan++; // Add Creator column
 
-
-
-        if ($is_editor) $colspan++; // Add Actions column
+        if ($show_actions_column) $colspan++; // Add Actions column
 
 
 
@@ -1086,7 +1093,7 @@
 
 
 
-                    <?php if ($is_editor): ?>
+                    <?php if ($show_actions_column): ?>
 
 
 
@@ -1422,7 +1429,9 @@
 
 
 
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-timestamp="<?= strtotime($ticket['created_at']) ?>" data-original-date="<?= date('Y-m-d H:i:s', strtotime($ticket['created_at'])) ?>"><?= date('Y-m-d H:i', strtotime($ticket['created_at'])) ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                <?= htmlspecialchars(format_datetime_display_12h($ticket['created_at'])) ?>
+                            </td>
 
 
 
@@ -1466,7 +1475,24 @@
 
 
 
-                            <?php if ($is_editor): ?>
+                            <?php
+                            // Determine if current user can edit/delete this specific ticket
+                            $can_edit_this_ticket = false;
+
+                            if ($is_admin_or_quality) {
+                                // Admin and Quality can edit/delete all tickets
+                                $can_edit_this_ticket = true;
+                            } elseif ($is_team_leader && isset($ticket['team_id_at_action'])) {
+                                // Team leader can edit/delete tickets from their team
+                                $currentUserTeamId = \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($current_user_id);
+                                $can_edit_this_ticket = ($currentUserTeamId && $currentUserTeamId == $ticket['team_id_at_action']);
+                            } elseif ($is_regular_user) {
+                                // Regular users can only edit/delete their own tickets
+                                $can_edit_this_ticket = (isset($ticket['created_by']) && $ticket['created_by'] == $current_user_id);
+                            }
+
+                            if ($can_edit_this_ticket):
+                            ?>
 
 
 
@@ -1474,7 +1500,7 @@
 
 
 
-                                <a href="<?= URLROOT ?>/tickets/edit/<?= $ticket['ticket_id'] ?>" class="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                <a href="<?= URLROOT ?>/tickets/edit/<?= $ticket['ticket_detail_id'] ?>" class="text-indigo-600 hover:text-indigo-900" title="Edit">
 
 
 
@@ -1483,6 +1509,12 @@
 
 
                                 </a>
+
+                                <button type="button" onclick="deleteTicketDetail(<?= $ticket['ticket_detail_id'] ?>, '<?= htmlspecialchars($ticket['ticket_number']) ?>')" class="text-red-600 hover:text-red-900" title="Delete">
+
+                                    <i class="fas fa-trash"></i>
+
+                                </button>
 
 
 
@@ -1495,6 +1527,22 @@
 
 
                         </tr>
+
+                        <!-- Logs Row -->
+                        <?php
+                        $detailLogs = $data['listingModel']->getTicketDetailLogs($ticket['ticket_detail_id']);
+                        if (!empty($detailLogs)):
+                        ?>
+                        <tr class="bg-gray-50">
+                            <td colspan="<?= $colspan ?>" class="px-6 py-2">
+                                <?php
+                                $title = 'سجلات تفصيلة التذكرة #' . $ticket['ticket_detail_id'];
+                                $compact = true;
+                                include __DIR__ . '/partials/ticket_logs.php';
+                                ?>
+                            </td>
+                        </tr>
+                        <?php endif; ?>
 
 
 
@@ -4118,62 +4166,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-<script>
-    // Function to convert server time to Cairo time
-    function convertToCairoTime() {
-        console.log('Converting timestamps to Cairo time...');
 
-        // Get all table cells with timestamp data
-        const timestampCells = document.querySelectorAll('td[data-timestamp]');
+    // Delete ticket detail function
+    function deleteTicketDetail(ticketDetailId, ticketNumber) {
+        if (!confirm(`⚠️ تأكيد الحذف\n\nهل تريد حذف تفصيلة التذكرة رقم ${ticketNumber}؟\n\nسيتم تسجيل هذا الحذف في سجل التعديلات.`)) {
+            return;
+        }
 
-        timestampCells.forEach(cell => {
-            const timestamp = parseInt(cell.getAttribute('data-timestamp'));
-            const originalDate = cell.getAttribute('data-original-date');
+        // Show loading
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        button.disabled = true;
 
-            if (timestamp && originalDate) {
-                try {
-                    // Create Date object from timestamp (in milliseconds)
-                    const serverDate = new Date(timestamp * 1000);
+        // Send delete request
+        fetch(`${URLROOT}/listings/delete_ticket_detail`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                ticket_detail_id: ticketDetailId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('تم حذف تفصيلة التذكرة بنجاح');
 
-                    // Convert to Cairo time (UTC+2, UTC+3 during DST)
-                    const cairoDate = new Date(serverDate.toLocaleString("en-US", {timeZone: "Africa/Cairo"}));
-
-                    // Format the date for display
-                    const year = cairoDate.getFullYear();
-                    const month = String(cairoDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(cairoDate.getDate()).padStart(2, '0');
-
-                    // Get hours in 12-hour format
-                    let hours = cairoDate.getHours();
-                    const minutes = String(cairoDate.getMinutes()).padStart(2, '0');
-                    const seconds = String(cairoDate.getSeconds()).padStart(2, '0');
-                    const ampm = hours >= 12 ? 'PM' : 'AM';
-
-                    // Convert to 12-hour format
-                    hours = hours % 12;
-                    hours = hours ? hours : 12; // Handle midnight (0 hours)
-
-                    const cairoTimeString = `${year}-${month}-${day} ${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
-
-                    // Update the cell content
-                    cell.textContent = cairoTimeString;
-
-                    console.log(`Converted ${originalDate} to ${cairoTimeString} (Cairo time)`);
-
-                } catch (error) {
-                    console.error('Error converting timestamp:', timestamp, error);
-                }
+                // Refresh the page to show updated data
+                window.location.reload();
+            } else {
+                // Show error message
+                alert('خطأ في حذف التفصيلة: ' + (data.message || 'خطأ غير معروف'));
+                button.innerHTML = originalHTML;
+                button.disabled = false;
             }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('حدث خطأ أثناء حذف التفصيلة');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
         });
-
-        console.log(`Converted ${timestampCells.length} timestamps to Cairo time`);
     }
-
-    // Call the conversion function when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Small delay to ensure all elements are rendered
-        setTimeout(convertToCairoTime, 100);
-    });
 </script>
 
 <?php include_once APPROOT . '/views/includes/footer.php'; ?>

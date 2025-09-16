@@ -104,6 +104,10 @@ class Discussion extends Model
             LEFT JOIN driver_calls dc on r.reviewable_id = dc.id and r.reviewable_type LIKE '%DriverCall'
         ";
         
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         $conditions = [];
         $params = [$userId, $userId];
 
@@ -181,7 +185,12 @@ class Discussion extends Model
                 ':discussable_type' => $discussable_type,
                 ':discussable_id' => $discussable_id
             ]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             error_log("Error in getDiscussions: " . $e->getMessage());
             return [];
@@ -328,7 +337,12 @@ class Discussion extends Model
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':discussion_id' => $discussionId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             error_log("Error in getReplies: " . $e->getMessage());
             return [];
@@ -370,7 +384,19 @@ class Discussion extends Model
     {
         $stmt = $this->db->prepare("SELECT username FROM users WHERE id = :id");
         $stmt->execute([':id' => $userId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     public function closeDiscussion($discussionId, $userId, $role)
@@ -499,7 +525,12 @@ class Discussion extends Model
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($reviewIds);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             error_log("Error in getDiscussionsForReviews: " . $e->getMessage());
             return [];
@@ -529,7 +560,12 @@ class Discussion extends Model
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($discussionIds);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             error_log("Error in getRepliesForDiscussions: " . $e->getMessage());
             return [];

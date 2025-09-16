@@ -45,6 +45,10 @@ class DriversReport
         }
 
         $whereClause = count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "";
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         return ['clause' => $whereClause, 'params' => $params];
     }
 

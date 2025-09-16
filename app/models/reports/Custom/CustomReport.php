@@ -6,6 +6,10 @@ use App\Core\Model;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class CustomReport extends Model
 {
     public function __construct()

@@ -5,6 +5,10 @@ namespace App\Models\Reports\Tickets;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class TicketsReport
 {
     private $db;
@@ -98,7 +102,12 @@ class TicketsReport
         }
         
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
     public function getTicketsCount($filters)

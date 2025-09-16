@@ -60,6 +60,40 @@
 
     </div>
 
+    <!-- Recent Activity Logs -->
+    <?php if (!empty($data['recent_logs'])): ?>
+    <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow-md border mt-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-3 flex items-center">
+            <i class="fas fa-history text-gray-500 mr-3"></i>
+            آخر السجلات
+        </h2>
+
+        <div class="space-y-3 max-h-64 overflow-y-auto">
+            <?php foreach (array_slice($data['recent_logs'], 0, 5) as $log): ?>
+                <div class="bg-gray-50 rounded-lg p-3 text-sm">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900">
+                                <?php if ($log['field_name'] === 'DELETED'): ?>
+                                    <span class="text-red-600">تم حذف تفصيلة</span>
+                                <?php elseif ($log['field_name'] === 'CREATED'): ?>
+                                    <span class="text-green-600">تم إنشاء تفصيلة</span>
+                                <?php else: ?>
+                                    <span class="text-blue-600">تم تعديل <?= htmlspecialchars($log['field_name']) ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="text-gray-600 text-xs mt-1">
+                                <?= htmlspecialchars($log['editor_name'] ?? 'مستخدم') ?> •
+                                <?= htmlspecialchars($log['created_at']) ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>
 
 

@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use App\Models\Break\BreakStorage;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class BreakModel
 {
     private $db;
@@ -28,9 +32,10 @@ class BreakModel
             return false; // Or handle as an error, e.g., return the existing break ID
         }
 
-        $sql = "INSERT INTO breaks (user_id, start_time, is_active) VALUES (:user_id, UTC_TIMESTAMP(), 1)";
+        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        $sql = "INSERT INTO breaks (user_id, start_time, is_active) VALUES (:user_id, :start_time, 1)";
         $stmt = $this->db->prepare($sql);
-        if ($stmt->execute([':user_id' => $userId])) {
+        if ($stmt->execute([':user_id' => $userId, ':start_time' => $utcTimestamp])) {
             $breakId = $this->db->lastInsertId();
 
             // Get user info for JSON storage
@@ -56,14 +61,19 @@ class BreakModel
      */
     public function stop($breakId)
     {
+        $utcTimestamp = DateTimeHelper::getCurrentUTC();
         $sql = "UPDATE breaks
-                SET end_time = UTC_TIMESTAMP(),
-                    duration_seconds = TIMESTAMPDIFF(SECOND, start_time, UTC_TIMESTAMP()),
+                SET end_time = :end_time,
+                    duration_seconds = TIMESTAMPDIFF(SECOND, start_time, :end_time_calc),
                     is_active = 0
                 WHERE id = :id AND is_active = 1";
 
         $stmt = $this->db->prepare($sql);
-        $result = $stmt->execute([':id' => $breakId]);
+        $result = $stmt->execute([
+            ':id' => $breakId,
+            ':end_time' => $utcTimestamp,
+            ':end_time_calc' => $utcTimestamp
+        ]);
 
         // Remove from JSON storage
         if ($result) {
@@ -360,13 +370,14 @@ class BreakModel
      */
     public function getCurrentOngoingBreaks()
     {
+        $utcTimestamp = DateTimeHelper::getCurrentUTC();
         $sql = "SELECT
                     b.id,
                     b.user_id,
                     b.start_time,
                     u.name as user_name,
                     t.name as team_name,
-                    TIMESTAMPDIFF(MINUTE, b.start_time, UTC_TIMESTAMP()) as minutes_elapsed
+                    TIMESTAMPDIFF(MINUTE, b.start_time, :current_time) as minutes_elapsed
                 FROM breaks b
                 JOIN users u ON b.user_id = u.id
                 LEFT JOIN team_members tm ON u.id = tm.user_id
@@ -375,7 +386,7 @@ class BreakModel
                 ORDER BY b.start_time ASC";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':current_time' => $utcTimestamp]);
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 

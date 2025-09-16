@@ -339,6 +339,10 @@ class EstablishmentModel
                 $whereClause 
                 ORDER BY e.created_at DESC";
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         $this->db->query($sql);
         
         foreach ($params as $key => $value) {

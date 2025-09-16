@@ -24,6 +24,9 @@ use PDO;
 
 use PDOException;
 
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 
 
 
@@ -238,15 +241,17 @@ class Ticket extends Model
 
 
 
+            $utcTimestamp = \App\Helpers\DateTimeHelper::getCurrentUTC();
+
             $stmt = $this->db->prepare(
 
 
 
-                "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by)
+                "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, created_at, updated_at)                                                                
 
 
 
-                 VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by)"
+                 VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by, :created_at, :updated_at)"                                                                        
 
 
 
@@ -302,7 +307,11 @@ class Ticket extends Model
 
 
 
-                ':edited_by' => $userId
+                ':edited_by' => $userId,
+
+                ':created_at' => $utcTimestamp,
+
+                ':updated_at' => $utcTimestamp
 
 
 
@@ -754,7 +763,8 @@ class Ticket extends Model
 
 
 
-            $updateSql = "UPDATE coupons SET is_used = 1, used_in_ticket = :ticket_id, used_by = :user_id, used_at = NOW() WHERE id = :coupon_id";
+            $utcTimestamp = DateTimeHelper::getCurrentUTC();
+            $updateSql = "UPDATE coupons SET is_used = 1, used_in_ticket = :ticket_id, used_by = :user_id, used_at = :used_at WHERE id = :coupon_id";
 
 
 
@@ -811,6 +821,10 @@ class Ticket extends Model
 
 
                     ':user_id' => $_SESSION['user_id'],
+                    
+                    
+                    
+                    ':used_at' => $utcTimestamp,
 
 
 
@@ -1126,7 +1140,26 @@ class Ticket extends Model
 
 
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+        
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+        
+
+
+
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1242,11 +1275,12 @@ class Ticket extends Model
 
 
 
-        $stmt->execute([':ticket_id' => $ticketId]);
+        $stmt->execute(['ticket_id' => $ticketId]);
 
+        $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+        return convert_dates_for_display($history, ['created_at', 'updated_at']);
 
 
 
@@ -1302,7 +1336,18 @@ class Ticket extends Model
 
 
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1350,7 +1395,18 @@ class Ticket extends Model
 
 
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1398,7 +1454,18 @@ class Ticket extends Model
 
 
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+            return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1650,7 +1717,34 @@ class Ticket extends Model
 
 
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+        if ($result) {
+
+
+
+
+            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+
+
+
+
+        }
+
+
+
+
+
+        return $result;
 
 
 
@@ -1718,7 +1812,34 @@ class Ticket extends Model
 
 
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+
+
+        if ($result) {
+
+
+
+
+            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+
+
+
+
+        }
+
+
+
+
+
+        return $result;
 
 
 
@@ -1783,8 +1904,11 @@ class Ticket extends Model
     public function logEdit($ticketDetailId, $editedBy, $fieldName, $oldValue, $newValue)
     {
         try {
+            error_log("LOGGING EDIT: Detail ID: $ticketDetailId, User: $editedBy, Field: $fieldName, Old: $oldValue, New: $newValue");
+
+            $utcTimestamp = DateTimeHelper::getCurrentUTC();
             $sql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at)
-                    VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, NOW())";
+                    VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, :created_at)";
 
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
@@ -1792,7 +1916,8 @@ class Ticket extends Model
                 ':edited_by' => $editedBy,
                 ':field_name' => $fieldName,
                 ':old_value' => $oldValue,
-                ':new_value' => $newValue
+                ':new_value' => $newValue,
+                ':created_at' => $utcTimestamp
             ]);
         } catch (\Exception $e) {
             error_log("Error in logEdit: " . $e->getMessage());
@@ -1825,21 +1950,23 @@ class Ticket extends Model
      */
     public function getAllEditLogsForTicket($ticketId)
     {
-        $sql = "SELECT 
+        $sql = "SELECT
                     tel.*,
                     u.name as editor_name,
                     u.username as editor_username,
-                    td.created_at as detail_created_at
+                    td.created_at as detail_created_at,
+                    t.ticket_number
                 FROM ticket_edit_logs tel
                 LEFT JOIN users u ON tel.edited_by = u.id
                 LEFT JOIN ticket_details td ON tel.ticket_detail_id = td.id
+                LEFT JOIN tickets t ON td.ticket_id = t.id
                 WHERE td.ticket_id = :ticket_id
                 ORDER BY tel.created_at DESC";
-        
-        $this->db->query($sql);
-        $this->db->bind(':ticket_id', $ticketId);
-        
-        return $this->db->resultSet();
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':ticket_id' => $ticketId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 

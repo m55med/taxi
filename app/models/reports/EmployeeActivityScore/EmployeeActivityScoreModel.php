@@ -37,6 +37,10 @@ class EmployeeActivityScoreModel
             $searchTerm = strtolower($filters['search']);
             $allUsersWithStats = array_filter($allUsersWithStats, function ($user) use ($searchTerm) {
                 return isset($user['username']) && strpos(strtolower($user['username']), $searchTerm) !== false;
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
             });
         }
 

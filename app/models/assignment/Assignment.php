@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Assignment
 {
     private $db;
@@ -61,7 +65,12 @@ class Assignment
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             error_log("Error in getAssignmentsReport: " . $e->getMessage());
             return [];

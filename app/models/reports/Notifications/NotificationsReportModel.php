@@ -3,6 +3,10 @@ namespace App\Models\Reports\Notifications;
 
 use App\Core\Model;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class NotificationsReportModel extends Model {
 
     /**

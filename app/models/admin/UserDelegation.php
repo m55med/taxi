@@ -5,6 +5,10 @@ namespace App\Models\Admin;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class UserDelegation
 {
     private $db;
@@ -41,7 +45,12 @@ class UserDelegation
             ";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (\PDOException $e) {
             // Log error
             return [];
@@ -104,7 +113,19 @@ class UserDelegation
             $stmt->bindParam(':month', $month, PDO::PARAM_INT);
             $stmt->bindParam(':year', $year, PDO::PARAM_INT);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            if ($result) {
+
+                return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+            }
+
+
+            return $result;
         } catch (\PDOException $e) {
             // Log error
             return null;

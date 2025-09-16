@@ -12,6 +12,10 @@ use PDO;
 
 
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class PointsModel {
 
     private $db;
@@ -40,7 +44,14 @@ class PointsModel {
 
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
     }
 
@@ -66,7 +77,14 @@ class PointsModel {
 
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
     }
 
@@ -78,7 +96,14 @@ class PointsModel {
 
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
     }
 

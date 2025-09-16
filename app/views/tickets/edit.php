@@ -693,6 +693,35 @@
 
 
 
+<!-- Edit Logs Section -->
+<div class="max-w-4xl mx-auto mt-8 bg-white rounded-lg shadow-sm p-6">
+
+    <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-3 flex items-center">
+
+        <i class="fas fa-history text-gray-500 mr-3"></i>
+
+        سجلات التعديلات والحذوفات
+
+    </h2>
+
+    <?php
+    // Get logs for this ticket
+    $ticketLogs = $data['listingModel']->getTicketLogs($data['ticket']['ticket_id']);
+    if (!empty($ticketLogs)):
+        $title = 'سجلات التذكرة';
+        $compact = false;
+        include __DIR__ . '/../listings/partials/ticket_logs.php';
+    else:
+    ?>
+        <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-history text-gray-300 text-3xl mb-3"></i>
+            <p class="text-lg">لا توجد سجلات تعديلات</p>
+            <p class="text-sm text-gray-400">سيتم عرض أي تعديلات أو حذف مستقبلاً هنا</p>
+        </div>
+    <?php endif; ?>
+
+</div>
+
 <?php include_once __DIR__ . '/../includes/footer.php'; ?>
 
 

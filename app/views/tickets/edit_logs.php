@@ -102,6 +102,94 @@
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- Deleted Details Section -->
+    <?php
+    // Get all logs including deleted ones for this ticket
+    $allLogs = $data['listingModel']->getTicketLogs($ticketId);
+    $deletedLogs = array_filter($allLogs, function($log) {
+        return $log['field_name'] === 'DELETED';
+    });
+    ?>
+
+    <?php if (!empty($deletedLogs)): ?>
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+            <div class="bg-red-50 px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-red-800 flex items-center">
+                    <i class="fas fa-trash text-red-500 mr-2"></i>
+                    تفاصيل محذوفة (<?= count($deletedLogs) ?> حذف)
+                </h3>
+            </div>
+
+            <div class="divide-y divide-gray-200">
+                <?php foreach ($deletedLogs as $log): ?>
+                    <div class="p-6 hover:bg-red-50 transition-colors">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-red-500 rounded-full mr-3"></div>
+                                <div>
+                                    <h4 class="font-medium text-gray-900">تفصيلة محذوفة</h4>
+                                    <p class="text-sm text-gray-600">
+                                        تم الحذف بواسطة <strong><?= htmlspecialchars($log['editor_name'] ?? 'Unknown User') ?></strong>
+                                        <?php if (!empty($log['editor_username'])): ?>
+                                            (<?= htmlspecialchars($log['editor_username']) ?>)
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                <?= htmlspecialchars($log['created_at']) ?>
+                            </div>
+                        </div>
+
+                        <div class="ml-5 pl-4 border-l-2 border-red-200">
+                            <?php
+                            $deleteDetails = json_decode($log['old_value'], true);
+                            if ($deleteDetails):
+                            ?>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <?php if (!empty($deleteDetails['ticket_number'])): ?>
+                                        <div class="bg-gray-50 p-3 rounded">
+                                            <label class="text-xs font-medium text-gray-600">رقم التذكرة</label>
+                                            <div class="text-sm font-medium text-gray-900">
+                                                <?= htmlspecialchars($deleteDetails['ticket_number']) ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($deleteDetails['phone'])): ?>
+                                        <div class="bg-gray-50 p-3 rounded">
+                                            <label class="text-xs font-medium text-gray-600">رقم الهاتف</label>
+                                            <div class="text-sm font-medium text-gray-900">
+                                                <?= htmlspecialchars($deleteDetails['phone']) ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($deleteDetails['notes'])): ?>
+                                        <div class="bg-gray-50 p-3 rounded col-span-full">
+                                            <label class="text-xs font-medium text-gray-600">الملاحظات</label>
+                                            <div class="text-sm text-gray-900">
+                                                <?= htmlspecialchars($deleteDetails['notes']) ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <code class="text-sm text-gray-800">
+                                        <?= htmlspecialchars(substr($log['old_value'], 0, 500)) ?>
+                                        <?= strlen($log['old_value']) > 500 ? '...' : '' ?>
+                                    </code>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php include_once __DIR__ . '/../includes/footer.php'; ?>

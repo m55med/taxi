@@ -567,6 +567,10 @@ class Dashboard
         // Build the WHERE clause
         $whereSql = count($whereClauses) > 0 ? " WHERE " . implode(' AND ', $whereClauses) : "";
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         $query = "
             SELECT r.rating, r.reviewed_at, u.name as reviewer_name
             FROM reviews r
@@ -582,7 +586,12 @@ class Dashboard
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (\PDOException $e) {
             error_log("Error in getTopReviews: " . $e->getMessage());
             return [];

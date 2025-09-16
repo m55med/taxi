@@ -5,6 +5,10 @@ namespace App\Models\Referral;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class ProfileModel
 {
     private $db;
@@ -24,7 +28,19 @@ class ProfileModel
     {
         $stmt = $this->db->prepare("SELECT * FROM agents WHERE user_id = ?");
         $stmt->execute([$userId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     /**
@@ -206,7 +222,14 @@ class ProfileModel
             
             $stmt->execute();
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
         } catch (\PDOException $e) {
             error_log("Error in getReferredRestaurantsByMarketer: " . $e->getMessage());

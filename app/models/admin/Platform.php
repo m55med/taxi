@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Platform
 {
     private $db;
@@ -20,7 +24,12 @@ class Platform
         try {
             $stmt = $this->db->prepare("SELECT * FROM platforms ORDER BY name ASC");
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (PDOException $e) {
             // Log error or handle it as needed
             return [];
@@ -56,7 +65,19 @@ class Platform
             $stmt = $this->db->prepare("SELECT * FROM platforms WHERE name = :name");
             $stmt->bindParam(':name', $name);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            if ($result) {
+
+                return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+            }
+
+
+            return $result;
         } catch (PDOException $e) {
             return false;
         }

@@ -14,6 +14,10 @@ use PDOException;
 
 
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class TeamMember
 
 {
@@ -60,7 +64,14 @@ class TeamMember
 
             $stmt->execute();
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
         } catch (PDOException $e) {
 
@@ -168,47 +179,33 @@ class TeamMember
 
      */
 
-    public function assignUserToTeam(int $userId, int $teamId): bool
 
+
+     public function assignUserToTeam(int $userId, int $teamId): bool
     {
-
         if ($this->isUserInAnyTeam($userId)) {
-
             // User is in a team, so UPDATE (move) them
-
-            $sql = "UPDATE team_members SET team_id = :team_id, joined_at = NOW() WHERE user_id = :user_id";
-
+            $sql = "UPDATE team_members 
+                    SET team_id = :team_id, joined_at = UTC_TIMESTAMP() 
+                    WHERE user_id = :user_id";
         } else {
-
             // User is not in a team, so INSERT (add) them
-
-            $sql = "INSERT INTO team_members (user_id, team_id) VALUES (:user_id, :team_id)";
-
+            $sql = "INSERT INTO team_members (user_id, team_id) 
+                    VALUES (:user_id, :team_id)";
         }
-
-        
 
         try {
-
             $stmt = $this->db->prepare($sql);
-
             $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-
             $stmt->bindParam(':team_id', $teamId, PDO::PARAM_INT);
-
             return $stmt->execute();
-
         } catch (PDOException $e) {
-
             // Log error
-
             error_log("Error in assignUserToTeam: " . $e->getMessage());
-
             return false;
-
         }
-
     }
+
 
 
 
@@ -244,7 +241,14 @@ class TeamMember
 
             $stmt->execute();
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
         } catch (PDOException $e) {
 

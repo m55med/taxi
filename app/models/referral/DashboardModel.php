@@ -48,7 +48,12 @@ class DashboardModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getVisitsForMarketer($user_id, $filters = [])
@@ -94,7 +99,12 @@ class DashboardModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getDashboardStats($filters = []) {
@@ -152,6 +162,10 @@ class DashboardModel
 
         $limit_clause = "ORDER BY count DESC LIMIT 5";
         
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         // --- Top Referers ---
         $where_referers = $where_clauses;
         $where_referers[] = "v.referer_url IS NOT NULL";
@@ -219,14 +233,31 @@ class DashboardModel
                 WHERE d.added_by = :marketer_id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':marketer_id' => $marketer_id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
     
     public function getMarketers()
     {
         $sql = "SELECT id, username FROM users WHERE role_id = (SELECT id FROM roles WHERE name = 'marketer') ORDER BY username";
         $stmt = $this->db->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getRestaurantReferralStats($filters = []) {
@@ -328,7 +359,12 @@ class DashboardModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getSummaryStats()
@@ -401,7 +437,12 @@ class DashboardModel
         $stmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
         
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
     public function getTotalVisits($filters = []) {

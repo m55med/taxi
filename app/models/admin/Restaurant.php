@@ -5,6 +5,10 @@ namespace App\Models\Admin;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Restaurant
 {
     private $db;
@@ -22,7 +26,12 @@ class Restaurant
         $sql = "SELECT * FROM restaurants ORDER BY created_at DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -89,7 +98,19 @@ class Restaurant
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     /**
@@ -211,7 +232,12 @@ class Restaurant
     {
         $sql = "SELECT id, username FROM users WHERE role_id = (SELECT id FROM roles WHERE name = 'marketer') ORDER BY username";
         $stmt = $this->db->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getGovernorates()

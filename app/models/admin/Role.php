@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Role
 {
     private $db;
@@ -56,7 +60,19 @@ class Role
             $stmt = $this->db->prepare("SELECT * FROM roles WHERE name = :name");
             $stmt->bindParam(':name', $name);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            if ($result) {
+
+                return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+            }
+
+
+            return $result;
         } catch (PDOException $e) {
             return false;
         }

@@ -94,7 +94,19 @@ class Coupon {
     public function findCouponById($id) {
         $stmt = $this->pdo->prepare("SELECT * FROM coupons WHERE id = :id");
         $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
     
     /**
@@ -232,7 +244,12 @@ class Coupon {
         
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
     /**
@@ -241,7 +258,12 @@ class Coupon {
     public function getCountries() {
         $stmt = $this->pdo->prepare("SELECT id, name FROM countries ORDER BY name ASC");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -300,28 +322,32 @@ class Coupon {
                   AND (
                       held_by IS NULL OR 
                       held_by = ? OR 
-                      held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
+                      held_at < UTC_TIMESTAMP() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
                   )";
-
+    
         $params = [$countryId, $currentUserId];
-
+    
         // Exclude coupons that are already selected in the form
         if (!empty($excludeIds)) {
             // Generates ?,?,? for the IN clause
             $excludePlaceholders = implode(',', array_fill(0, count($excludeIds), '?'));
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
             $sql .= " AND id NOT IN ($excludePlaceholders)";
             // Add the IDs to the parameter array
             $params = array_merge($params, $excludeIds);
         }
-
+    
         // Limit the number of results to prevent overwhelming the user
         $sql .= " ORDER BY created_at DESC LIMIT 20";
-
+    
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
             $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+    
             // Prepare debug info
             $debug_sql = $this->interpolateQuery($sql, $params);
             return [
@@ -345,6 +371,7 @@ class Coupon {
             ];
         }
     }
+    
 
     private function interpolateQuery($query, $params) {
         $keys = array();
@@ -382,24 +409,25 @@ class Coupon {
     {
         // Atomically check if the coupon is available and hold it
         $sql = "UPDATE coupons
-                SET held_by = :user_id, held_at = NOW()
+                SET held_by = :user_id, held_at = UTC_TIMESTAMP()
                 WHERE id = :coupon_id
                   AND is_used = 0
                   AND (
                       held_by IS NULL OR
                       held_by = :user_id OR
-                      held_at < NOW() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
+                      held_at < UTC_TIMESTAMP() - INTERVAL " . self::HOLD_DURATION_MINUTES . " MINUTE
                   )";
-
+    
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
             ':user_id' => $userId,
             ':coupon_id' => $couponId
         ]);
-
+    
         // The operation is successful if one row was affected
         return $stmt->rowCount() > 0;
     }
+    
 
     /**
      * Releases a specific coupon that was held by the user.

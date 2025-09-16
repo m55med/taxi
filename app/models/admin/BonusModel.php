@@ -5,6 +5,10 @@ namespace App\Models\Admin;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class BonusModel {
     private $db;
     private $lastError;
@@ -20,7 +24,12 @@ class BonusModel {
     public function getAllUsers() {
         $stmt = $this->db->prepare("SELECT id, username FROM users WHERE status = 'active' ORDER BY username ASC");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getGrantedBonuses() {
@@ -35,7 +44,12 @@ class BonusModel {
             ORDER BY umb.bonus_year DESC, umb.bonus_month DESC, u.username
         ");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function addBonus($data) {
@@ -82,7 +96,19 @@ class BonusModel {
         // We assume there's only one row with ID 1
         $stmt = $this->db->prepare("SELECT * FROM bonus_settings WHERE id = 1");
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     public function updateBonusSettings($data) {

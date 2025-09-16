@@ -647,6 +647,8 @@ $router->get('listings/get_drivers_api', 'listings/ListingsController@get_driver
 
 $router->post('listings/bulk_update_drivers', 'listings/ListingsController@bulk_update_drivers')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
+$router->post('listings/delete_ticket_detail', 'listings/ListingsController@delete_ticket_detail')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+
 $router->get('listings/calls', 'listings/ListingsController@calls')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
 $router->get('listings/get_calls_api', 'listings/ListingsController@get_calls_api');
@@ -1061,6 +1063,4 @@ $router->get('api/discussions', 'discussions/DiscussionsController@index');
 $router->get('search', 'SearchController@index');
 $router->get('search/suggestions', 'SearchController@suggestions');
 $router->get('search/results', 'SearchController@search');
-
-
-
+?>

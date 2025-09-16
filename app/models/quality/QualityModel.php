@@ -286,7 +286,12 @@ class QualityModel extends Model
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (\PDOException $e) {
             error_log('QualityModel Discussions Error: ' . $e->getMessage());
             return ['error' => 'Database query failed'];
@@ -540,6 +545,10 @@ class QualityModel extends Model
                 foreach ($params as $key => $val) {
                     if (strpos($mainSql, $key) !== false) {
                         $stmt->bindValue($key, $val);
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
                     }
                 }
             }

@@ -440,7 +440,14 @@ class User
 
             $stmt->execute();
 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
         } catch (PDOException $e) {
 
@@ -846,7 +853,14 @@ class User
 
         $stmt = $this->db->query("SELECT id, username FROM users WHERE status = 'active' AND role_id IN (1, 2, 4, 5, 6, 7)");
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
     }
 
@@ -889,7 +903,14 @@ class User
 
         $stmt->execute([':excludeTeamId' => $excludeTeamId]);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
     }
 
@@ -1107,7 +1128,24 @@ class User
 
         $stmt->execute([$username]);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+
+        if ($result) {
+
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+
+        }
+
+
+
+        return $result;
 
     }
 
@@ -1369,6 +1407,10 @@ class User
             // Create placeholders for the IN clause
             $placeholders = implode(',', array_fill(0, count($roles), '?'));
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
             $sql = "SELECT u.id, u.name, u.username
                     FROM users u
                     JOIN roles r ON u.role_id = r.id
@@ -1377,7 +1419,12 @@ class User
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($roles);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
 
         } catch (PDOException $e) {
             error_log("Error in getUsersByRoles: " . $e->getMessage());

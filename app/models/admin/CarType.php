@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use PDOException;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class CarType
 {
     private $db;

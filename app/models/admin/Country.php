@@ -91,6 +91,10 @@ class Country
             }
             // Instead of returning false, we return a reason
             return "Cannot delete country. It is in use by " . implode(', ', $messages) . ".";
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         }
 
         try {

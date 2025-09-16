@@ -6,6 +6,9 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Helpers\ExportHelper;
 
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class ListingsController extends Controller
 {
     private $listingModel;
@@ -74,6 +77,7 @@ class ListingsController extends Controller
             'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
             'platforms' => $this->platformModel->getAll(),
             'users' => $this->userModel->getAllUsers(),
+            'listingModel' => $this->listingModel, // For logs functionality
             'filters' => $filters // Pass current filters back to the view
         ];
 
@@ -381,6 +385,36 @@ class ListingsController extends Controller
             echo json_encode(['status' => true, 'message' => "Successfully updated {$updatedCount} drivers."]);
         } else {
             echo json_encode(['status' => false, 'message' => 'An error occurred during the update.']);
+        }
+    }
+
+    /**
+     * API endpoint for deleting ticket details.
+     */
+    public function delete_ticket_detail()
+    {
+        header('Content-Type: application/json');
+        $this->authorize('listings/tickets');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'طريقة الطلب غير صحيحة']);
+            return;
+        }
+
+        $postData = json_decode(file_get_contents('php://input'), true);
+        $ticketDetailId = $postData['ticket_detail_id'] ?? null;
+
+        if (!$ticketDetailId || !is_numeric($ticketDetailId)) {
+            echo json_encode(['success' => false, 'message' => 'معرف تفصيلة التذكرة مطلوب']);
+            return;
+        }
+
+        try {
+            $result = $this->listingModel->deleteTicketDetail($ticketDetailId, Auth::getUserId());
+            echo json_encode($result);
+        } catch (\Exception $e) {
+            error_log('ListingsController::delete_ticket_detail Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'حدث خطأ أثناء معالجة الطلب']);
         }
     }
 }

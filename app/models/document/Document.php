@@ -6,6 +6,10 @@ use App\Core\Database;
 use PDO;
 use Exception;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class Document
 {
     private $db;
@@ -38,7 +42,12 @@ class Document
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':driver_id' => $driverId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -49,7 +58,12 @@ class Document
         $sql = "SELECT id, name, is_required FROM document_types ORDER BY name";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
     /**
@@ -69,7 +83,12 @@ class Document
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':driver_id' => $driverId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
 
@@ -95,14 +114,14 @@ class Document
             // Update existing record
             $sql = "
                 UPDATE driver_documents_required
-                SET status = :status, note = :note, updated_by = :user_id, updated_at = NOW()
+                SET status = :status, note = :note, updated_by = :user_id, updated_at = UTC_TIMESTAMP()
                 WHERE driver_id = :driver_id AND document_type_id = :doc_type_id
             ";
         } else {
             // Insert new record
             $sql = "
                 INSERT INTO driver_documents_required (driver_id, document_type_id, status, note, updated_by, updated_at)
-                VALUES (:driver_id, :doc_type_id, :status, :note, :user_id, NOW())
+                VALUES (:driver_id, :doc_type_id, :status, :note, :user_id, UTC_TIMESTAMP())
             ";
         }
 
@@ -125,7 +144,7 @@ class Document
 
     public function updateDriverDocument($driverDocId, $status, $note)
     {
-        $sql = "UPDATE driver_documents_required SET status = :status, note = :note, updated_by = :user_id, updated_at = NOW() WHERE id = :id";
+        $sql = "UPDATE driver_documents_required SET status = :status, note = :note, updated_by = :user_id, updated_at = UTC_TIMESTAMP() WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             ':status' => $status,
@@ -161,7 +180,19 @@ class Document
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     public function getDriverIdByDriverDocumentId($driverDocId)

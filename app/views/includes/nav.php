@@ -310,6 +310,8 @@ function getAdminNavItems($role) {
 
                         ['title' => 'Codes', 'href' => '/admin/ticket_codes', 'icon' => 'fas fa-code'],
 
+                        ['title' => 'Coupons', 'href' => '/admin/coupons', 'icon' => 'fas fa-tags'],
+
                     ]
 
                 ],

@@ -53,7 +53,14 @@ class KnowledgeBaseModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
     
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+    
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+    
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
 
@@ -80,7 +87,19 @@ class KnowledgeBaseModel
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
     
     /**
@@ -91,7 +110,19 @@ class KnowledgeBaseModel
         $sql = "SELECT id, title FROM knowledge_base WHERE ticket_code_id = :ticket_code_id LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':ticket_code_id' => $ticket_code_id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     /**
@@ -180,7 +211,12 @@ class KnowledgeBaseModel
             ':query1' => $query . '*',
             ':query2' => $query . '*'
         ]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
     
     /**
@@ -191,7 +227,12 @@ class KnowledgeBaseModel
         $sql = "SELECT id, name FROM ticket_codes ORDER BY name ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -202,7 +243,12 @@ class KnowledgeBaseModel
         $sql = "SELECT id, name, color, icon FROM knowledge_base_folders WHERE is_active = 1 ORDER BY name ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -226,7 +272,12 @@ class KnowledgeBaseModel
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -254,7 +305,12 @@ class KnowledgeBaseModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':folder_id' => $folderId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -270,6 +326,10 @@ class KnowledgeBaseModel
 
         if ($folderId) {
             $whereClause = "AND kb.folder_id = :folder_id";
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
             $params[':folder_id'] = $folderId;
         }
 
@@ -294,7 +354,12 @@ class KnowledgeBaseModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -313,7 +378,19 @@ class KnowledgeBaseModel
         $sql = "SELECT * FROM knowledge_base_folders WHERE id = :id AND is_active = 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $folderId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        if ($result) {
+
+            return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+        }
+
+
+        return $result;
     }
 
     /**

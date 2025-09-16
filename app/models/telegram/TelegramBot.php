@@ -5,6 +5,10 @@ namespace App\Models\Telegram;
 use App\Core\Model;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class TelegramBot extends Model
 {
     /**

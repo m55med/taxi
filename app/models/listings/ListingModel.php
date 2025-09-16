@@ -5,6 +5,10 @@ namespace App\Models\Listings;
 use App\Core\Model;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class ListingModel extends Model
 {
     public function __construct()
@@ -94,16 +98,11 @@ class ListingModel extends Model
 
         $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
 
-        // Get total count first
+        // Get total count first - using all ticket details, not just latest
         $countSql = "
             SELECT COUNT(*) as total
-            FROM tickets t
-            INNER JOIN (
-                SELECT ticket_id, MAX(id) as max_id
-                FROM ticket_details
-                GROUP BY ticket_id
-            ) latest ON t.id = latest.ticket_id
-            JOIN ticket_details td ON td.id = latest.max_id
+            FROM ticket_details td
+            JOIN tickets t ON t.id = td.ticket_id
             WHERE 1=1 {$whereSql}
         ";
 
@@ -125,11 +124,14 @@ class ListingModel extends Model
 
             $totalPages = ceil($total / $limit);
 
-            // Get paginated data
+            // Get paginated data - using all ticket details
             $dataSql = "
                 SELECT
                     t.id as ticket_id,
                     t.ticket_number,
+                    t.created_by,
+                    td.id as ticket_detail_id,
+                    td.team_id_at_action,
                     td.phone,
                     td.is_vip,
                     td.notes,
@@ -146,13 +148,8 @@ class ListingModel extends Model
                     COUNT(DISTINCT r.id) as review_count,
                     ROUND(AVG(r.rating), 1) as avg_review_rating,
                     GROUP_CONCAT(DISTINCT CONCAT(r.reviewed_by, ':', r.rating) SEPARATOR '|') as reviews_details
-                FROM tickets t
-                INNER JOIN (
-                    SELECT ticket_id, MAX(id) as max_id
-                    FROM ticket_details
-                    GROUP BY ticket_id
-                ) latest ON t.id = latest.ticket_id
-                JOIN ticket_details td ON td.id = latest.max_id
+                FROM ticket_details td
+                JOIN tickets t ON t.id = td.ticket_id
                 JOIN users creator ON t.created_by = creator.id
                 LEFT JOIN users editor ON td.edited_by = editor.id
                 LEFT JOIN teams tm ON td.team_id_at_action = tm.id
@@ -164,7 +161,7 @@ class ListingModel extends Model
                 LEFT JOIN ticket_codes code ON td.code_id = code.id
                 LEFT JOIN reviews r ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
                 WHERE 1=1 {$whereSql}
-                GROUP BY t.id, t.ticket_number, td.phone, td.is_vip, td.notes, td.created_at,
+                GROUP BY td.id, t.id, t.ticket_number, t.created_by, td.team_id_at_action, td.phone, td.is_vip, td.notes, td.created_at,
                          creator.username, editor.username, tm.name, vm.username,
                          p.name, c.name, cat.name, sub.name, code.name
                 ORDER BY td.created_at DESC
@@ -191,11 +188,14 @@ class ListingModel extends Model
                 'limit' => $limit
             ];
         } else {
-            // Get all data without pagination (for export)
+            // Get all data without pagination (for export) - using all ticket details
             $dataSql = "
                 SELECT
                     t.id as ticket_id,
                     t.ticket_number,
+                    t.created_by,
+                    td.id as ticket_detail_id,
+                    td.team_id_at_action,
                     td.phone,
                     td.is_vip,
                     td.notes,
@@ -212,13 +212,8 @@ class ListingModel extends Model
                     COUNT(DISTINCT r.id) as review_count,
                     ROUND(AVG(r.rating), 1) as avg_review_rating,
                     GROUP_CONCAT(DISTINCT CONCAT(r.reviewed_by, ':', r.rating) SEPARATOR '|') as reviews_details
-                FROM tickets t
-                INNER JOIN (
-                    SELECT ticket_id, MAX(id) as max_id
-                    FROM ticket_details
-                    GROUP BY ticket_id
-                ) latest ON t.id = latest.ticket_id
-                JOIN ticket_details td ON td.id = latest.max_id
+                FROM ticket_details td
+                JOIN tickets t ON t.id = td.ticket_id
                 JOIN users creator ON t.created_by = creator.id
                 LEFT JOIN users editor ON td.edited_by = editor.id
                 LEFT JOIN teams tm ON td.team_id_at_action = tm.id
@@ -230,7 +225,7 @@ class ListingModel extends Model
                 LEFT JOIN ticket_codes code ON td.code_id = code.id
                 LEFT JOIN reviews r ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
                 WHERE 1=1 {$whereSql}
-                GROUP BY t.id, t.ticket_number, td.phone, td.is_vip, td.notes, td.created_at,
+                GROUP BY td.id, t.id, t.ticket_number, t.created_by, td.team_id_at_action, td.phone, td.is_vip, td.notes, td.created_at,
                          creator.username, editor.username, tm.name, vm.username,
                          p.name, c.name, cat.name, sub.name, code.name
                 ORDER BY td.created_at DESC
@@ -239,7 +234,12 @@ class ListingModel extends Model
             try {
                 $stmt = $this->db->prepare($dataSql);
                 $stmt->execute($params);
-                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
+
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
             } catch (\PDOException $e) {
                 error_log('ListingModel::getFilteredTickets Error: ' . $e->getMessage());
                 return [];
@@ -405,12 +405,258 @@ class ListingModel extends Model
             return ['total' => 0, 'incoming' => 0, 'outgoing' => 0];
         }
     }
+    /**
+     * حذف تفصيلة تذكرة مع الصلاحيات والتسجيل
+     *
+     * @param int $ticketDetailId معرف تفصيلة التذكرة
+     * @param int $userId معرف المستخدم الحالي
+     * @return array نتيجة العملية
+     */
+    public function deleteTicketDetail($ticketDetailId, $userId)
+    {
+        $this->db->beginTransaction();
+
+        try {
+            // Step 1: التحقق من وجود تفصيلة التذكرة
+            $detailSql = "SELECT td.*, t.created_by as ticket_creator_id, t.ticket_number,
+                                 tl.team_leader_id
+                          FROM ticket_details td
+                          JOIN tickets t ON td.ticket_id = t.id
+                          LEFT JOIN teams tl ON tl.team_leader_id IS NOT NULL
+                          LEFT JOIN team_members tm ON tm.team_id = tl.id AND tm.user_id = t.created_by
+                          WHERE td.id = :detail_id";
+
+            $stmt = $this->db->prepare($detailSql);
+            $stmt->execute([':detail_id' => $ticketDetailId]);
+            $detail = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$detail) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'تفصيلة التذكرة غير موجودة'];
+            }
+
+            // Step 2: التحقق من الصلاحيات
+            $canDelete = $this->canUserDeleteTicketDetail($userId, $detail);
+
+            if (!$canDelete) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'ليس لديك صلاحية حذف هذه التفصيلة'];
+            }
+
+            // Step 3: تسجيل عملية الحذف في ticket_edit_logs
+            error_log("LOGGING DELETE: Detail ID: $ticketDetailId, User: $userId");
+
+            $logSql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at)
+                      VALUES (:ticket_detail_id, :edited_by, 'DELETED', :old_value, 'RECORD DELETED', UTC_TIMESTAMP())";
+
+            $oldValue = json_encode([
+                'ticket_number' => $detail['ticket_number'],
+                'phone' => $detail['phone'],
+                'category_id' => $detail['category_id'],
+                'subcategory_id' => $detail['subcategory_id'],
+                'code_id' => $detail['code_id'],
+                'notes' => $detail['notes'],
+                'deleted_at' => \DateTimeHelper::getCurrentUTC()
+            ]);
+
+            $logStmt = $this->db->prepare($logSql);
+            $logStmt->execute([
+                ':ticket_detail_id' => $ticketDetailId,
+                ':edited_by' => $userId,
+                ':old_value' => $oldValue
+            ]);
+
+            // Step 4: حذف التفصيلة
+            $deleteSql = "DELETE FROM ticket_details WHERE id = :detail_id";
+            $deleteStmt = $this->db->prepare($deleteSql);
+            $deleteStmt->execute([':detail_id' => $ticketDetailId]);
+
+            // Step 5: التحقق من وجود تفاصيل أخرى للتذكرة
+            $checkSql = "SELECT COUNT(*) as remaining FROM ticket_details WHERE ticket_id = :ticket_id";
+            $checkStmt = $this->db->prepare($checkSql);
+            $checkStmt->execute([':ticket_id' => $detail['ticket_id']]);
+            $remaining = $checkStmt->fetch(PDO::FETCH_ASSOC)['remaining'];
+
+            // إذا لم يتبق تفاصيل، يمكن حذف التذكرة الأساسية أيضاً
+            if ($remaining == 0) {
+                $deleteTicketSql = "DELETE FROM tickets WHERE id = :ticket_id";
+                $deleteTicketStmt = $this->db->prepare($deleteTicketSql);
+                $deleteTicketStmt->execute([':ticket_id' => $detail['ticket_id']]);
+            }
+
+            $this->db->commit();
+
+            return [
+                'success' => true,
+                'message' => 'تم حذف تفصيلة التذكرة بنجاح',
+                'ticket_deleted' => ($remaining == 0),
+                'log_id' => $this->db->lastInsertId()
+            ];
+
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            error_log('ListingModel::deleteTicketDetail Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'حدث خطأ أثناء حذف التفصيلة'];
+        }
+    }
+
+    /**
+     * التحقق من صلاحية المستخدم لحذف تفصيلة التذكرة
+     *
+     * @param int $userId معرف المستخدم
+     * @param array $detail بيانات تفصيلة التذكرة
+     * @return bool هل يمكن للمستخدم الحذف
+     */
+    private function canUserDeleteTicketDetail($userId, $detail)
+    {
+        // التحقق من دور المستخدم
+        $userSql = "SELECT r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = :user_id";
+        $userStmt = $this->db->prepare($userSql);
+        $userStmt->execute([':user_id' => $userId]);
+        $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            return false;
+        }
+
+        $userRole = strtolower($user['role_name']);
+
+        // 1. الإدمن يمكنه حذف أي تفصيلة
+        if ($userRole === 'admin') {
+            return true;
+        }
+
+        // 2. الكوالتي يمكنه حذف أي تفصيلة
+        if ($userRole === 'quality') {
+            return true;
+        }
+
+        // 3. الشخص الذي أنشأ التذكرة يمكنه حذف تفاصيله
+        if ($detail['ticket_creator_id'] == $userId) {
+            return true;
+        }
+
+        // 4. التم ليدر الذي يتبع له الشخص الذي أنشأ التذكرة
+        $teamLeaderSql = "SELECT tl.team_leader_id
+                         FROM teams tl
+                         JOIN team_members tm ON tm.team_id = tl.id
+                         WHERE tm.user_id = :creator_id AND tl.team_leader_id = :user_id";
+
+        $teamLeaderStmt = $this->db->prepare($teamLeaderSql);
+        $teamLeaderStmt->execute([
+            ':creator_id' => $detail['ticket_creator_id'],
+            ':user_id' => $userId
+        ]);
+
+        $isTeamLeader = $teamLeaderStmt->fetch(PDO::FETCH_ASSOC);
+
+        return $isTeamLeader !== false;
+    }
+
+    /**
+     * الحصول على سجل حذف تفصيلة التذكرة (للعرض)
+     *
+     * @param int $ticketDetailId معرف تفصيلة التذكرة المحذوفة
+     * @return array|null بيانات سجل الحذف
+     */
+    public function getDeleteLog($ticketDetailId)
+    {
+        $sql = "SELECT tel.*, u.name as editor_name, u.username as editor_username
+                FROM ticket_edit_logs tel
+                LEFT JOIN users u ON tel.edited_by = u.id
+                WHERE tel.ticket_detail_id = :ticket_detail_id
+                AND tel.field_name = 'DELETED'
+                ORDER BY tel.created_at DESC
+                LIMIT 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result) {
+            // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
+            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+        }
+
+        return null;
+    }
+
+    /**
+     * الحصول على سجلات التعديلات والحذوفات لتفاصيل التذكرة
+     *
+     * @param int $ticketDetailId معرف تفصيلة التذكرة
+     * @return array سجلات التعديلات والحذوفات
+     */
+    public function getTicketDetailLogs($ticketDetailId)
+    {
+        $sql = "SELECT tel.*,
+                       u.name as editor_name,
+                       u.username as editor_username
+                FROM ticket_edit_logs tel
+                LEFT JOIN users u ON tel.edited_by = u.id
+                WHERE tel.ticket_detail_id = :ticket_detail_id
+                ORDER BY tel.created_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':ticket_detail_id' => $ticketDetailId]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+    }
+
+    /**
+     * الحصول على جميع سجلات التعديلات والحذوفات لتذكرة معينة
+     *
+     * @param int|null $ticketId معرف التذكرة (null للحصول على جميع السجلات)
+     * @param int $limit عدد النتائج المطلوبة
+     * @return array سجلات التعديلات والحذوفات
+     */
+    public function getTicketLogs($ticketId = null, $limit = null)
+    {
+        error_log("GETTING TICKET LOGS: Ticket ID: " . ($ticketId ?? 'NULL') . ", Limit: " . ($limit ?? 'NULL'));
+
+        $whereClause = "";
+        $params = [];
+
+        if ($ticketId !== null) {
+            $whereClause = "WHERE t.id = :ticket_id OR tel.ticket_detail_id IN (
+                SELECT id FROM ticket_details WHERE ticket_id = :ticket_id2
+            )";
+            $params[':ticket_id'] = $ticketId;
+            $params[':ticket_id2'] = $ticketId;
+        }
+
+        $limitClause = $limit ? "LIMIT " . (int)$limit : "";
+
+        $sql = "SELECT tel.*,
+                       u.name as editor_name,
+                       u.username as editor_username,
+                       t.ticket_number
+                FROM ticket_edit_logs tel
+                LEFT JOIN users u ON tel.edited_by = u.id
+                LEFT JOIN ticket_details td ON tel.ticket_detail_id = td.id
+                LEFT JOIN tickets t ON td.ticket_id = t.id
+                $whereClause
+                ORDER BY tel.created_at DESC
+                $limitClause";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        error_log("TICKET LOGS RESULTS: Found " . count($results) . " records");
+
+        // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
+        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+    }
+
     public function getTicketStats($filters = [])
     {
         $params = [];
         $whereClauses = [];
 
-        // Build WHERE clauses for filters
+        // Build WHERE clauses for filters - using all ticket details
         if (!empty($filters['start_date'])) {
             $whereClauses[] = "DATE(td.created_at) >= :start_date";
             $params[':start_date'] = $filters['start_date'];
@@ -488,22 +734,17 @@ class ListingModel extends Model
         $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
 
         $sql = "SELECT
-                COUNT(*) as total,
+                COUNT(DISTINCT td.id) as total,
                 SUM(CASE WHEN td.is_vip = 1 THEN 1 ELSE 0 END) as vip_count,
                 SUM(CASE WHEN td.is_vip = 0 THEN 1 ELSE 0 END) as normal_count,
                 COUNT(DISTINCT t.created_by) as unique_creators,
                 COUNT(DISTINCT td.platform_id) as platforms_used,
                 COUNT(DISTINCT td.category_id) as categories_used,
                 ROUND(AVG(r.rating), 1) as avg_rating,
-                COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN t.id END) as reviewed_tickets,
-                ROUND(COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN t.id END) / COUNT(*) * 100, 1) as review_coverage
-            FROM tickets t
-            INNER JOIN (
-                SELECT ticket_id, MAX(id) as max_id
-                FROM ticket_details
-                GROUP BY ticket_id
-            ) latest ON t.id = latest.ticket_id
-            JOIN ticket_details td ON td.id = latest.max_id
+                COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN td.id END) as reviewed_details,
+                ROUND(COUNT(DISTINCT CASE WHEN r.id IS NOT NULL THEN td.id END) / COUNT(DISTINCT td.id) * 100, 1) as review_coverage
+            FROM ticket_details td
+            JOIN tickets t ON t.id = td.ticket_id
             LEFT JOIN ticket_categories cat ON td.category_id = cat.id
             LEFT JOIN ticket_subcategories sub ON td.subcategory_id = sub.id
             LEFT JOIN ticket_codes code ON td.code_id = code.id
@@ -522,7 +763,7 @@ class ListingModel extends Model
                 'unique_creators' => $result['unique_creators'] ?? 0,
                 'platforms_used' => $result['platforms_used'] ?? 0,
                 'categories_used' => $result['categories_used'] ?? 0,
-                'reviewed_tickets' => $result['reviewed_tickets'] ?? 0,
+                'reviewed_details' => $result['reviewed_details'] ?? 0,
                 'avg_rating' => $result['avg_rating'] ?? 0,
                 'review_coverage' => $result['review_coverage'] ?? 0
             ];
@@ -535,7 +776,7 @@ class ListingModel extends Model
                 'unique_creators' => 0,
                 'platforms_used' => 0,
                 'categories_used' => 0,
-                'reviewed_tickets' => 0,
+                'reviewed_details' => 0,
                 'avg_rating' => 0,
                 'review_coverage' => 0
             ];

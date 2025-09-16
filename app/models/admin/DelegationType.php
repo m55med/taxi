@@ -5,6 +5,10 @@ namespace App\Models\Admin;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class DelegationType
 {
     private $db;
@@ -20,7 +24,12 @@ class DelegationType
             $query = "SELECT * FROM delegation_types ORDER BY created_at DESC";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            return convert_dates_for_display($results, ['created_at', 'updated_at']);
         } catch (\PDOException $e) {
             // In a real application, log the error
             return [];
@@ -34,7 +43,19 @@ class DelegationType
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+            // تحويل التواريخ للعرض بالتوقيت المحلي
+
+            if ($result) {
+
+                return convert_dates_for_display($result, ['created_at', 'updated_at']);
+
+            }
+
+
+            return $result;
         } catch (\PDOException $e) {
             return false;
         }

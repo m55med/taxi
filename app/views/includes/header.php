@@ -389,6 +389,7 @@
         </div>
     </div>
 
+
     <div class="flex h-screen bg-gray-100">
         <!-- Sidebar -->
         <?php require_once APPROOT . '/views/includes/nav.php'; ?>

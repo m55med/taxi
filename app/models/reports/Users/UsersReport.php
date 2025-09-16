@@ -348,6 +348,10 @@ class UsersReport
     
         $mainWhereClause = !empty($mainConditions) ? 'WHERE ' . implode(' AND ', $mainConditions) : '';
     
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         $sql = "SELECT 
                     u.id, u.username, u.email, u.status, u.is_online,
                     r.name as role_name,
@@ -406,7 +410,12 @@ class UsersReport
     {
         $stmt = $this->db->prepare("SELECT id, username FROM users ORDER BY username ASC");
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     private function getQualityScores(array $userIds, array $filters)

@@ -19,6 +19,10 @@ class TeamLeaderboardModel {
         // This is a pseudo-caching mechanism for a single request lifecycle.
         // In a real application, you'd use a proper caching system like Redis or Memcached.
         static $cachedData = [];
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         if (isset($cachedData[$cacheKey])) {
             return $cachedData[$cacheKey];
         }

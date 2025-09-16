@@ -132,6 +132,10 @@ class TripModel extends Model
             if (isset($preparedRow[$field])) {
                 // Trim whitespace, as ' 123 ' is numeric but might cause issues.
                 $value = trim($preparedRow[$field]);
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
                 // Ensure that empty strings are treated as null, not 0.
                 if ($value === '' || !is_numeric($value)) {
                     $preparedRow[$field] = null;

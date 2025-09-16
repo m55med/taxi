@@ -5,6 +5,10 @@ namespace App\Models\Reports\Calls;
 use App\Core\Database;
 use PDO;
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 class CallsReport
 {
     private $db;

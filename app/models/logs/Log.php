@@ -36,7 +36,7 @@ class Log
 
     private function fetchCallPoints() {
         // Fetches the currently valid points for an outgoing call.
-        $stmt = $this->db->prepare("SELECT points FROM call_points WHERE call_type = 'outgoing' AND NOW() BETWEEN valid_from AND COALESCE(valid_to, NOW()) ORDER BY valid_from DESC LIMIT 1");
+        $stmt = $this->db->prepare("SELECT points FROM call_points WHERE call_type = 'outgoing' AND UTC_TIMESTAMP() BETWEEN valid_from AND COALESCE(valid_to, UTC_TIMESTAMP()) ORDER BY valid_from DESC LIMIT 1");
         $stmt->execute();
         $points = $stmt->fetchColumn();
         // DIAGNOSTIC: Return 5.0 as a fallback if no points are defined in the database.
@@ -450,6 +450,10 @@ class Log
 
         // Sanitize IDs
         $sanitizedIds = [];
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         foreach ($ids as $id_str) {
             list($type, $id) = explode('-', $id_str);
             $sanitizedIds[$type][] = (int)$id;

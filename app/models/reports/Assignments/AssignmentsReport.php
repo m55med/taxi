@@ -44,6 +44,10 @@ class AssignmentsReport
 
         $whereClause = !empty($whereConditions) ? " WHERE " . implode(" AND ", $whereConditions) : "";
 
+
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
         return ['where' => $whereClause, 'params' => $params];
     }
 
@@ -74,7 +78,12 @@ class AssignmentsReport
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($queryParts['params']);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 
     public function getSummary($filters = [])
@@ -99,6 +108,11 @@ class AssignmentsReport
         $sql = "SELECT id, username FROM users WHERE role_id IN (SELECT id FROM roles WHERE name IN ('admin', 'employee', 'agent', 'quality_manager', 'developer'))";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+        // تحويل التواريخ للعرض بالتوقيت المحلي
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
     }
 } 
