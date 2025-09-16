@@ -4,10 +4,25 @@
 
 
 
-            <footer class="border-t bg-white px-4 py-3 text-center text-sm text-gray-500">
+            <footer class="border-t bg-white px-4 py-4 text-center">
+                <div class="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+                    <!-- Copyright -->
+                    <div class="text-sm text-gray-500">
+                        &copy; <?= date('Y') ?> Taxi CS. All Rights Reserved.
+                    </div>
 
-                &copy; <?= date('Y') ?> Taxi CS. All Rights Reserved.
-
+                    <!-- Version Info -->
+                    <div class="text-sm">
+                        <a href="https://cs.taxif.com/documentation"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200 border border-blue-200 hover:border-blue-300">
+                            <i class="fas fa-code-branch mr-2 text-xs"></i>
+                            <span class="font-medium">Version V.1.0.0</span>
+                            <i class="fas fa-external-link-alt ml-2 text-xs opacity-70"></i>
+                        </a>
+                    </div>
+                </div>
             </footer>
 
         </div>

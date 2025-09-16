@@ -194,13 +194,8 @@ class BreaksController extends Controller
         }
 
         if (!empty($selectedTeamId)) {
-            // Get team name from teams table
-            $stmt = $this->db->prepare("SELECT name FROM teams WHERE id = ?");
-            $stmt->execute([$selectedTeamId]);
-            $team = $stmt->fetch(PDO::FETCH_OBJ);
-            if ($team) {
-                $selectedTeamName = $team->name;
-            }
+            // Get team name using BreakModel
+            $selectedTeamName = $this->breakModel->getTeamNameById($selectedTeamId);
         }
     
         $sortBy = $_GET['sort_by'] ?? 'total_duration_seconds';

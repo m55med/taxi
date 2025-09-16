@@ -586,6 +586,8 @@ $router->get('tickets/ajaxSearch', 'tickets/TicketController@ajaxSearch');
 $router->get('quality/reviews', 'quality/QualityController@reviews')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
 $router->get('quality/get_reviews_api', 'quality/QualityController@get_reviews_api');
+$router->get('quality/search_reviews_api', 'quality/QualityController@search_reviews_api');
+$router->get('quality/search_suggestions_api', 'quality/QualityController@search_suggestions_api');
 
 $router->post('quality/update_review', 'quality/QualityController@update_review');
 

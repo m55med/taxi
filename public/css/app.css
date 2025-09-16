@@ -2,6 +2,140 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for reviews page */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Custom scrollbar for better mobile experience */
+.scrollbar-thin {
+    scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Mobile scroll indicator animation */
+@keyframes scrollHint {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+
+.scroll-hint {
+    animation: scrollHint 2s infinite;
+}
+
+/* Line clamp utility for text truncation */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Enhanced scrollbar for better UX */
+.scrollbar-smooth {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.scrollbar-smooth::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.scrollbar-smooth::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading animation improvements */
+@keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+}
+
+.shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Focus improvements for accessibility */
+.focus-ring:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Better button hover effects */
+.btn-hover-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Rotate animation for expand/collapse buttons */
+.rotate-90 {
+    transform: rotate(90deg);
+    transition: transform 0.2s ease;
+}
+
+.rotate-180 {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+}
+
+/* Enhanced transitions for table rows */
+.transition-all {
+    transition: all 0.2s ease;
+}
+
+/* Smooth expand/collapse animations */
+[x-show] {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+[x-show="false"] {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+[x-show="true"] {
+    opacity: 1;
+    transform: scale(1);
+}
+
 @layer components {
   .form-label {
     @apply block text-sm font-medium text-gray-600 mb-2;

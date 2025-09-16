@@ -142,11 +142,22 @@ class TicketController extends Controller
             'ticketDiscussions' => $ticketDiscussions, // Pass the fully-loaded ticket discussions
             'ticket_categories' => $ticket_categories, // Pass categories for review partial
             'currentUser' => [
-                'id' => $_SESSION['user_id'],
-                'role' => $_SESSION['user']['role_name'] ?? 'default_role'
+                'id' => $_SESSION['user_id'] ?? null,
+                'role' => $_SESSION['user']['role_name'] ?? $_SESSION['role_name'] ?? 'default_role'
             ]
 
         ];
+
+        // Debug: طباعة معلومات debug إذا كان مطلوباً
+        if (isset($_GET['debug_team_leader']) && $_GET['debug_team_leader'] == '1') {
+            $data['debug_team_leader_info'] = [
+                'session_user_id' => $_SESSION['user_id'] ?? 'not set',
+                'session_role_name' => $_SESSION['role_name'] ?? 'not set',
+                'session_user_role_name' => $_SESSION['user']['role_name'] ?? 'not set',
+                'current_user_team_id' => \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($_SESSION['user_id'] ?? 0),
+                'first_history_item_team_id' => $ticketHistory[0]['team_id_at_action'] ?? 'not set'
+            ];
+        }
 
         $this->view('tickets/view', $data);
     }
@@ -437,8 +448,21 @@ class TicketController extends Controller
         if ($ticketDetail['edited_by'] != $userId) {
             // إذا لم يكن هو المنشئ الأصلي
             if (!in_array($userRole, ['admin', 'quality_manager', 'Quality'])) {
-                $_SESSION['error_message'] = 'You do not have permission to edit this ticket. Only the original creator, admin, or quality manager can edit it.';
-                redirect('tickets/view/' . $ticketDetail['ticket_id']);
+                // التحقق من صلاحيات التيم ليدر
+                $canEditAsTeamLeader = false;
+                if ($userRole === 'Team_leader') {
+                    // الحصول على team_id للتيم ليدر الحالي
+                    $currentUserTeamId = \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($userId);
+                    // التحقق من أن team_id_at_action للتذكرة يطابق team_id للتيم ليدر
+                    if ($currentUserTeamId && isset($ticketDetail['team_id_at_action']) && $ticketDetail['team_id_at_action'] == $currentUserTeamId) {
+                        $canEditAsTeamLeader = true;
+                    }
+                }
+
+                if (!$canEditAsTeamLeader) {
+                    $_SESSION['error_message'] = 'You do not have permission to edit this ticket. Only the original creator, admin, quality manager, or team leader of the assigned team can edit it.';
+                    redirect('tickets/view/' . $ticketDetail['ticket_id']);
+                }
             }
         }
 
@@ -483,8 +507,21 @@ class TicketController extends Controller
             // التحقق من الصلاحيات
             if ($currentDetails['edited_by'] != $userId) {
                 if (!in_array(strtolower($userRole), ['admin', 'quality_manager', 'quality'])) {
-                    $_SESSION['error_message'] = '🚫 ليس لديك صلاحية تعديل هذه التذكرة. يمكن فقط للمنشئ الأصلي أو المدير أو مسؤول الجودة تعديلها.';
-                    redirect('tickets/view/' . $ticketId);
+                    // التحقق من صلاحيات التيم ليدر
+                    $canEditAsTeamLeader = false;
+                    if ($userRole === 'Team_leader') {
+                        // الحصول على team_id للتيم ليدر الحالي
+                        $currentUserTeamId = \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($userId);
+                        // التحقق من أن team_id_at_action للتذكرة يطابق team_id للتيم ليدر
+                        if ($currentUserTeamId && isset($currentDetails['team_id_at_action']) && $currentDetails['team_id_at_action'] == $currentUserTeamId) {
+                            $canEditAsTeamLeader = true;
+                        }
+                    }
+
+                    if (!$canEditAsTeamLeader) {
+                        $_SESSION['error_message'] = '🚫 ليس لديك صلاحية تعديل هذه التذكرة. يمكن فقط للمنشئ الأصلي أو المدير أو مسؤول الجودة أو قائد الفريق المسؤول تعديلها.';
+                        redirect('tickets/view/' . $ticketId);
+                    }
                 }
             }
     

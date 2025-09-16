@@ -18,6 +18,34 @@ class Discussion extends Model
     }
 
     /**
+     * Get team member IDs for a given team leader
+     *
+     * @param int $teamLeaderId The user ID of the team leader
+     * @return array Array of team member user IDs
+     */
+    public function getTeamMemberIds($teamLeaderId)
+    {
+        try {
+            $sql = "
+                SELECT tm.user_id
+                FROM team_members tm
+                INNER JOIN teams t ON tm.team_id = t.id
+                WHERE t.team_leader_id = ?
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$teamLeaderId]);
+
+            $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            return $result ?: [];
+        } catch (PDOException $e) {
+            error_log('Error getting team member IDs: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Fetches all discussions relevant to a specific user, with contextual information.
      * - Admins/Developers/QM see all discussions.
      * - Team Leaders see discussions related to their team members.

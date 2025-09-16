@@ -441,7 +441,7 @@
 
                                             <div class="text-sm font-semibold text-gray-900">
 
-                                                <a href="/logs?user_id=<?= $user['id'] ?>" class="hover:underline text-indigo-600 transition-colors">
+                                                <a href="/listings/tickets?created_by=<?= $user['id'] ?>" class="hover:underline text-indigo-600 transition-colors">
 
                                                     <?= htmlspecialchars($user['name'] ?? $user['username']) ?>
 
@@ -467,7 +467,7 @@
 
                                     <?php if (!empty($user['team_id']) && !empty($user['team_name'])): ?>
 
-                                        <a href="/logs?team_id=<?= $user['team_id'] ?>" class="hover:underline text-indigo-600">
+                                        <a href="/listings/tickets?team_filter=<?= urlencode($user['team_name']) ?>" class="hover:underline text-indigo-600">
 
                                             <?= htmlspecialchars($user['team_name']) ?>
 

@@ -339,6 +339,23 @@ class BreakModel
     }
 
     /**
+     * Get team name by ID
+     */
+    public function getTeamNameById($teamId)
+    {
+        if (empty($teamId)) {
+            return null;
+        }
+
+        $sql = "SELECT name FROM teams WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $teamId]);
+        $team = $stmt->fetch(PDO::FETCH_OBJ);
+
+        return $team ? $team->name : null;
+    }
+
+    /**
      * Get current ongoing breaks for all users (from database using is_active)
      */
     public function getCurrentOngoingBreaks()

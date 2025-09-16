@@ -257,29 +257,114 @@ class QualityController extends Controller
     {
         $userRole = Auth::getUserRole();
         $userId = Auth::getUserId();
-        
+
         // Check if user is logged in
         if (!$userId) {
             echo json_encode(['success' => false, 'error' => 'Authentication required']);
             return false;
         }
-        
+
         // Admin and developer always have access
         if (in_array($userRole, ['admin', 'developer', 'Quality'])) {
             return true;
         }
-        
+
         // Check if user role is in allowed roles
         if (in_array($userRole, $allowedRoles)) {
             return true;
         }
-        
+
         // Unauthorized
         echo json_encode([
-            'success' => false, 
+            'success' => false,
             'error' => 'Access denied. Required roles: ' . implode(', ', $allowedRoles) . '. Your role: ' . ($userRole ?? 'Not set')
         ]);
         return false;
+    }
+
+    /**
+     * API endpoint for search with pagination (New optimized endpoint).
+     */
+    public function search_reviews_api()
+    {
+        header('Content-Type: application/json');
+
+        // Authorization check: allow all relevant roles. The model handles the logic.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
+
+        // Extract parameters
+        $filters = $_GET;
+        $searchQuery = $_GET['q'] ?? '';
+        $page = (int)($_GET['page'] ?? 1);
+        $perPage = (int)($_GET['per_page'] ?? 25);
+
+        // Validate parameters
+        if ($page < 1) $page = 1;
+        if ($perPage < 1 || $perPage > 100) $perPage = 25;
+
+        // Remove search parameters from filters
+        unset($filters['q'], $filters['page'], $filters['per_page']);
+
+        try {
+            $result = $this->qualityModel->searchReviews($filters, $searchQuery, $page, $perPage);
+
+            if (isset($result['error'])) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => $result['error'],
+                    'data' => []
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => true,
+                    'data' => $result['reviews'],
+                    'pagination' => [
+                        'current_page' => $result['page'],
+                        'per_page' => $result['per_page'],
+                        'total' => $result['total'],
+                        'total_pages' => $result['total_pages'],
+                        'from' => ($result['page'] - 1) * $result['per_page'] + 1,
+                        'to' => min($result['page'] * $result['per_page'], $result['total'])
+                    ]
+                ]);
+            }
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Server error: ' . $e->getMessage(),
+                'data' => []
+            ]);
+        }
+    }
+
+    /**
+     * API endpoint for search suggestions.
+     */
+    public function search_suggestions_api()
+    {
+        header('Content-Type: application/json');
+
+        // Authorization check: allow all relevant roles. The model handles the logic.
+        $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
+
+        $query = $_GET['q'] ?? '';
+        $limit = (int)($_GET['limit'] ?? 5);
+
+        if ($limit < 1 || $limit > 10) $limit = 5;
+
+        try {
+            $suggestions = $this->qualityModel->getSearchSuggestions($query, $limit);
+            echo json_encode([
+                'success' => true,
+                'suggestions' => $suggestions
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Server error: ' . $e->getMessage(),
+                'suggestions' => []
+            ]);
+        }
     }
 
 } 

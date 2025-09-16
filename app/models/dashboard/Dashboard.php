@@ -243,50 +243,49 @@ class Dashboard
 
     private function getReviewDiscussionStats($userId, $dateFrom, $dateTo)
     {
-        $defaults = ['reviews' => 0, 'discussions' => 0, 'individual_reviews' => []];
+        $defaults = ['reviews' => '0%', 'discussions' => 0, 'individual_reviews' => []];
         $stats = [];
-
+    
         // Get user role to determine filtering logic
         $role = $userId ? $this->getUserRole($userId) : 'admin'; // Default to admin if no userId
         $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
-
+    
         // === REVIEWS COUNT ===
         $reviewsParams = [':date_from' => $dateFrom, ':date_to' => $dateTo];
         $whereClauses = [];
-
-        // Reviews filtering logic (same as QualityModel)
+    
         if ($role === 'agent' && $userId) {
             $whereClauses[] = "(td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)";
             $reviewsParams[':agent_review_user_id_ticket'] = $userId;
             $reviewsParams[':agent_review_user_id_call'] = $userId;
         } elseif (!in_array($role, $highAccessRoles) && $userId) {
-            // For other non-admin roles, access denied - return 0
             return $defaults;
         }
-
-        // Build the WHERE clause for reviews
+    
         $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
-
+    
         $reviewsQuery = "
-            SELECT AVG(r.rating) as average_rating
+            SELECT ROUND(AVG(r.rating)) as average_rating
             FROM reviews r
             LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
             LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
-            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to" . $whereSql;
-
+            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to{$whereSql}
+        ";
+    
         try {
             $stmt_reviews = $this->db->prepare($reviewsQuery);
             $stmt_reviews->execute($reviewsParams);
-            $stats['reviews'] = (float) $stmt_reviews->fetchColumn(); // Cast to float
+            $avgRating = $stmt_reviews->fetchColumn();
+            $stats['reviews'] = $avgRating ? $avgRating . '%' : '0%';
         } catch (\PDOException $e) {
             error_log("Error in getReviewDiscussionStats (reviews): " . $e->getMessage());
-            $stats['reviews'] = 0;
+            $stats['reviews'] = '0%';
         }
-
+    
         // === INDIVIDUAL REVIEWS ===
         if ($userId && $role === 'agent') {
             $individualReviewsQuery = "
-                SELECT r.review_notes
+                SELECT r.review_notes, CONCAT(ROUND(r.rating), '%') as rating
                 FROM reviews r
                 LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
                 LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
@@ -304,17 +303,17 @@ class Dashboard
                 $stats['individual_reviews'] = [];
             }
         }
-
+    
         // === DISCUSSIONS COUNT ===
         $discussionsParams = [':date_from' => $dateFrom, ':date_to' => $dateTo];
         $userWhereDiscussions = '';
-
+    
         if ($userId && !in_array($role, $highAccessRoles)) {
             $userWhereDiscussions = " AND opened_by = :user_id";
             $discussionsParams[':user_id'] = $userId;
         }
-
-        $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhereDiscussions;
+    
+        $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(created_at) BETWEEN :date_from AND :date_to{$userWhereDiscussions}";
         
         try {
             $stmt_discussions = $this->db->prepare($discussionsQuery);
@@ -324,10 +323,10 @@ class Dashboard
             error_log("Error in getReviewDiscussionStats (discussions): " . $e->getMessage());
             $stats['discussions'] = 0;
         }
-
+    
         return array_merge($defaults, $stats);
     }
-
+    
     private function getUserRole($userId)
     {
         if (!$userId) return 'guest';

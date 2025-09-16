@@ -147,7 +147,7 @@ function getGreeting() {
                 <div class="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 cursor-pointer hover:scale-105 hover:bg-gray-50">
                     <div class="flex items-center justify-between">
                         <div class="space-y-1">
-                            <p class="text-sm font-medium text-gray-500">Reviews</p>
+                            <p class="text-sm font-medium text-gray-500">Quality</p>
                             <p class="text-3xl font-bold text-gray-800"><?= $d['review_discussion_stats']['reviews'] ?? 0 ?></p>
                             <p class="text-xs text-gray-500">Quality reviews completed</p>
                         </div>
@@ -350,7 +350,7 @@ function getGreeting() {
                              <span class="text-xs text-gray-500">View discussions</span>
                         </a>
                         <a href="https://cs.taxif.com/quality/reviews" target="_blank" class="h-auto p-4 flex flex-col items-start gap-2 group bg-pink-500 text-white rounded-lg">
-                            <div class="flex items-center gap-2 w-full"><i class="fas fa-star"></i><span class="font-medium">Reviews</span></div>
+                            <div class="flex items-center gap-2 w-full"><i class="fas fa-star"></i><span class="font-medium">Quality</span></div>
                             <span class="text-xs opacity-80">Quality reviews</span>
                         </a>
                          <a href="<?= URLROOT ?>/profile" class="h-auto p-4 flex flex-col items-start gap-2 group bg-gray-200 text-gray-800 rounded-lg">

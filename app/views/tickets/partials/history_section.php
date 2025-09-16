@@ -56,12 +56,38 @@
                         // تحديد ما إذا كان المستخدم يمكنه تعديل هذه التفصيلة
                         $canEditThisDetail = false;
 
+                        // Debug: طباعة معلومات الـ debug إذا كان الـ role Team_leader
+                        $isDebug = isset($_GET['debug_team_leader']) && $_GET['debug_team_leader'] == '1';
+                        $userRole = $data['currentUser']['role'] ?? 'no_role';
+                        $userId = $data['currentUser']['id'] ?? 'no_id';
+
                         // إذا كان المستخدم admin أو quality → يمكنه تعديل جميع التفاصيل
-                        if (in_array(strtolower($data['currentUser']['role']), ['admin', 'quality', 'quality_manager'])) {
+                        if (in_array(strtolower($userRole), ['admin', 'quality', 'quality_manager'])) {
                             $canEditThisDetail = true;
                         }
+                        // إذا كان المستخدم Team_leader → يمكنه تعديل تفاصيل فريقه فقط
+                        elseif (in_array(strtolower($userRole), ['team_leader', 'Team_leader'])) {
+                            // الحصول على team_id للتيم ليدر الحالي
+                            $currentUserTeamId = \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($userId);
+                            $historyTeamId = $history['team_id_at_action'] ?? null;
+
+                            if ($isDebug) {
+                                echo "<!-- DEBUG TEAM LEADER: User Role: {$userRole}, User ID: {$userId}, Current User Team ID: {$currentUserTeamId}, History Team ID: {$historyTeamId} -->";
+                            }
+
+                            // التحقق من أن team_id_at_action للتفصيلة يطابق team_id للتيم ليدر
+                            if ($currentUserTeamId && $historyTeamId && $historyTeamId == $currentUserTeamId) {
+                                $canEditThisDetail = true;
+
+                                if ($isDebug) {
+                                    echo "<!-- DEBUG: Team Leader CAN edit this detail (Team IDs match) -->";
+                                }
+                            } elseif ($isDebug) {
+                                echo "<!-- DEBUG: Team Leader CANNOT edit this detail (Team IDs don't match or are null) -->";
+                            }
+                        }
                         // إذا كان المستخدم غير ذلك → يمكنه تعديل تفاصيله التي أنشأها فقط
-                        elseif (isset($history['edited_by']) && $history['edited_by'] == $data['currentUser']['id']) {
+                        elseif (isset($history['edited_by']) && $history['edited_by'] == $userId) {
                             $canEditThisDetail = true;
                         }
 
