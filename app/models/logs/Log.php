@@ -116,8 +116,9 @@ class Log
     {
         $params = [];
         
+        // ✅ tickets تعتمد على ticket_details فقط
         $ticketsQuery = "
-            SELECT 
+            SELECT
                 'Ticket' as activity_type, 
                 td.id as activity_id, 
                 t.ticket_number as details_primary,
@@ -135,8 +136,8 @@ class Log
             FROM ticket_details td
             JOIN tickets t ON td.ticket_id = t.id
             JOIN users u ON td.edited_by = u.id
-            JOIN platforms p ON td.platform_id = p.id
-            JOIN countries c ON td.country_id = c.id
+            LEFT JOIN platforms p ON td.platform_id = p.id
+            LEFT JOIN countries c ON td.country_id = c.id
             LEFT JOIN teams ON td.team_id_at_action = teams.id
         ";
         
@@ -161,7 +162,7 @@ class Log
             JOIN drivers d ON dc.driver_id = d.id
             LEFT JOIN teams ON dc.team_id_at_action = teams.id
         ";
-
+    
         $incomingCallsQuery = "
             SELECT
                 'Incoming Call' as activity_type,
@@ -187,7 +188,7 @@ class Log
             LEFT JOIN ticket_details td ON ic.linked_ticket_detail_id = td.id
             LEFT JOIN tickets t ON td.ticket_id = t.id
         ";
-
+    
         $assignmentsQuery = "
             SELECT
                 'Assignment' as activity_type, 
@@ -211,7 +212,8 @@ class Log
             LEFT JOIN team_members tm ON u_from.id = tm.user_id
             LEFT JOIN teams ON tm.team_id = teams.id
         ";
-
+    
+        // ✅ اختيار الـ queries حسب الفلتر
         $queries = [];
         if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'ticket') $queries[] = $ticketsQuery;
         if ($filters['activity_type'] === 'all' || $filters['activity_type'] === 'outgoing_call') $queries[] = $outgoingCallsQuery;
@@ -221,9 +223,9 @@ class Log
         if (empty($queries)) {
             return ['activities' => [], 'total' => 0];
         }
-
+    
         $baseQuery = implode(" UNION ALL ", $queries);
-
+    
         $whereClauses = " WHERE 1=1 ";
         if (!empty($filters['user_id']) && $filters['user_id'] !== 'all') {
             $whereClauses .= " AND user_id = :user_id";
@@ -246,11 +248,10 @@ class Log
             $whereClauses .= " AND (details_primary LIKE :search OR details_secondary LIKE :search OR username LIKE :search)";
             $params[':search'] = $search_term;
         }
-
-        // Query for counting total records
+    
+        // ✅ العد الصح من ticket_details (مفيش DISTINCT مضلل)
         $countQuery = "SELECT COUNT(*) FROM ({$baseQuery}) AS activities" . $whereClauses;
         
-        // Query for fetching paginated records
         $finalQuery = "SELECT * FROM ({$baseQuery}) AS activities" . $whereClauses . " ORDER BY activity_date DESC";
         if ($limit) {
             $finalQuery .= " LIMIT :limit OFFSET :offset";
@@ -261,15 +262,14 @@ class Log
             $countStmt = $this->db->prepare($countQuery);
             $countStmt->execute($params);
             $totalRecords = $countStmt->fetchColumn();
-
+    
             // Get paginated results
             if($limit){
                 $params[':limit'] = (int) $limit;
                 $params[':offset'] = (int) $offset;
             }
-
+    
             $stmt = $this->db->prepare($finalQuery);
-            // Bind params explicitly for LIMIT and OFFSET
             foreach ($params as $key => $val) {
                 if (($key === ':limit' || $key === ':offset') && $limit) {
                     $stmt->bindValue($key, $val, PDO::PARAM_INT);
@@ -280,37 +280,8 @@ class Log
             $stmt->execute();
             $activities = $stmt->fetchAll(PDO::FETCH_OBJ);
             
-            // Calculate points after fetching
-            foreach ($activities as $activity) {
-                $activity->points = 0; // Default points
-
-                // FINAL DIAGNOSTIC TEST: Assign hardcoded points based on type to isolate the issue.
-                if ($activity->activity_type === 'Ticket') {
-                    // Check if it's an incoming call ticket, which should be 0.
-                    // We need to query the platform name for the given platform_id.
-                    $platform_stmt = $this->db->prepare("SELECT name FROM platforms WHERE id = ?");
-                    $platform_stmt->execute([$activity->platform_id]);
-                    $platform_name = $platform_stmt->fetchColumn();
-
-                    if ($platform_name === 'Incoming Call') {
-                        $activity->points = 0.0;
-                    } else {
-                        $activity->points = 11.11; // Hardcoded diagnostic value for other tickets.
-                    }
-
-                } elseif ($activity->activity_type === 'Outgoing Call') {
-                    if (str_contains($activity->details_secondary, 'Status: answered')) {
-                         $activity->points = 22.22; // Hardcoded diagnostic value for answered calls.
-                    } else {
-                        $activity->points = 0.0;
-                    }
-                } elseif ($activity->activity_type === 'Incoming Call') {
-                    $activity->points = 33.33; // Hardcoded diagnostic value.
-                }
-            }
-
             return ['activities' => $activities, 'total' => $totalRecords];
-
+    
         } catch (PDOException $e) {
             error_log("Error in getActivities: " . $e->getMessage());
             error_log("Query: " . $finalQuery);
@@ -318,6 +289,7 @@ class Log
             return ['activities' => [], 'total' => 0];
         }
     }
+    
 
     public function getActivitiesSummary($filters)
     {

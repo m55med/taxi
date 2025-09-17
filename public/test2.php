@@ -19,48 +19,89 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    $sql = "
-        SELECT td.*,
-               t.ticket_number,
-               c.name AS category_name,
-               sc.name AS subcategory_name,
-               co.name AS code_name,
-               p.name AS platform_name,
-               u.username AS edited_by_username
+    $user_id = 28;
+    $today   = date('Y-m-d');
+
+    echo "============================ 1️⃣ النتائج الصحيحة (edited_by فقط) ============================\n";
+
+    // ✅ الاستعلام الصحيح (16 صف)
+    $sql_correct = "
+        SELECT 
+            td.id AS ticket_detail_id,
+            td.ticket_id,
+            t.ticket_number,
+            td.phone,
+            td.is_vip,
+            td.created_at
         FROM ticket_details td
-        JOIN tickets t ON td.ticket_id = t.id
-        LEFT JOIN ticket_categories c ON td.category_id = c.id
-        LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
-        LEFT JOIN ticket_codes co ON td.code_id = co.id
-        LEFT JOIN platforms p ON td.platform_id = p.id
-        LEFT JOIN users u ON td.edited_by = u.id
-        ORDER BY td.id DESC
-        LIMIT 1
+        JOIN tickets t ON t.id = td.ticket_id
+        WHERE td.edited_by = :user_id
+          AND DATE(td.created_at) = :today
+        ORDER BY td.created_at ASC
     ";
+    $stmt = $pdo->prepare($sql_correct);
+    $stmt->execute([
+        ':user_id' => $user_id,
+        ':today'   => $today
+    ]);
+    $correct_rows = $stmt->fetchAll();
 
-    $stmt = $pdo->query($sql);
-    $lastTicket = $stmt->fetch();
+    echo "عدد الصفوف الصحيحة: " . count($correct_rows) . "\n";
+    foreach ($correct_rows as $row) {
+        echo "TicketDetail ID: {$row['ticket_detail_id']}, Ticket ID: {$row['ticket_id']}, Ticket Number: {$row['ticket_number']}, Created At: {$row['created_at']}, Phone: {$row['phone']}, VIP: {$row['is_vip']}\n";
+    }
 
-    if ($lastTicket) {
-        // تحويل created_at
-        if (!empty($lastTicket['created_at'])) {
-            $dt = new DateTime($lastTicket['created_at'], new DateTimeZone('UTC'));
-            $dt->setTimezone(new DateTimeZone('Africa/Cairo'));
-            $lastTicket['created_at_cairo'] = $dt->format('Y-m-d h:i:s A');
+    echo "\n\n============================ 2️⃣ النتائج كما في JSON (نشاط المستخدم) ============================\n";
+
+    // ⚠️ الاستعلام المستخدم في JSON (22 صف)
+    $sql_json = "
+        SELECT 
+            td.id AS ticket_detail_id,
+            td.ticket_id,
+            t.ticket_number,
+            td.phone,
+            td.is_vip,
+            td.created_at,
+            t.created_by,
+            td.edited_by,
+            td.assigned_team_leader_id
+        FROM ticket_details td
+        JOIN tickets t ON t.id = td.ticket_id
+        WHERE DATE(td.created_at) = :today
+          AND (
+               t.created_by = :user_id_created
+            OR td.edited_by = :user_id_edited
+            OR td.assigned_team_leader_id = :user_id_assigned
+          )
+        ORDER BY td.created_at ASC
+    ";
+    $stmt = $pdo->prepare($sql_json);
+    $stmt->execute([
+        ':today'               => $today,
+        ':user_id_created'     => $user_id,
+        ':user_id_edited'      => $user_id,
+        ':user_id_assigned'    => $user_id,
+    ]);
+    $json_rows = $stmt->fetchAll();
+
+    echo "عدد الصفوف (حسب JSON): " . count($json_rows) . "\n";
+    foreach ($json_rows as $row) {
+        echo "TicketDetail ID: {$row['ticket_detail_id']}, Ticket ID: {$row['ticket_id']}, Ticket Number: {$row['ticket_number']}, Created At: {$row['created_at']}, Phone: {$row['phone']}, VIP: {$row['is_vip']}, created_by: {$row['created_by']}, edited_by: {$row['edited_by']}, assigned_team_leader_id: {$row['assigned_team_leader_id']}\n";
+    }
+
+    echo "\n\n============================ 3️⃣ الفرق بين المجموعتين ============================\n";
+
+    // عملنا مصفوفة IDs عشان نقارن
+    $correct_ids = array_column($correct_rows, 'ticket_detail_id');
+    $json_ids    = array_column($json_rows, 'ticket_detail_id');
+
+    $extra_ids = array_diff($json_ids, $correct_ids);
+
+    echo "عدد الصفوف الزائدة في JSON: " . count($extra_ids) . "\n";
+    foreach ($json_rows as $row) {
+        if (in_array($row['ticket_detail_id'], $extra_ids)) {
+            echo "⚠️ زيادة => TicketDetail ID: {$row['ticket_detail_id']}, Ticket ID: {$row['ticket_id']}, Ticket Number: {$row['ticket_number']}, Created At: {$row['created_at']}, Phone: {$row['phone']}\n";
         }
-
-        // تحويل updated_at
-        if (!empty($lastTicket['updated_at'])) {
-            $dt2 = new DateTime($lastTicket['updated_at'], new DateTimeZone('UTC'));
-            $dt2->setTimezone(new DateTimeZone('Africa/Cairo'));
-            $lastTicket['updated_at_cairo'] = $dt2->format('Y-m-d h:i:s A');
-        }
-
-        echo "<pre>";
-        print_r($lastTicket);
-        echo "</pre>";
-    } else {
-        echo "لا توجد تذاكر في الجدول.";
     }
 
 } catch (PDOException $e) {
