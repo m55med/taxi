@@ -54,7 +54,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -70,7 +70,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -86,7 +86,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -104,7 +104,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -122,7 +122,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -156,7 +156,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -172,7 +172,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 
@@ -192,7 +192,7 @@ class CreateTicketModel extends Model
 
         if ($result) {
 
-            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
 
         }
 
@@ -226,7 +226,7 @@ class CreateTicketModel extends Model
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 

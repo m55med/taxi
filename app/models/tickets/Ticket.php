@@ -242,7 +242,6 @@ class Ticket extends Model
 
 
             $utcTimestamp = \App\Helpers\DateTimeHelper::getCurrentUTC();
-
             $stmt = $this->db->prepare(
 
 
@@ -1159,7 +1158,7 @@ class Ticket extends Model
 
 
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1280,7 +1279,7 @@ class Ticket extends Model
         $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // تحويل التواريخ للعرض بالتوقيت المحلي
-        return convert_dates_for_display($history, ['created_at', 'updated_at']);
+        return \convert_dates_for_display($history, ['created_at', 'updated_at']);
 
 
 
@@ -1347,7 +1346,7 @@ class Ticket extends Model
 
 
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1406,7 +1405,7 @@ class Ticket extends Model
 
 
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1465,7 +1464,7 @@ class Ticket extends Model
 
 
 
-            return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
 
 
@@ -1733,7 +1732,7 @@ class Ticket extends Model
 
 
 
-            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
 
 
 
@@ -1828,7 +1827,7 @@ class Ticket extends Model
 
 
 
-            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
 
 
 

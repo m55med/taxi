@@ -8,7 +8,6 @@ use App\Models\Break\BreakStorage;
 
 
 // تحميل DateTime Helper للتعامل مع التوقيت
-require_once APPROOT . '/helpers/DateTimeHelper.php';
 
 class BreakModel
 {
@@ -32,7 +31,7 @@ class BreakModel
             return false; // Or handle as an error, e.g., return the existing break ID
         }
 
-        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        $utcTimestamp = gmdate('Y-m-d H:i:s');
         $sql = "INSERT INTO breaks (user_id, start_time, is_active) VALUES (:user_id, :start_time, 1)";
         $stmt = $this->db->prepare($sql);
         if ($stmt->execute([':user_id' => $userId, ':start_time' => $utcTimestamp])) {
@@ -46,7 +45,7 @@ class BreakModel
                     'user_id' => $userId,
                     'user_name' => $userInfo->name,
                     'team_name' => $userInfo->team_name,
-                    'start_time' => date('Y-m-d H:i:s')
+                    'start_time' => gmdate('Y-m-d H:i:s')
                 ];
                 $this->breakStorage->addActiveBreak($breakData);
             }
@@ -61,7 +60,7 @@ class BreakModel
      */
     public function stop($breakId)
     {
-        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        $utcTimestamp = gmdate('Y-m-d H:i:s');
         $sql = "UPDATE breaks
                 SET end_time = :end_time,
                     duration_seconds = TIMESTAMPDIFF(SECOND, start_time, :end_time_calc),
@@ -370,7 +369,7 @@ class BreakModel
      */
     public function getCurrentOngoingBreaks()
     {
-        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        $utcTimestamp = gmdate('Y-m-d H:i:s');
         $sql = "SELECT
                     b.id,
                     b.user_id,

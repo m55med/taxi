@@ -202,7 +202,11 @@
                                             <span class="text-sm font-medium text-orange-700">On Break</span>
                                         </div>
                                         <div class="text-xs text-gray-600">
-                                            <div>Started: <?= date('H:i', strtotime($startTime)) ?></div>
+                                            <?php
+                                            $dt = new DateTime($startTime, new DateTimeZone('UTC'));
+                                            $dt->setTimezone(new DateTimeZone('Africa/Cairo'));
+                                            ?>
+                                            <div>Started: <?= $dt->format('h:i:s A') ?></div>
                                             <div class="flex items-center space-x-1">
                                                 <span>Duration:</span>
                                                 <span class="font-mono <?= $isLongBreak ? 'text-red-600 font-bold' : 'text-green-600' ?>">
@@ -323,7 +327,13 @@
                                         <span class="text-sm font-medium text-orange-700">On Break</span>
                                     </div>
                                     <div class="text-xs text-gray-600">
-                                        <div>Started: ${new Date(startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+<div>Started: ${new Date(startTime).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+    timeZone: 'Africa/Cairo'
+})}</div>
                                         <div class="flex items-center space-x-1">
                                             <span>Duration:</span>
                                             <span class="font-mono ${isLongBreak ? 'text-red-600 font-bold' : 'text-green-600'}">

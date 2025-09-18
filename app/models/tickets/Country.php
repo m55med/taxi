@@ -53,7 +53,7 @@ class Country extends Model
         // تحويل التواريخ للعرض بالتوقيت المحلي
 
 
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
 
     }
 

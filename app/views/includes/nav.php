@@ -13,6 +13,37 @@ function getNavigationItems($role) {
             'icon' => 'fas fa-home',
 
         ],
+        [
+
+            'title' => 'Performance',
+
+            'icon' => 'fas fa-tachometer-alt',
+
+            'children' => [
+
+                ['title' => 'System Overview', 'href' => '/performance/overview', 'icon' => 'fas fa-eye'],
+
+                ['title' => 'Daily Stats', 'href' => '/performance/daily', 'icon' => 'fas fa-calendar-alt'],
+
+                ['title' => 'Team Performance', 'href' => '/performance/teams', 'icon' => 'fas fa-users'],
+
+                ['title' => 'User Performance', 'href' => '/performance/users', 'icon' => 'fas fa-user-check'],
+
+                ['title' => 'Ticket Analytics', 'href' => '/performance/tickets', 'icon' => 'fas fa-chart-line'],
+
+                ['title' => 'Call Center Stats', 'href' => '/performance/calls', 'icon' => 'fas fa-phone-volume'],
+
+                ['title' => 'System Health', 'href' => '/performance/health', 'icon' => 'fas fa-heartbeat', 'permissions' => ['admin', 'developer']],
+
+                ['title' => 'Quality Metrics', 'href' => '/performance/quality', 'icon' => 'fas fa-star', 'permissions' => ['admin', 'developer', 'quality_manager', 'Team_leader']],
+
+                ['title' => 'Real-time Dashboard', 'href' => '/performance/realtime', 'icon' => 'fas fa-tachometer-alt'],
+
+                ['title' => 'Performance Reports', 'href' => '/performance/reports', 'icon' => 'fas fa-chart-pie', 'permissions' => ['admin', 'developer', 'quality_manager', 'Team_leader']],
+
+            ]
+
+        ],
 
         [
 
@@ -103,6 +134,7 @@ function getNavigationItems($role) {
             ]
 
         ],
+
 
         [
 

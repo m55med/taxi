@@ -475,6 +475,32 @@ $router->post("admin/permissions/batchUpdateUserPermissions", "admin/Permissions
 
 
 
+// Performance Routes - Quick Access Dashboard
+$router->get("performance/overview", "Performance/PerformanceController@overview")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/daily", "Performance/PerformanceController@daily")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/teams", "Performance/PerformanceController@teams")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/users", "Performance/PerformanceController@users")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/tickets", "Performance/PerformanceController@tickets")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/calls", "Performance/PerformanceController@calls")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/health", "Performance/PerformanceController@health")->middleware(['admin', 'developer']);
+$router->get("performance/quality", "Performance/PerformanceController@quality")->middleware(['admin', 'developer', 'quality_manager', 'Team_leader']);
+$router->get("performance/realtime", "Performance/PerformanceController@realtime")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get("performance/reports", "Performance/PerformanceController@reports")->middleware(['admin', 'developer', 'quality_manager', 'Team_leader']);
+
+// API routes for Performance data
+$router->get("performance/api/overview", "Performance/PerformanceController@getOverviewData");
+$router->get("performance/api/daily-stats", "Performance/PerformanceController@getDailyStats");
+$router->get("performance/api/team-performance", "Performance/PerformanceController@getTeamPerformance");
+$router->get("performance/api/user-performance", "Performance/PerformanceController@getUserPerformance");
+$router->get("performance/api/ticket-analytics", "Performance/PerformanceController@getTicketAnalytics");
+$router->get("performance/api/call-stats", "Performance/PerformanceController@getCallStats");
+$router->get("performance/api/system-health", "Performance/PerformanceController@getSystemHealth");
+$router->get("performance/api/quality-metrics", "Performance/PerformanceController@getQualityMetrics");
+$router->get("performance/api/realtime-data", "Performance/PerformanceController@getRealtimeData");
+$router->get("performance/api/recent-tickets", "Performance/PerformanceController@getRecentTickets");
+$router->get("performance/api/active-sessions", "Performance/PerformanceController@getActiveSessions");
+$router->get("performance/api/performance-reports", "Performance/PerformanceController@getPerformanceReports");
+
 // Reports
 
 $router->get("reports/myactivity", "reports/MyActivity/MyActivityController@index");

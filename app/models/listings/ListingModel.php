@@ -16,6 +16,11 @@ class ListingModel extends Model
         parent::__construct();
     }
 
+    public function getDb()
+    {
+        return $this->db;
+    }
+
     public function getFilteredTickets($filters = [], $withPagination = false)
 {
     $params = [];
@@ -174,7 +179,7 @@ class ListingModel extends Model
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
-        $results = convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        $results = \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
     } catch (\PDOException $e) {
         error_log('ListingModel::getFilteredTickets Data Error: ' . $e->getMessage());
         $results = [];
@@ -522,7 +527,7 @@ class ListingModel extends Model
 
         if ($result) {
             // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
-            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
         }
 
         return null;
@@ -549,7 +554,7 @@ class ListingModel extends Model
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
     }
 
     /**
@@ -595,7 +600,7 @@ class ListingModel extends Model
         error_log("TICKET LOGS RESULTS: Found " . count($results) . " records");
 
         // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
-        return convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
+        return \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
     }
 
     public function getTicketStats($filters = [])

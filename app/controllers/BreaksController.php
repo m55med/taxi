@@ -18,6 +18,13 @@ class BreaksController extends Controller
         $this->userModel = new User(); // Initialize the UserModel
     }
 
+    private function utcToCairo($utcTime)
+    {
+        $date = new \DateTime($utcTime, new \DateTimeZone('UTC'));
+        $date->setTimezone(new \DateTimeZone('Africa/Cairo'));
+        return $date->format('h:i:s A, Y-m-d');
+    }
+
     /**
      * API endpoint to start a break.
      */
@@ -97,10 +104,9 @@ class BreaksController extends Controller
     public function current()
     {
         header('Content-Type: application/json');
-
+    
         $currentBreaks = $this->breakModel->getCurrentOngoingBreaks();
-
-        // Convert objects to arrays for JSON response
+    
         $breaksArray = [];
         foreach ($currentBreaks as $break) {
             $breaksArray[] = [
@@ -108,14 +114,15 @@ class BreaksController extends Controller
                 'user_id' => $break['user_id'] ?? $break->user_id,
                 'user_name' => $break['user_name'] ?? $break->user_name,
                 'team_name' => $break['team_name'] ?? $break->team_name,
-                'start_time' => $break['start_time'] ?? $break->start_time,
+                'start_time' => $this->utcToCairo($break['start_time'] ?? $break->start_time),
                 'minutes_elapsed' => $break['minutes_elapsed'] ?? $break->minutes_elapsed,
                 'is_long_break' => ($break['minutes_elapsed'] ?? $break->minutes_elapsed) >= 30
             ];
         }
-
+    
         $this->sendJsonResponse($breaksArray);
     }
+    
 
     /**
      * API endpoint to get current breaks count only (for live counter).
@@ -141,175 +148,181 @@ class BreaksController extends Controller
         ]);
     }
 
-    /**
-     * Display the main breaks report page.
-     */
-    public function report()
-    {
-        // Default dates to the current month
-        $defaultFromDate = date('Y-m-01');
-        $defaultToDate = date('Y-m-t');
-    
-        // Handle quick period filters
-        $period = $_GET['period'] ?? 'this_month';
-        $fromDate = $_GET['from_date'] ?? null;
-        $toDate = $_GET['to_date'] ?? null;
-    
-        if (!$fromDate || !$toDate) {
-            switch ($period) {
-                case 'today':
-                    $fromDate = date('Y-m-d');
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'last7':
-                    $fromDate = date('Y-m-d', strtotime('-6 days'));
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'last30':
-                    $fromDate = date('Y-m-d', strtotime('-29 days'));
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'all':
-                    $fromDate = null;
-                    $toDate = null;
-                    break;
-                case 'this_month':
-                default:
-                    $fromDate = $defaultFromDate;
-                    $toDate = $defaultToDate;
-                    break;
-            }
+ /**
+ * Display the main breaks report page.
+ */
+public function report()
+{
+    // Default dates to the current month
+    $defaultFromDate = date('Y-m-01');
+    $defaultToDate = date('Y-m-t');
+
+    // Handle quick period filters
+    $period = $_GET['period'] ?? 'this_month';
+    $fromDate = $_GET['from_date'] ?? null;
+    $toDate = $_GET['to_date'] ?? null;
+
+    if (!$fromDate || !$toDate) {
+        switch ($period) {
+            case 'today':
+                $fromDate = date('Y-m-d');
+                $toDate = date('Y-m-d');
+                break;
+            case 'last7':
+                $fromDate = date('Y-m-d', strtotime('-6 days'));
+                $toDate = date('Y-m-d');
+                break;
+            case 'last30':
+                $fromDate = date('Y-m-d', strtotime('-29 days'));
+                $toDate = date('Y-m-d');
+                break;
+            case 'all':
+                $fromDate = null;
+                $toDate = null;
+                break;
+            case 'this_month':
+            default:
+                $fromDate = $defaultFromDate;
+                $toDate = $defaultToDate;
+                break;
         }
-    
-        $selectedUserId = $_GET['user_id'] ?? null;
-        $selectedUserName = '';
-        $selectedTeamId = $_GET['team_id'] ?? null;
-        $selectedTeamName = '';
-
-        if (!empty($selectedUserId)) {
-            $user = $this->userModel->getUserById($selectedUserId);
-            if ($user) {
-                $selectedUserName = $user->name;
-            }
-        }
-
-        if (!empty($selectedTeamId)) {
-            // Get team name using BreakModel
-            $selectedTeamName = $this->breakModel->getTeamNameById($selectedTeamId);
-        }
-    
-        $sortBy = $_GET['sort_by'] ?? 'total_duration_seconds';
-        $sortOrder = $_GET['sort_order'] ?? 'desc';
-
-        $filters = [
-            'user_id' => $selectedUserId,
-            'team_id' => $selectedTeamId,
-            'from_date' => $fromDate,
-            'to_date' => $toDate,
-            'sort_by' => $sortBy,
-            'sort_order' => $sortOrder,
-        ];
-    
-        // Only add 'search' filter if no specific user is selected from dropdown
-        if (empty($selectedUserId) && !empty($_GET['search'])) {
-            $filters['search'] = $_GET['search'];
-        }
-    
-        $summary = $this->breakModel->getBreaksSummary($filters);
-        $stats = $this->breakModel->getOverallSummaryStats($filters);
-        $currentBreakCount = $this->breakModel->getCurrentBreakCount();
-        
-        // Fetch all agents and team leaders to populate the filter dropdown
-        $users = $this->userModel->getUsersByRoles(['agent', 'Team_leader', 'admin', 'quality_manager', 'developer']);
-        // The `getUsersByRoles` method already orders by name ASC.
-
-        // Fetch all teams for filtering
-        $teams = $this->breakModel->getAllTeams();
-
-        // Hardcoded dummy data for testing
-        // $users = [
-        //     ['id' => 1, 'name' => 'Test User One'],
-        //     ['id' => 2, 'name' => 'Test User Two'],
-        //     ['id' => 3, 'name' => 'Test User Three'],
-        // ];
-
-        $this->view('reports/breaks_summary', [
-            'summary' => $summary,
-            'stats' => $stats,
-            'filters' => $filters,
-            'period' => $period,
-            'users' => $users, // Pass users to the view
-            'teams' => $teams, // Pass teams to the view
-            'selected_user_name' => $selectedUserName, // Pass selected user's name
-            'selected_team_name' => $selectedTeamName, // Pass selected team's name
-            'sort_by' => $sortBy,
-            'sort_order' => $sortOrder,
-            'current_break_count' => $currentBreakCount // Pass current break count
-        ]);
     }
-    
 
-    /**
-     * Display the detailed breaks report for a single user.
-     */
-    public function userReport($userId)
-    {
-        $userModel = $this->model('User/User');
-        $user = $userModel->getUserById($userId);
-        
-        if (!$user) {
-            die('User not found.');
+    $selectedUserId = $_GET['user_id'] ?? null;
+    $selectedUserName = '';
+    $selectedTeamId = $_GET['team_id'] ?? null;
+    $selectedTeamName = '';
+
+    if (!empty($selectedUserId)) {
+        $user = $this->userModel->getUserById($selectedUserId);
+        if ($user) {
+            $selectedUserName = $user->name;
         }
-
-        // Default dates to the current month
-        $defaultFromDate = date('Y-m-01');
-        $defaultToDate = date('Y-m-t');
-
-        // Handle quick period filters
-        $period = $_GET['period'] ?? 'this_month';
-        $fromDate = $_GET['from_date'] ?? null;
-        $toDate = $_GET['to_date'] ?? null;
-
-        if (!$fromDate || !$toDate) {
-            switch ($period) {
-                case 'today':
-                    $fromDate = date('Y-m-d');
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'last7':
-                    $fromDate = date('Y-m-d', strtotime('-6 days'));
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'last30':
-                    $fromDate = date('Y-m-d', strtotime('-29 days'));
-                    $toDate = date('Y-m-d');
-                    break;
-                case 'all':
-                    $fromDate = null;
-                    $toDate = null;
-                    break;
-                case 'this_month':
-                default:
-                    $fromDate = $defaultFromDate;
-                    $toDate = $defaultToDate;
-                    break;
-            }
-        }
-        
-        $filters = [
-            'from_date' => $fromDate,
-            'to_date' => $toDate,
-        ];
-
-        $breaks = $this->breakModel->getBreaksForUser($userId, $filters);
-        $stats = $this->breakModel->getUserSummaryStats($userId, $filters);
-        
-        $this->view('reports/user_breaks', [
-            'breaks' => $breaks, 
-            'user' => $user,
-            'stats' => $stats,
-            'filters' => $filters,
-            'period' => $period
-        ]);
     }
+
+    if (!empty($selectedTeamId)) {
+        $selectedTeamName = $this->breakModel->getTeamNameById($selectedTeamId);
+    }
+
+    $sortBy = $_GET['sort_by'] ?? 'total_duration_seconds';
+    $sortOrder = $_GET['sort_order'] ?? 'desc';
+
+    $filters = [
+        'user_id' => $selectedUserId,
+        'team_id' => $selectedTeamId,
+        'from_date' => $fromDate,
+        'to_date' => $toDate,
+        'sort_by' => $sortBy,
+        'sort_order' => $sortOrder,
+    ];
+
+    if (empty($selectedUserId) && !empty($_GET['search'])) {
+        $filters['search'] = $_GET['search'];
+    }
+
+    $summary = $this->breakModel->getBreaksSummary($filters);
+    $stats = $this->breakModel->getOverallSummaryStats($filters);
+    $currentBreakCount = $this->breakModel->getCurrentBreakCount();
+
+    // تحويل الوقت من UTC لـ Cairo
+    foreach ($summary as $item) {
+        if (isset($item->start_time)) {
+            $item->start_time = $this->utcToCairo($item->start_time);
+        }
+        if (isset($item->end_time)) {
+            $item->end_time = $this->utcToCairo($item->end_time);
+        }
+    }
+
+    $users = $this->userModel->getUsersByRoles(['agent', 'Team_leader', 'admin', 'quality_manager', 'developer']);
+    $teams = $this->breakModel->getAllTeams();
+
+    $this->view('reports/breaks_summary', [
+        'summary' => $summary,
+        'stats' => $stats,
+        'filters' => $filters,
+        'period' => $period,
+        'users' => $users,
+        'teams' => $teams,
+        'selected_user_name' => $selectedUserName,
+        'selected_team_name' => $selectedTeamName,
+        'sort_by' => $sortBy,
+        'sort_order' => $sortOrder,
+        'current_break_count' => $currentBreakCount
+    ]);
+}
+
+/**
+ * Display the detailed breaks report for a single user.
+ */
+public function userReport($userId)
+{
+    $userModel = $this->model('User/User');
+    $user = $userModel->getUserById($userId);
+
+    if (!$user) {
+        die('User not found.');
+    }
+
+    $defaultFromDate = date('Y-m-01');
+    $defaultToDate = date('Y-m-t');
+
+    $period = $_GET['period'] ?? 'this_month';
+    $fromDate = $_GET['from_date'] ?? null;
+    $toDate = $_GET['to_date'] ?? null;
+
+    if (!$fromDate || !$toDate) {
+        switch ($period) {
+            case 'today':
+                $fromDate = date('Y-m-d');
+                $toDate = date('Y-m-d');
+                break;
+            case 'last7':
+                $fromDate = date('Y-m-d', strtotime('-6 days'));
+                $toDate = date('Y-m-d');
+                break;
+            case 'last30':
+                $fromDate = date('Y-m-d', strtotime('-29 days'));
+                $toDate = date('Y-m-d');
+                break;
+            case 'all':
+                $fromDate = null;
+                $toDate = null;
+                break;
+            case 'this_month':
+            default:
+                $fromDate = $defaultFromDate;
+                $toDate = $defaultToDate;
+                break;
+        }
+    }
+
+    $filters = [
+        'from_date' => $fromDate,
+        'to_date' => $toDate,
+    ];
+
+    $breaks = $this->breakModel->getBreaksForUser($userId, $filters);
+    $stats = $this->breakModel->getUserSummaryStats($userId, $filters);
+
+    // تحويل الوقت من UTC لـ Cairo
+    foreach ($breaks as $break) {
+        if (isset($break->start_time)) {
+            $break->start_time = $this->utcToCairo($break->start_time);
+        }
+        if (isset($break->end_time)) {
+            $break->end_time = $this->utcToCairo($break->end_time);
+        }
+    }
+
+    $this->view('reports/user_breaks', [
+        'breaks' => $breaks,
+        'user' => $user,
+        'stats' => $stats,
+        'filters' => $filters,
+        'period' => $period
+    ]);
+}
+
+
 }

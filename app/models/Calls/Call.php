@@ -592,7 +592,7 @@ class Call extends Model
         if ($result) {
 
 
-            return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+            return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
 
 
         }
@@ -651,7 +651,7 @@ class Call extends Model
             if ($result) {
 
 
-                return convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
+                return \convert_dates_for_display_12h($result, ['created_at', 'updated_at']);
 
 
             }
@@ -763,7 +763,7 @@ class Call extends Model
         // تحويل التواريخ للعرض بالتوقيت المحلي
 
 
-        return convert_dates_for_display_12h($results, ['event_date']);
+        return \convert_dates_for_display_12h($results, ['event_date']);
 
     }
 
@@ -818,7 +818,7 @@ class Call extends Model
         // تحويل التواريخ للعرض بالتوقيت المحلي
 
 
-        return convert_dates_for_display_12h($results, ['event_date']);
+        return \convert_dates_for_display_12h($results, ['event_date']);
 
     }
 
@@ -884,6 +884,67 @@ class Call extends Model
 
         return $this->execute();
 
+    }
+
+    /**
+     * Get call statistics for a date range
+     */
+    public function getCallStats($filters = [])
+    {
+        try {
+            $startDate = $filters['start_date'] ?? date('Y-m-d');
+            $endDate = $filters['end_date'] ?? date('Y-m-d');
+
+            $sql = "SELECT
+                        'incoming' as type,
+                        COUNT(*) as count,
+                        AVG(TIMESTAMPDIFF(SECOND, call_started_at, call_ended_at)) as avg_duration_seconds
+                    FROM incoming_calls
+                    WHERE DATE(call_started_at) BETWEEN ? AND ?
+
+                    UNION ALL
+
+                    SELECT
+                        'outgoing' as type,
+                        COUNT(*) as count,
+                        NULL as avg_duration_seconds
+                    FROM driver_calls
+                    WHERE DATE(created_at) BETWEEN ? AND ?";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$startDate, $endDate, $startDate, $endDate]);
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $stats = [
+                'incoming' => 0,
+                'outgoing' => 0,
+                'total' => 0,
+                'avg_incoming_duration' => 0,
+                'avg_outgoing_duration' => 0
+            ];
+
+            foreach ($results as $row) {
+                $count = (int)$row['count'];
+                $stats[$row['type']] = $count;
+                $stats['total'] += $count;
+
+                if ($row['type'] === 'incoming' && $row['avg_duration_seconds']) {
+                    $stats['avg_incoming_duration'] = round((float)$row['avg_duration_seconds'], 1);
+                }
+            }
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            return [
+                'incoming' => 0,
+                'outgoing' => 0,
+                'total' => 0,
+                'avg_incoming_duration' => 0,
+                'avg_outgoing_duration' => 0
+            ];
+        }
     }
 
 }
