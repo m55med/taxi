@@ -1904,25 +1904,29 @@ class Ticket extends Model
     {
         try {
             error_log("LOGGING EDIT: Detail ID: $ticketDetailId, User: $editedBy, Field: $fieldName, Old: $oldValue, New: $newValue");
-
-            $utcTimestamp = DateTimeHelper::getCurrentUTC();
+    
+            // الحصول على الوقت الحالي بصيغة UTC ISO8601
+            $utcTimestamp = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+                ->format('Y-m-d H:i:s');
+    
             $sql = "INSERT INTO ticket_edit_logs (ticket_detail_id, edited_by, field_name, old_value, new_value, created_at)
                     VALUES (:ticket_detail_id, :edited_by, :field_name, :old_value, :new_value, :created_at)";
-
+    
             $stmt = $this->db->prepare($sql);
             return $stmt->execute([
                 ':ticket_detail_id' => $ticketDetailId,
-                ':edited_by' => $editedBy,
-                ':field_name' => $fieldName,
-                ':old_value' => $oldValue,
-                ':new_value' => $newValue,
-                ':created_at' => $utcTimestamp
+                ':edited_by'        => $editedBy,
+                ':field_name'       => $fieldName,
+                ':old_value'        => $oldValue,
+                ':new_value'        => $newValue,
+                ':created_at'       => $utcTimestamp
             ]);
         } catch (\Exception $e) {
             error_log("Error in logEdit: " . $e->getMessage());
             return false;
         }
     }
+    
 
     /**
      * Get edit logs for a ticket detail (admin only)

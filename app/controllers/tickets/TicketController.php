@@ -636,59 +636,71 @@ class TicketController extends Controller
      * Show edit logs for a ticket (admin only)
      */
     public function editLogs($ticketId)
-    {
-        
-        // Check if user is logged in
-        if (!Auth::isLoggedIn()) {
-            $_SESSION['error_message'] = 'Please log in to access this page.';
-            redirect('login');
-            return;
-        }
-
-        // Debug: Check current user role
-        $currentRole = Auth::getUserRole();
-        error_log("Edit Logs Access - User Role: " . ($currentRole ?? 'null'));
-        
-        // Check if user is admin or developer
-        if (!Auth::hasAnyRole(['admin', 'developer'])) {
-            $_SESSION['error_message'] = "Access denied. Admin privileges required. Your role: " . ($currentRole ?? 'unknown');
-            redirect('tickets/view/' . $ticketId);
-            return;
-        }
-
-        // First try to find ticket by ID
-        $ticket = $this->ticketModel->findById($ticketId);
-        $actualTicketId = $ticketId;
-        
-        // If not found, maybe the ID is a ticket detail ID, try to get ticket from detail
-        if (!$ticket) {
-            $actualTicketId = $this->ticketModel->getTicketIdFromDetailId($ticketId);
-            if ($actualTicketId) {
-                $ticket = $this->ticketModel->findById($actualTicketId);
-            }
-        }
-        
-        if (!$ticket) {
-            $_SESSION['error_message'] = "❌ التذكرة رقم #{$ticketId} غير موجودة أو تم حذفها.";
-            redirect('tickets/view');
-            return;
-        }
-
-        $editLogs = $this->ticketModel->getAllEditLogsForTicket($actualTicketId);
-
-        // Debug: Log successful access
-        error_log("Edit Logs Access SUCCESS - Input ID: $ticketId, Actual Ticket ID: $actualTicketId, User Role: $currentRole, Logs Count: " . count($editLogs));
-
-        // Log successful access for debugging (remove in production)
-        error_log("EditLogs Access - Ticket ID: " . ($ticket['id'] ?? 'NULL') . ", User: " . ($currentRole ?? 'unknown'));
-
-        $data = [
-            'page_main_title' => 'Edit Logs',
-            'ticket' => $ticket,
-            'editLogs' => $editLogs,
-            'listingModel' => $this->listingModel // For additional logs functionality
-        ];
-
-        $this->view('tickets/edit_logs', $data);
+{
+    // Check if user is logged in
+    if (!Auth::isLoggedIn()) {
+        $_SESSION['error_message'] = 'Please log in to access this page.';
+        redirect('login');
+        return;
     }
+
+    // Debug: Check current user role
+    $currentRole = Auth::getUserRole();
+    error_log("Edit Logs Access - User Role: " . ($currentRole ?? 'null'));
+    
+    // Check if user is admin or developer
+    if (!Auth::hasAnyRole(['admin', 'developer'])) {
+        $_SESSION['error_message'] = "Access denied. Admin privileges required. Your role: " . ($currentRole ?? 'unknown');
+        redirect('tickets/view/' . $ticketId);
+        return;
+    }
+
+    // First try to find ticket by ID
+    $ticket = $this->ticketModel->findById($ticketId);
+    $actualTicketId = $ticketId;
+    
+    // If not found, maybe the ID is a ticket detail ID, try to get ticket from detail
+    if (!$ticket) {
+        $actualTicketId = $this->ticketModel->getTicketIdFromDetailId($ticketId);
+        if ($actualTicketId) {
+            $ticket = $this->ticketModel->findById($actualTicketId);
+        }
+    }
+    
+    if (!$ticket) {
+        $_SESSION['error_message'] = "❌ التذكرة رقم #{$ticketId} غير موجودة أو تم حذفها.";
+        redirect('tickets/view');
+        return;
+    }
+
+    $editLogs = $this->ticketModel->getAllEditLogsForTicket($actualTicketId);
+
+    // ✅ تحويل created_at من UTC إلى Cairo + 12 ساعة format
+    foreach ($editLogs as &$log) {
+        if (!empty($log['created_at'])) {
+            try {
+                $utc = new \DateTimeImmutable($log['created_at'], new \DateTimeZone('UTC'));
+                $cairoTime = $utc->setTimezone(new \DateTimeZone('Africa/Cairo'));
+                $log['created_at_formatted'] = $cairoTime->format('Y-m-d h:i A');
+            } catch (\Exception $e) {
+                $log['created_at_formatted'] = $log['created_at']; // fallback
+            }
+        } else {
+            $log['created_at_formatted'] = null;
+        }
+    }
+
+    // Debug: Log successful access
+    error_log("Edit Logs Access SUCCESS - Input ID: $ticketId, Actual Ticket ID: $actualTicketId, User Role: $currentRole, Logs Count: " . count($editLogs));
+
+    $data = [
+        'page_main_title' => 'Edit Logs',
+        'ticket' => $ticket,
+        'editLogs' => $editLogs,
+        'listingModel' => $this->listingModel // For additional logs functionality
+    ];
+
+    $this->view('tickets/edit_logs', $data);
+}
+
 }

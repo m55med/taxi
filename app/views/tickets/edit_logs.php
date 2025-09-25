@@ -73,8 +73,8 @@
                             </div>
                             <div class="text-sm text-gray-500">
                                 <i class="fas fa-clock mr-1"></i>
-                                <?= date('Y-m-d H:i:s', strtotime($log['created_at'])) ?>
-                            </div>
+                                <?= htmlspecialchars($log['created_at_formatted']) ?>
+                                </div>
                         </div>
 
                         <div class="ml-5 pl-4 border-l-2 border-gray-200">
@@ -139,7 +139,7 @@
                             </div>
                             <div class="text-sm text-gray-500">
                                 <i class="fas fa-clock mr-1"></i>
-                                <?= htmlspecialchars($log['created_at']) ?>
+                                <?= htmlspecialchars($log['created_at_formatted']) ?>
                             </div>
                         </div>
 

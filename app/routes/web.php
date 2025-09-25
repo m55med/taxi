@@ -476,6 +476,7 @@ $router->post("admin/permissions/batchUpdateUserPermissions", "admin/Permissions
 
 
 // Performance Routes - Quick Access Dashboard
+$router->get("performance", "Performance/PerformanceController@index")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get("performance/overview", "Performance/PerformanceController@overview")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get("performance/daily", "Performance/PerformanceController@daily")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 $router->get("performance/teams", "Performance/PerformanceController@teams")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
