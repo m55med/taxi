@@ -921,13 +921,17 @@ require_once APPROOT . '/helpers/DateTimeHelper.php';
 
                         t.ticket_number,
 
-                        u.username as editor_name
+                        u.username as editor_name,
+
+                        creator.username as creator_name
 
                     FROM ticket_details tdh
 
                     JOIN tickets t ON tdh.ticket_id = t.id
 
                     JOIN users u ON tdh.edited_by = u.id
+
+                    LEFT JOIN users creator ON tdh.created_by = creator.id
 
                     WHERE tdh.id = ?";
 

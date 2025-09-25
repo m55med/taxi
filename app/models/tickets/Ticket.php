@@ -246,11 +246,11 @@ class Ticket extends Model
 
 
 
-                "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, created_at, updated_at)                                                                
+                "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, edited_by, created_at, updated_at)                                                                
 
 
 
-                 VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by, :created_at, :updated_at)"                                                                        
+                 VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :created_by, :edited_by, :created_at, :updated_at)"                                                                        
 
 
 
@@ -303,6 +303,8 @@ class Ticket extends Model
 
 
                 ':assigned_team_leader_id' => $data['assigned_team_leader_id'],
+
+':created_by' => $userId,
 
 
 
@@ -1846,48 +1848,46 @@ class Ticket extends Model
 
 
     public function updateTicketDetail($detailId, array $data, $userId)
-    {
-        try {
-            $sql = "UPDATE ticket_details SET
-                        is_vip = :is_vip,
-                        platform_id = :platform_id,
-                        phone = :phone,
-                        category_id = :category_id,
-                        subcategory_id = :subcategory_id,
-                        code_id = :code_id,
-                        notes = :notes,
-                        country_id = :country_id,
-                        assigned_team_leader_id = :assigned_team_leader_id
-                    WHERE id = :detail_id";
-    
-            $stmt = $this->db->prepare($sql);
-    
-            $params = [
-                ':is_vip' => $data['is_vip'] ?? 0,
-                ':platform_id' => $data['platform_id'],
-                ':phone' => $data['phone'] ?? null,
-                ':category_id' => $data['category_id'],
-                ':subcategory_id' => $data['subcategory_id'],
-                ':code_id' => $data['code_id'],
-                ':notes' => $data['notes'] ?? null,
-                ':country_id' => $data['country_id'] ?? null,
-                ':assigned_team_leader_id' => $data['assigned_team_leader_id'] ?? null,
-                ':detail_id' => $detailId
-            ];
-    
-            $success = $stmt->execute($params);
+{
+    try {
+        $sql = "UPDATE ticket_details SET
+                    is_vip = :is_vip,
+                    platform_id = :platform_id,
+                    phone = :phone,
+                    category_id = :category_id,
+                    subcategory_id = :subcategory_id,
+                    code_id = :code_id,
+                    notes = :notes,
+                    country_id = :country_id,
+                    assigned_team_leader_id = :assigned_team_leader_id,
+                    edited_by = :edited_by,
+                    updated_at = NOW()
+                WHERE id = :detail_id";
 
-            if ($success) {
-                return true; // Return true on successful update
-            } else {
-                return false; // Return false on failed update
-            }
+        $stmt = $this->db->prepare($sql);
 
-        } catch (\Exception $e) {
-            error_log("Exception in updateTicketDetail: " . $e->getMessage());
-            return false;
-        }
+        $params = [
+            ':is_vip' => $data['is_vip'] ?? 0,
+            ':platform_id' => $data['platform_id'],
+            ':phone' => $data['phone'] ?? null,
+            ':category_id' => $data['category_id'],
+            ':subcategory_id' => $data['subcategory_id'],
+            ':code_id' => $data['code_id'],
+            ':notes' => $data['notes'] ?? null,
+            ':country_id' => $data['country_id'] ?? null,
+            ':assigned_team_leader_id' => $data['assigned_team_leader_id'] ?? null,
+            ':edited_by' => $userId,
+            ':detail_id' => $detailId
+        ];
+
+        return $stmt->execute($params);
+
+    } catch (\Exception $e) {
+        error_log("Exception in updateTicketDetail: " . $e->getMessage());
+        return false;
     }
+}
+
     
     
     

@@ -237,6 +237,7 @@ CREATE TABLE `ticket_details` (
   `notes` mediumtext DEFAULT NULL,
   `country_id` int(11) DEFAULT NULL,
   `assigned_team_leader_id` int(11) NOT NULL,
+  `created_by` int(11) DEFAULT NULL,              -- العمود الجديد
   `edited_by` int(11) NOT NULL,
   `team_id_at_action` int(11) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
@@ -249,6 +250,7 @@ CREATE TABLE `ticket_details` (
   KEY `code_id` (`code_id`),
   KEY `country_id` (`country_id`),
   KEY `assigned_team_leader_id` (`assigned_team_leader_id`),
+  KEY `created_by` (`created_by`),                -- index للعمود الجديد
   KEY `edited_by` (`edited_by`),
   KEY `team_id_at_action` (`team_id_at_action`),
   KEY `idx_created_at` (`created_at`),
@@ -259,8 +261,9 @@ CREATE TABLE `ticket_details` (
   CONSTRAINT `ticket_details_ibfk_5` FOREIGN KEY (`code_id`) REFERENCES `ticket_codes` (`id`),
   CONSTRAINT `ticket_details_ibfk_6` FOREIGN KEY (`country_id`) REFERENCES `countries` (`id`),
   CONSTRAINT `ticket_details_ibfk_7` FOREIGN KEY (`assigned_team_leader_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `ticket_details_ibfk_8` FOREIGN KEY (`edited_by`) REFERENCES `users` (`id`),
-  CONSTRAINT `ticket_details_ibfk_9` FOREIGN KEY (`team_id_at_action`) REFERENCES `teams` (`id`) ON DELETE SET NULL
+  CONSTRAINT `ticket_details_ibfk_8` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`), -- FK جديد
+  CONSTRAINT `ticket_details_ibfk_9` FOREIGN KEY (`edited_by`) REFERENCES `users` (`id`),
+  CONSTRAINT `ticket_details_ibfk_10` FOREIGN KEY (`team_id_at_action`) REFERENCES `teams` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=14901 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ========================================

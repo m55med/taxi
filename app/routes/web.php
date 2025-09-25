@@ -680,6 +680,9 @@ $router->get('listings/calls', 'listings/ListingsController@calls')->middleware(
 
 $router->get('listings/get_calls_api', 'listings/ListingsController@get_calls_api');
 
+$router->get('listings/search_suggestions_api', 'listings/ListingsController@search_suggestions_api');
+
+
 
 
 // API Routes

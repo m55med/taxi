@@ -43,6 +43,7 @@ class ListingsController extends Controller
         // If the user is an agent, force filter by their user ID
         if (Auth::hasRole('agent')) {
             $filters['created_by'] = Auth::getUserId();
+            error_log('ListingsController::tickets - User is agent, forced created_by: ' . $filters['created_by']);
         }
 
         // Check for export request
@@ -55,7 +56,7 @@ class ListingsController extends Controller
         // Get initial data for page load (server-side pagination)
         $ticketsData = $this->listingModel->getFilteredTickets($filters, true);
         $stats = $this->listingModel->getTicketStats($filters);
-        
+
         // Debug logging
         error_log('ListingsController::tickets - Tickets data: ' . json_encode([
             'total' => $ticketsData['total'] ?? 0,
@@ -63,6 +64,12 @@ class ListingsController extends Controller
             'first_ticket' => !empty($ticketsData['data']) ? $ticketsData['data'][0]['ticket_number'] : 'N/A'
         ]));
         error_log('ListingsController::tickets - Stats: ' . json_encode($stats));
+
+        // Additional debug for search issues
+        if (!empty($filters['search_term'])) {
+            error_log('ListingsController::tickets - Search debug for term: ' . $filters['search_term']);
+            error_log('ListingsController::tickets - User is agent check: ' . (Auth::hasRole('agent') ? 'YES' : 'NO'));
+        }
 
         $data = [
             'page_main_title' => 'All Tickets',

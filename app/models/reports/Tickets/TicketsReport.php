@@ -1,137 +1,266 @@
-<?php
-
-namespace App\Models\Reports\Tickets;
-
-use App\Core\Database;
-use PDO;
-
+<?php
+
+
+
+namespace App\Models\Reports\Tickets;
+
+
+
+use App\Core\Database;
+
+use PDO;
+
+
+
 
 // تحميل DateTime Helper للتعامل مع التوقيت
 require_once APPROOT . '/helpers/DateTimeHelper.php';
 
-class TicketsReport
-{
-    private $db;
-
-    public function __construct()
-    {
-        $this->db = Database::getInstance();
-    }
-    
-    private function buildQueryParts($filters) {
-        $baseSql = "FROM ticket_details td
-                    JOIN tickets t ON td.ticket_id = t.id
-                    JOIN users u ON t.created_by = u.id
-                    LEFT JOIN platforms p ON td.platform_id = p.id
-                    LEFT JOIN ticket_categories cat ON td.category_id = cat.id
-                    LEFT JOIN ticket_subcategories subcat ON td.subcategory_id = subcat.id
-                    LEFT JOIN ticket_codes code ON td.code_id = code.id
-                    LEFT JOIN team_members tm ON u.id = tm.user_id";
-        
-        $conditions = [];
-        $params = [];
-        if (!empty($filters['user_id'])) {
-            $conditions[] = "t.created_by = :user_id";
-            $params[':user_id'] = $filters['user_id'];
-        }
-        
-        if (!empty($filters['team_id'])) {
-            $conditions[] = "tm.team_id = :team_id";
-            $params[':team_id'] = $filters['team_id'];
-        }
-        
-        if (!empty($filters['platform_id'])) {
-            $conditions[] = "td.platform_id = :platform_id";
-            $params[':platform_id'] = $filters['platform_id'];
-        }
-        
-        if (!empty($filters['category_id'])) {
-            $conditions[] = "td.category_id = :category_id";
-            $params[':category_id'] = $filters['category_id'];
-        }
-        
-        if (isset($filters['is_vip']) && $filters['is_vip'] !== '') {
-            $conditions[] = "td.is_vip = :is_vip";
-            $params[':is_vip'] = $filters['is_vip'];
-        }
-        
-        if (!empty($filters['search'])) {
-            $conditions[] = "(td.notes LIKE :search_notes OR td.phone LIKE :search_phone)";
-            $params[':search_notes'] = '%' . $filters['search'] . '%';
-            $params[':search_phone'] = '%' . $filters['search'] . '%';
-        }
-        
-        
-        if (!empty($filters['date_from'])) {
-            $conditions[] = "DATE(td.created_at) >= :date_from";
-            $params[':date_from'] = $filters['date_from'];
-        }
-        
-        if (!empty($filters['date_to'])) {
-            $conditions[] = "DATE(td.created_at) <= :date_to";
-            $params[':date_to'] = $filters['date_to'];
-        }
-        
-
-        $whereSql = count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "";
-        return ['base' => $baseSql, 'where' => $whereSql, 'params' => $params];
-    }
-
-    public function getTickets($filters, $limit, $offset)
-    {
-        $queryParts = $this->buildQueryParts($filters);
-        $sql = "SELECT t.id, t.ticket_number, td.is_vip, p.name as platform_name, td.phone,
-                       cat.name as category_name, subcat.name as subcategory_name, code.name as code_name,
-                       u.username as created_by_user, td.created_at
-                " . $queryParts['base'] . $queryParts['where']
-                . " ORDER BY td.created_at DESC LIMIT :limit OFFSET :offset";
-
-        $params = $queryParts['params'];
-        $params[':limit'] = $limit;
-        $params[':offset'] = $offset;
-
-        $stmt = $this->db->prepare($sql);
-        
-        // Use bindValue for limit and offset to ensure correct type
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-
-        // Bind the rest of the parameters
-        foreach ($queryParts['params'] as $key => $val) {
-            $stmt->bindValue($key, $val);
-        }
-        
-        $stmt->execute();
+class TicketsReport
+
+{
+
+    private $db;
+
+
+
+    public function __construct()
+
+    {
+
+        $this->db = Database::getInstance();
+
+    }
+
+    
+
+    private function buildQueryParts($filters) {
+
+        $baseSql = "FROM ticket_details td
+
+                    JOIN tickets t ON td.ticket_id = t.id
+
+                    JOIN users u ON t.created_by = u.id
+
+                    LEFT JOIN platforms p ON td.platform_id = p.id
+
+                    LEFT JOIN ticket_categories cat ON td.category_id = cat.id
+
+                    LEFT JOIN ticket_subcategories subcat ON td.subcategory_id = subcat.id
+
+                    LEFT JOIN ticket_codes code ON td.code_id = code.id
+
+                    LEFT JOIN team_members tm ON u.id = tm.user_id";
+
+        
+
+        $conditions = [];
+
+        $params = [];
+
+        if (!empty($filters['user_id'])) {
+
+            $conditions[] = "t.created_by = :user_id";
+
+            $params[':user_id'] = $filters['user_id'];
+
+        }
+
+        
+
+        if (!empty($filters['team_id'])) {
+
+            $conditions[] = "tm.team_id = :team_id";
+
+            $params[':team_id'] = $filters['team_id'];
+
+        }
+
+        
+
+        if (!empty($filters['platform_id'])) {
+
+            $conditions[] = "td.platform_id = :platform_id";
+
+            $params[':platform_id'] = $filters['platform_id'];
+
+        }
+
+        
+
+        if (!empty($filters['category_id'])) {
+
+            $conditions[] = "td.category_id = :category_id";
+
+            $params[':category_id'] = $filters['category_id'];
+
+        }
+
+        
+
+        if (isset($filters['is_vip']) && $filters['is_vip'] !== '') {
+
+            $conditions[] = "td.is_vip = :is_vip";
+
+            $params[':is_vip'] = $filters['is_vip'];
+
+        }
+
+        
+
+        if (!empty($filters['search'])) {
+
+            $conditions[] = "(td.notes LIKE :search_notes OR td.phone LIKE :search_phone)";
+
+            $params[':search_notes'] = '%' . $filters['search'] . '%';
+
+            $params[':search_phone'] = '%' . $filters['search'] . '%';
+
+        }
+
+        
+
+        
+
+        if (!empty($filters['date_from'])) {
+
+            $conditions[] = "DATE(td.created_at) >= :date_from";
+
+            $params[':date_from'] = $filters['date_from'];
+
+        }
+
+        
+
+        if (!empty($filters['date_to'])) {
+
+            $conditions[] = "DATE(td.created_at) <= :date_to";
+
+            $params[':date_to'] = $filters['date_to'];
+
+        }
+
+        
+
+
+
+        $whereSql = count($conditions) > 0 ? " WHERE " . implode(" AND ", $conditions) : "";
+
+        return ['base' => $baseSql, 'where' => $whereSql, 'params' => $params];
+
+    }
+
+
+
+    public function getTickets($filters, $limit, $offset)
+
+    {
+
+        $queryParts = $this->buildQueryParts($filters);
+
+        $sql = "SELECT t.id, t.ticket_number, td.is_vip, p.name as platform_name, td.phone,
+
+                       cat.name as category_name, subcat.name as subcategory_name, code.name as code_name,
+
+                       u.username as created_by_user, td.created_by, td.created_at
+
+                " . $queryParts['base'] . $queryParts['where']
+
+                . " ORDER BY td.created_at DESC LIMIT :limit OFFSET :offset";
+
+
+
+        $params = $queryParts['params'];
+
+        $params[':limit'] = $limit;
+
+        $params[':offset'] = $offset;
+
+
+
+        $stmt = $this->db->prepare($sql);
+
+        
+
+        // Use bindValue for limit and offset to ensure correct type
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+
+
+        // Bind the rest of the parameters
+
+        foreach ($queryParts['params'] as $key => $val) {
+
+            $stmt->bindValue($key, $val);
+
+        }
+
+        
+
+        $stmt->execute();
+
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
+
+
         // تحويل التواريخ للعرض بالتوقيت المحلي
-
-        return convert_dates_for_display($results, ['created_at', 'updated_at']);
-    }
-    
-    public function getTicketsCount($filters)
-    {
-        $queryParts = $this->buildQueryParts($filters);
-        $sql = "SELECT COUNT(td.id) " . $queryParts['base'] . $queryParts['where'];
-        $stmt = $this->db->prepare($sql);
-    
-        foreach ($queryParts['params'] as $key => $val) {
-            $stmt->bindValue($key, $val);
-        }
-    
-        $stmt->execute();
-        return (int)$stmt->fetchColumn();
-    }
-    
-    
-    public function getFilterOptions()
-    {
-        return [
-            'users' => $this->db->query("SELECT id, username FROM users ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC),
-            'teams' => $this->db->query("SELECT id, name FROM teams ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC),
-            'platforms' => $this->db->query("SELECT id, name FROM platforms ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC),
-            'categories' => $this->db->query("SELECT id, name FROM ticket_categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC)
-        ];
-    }
+
+
+        return convert_dates_for_display($results, ['created_at', 'updated_at']);
+
+    }
+
+    
+
+    public function getTicketsCount($filters)
+
+    {
+
+        $queryParts = $this->buildQueryParts($filters);
+
+        $sql = "SELECT COUNT(td.id) " . $queryParts['base'] . $queryParts['where'];
+
+        $stmt = $this->db->prepare($sql);
+
+    
+
+        foreach ($queryParts['params'] as $key => $val) {
+
+            $stmt->bindValue($key, $val);
+
+        }
+
+    
+
+        $stmt->execute();
+
+        return (int)$stmt->fetchColumn();
+
+    }
+
+    
+
+    
+
+    public function getFilterOptions()
+
+    {
+
+        return [
+
+            'users' => $this->db->query("SELECT id, username FROM users ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC),
+
+            'teams' => $this->db->query("SELECT id, name FROM teams ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC),
+
+            'platforms' => $this->db->query("SELECT id, name FROM platforms ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC),
+
+            'categories' => $this->db->query("SELECT id, name FROM ticket_categories ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC)
+
+        ];
+
+    }
+
 } 

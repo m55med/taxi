@@ -465,9 +465,9 @@ class CreateTicketModel extends Model
     private function createTicketDetailEntry($ticketId, $data, $teamId) {
         $utcTimestamp = DateTimeHelper::getCurrentUTC();
 
-        $this->query("INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, edited_by, team_id_at_action, created_at, updated_at)
+        $this->query("INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, edited_by, team_id_at_action, created_at, updated_at)
 
-                      VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :edited_by, :team_id_at_action, :created_at, :updated_at)");
+                      VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :created_by, :edited_by, :team_id_at_action, :created_at, :updated_at)");
 
         $this->bind(':ticket_id', $ticketId);
 
@@ -488,6 +488,8 @@ class CreateTicketModel extends Model
         $this->bind(':country_id', $data['country_id']);
 
         $this->bind(':assigned_team_leader_id', $data['team_leader_id']);
+
+        $this->bind(':created_by', $data['user_id']);
 
         $this->bind(':edited_by', $data['user_id']);
 

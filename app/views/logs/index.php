@@ -26,11 +26,11 @@
             <div class="bg-white p-6 rounded-lg shadow-md mt-6">
 
                 <!-- Table Header Actions -->
-                <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-800">Activity List</h2>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-4 border-b border-gray-200 gap-4">
+                    <h2 class="text-xl font-semibold text-gray-800 flex-shrink-0">Activity List</h2>
 
                     <!-- Bulk Actions Dropdown -->
-                    <div id="bulk-actions-dropdown" class="hidden relative">
+                    <div id="bulk-actions-dropdown" class="hidden relative flex-shrink-0 ml-auto sm:ml-0">
                         <button id="bulk-actions-button" type="button"
                             class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             Actions <span id="selected-activities-count" class="ml-1">(0)</span>
