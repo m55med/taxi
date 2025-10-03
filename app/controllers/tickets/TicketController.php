@@ -19,6 +19,45 @@ class TicketController extends Controller
     private $reviewModel;
     private $listingModel;
 
+    /**
+     * Convert UTC datetime to Cairo timezone (12-hour format)
+     */
+    private function convertToCairoTime($utcDateTime)
+    {
+        if (empty($utcDateTime)) {
+            return $utcDateTime;
+        }
+
+        try {
+            $utc = new \DateTime($utcDateTime, new \DateTimeZone('UTC'));
+            $cairo = new \DateTimeZone('Africa/Cairo');
+            $utc->setTimezone($cairo);
+            return $utc->format('Y-m-d h:i A');
+        } catch (\Exception $e) {
+            error_log('Error converting datetime to Cairo timezone: ' . $e->getMessage());
+            return $utcDateTime;
+        }
+    }
+
+    /**
+     * Convert datetime fields in array or object from UTC to Cairo timezone
+     */
+    private function convertArrayTimesToCairo(&$array, $fields = ['created_at', 'updated_at'])
+    {
+        if (!is_array($array) && !is_object($array)) {
+            return;
+        }
+
+        foreach ($array as $key => &$item) {
+            if (is_array($item) || is_object($item)) {
+                // Recursive for nested arrays or objects
+                $this->convertArrayTimesToCairo($item, $fields);
+            } elseif (in_array($key, $fields) && !empty($item)) {
+                $item = $this->convertToCairoTime($item);
+            }
+        }
+    }
+
     public function __construct()
     {
         parent::__construct();
@@ -51,8 +90,14 @@ class TicketController extends Controller
             redirect('tickets/view');
         }
 
+        // Convert ticket datetime fields to Cairo timezone (12-hour format)
+        $this->convertArrayTimesToCairo($ticket, ['created_at', 'updated_at']);
+
         // Get the full history of the ticket
         $ticketHistory = $this->ticketModel->getTicketHistory($id);
+
+        // Convert datetime fields to Cairo timezone (12-hour format)
+        $this->convertArrayTimesToCairo($ticketHistory, ['created_at', 'updated_at', 'action_date']);
 
         // Manually fetch marketer name for VIP tickets for each history item
         foreach ($ticketHistory as $key => $historyItem) {
@@ -89,6 +134,10 @@ class TicketController extends Controller
             $repliesByDiscussionId[$reply['discussion_id']][] = $reply;
         }
 
+        // Convert datetime fields for discussions and replies
+        $this->convertArrayTimesToCairo($all_discussions, ['created_at', 'updated_at']);
+        $this->convertArrayTimesToCairo($all_replies, ['created_at', 'updated_at']);
+
         // Attach replies to discussions
         foreach ($all_discussions as $key => $discussion) {
             $all_discussions[$key]['replies'] = $repliesByDiscussionId[$discussion['id']] ?? [];
@@ -99,6 +148,9 @@ class TicketController extends Controller
         foreach ($all_discussions as $discussion) {
             $discussionsByReviewId[$discussion['discussable_id']][] = $discussion;
         }
+
+        // Convert datetime fields for reviews
+        $this->convertArrayTimesToCairo($all_reviews, ['created_at', 'updated_at']);
 
         // Attach discussions to reviews
         foreach ($all_reviews as $key => $review) {
@@ -122,6 +174,10 @@ class TicketController extends Controller
         $ticketDiscussions = $this->discussionModel->getDiscussions('ticket', $id);
         $ticketDiscussionIds = !empty($ticketDiscussions) ? array_map(fn($d) => $d['id'], $ticketDiscussions) : [];
         $ticketReplies = !empty($ticketDiscussionIds) ? $this->discussionModel->getRepliesForDiscussions($ticketDiscussionIds) : [];
+
+        // Convert datetime fields for discussions and replies
+        $this->convertArrayTimesToCairo($ticketDiscussions, ['created_at', 'updated_at']);
+        $this->convertArrayTimesToCairo($ticketReplies, ['created_at', 'updated_at']);
 
         $repliesByTicketDiscussionId = [];
         foreach ($ticketReplies as $reply) {
@@ -447,6 +503,9 @@ class TicketController extends Controller
             return;
         }
 
+        // Convert ticket detail datetime fields to Cairo timezone (12-hour format)
+        $this->convertArrayTimesToCairo($ticketDetail, ['created_at', 'updated_at', 'action_date']);
+
         // التحقق من الصلاحيات قبل عرض صفحة التعديل
         $userId = Auth::getUserId() ?? 0;
         $userRole = Auth::getUserRole() ?? 'guest';
@@ -675,20 +734,8 @@ class TicketController extends Controller
 
     $editLogs = $this->ticketModel->getAllEditLogsForTicket($actualTicketId);
 
-    // ✅ تحويل created_at من UTC إلى Cairo + 12 ساعة format
-    foreach ($editLogs as &$log) {
-        if (!empty($log['created_at'])) {
-            try {
-                $utc = new \DateTimeImmutable($log['created_at'], new \DateTimeZone('UTC'));
-                $cairoTime = $utc->setTimezone(new \DateTimeZone('Africa/Cairo'));
-                $log['created_at_formatted'] = $cairoTime->format('Y-m-d h:i A');
-            } catch (\Exception $e) {
-                $log['created_at_formatted'] = $log['created_at']; // fallback
-            }
-        } else {
-            $log['created_at_formatted'] = null;
-        }
-    }
+    // Convert datetime fields to Cairo timezone (12-hour format)
+    $this->convertArrayTimesToCairo($editLogs, ['created_at']);
 
     // Debug: Log successful access
     error_log("Edit Logs Access SUCCESS - Input ID: $ticketId, Actual Ticket ID: $actualTicketId, User Role: $currentRole, Logs Count: " . count($editLogs));

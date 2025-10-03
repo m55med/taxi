@@ -23,218 +23,203 @@ class ListingModel extends Model
 
     public function getFilteredTickets($filters = [], $withPagination = false)
     {
-    $params = [];
-    $whereClauses = [];
-
-    // Debug logging for search issues
-    if (!empty($filters['search_term'])) {
-        error_log('ListingModel::getFilteredTickets - Search term: ' . $filters['search_term']);
-    }
-
-    // --- FILTERING LOGIC ---
-    if (!empty($filters['start_date'])) {
-        $whereClauses[] = "DATE(td.created_at) >= :start_date";
-        $params[':start_date'] = $filters['start_date'];
-    }
-    if (!empty($filters['end_date'])) {
-        $whereClauses[] = "DATE(td.created_at) <= :end_date";
-        $params[':end_date'] = $filters['end_date'];
-    }
-
-    // FIXED: filter by the user who created/added the ticket detail (assumed stored in td.edited_by)
-    if (!empty($filters['created_by'])) {
-        $whereClauses[] = "td.created_by = :created_by";
-        $params[':created_by'] = $filters['created_by'];
-    }
-
-    if (!empty($filters['platform_id'])) {
-        $whereClauses[] = "td.platform_id = :platform_id";
-        $params[':platform_id'] = $filters['platform_id'];
-    }
-    if (isset($filters['is_vip']) && in_array($filters['is_vip'], ['1', '0'])) {
-        $whereClauses[] = "td.is_vip = :is_vip";
-        $params[':is_vip'] = $filters['is_vip'];
-    }
-    if (!empty($filters['category_id'])) {
-        $whereClauses[] = "td.category_id = :category_id";
-        $params[':category_id'] = $filters['category_id'];
-    }
-    if (!empty($filters['subcategory_id'])) {
-        $whereClauses[] = "td.subcategory_id = :subcategory_id";
-        $params[':subcategory_id'] = $filters['subcategory_id'];
-    }
-    if (!empty($filters['code_id'])) {
-        $whereClauses[] = "td.code_id = :code_id";
-        $params[':code_id'] = $filters['code_id'];
-    }
-
-    // Handle classification_filter (format: "Category > Subcategory > Code")
-    // Use subqueries to translate names to ids so COUNT query (which doesn't JOIN category tables) still works.
-    if (!empty($filters['classification_filter'])) {
-        $classificationParts = array_map('trim', explode('>', $filters['classification_filter']));
-        if (count($classificationParts) === 3) {
-            $categoryName = $classificationParts[0];
-            $subcategoryName = $classificationParts[1];
-            $codeName = $classificationParts[2];
-
-            $whereClauses[] = "td.category_id = (SELECT id FROM ticket_categories WHERE name = :category_name LIMIT 1)
-                                AND td.subcategory_id = (SELECT id FROM ticket_subcategories WHERE name = :subcategory_name LIMIT 1)
-                                AND td.code_id = (SELECT id FROM ticket_codes WHERE name = :code_name LIMIT 1)";
-            $params[':category_name'] = $categoryName;
-            $params[':subcategory_name'] = $subcategoryName;
-            $params[':code_name'] = $codeName;
+        $params = [];
+        $whereClauses = [];
+    
+        // ---------------------------
+        // Filters
+        // ---------------------------
+        if (!empty($filters['start_date'])) {
+            // الحل الأمثل: قارن التواريخ باليوم في توقيت القاهرة
+            // خذ التاريخ الأصلي الذي أرسله المستخدم (قبل التحويل)
+            $cairoDate = $filters['original_start_date'] ?? date('Y-m-d', strtotime($filters['start_date']));
+            $params[':cairo_date'] = $cairoDate;
+            $whereClauses[] = "DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) = :cairo_date";
         }
-    }
-
-    // Handle has_reviews filter
-    if (isset($filters['has_reviews']) && $filters['has_reviews'] !== '') {
-        if ($filters['has_reviews'] == '1') {
-            $whereClauses[] = "EXISTS (
-                SELECT 1 FROM reviews r
-                WHERE r.reviewable_id = td.id
-                AND r.reviewable_type LIKE '%TicketDetail'
-            )";
-        } elseif ($filters['has_reviews'] == '0') {
-            $whereClauses[] = "NOT EXISTS (
-                SELECT 1 FROM reviews r
-                WHERE r.reviewable_id = td.id
-                AND r.reviewable_type LIKE '%TicketDetail'
-            )";
+        if (!empty($filters['created_by'])) {
+            $whereClauses[] = "td.created_by = :created_by";
+            $params[':created_by'] = $filters['created_by'];
         }
-    }
-
-    // Search term: includes ticket_number, phone, creator/editor username
-    if (!empty($filters['search_term'])) {
-        error_log('ListingModel::getFilteredTickets - Search term before trim: ' . $filters['search_term']);
-        $searchTerm = trim($filters['search_term']);
-        error_log('ListingModel::getFilteredTickets - Search term after trim: ' . $searchTerm);
-        // Partial match for ticket number (preserves leading zeros), partial for phone/username
-        $whereClauses[] = "(t.ticket_number LIKE :search_ticket_number
-        OR td.phone LIKE :search_phone
-        OR EXISTS (SELECT 1 FROM users u WHERE u.id = t.created_by AND u.username LIKE :search_ticket_creator)
-        OR EXISTS (SELECT 1 FROM users u2 WHERE u2.id = td.created_by AND u2.username LIKE :search_detail_creator))";
-
-        $params[':search_ticket_number']   = '%' . $searchTerm . '%';
-        $params[':search_phone']           = '%' . $searchTerm . '%';
-        $params[':search_ticket_creator']  = '%' . $searchTerm . '%';
-        $params[':search_detail_creator']  = '%' . $searchTerm . '%';
-
-    }
-
-    $whereSql = count($whereClauses) > 0 ? " AND " . implode(' AND ', $whereClauses) : "";
-
-    // -------------------------------
-    // 1️⃣ Total Count (Accurate)
-    // -------------------------------
-    $countSql = "
-        SELECT COUNT(*) as total
-        FROM ticket_details td
-        JOIN tickets t ON t.id = td.ticket_id
-        WHERE 1=1 {$whereSql}
-    ";
-
-    try {
-        $stmt = $this->db->prepare($countSql);
-        $stmt->execute($params);
-        $countResult = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total = $countResult['total'] ?? 0;
-    } catch (\PDOException $e) {
-        error_log('ListingModel::getFilteredTickets Count Error: ' . $e->getMessage());
-        $total = 0;
-    }
-
-    // -------------------------------
-    // 2️⃣ Fetch Data
-    // -------------------------------
-    if ($withPagination) {
-        $page = isset($filters['page']) ? max(1, intval($filters['page'])) : 1;
-        $limit = isset($filters['limit']) ? max(1, intval($filters['limit'])) : 25;
-        $offset = ($page - 1) * $limit;
-        $totalPages = $limit > 0 ? ceil($total / $limit) : 0;
-
-        $params[':limit'] = $limit;
-        $params[':offset'] = $offset;
-    }
-
-    $dataSql = "
-        SELECT
-            t.id as ticket_id,
-            t.ticket_number,
-            t.created_by,
-            td.id as ticket_detail_id,
-            td.created_by,
-            td.team_id_at_action,
-            td.phone,
-            td.is_vip,
-            td.notes,
-            td.created_at,
-            creator.username as created_by_username,
-            detail_creator.username as detail_created_by_username,
-            editor.username as created_by_username,
-            tm.name as team_name,
-            vm.username as vip_marketer_name,
-            p.name as platform_name,
-            c.name as country_name,
-            cat.name as category_name,
-            sub.name as subcategory_name,
-            code.name as code_name,
-            COUNT(DISTINCT r.id) as review_count,
-            ROUND(AVG(r.rating), 1) as avg_review_rating,
-            GROUP_CONCAT(DISTINCT CONCAT(r.reviewed_by, ':', r.rating) SEPARATOR '|') as reviews_details
-        FROM ticket_details td
-        JOIN tickets t ON t.id = td.ticket_id
-        JOIN users creator ON t.created_by = creator.id
-        LEFT JOIN users detail_creator ON td.created_by = detail_creator.id
-        LEFT JOIN users editor ON td.created_by = editor.id
-        LEFT JOIN teams tm ON td.team_id_at_action = tm.id
-        LEFT JOIN users vm ON td.assigned_team_leader_id = vm.id AND td.is_vip = 1
-        LEFT JOIN platforms p ON td.platform_id = p.id
-        LEFT JOIN countries c ON td.country_id = c.id
-        LEFT JOIN ticket_categories cat ON td.category_id = cat.id
-        LEFT JOIN ticket_subcategories sub ON td.subcategory_id = sub.id
-        LEFT JOIN ticket_codes code ON td.code_id = code.id
-        LEFT JOIN reviews r ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
-        WHERE 1=1 {$whereSql}
-        GROUP BY td.id
-        ORDER BY td.created_at DESC
-        " . ($withPagination ? "LIMIT :limit OFFSET :offset" : "");
-
-    // Log the full SQL query with parameters for debugging
-    error_log('ListingModel::getFilteredTickets - SQL Query: ' . $dataSql);
-    error_log('ListingModel::getFilteredTickets - SQL Params: ' . json_encode($params));
-
-    try {
-        $stmt = $this->db->prepare($dataSql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // تحويل التواريخ للعرض بتنسيق 12 ساعة + توقيت القاهرة
-        $results = \convert_dates_for_display_12h($results, ['created_at', 'updated_at']);
-    } catch (\PDOException $e) {
-        error_log('ListingModel::getFilteredTickets Data Error: ' . $e->getMessage());
-        $results = [];
-    }
-
-    if ($withPagination) {
-        // Debug logging for search issues
+        if (!empty($filters['team_id'])) {
+            $whereClauses[] = "td.team_id_at_action = :team_id";
+            $params[':team_id'] = $filters['team_id'];
+        }
+        if (!empty($filters['platform_id'])) {
+            $whereClauses[] = "td.platform_id = :platform_id";
+            $params[':platform_id'] = $filters['platform_id'];
+        }
+        if (isset($filters['is_vip']) && in_array($filters['is_vip'], ['1','0'])) {
+            $whereClauses[] = "td.is_vip = :is_vip";
+            $params[':is_vip'] = $filters['is_vip'];
+        }
+        if (!empty($filters['category_id'])) {
+            $whereClauses[] = "td.category_id = :category_id";
+            $params[':category_id'] = $filters['category_id'];
+        }
+        if (!empty($filters['subcategory_id'])) {
+            $whereClauses[] = "td.subcategory_id = :subcategory_id";
+            $params[':subcategory_id'] = $filters['subcategory_id'];
+        }
+        if (!empty($filters['code_id'])) {
+            $whereClauses[] = "td.code_id = :code_id";
+            $params[':code_id'] = $filters['code_id'];
+        }
+    
+        // classification_filter
+        if (!empty($filters['classification_filter'])) {
+            $parts = array_map('trim', explode('>', $filters['classification_filter']));
+            if (count($parts) === 3) {
+                $whereClauses[] = "td.category_id = (SELECT id FROM ticket_categories WHERE name = :category_name LIMIT 1)
+                                    AND td.subcategory_id = (SELECT id FROM ticket_subcategories WHERE name = :subcategory_name LIMIT 1)
+                                    AND td.code_id = (SELECT id FROM ticket_codes WHERE name = :code_name LIMIT 1)";
+                $params[':category_name'] = $parts[0];
+                $params[':subcategory_name'] = $parts[1];
+                $params[':code_name'] = $parts[2];
+            }
+        }
+    
+        // has_reviews
+        if (isset($filters['has_reviews']) && $filters['has_reviews'] !== '') {
+            if ($filters['has_reviews'] == '1') {
+                $whereClauses[] = "EXISTS (
+                    SELECT 1 FROM reviews r
+                    WHERE r.reviewable_id = td.id
+                    AND r.reviewable_type LIKE '%TicketDetail'
+                )";
+            } elseif ($filters['has_reviews'] == '0') {
+                $whereClauses[] = "NOT EXISTS (
+                    SELECT 1 FROM reviews r
+                    WHERE r.reviewable_id = td.id
+                    AND r.reviewable_type LIKE '%TicketDetail'
+                )";
+            }
+        }
+    
+        // search
         if (!empty($filters['search_term'])) {
-            error_log('ListingModel::getFilteredTickets - Returning paginated results: total=' . $total . ', data_count=' . count($results));
+            $term = '%' . trim($filters['search_term']) . '%';
+            $whereClauses[] = "(t.ticket_number LIKE :search_ticket_number
+                                OR td.phone LIKE :search_phone
+                                OR EXISTS (SELECT 1 FROM users u WHERE u.id = t.created_by AND u.username LIKE :search_ticket_creator)
+                                OR EXISTS (SELECT 1 FROM users u2 WHERE u2.id = td.created_by AND u2.username LIKE :search_detail_creator))";
+    
+            $params[':search_ticket_number'] = $term;
+            $params[':search_phone'] = $term;
+            $params[':search_ticket_creator'] = $term;
+            $params[':search_detail_creator'] = $term;
         }
-        return [
-            'data' => $results,
-            'total' => $total,
-            'total_pages' => $totalPages,
-            'current_page' => $page,
-            'limit' => $limit
-        ];
+    
+        $whereSql = count($whereClauses) ? " AND " . implode(' AND ', $whereClauses) : "";
+    
+        // ---------------------------
+        // COUNT
+        // ---------------------------
+        $countSql = "
+            SELECT COUNT(td.id) AS total
+            FROM ticket_details td
+            JOIN tickets t ON t.id = td.ticket_id
+            WHERE 1=1 {$whereSql}
+        ";
+        try {
+            $stmt = $this->db->prepare($countSql);
+            $stmt->execute($params);
+            $total = $stmt->fetchColumn() ?: 0;
+        } catch (\PDOException $e) {
+            error_log('getFilteredTickets Count Error: ' . $e->getMessage());
+            $total = 0;
+        }
+    
+        // ---------------------------
+        // DATA
+        // ---------------------------
+        if ($withPagination) {
+            $page = max(1, intval($filters['page'] ?? 1));
+            $limit = max(1, intval($filters['limit'] ?? 25));
+            $offset = ($page - 1) * $limit;
+            $totalPages = ceil($total / $limit);
+            $params[':limit'] = $limit;
+            $params[':offset'] = $offset;
+        }
+    
+        $dataSql = "
+            SELECT
+                t.id AS ticket_id,
+                t.ticket_number,
+                t.created_by AS ticket_created_by,
+                t.created_at AS ticket_created_at,
+                t.updated_at AS ticket_updated_at,
+                td.id AS ticket_detail_id,
+                td.created_by AS detail_created_by,
+                td.edited_by,
+                td.team_id_at_action,
+                td.phone,
+                td.is_vip,
+                td.notes,
+                td.created_at AS detail_created_at,
+                td.updated_at AS detail_updated_at,
+                creator.username AS ticket_created_by_username,
+                detail_creator.username AS detail_created_by_username,
+                editor.username AS editor_username,
+                tm.name AS team_name,
+                vm.username AS vip_marketer_name,
+                p.name AS platform_name,
+                c.name AS country_name,
+                cat.name AS category_name,
+                sub.name AS subcategory_name,
+                code.name AS code_name,
+                r.review_count,
+                r.avg_review_rating,
+                r.reviews_details
+            FROM ticket_details td
+            JOIN tickets t ON t.id = td.ticket_id
+            JOIN users creator ON t.created_by = creator.id
+            LEFT JOIN users detail_creator ON td.created_by = detail_creator.id
+            LEFT JOIN users editor ON td.edited_by = editor.id
+            LEFT JOIN teams tm ON td.team_id_at_action = tm.id
+            LEFT JOIN users vm ON td.assigned_team_leader_id = vm.id AND td.is_vip = 1
+            LEFT JOIN platforms p ON td.platform_id = p.id
+            LEFT JOIN countries c ON td.country_id = c.id
+            LEFT JOIN ticket_categories cat ON td.category_id = cat.id
+            LEFT JOIN ticket_subcategories sub ON td.subcategory_id = sub.id
+            LEFT JOIN ticket_codes code ON td.code_id = code.id
+            LEFT JOIN (
+                SELECT reviewable_id,
+                       COUNT(*) AS review_count,
+                       ROUND(AVG(rating),1) AS avg_review_rating,
+                       GROUP_CONCAT(CONCAT(reviewed_by, ':', rating) SEPARATOR '|') AS reviews_details
+                FROM reviews
+                WHERE reviewable_type LIKE '%TicketDetail'
+                GROUP BY reviewable_id
+            ) r ON r.reviewable_id = td.id
+            WHERE 1=1 {$whereSql}
+            ORDER BY td.created_at DESC
+            " . ($withPagination ? "LIMIT :limit OFFSET :offset" : "");
+    
+        try {
+            $stmt = $this->db->prepare($dataSql);
+            $stmt->execute($params);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('getFilteredTickets Data Error: ' . $e->getMessage());
+            $results = [];
+        }
+    
+        if ($withPagination) {
+            return [
+                'data' => $results,
+                'total' => $total,
+                'total_pages' => $totalPages,
+                'current_page' => $page,
+                'limit' => $limit
+            ];
+        }
+    
+        return $results;
     }
+    
+            
+        
 
-    // Debug logging for search issues
-    if (!empty($filters['search_term'])) {
-        error_log('ListingModel::getFilteredTickets - Returning all results: count=' . count($results));
-    }
-    return $results;
-}
 
 public function getSearchSuggestions($q = '', $type = 'ticket')
 {
@@ -675,16 +660,18 @@ public function getSearchSuggestions($q = '', $type = 'ticket')
 
         // Build WHERE clauses for filters
     if (!empty($filters['start_date'])) {
-        $whereClauses[] = "DATE(td.created_at) >= :start_date";
-        $params[':start_date'] = $filters['start_date'];
-    }
-    if (!empty($filters['end_date'])) {
-        $whereClauses[] = "DATE(td.created_at) <= :end_date";
-        $params[':end_date'] = $filters['end_date'];
+        // استخدم نفس منطق الفلترة بالتوقيت القاهرة
+        $cairoDate = $filters['original_start_date'] ?? date('Y-m-d', strtotime($filters['start_date']));
+        $whereClauses[] = "DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) = :cairo_date";
+        $params[':cairo_date'] = $cairoDate;
     }
         if (!empty($filters['created_by'])) {
             $whereClauses[] = "td.created_by = :created_by";
             $params[':created_by'] = $filters['created_by'];
+        }
+        if (!empty($filters['team_id'])) {
+            $whereClauses[] = "td.team_id_at_action = :team_id";
+            $params[':team_id'] = $filters['team_id'];
         }
     if (!empty($filters['platform_id'])) {
         $whereClauses[] = "td.platform_id = :platform_id";

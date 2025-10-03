@@ -244,13 +244,13 @@ class Log
             $whereClauses .= " AND team_id = :team_id";
             $params[':team_id'] = $filters['team_id'];
         }
-        if (!empty($filters['date_from'])) {
-            $whereClauses .= " AND DATE(activity_date) >= :date_from";
-            $params[':date_from'] = $filters['date_from'];
+        if (!empty($filters['original_date_from'])) {
+            $whereClauses .= " AND DATE(CONVERT_TZ(activity_date, '+00:00', '+02:00')) >= :date_from";
+            $params[':date_from'] = $filters['original_date_from'];
         }
-        if (!empty($filters['date_to'])) {
-            $whereClauses .= " AND DATE(activity_date) <= :date_to";
-            $params[':date_to'] = $filters['date_to'];
+        if (!empty($filters['original_date_to'])) {
+            $whereClauses .= " AND DATE(CONVERT_TZ(activity_date, '+00:00', '+02:00')) <= :date_to";
+            $params[':date_to'] = $filters['original_date_to'];
         }
         if (!empty($filters['search'])) {
             $whereClauses .= " AND (details_primary LIKE :search OR details_secondary LIKE :search OR username LIKE :search)";
@@ -438,13 +438,13 @@ class Log
             $whereClauses .= " AND team_id = :team_id";
             $params[':team_id'] = $filters['team_id'];
         }
-        if (!empty($filters['date_from'])) {
-            $whereClauses .= " AND DATE(activity_date) >= :date_from";
-            $params[':date_from'] = $filters['date_from'];
+        if (!empty($filters['original_date_from'])) {
+            $whereClauses .= " AND DATE(CONVERT_TZ(activity_date, '+00:00', '+02:00')) >= :date_from";
+            $params[':date_from'] = $filters['original_date_from'];
         }
-        if (!empty($filters['date_to'])) {
-            $whereClauses .= " AND DATE(activity_date) <= :date_to";
-            $params[':date_to'] = $filters['date_to'];
+        if (!empty($filters['original_date_to'])) {
+            $whereClauses .= " AND DATE(CONVERT_TZ(activity_date, '+00:00', '+02:00')) <= :date_to";
+            $params[':date_to'] = $filters['original_date_to'];
         }
         if (!empty($filters['search'])) {
             $whereClauses .= " AND (details_primary LIKE :search OR details_secondary LIKE :search OR username LIKE :search)";

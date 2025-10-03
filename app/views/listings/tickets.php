@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
+
 <div class="p-8 bg-gray-100 min-h-screen">
     <h1 class="text-3xl font-bold text-gray-800 mb-8">All Tickets</h1>
 
@@ -94,6 +95,18 @@
                 </div>
 
                 <?php if (!\App\Core\Auth::hasRole('agent')): ?>
+                <div>
+                    <label for="team_id" class="block text-sm font-medium text-gray-600 mb-1">Team</label>
+                    <select id="team_id" name="team_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Teams</option>
+                        <?php foreach ($data['teams'] as $team): ?>
+                            <option value="<?= $team['id'] ?>" <?= (isset($data['filters']['team_id']) && $data['filters']['team_id'] == $team['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($team['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
                 <div class="relative">
                     <label for="created_by_search" class="block text-sm font-medium text-gray-600 mb-1">Created By</label>
                     <div class="relative">
@@ -322,9 +335,9 @@
                             <?php if (!$is_agent): ?>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                 <div class="flex flex-col">
-                                <span class="font-medium"><?= htmlspecialchars($ticket['created_by_username'] ?? '') ?></span>
-                                    <?php if (!empty($ticket['edited_by_username']) && $ticket['edited_by_username'] !== $ticket['created_by_username']): ?>
-                                        <span class="text-xs text-gray-400">Edited by: <?= htmlspecialchars($ticket['edited_by_username']) ?></span>
+                                <span class="font-medium"><?= htmlspecialchars($ticket['detail_created_by_username'] ?? '') ?></span>
+                                    <?php if (!empty($ticket['editor_username']) && $ticket['editor_username'] !== $ticket['detail_created_by_username']): ?>
+                                        <span class="text-xs text-gray-400">Edited by: <?= htmlspecialchars($ticket['editor_username']) ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($ticket['team_name'])): ?>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
@@ -391,7 +404,7 @@
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                <?= htmlspecialchars(format_datetime_display_12h($ticket['created_at'])) ?>
+                            <?= htmlspecialchars($ticket['detail_created_at']) ?>
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -437,8 +450,8 @@
                         <!-- Logs Row -->
                         <?php
                         $detailLogs = $data['listingModel']->getTicketDetailLogs($ticket['ticket_detail_id']);
-                        if (!empty($detailLogs)):
                         ?>
+                        <?php if (!empty($detailLogs)): ?>
                         <tr class="bg-gray-50">
                             <td colspan="<?= $colspan ?>" class="px-6 py-2">
                                 <?php

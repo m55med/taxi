@@ -56,40 +56,40 @@ class UsersReport
         $params = [];
         
         $ticketsQuery = "
-            SELECT 
-                'Ticket' as activity_type, td.id as activity_id, td.created_at as activity_date, 
-                td.edited_by as user_id, td.is_vip, p.name as platform_name
+            SELECT
+                'Ticket' as activity_type, td.id as activity_id, td.created_at as activity_date,
+                td.created_by as user_id, td.is_vip, p.name as platform_name
             FROM ticket_details td
             JOIN platforms p ON td.platform_id = p.id
-            WHERE td.edited_by IN ({$userIdsPlaceholders})
+            WHERE td.created_by IN ({$userIdsPlaceholders})
         ";
         $ticketParams = $userIds;
-        if ($dateFrom) { $ticketsQuery .= " AND td.created_at >= ?"; $ticketParams[] = $dateFrom . ' 00:00:00'; }
-        if ($dateTo)   { $ticketsQuery .= " AND td.created_at <= ?"; $ticketParams[] = $dateTo . ' 23:59:59'; }
+        if ($dateFrom) { $ticketsQuery .= " AND DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) >= ?"; $ticketParams[] = $dateFrom; }
+        if ($dateTo)   { $ticketsQuery .= " AND DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) <= ?"; $ticketParams[] = $dateTo; }
         $params = array_merge($params ?? [], $ticketParams);
 
         $outgoingCallsQuery = "
-            SELECT 
-                'Outgoing Call' as activity_type, dc.id as activity_id, dc.created_at as activity_date, 
+            SELECT
+                'Outgoing Call' as activity_type, dc.id as activity_id, dc.created_at as activity_date,
                 dc.call_by as user_id, NULL as is_vip, NULL as platform_name
             FROM driver_calls dc
             WHERE dc.call_by IN ({$userIdsPlaceholders})
         ";
         $outgoingParams = $userIds;
-        if ($dateFrom) { $outgoingCallsQuery .= " AND dc.created_at >= ?"; $outgoingParams[] = $dateFrom . ' 00:00:00'; }
-        if ($dateTo)   { $outgoingCallsQuery .= " AND dc.created_at <= ?"; $outgoingParams[] = $dateTo . ' 23:59:59'; }
+        if ($dateFrom) { $outgoingCallsQuery .= " AND DATE(CONVERT_TZ(dc.created_at, '+00:00', '+02:00')) >= ?"; $outgoingParams[] = $dateFrom; }
+        if ($dateTo)   { $outgoingCallsQuery .= " AND DATE(CONVERT_TZ(dc.created_at, '+00:00', '+02:00')) <= ?"; $outgoingParams[] = $dateTo; }
         $params = array_merge($params, $outgoingParams);
         
         $incomingCallsQuery = "
-            SELECT 
-                'Incoming Call' as activity_type, ic.id as activity_id, ic.call_started_at as activity_date, 
+            SELECT
+                'Incoming Call' as activity_type, ic.id as activity_id, ic.call_started_at as activity_date,
                 ic.call_received_by as user_id, NULL as is_vip, NULL as platform_name
             FROM incoming_calls ic
             WHERE ic.call_received_by IN ({$userIdsPlaceholders})
         ";
         $incomingParams = $userIds;
-        if ($dateFrom) { $incomingCallsQuery .= " AND ic.call_started_at >= ?"; $incomingParams[] = $dateFrom . ' 00:00:00'; }
-        if ($dateTo)   { $incomingCallsQuery .= " AND ic.call_started_at <= ?"; $incomingParams[] = $dateTo . ' 23:59:59'; }
+        if ($dateFrom) { $incomingCallsQuery .= " AND DATE(CONVERT_TZ(ic.call_started_at, '+00:00', '+02:00')) >= ?"; $incomingParams[] = $dateFrom; }
+        if ($dateTo)   { $incomingCallsQuery .= " AND DATE(CONVERT_TZ(ic.call_started_at, '+00:00', '+02:00')) <= ?"; $incomingParams[] = $dateTo; }
         $params = array_merge($params, $incomingParams);
 
         $sql = $ticketsQuery . " UNION ALL " . $outgoingCallsQuery . " UNION ALL " . $incomingCallsQuery;
@@ -99,36 +99,37 @@ class UsersReport
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
+
     private function getOptimizedUserStats(array $userIds, array $filters)
     {
         if (empty($userIds)) {
             return [];
         }
     
-        // Try cache first
-        $cacheKey = $this->getCacheKey('optimized_user_stats', [$userIds, $filters]);
+        // Try cache first - use original dates for cache key
+        $cacheFilters = $filters;
+        if (isset($cacheFilters['original_date_from'])) $cacheFilters['date_from'] = $cacheFilters['original_date_from'];
+        if (isset($cacheFilters['original_date_to'])) $cacheFilters['date_to'] = $cacheFilters['original_date_to'];
+        $cacheKey = $this->getCacheKey('optimized_user_stats', [$userIds, $cacheFilters]);
         $cached = $this->getCached($cacheKey);
         if ($cached !== null) {
             return $cached;
         }
     
-        // placeholders لليوزرز
         $userIdsPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
         $userParams = $userIds;
     
-        // conditions للتاريخ
         $dateConditions = "";
         $dateParams = [];
-        if (!empty($filters['date_from'])) {
-            $dateConditions .= " AND activities.activity_date >= ?";
-            $dateParams[] = $filters['date_from'] . ' 00:00:00';
+        if (!empty($filters['original_date_from'])) {
+            $dateConditions .= " AND DATE(CONVERT_TZ(activities.activity_date, '+00:00', '+02:00')) >= ?";
+            $dateParams[] = $filters['original_date_from'];
         }
-        if (!empty($filters['date_to'])) {
-            $dateConditions .= " AND activities.activity_date <= ?";
-            $dateParams[] = $filters['date_to'] . ' 23:59:59';
+        if (!empty($filters['original_date_to'])) {
+            $dateConditions .= " AND DATE(CONVERT_TZ(activities.activity_date, '+00:00', '+02:00')) <= ?";
+            $dateParams[] = $filters['original_date_to'];
         }
     
-        // الاستعلام
         $sql = "
             SELECT
                 user_id,
@@ -144,7 +145,7 @@ class UsersReport
             FROM (
                 -- Tickets
                 SELECT
-                    td.edited_by as user_id,
+                    td.created_by as user_id,
                     'Ticket' as activity_type,
                     td.created_at as activity_date,
                     td.is_vip,
@@ -157,7 +158,7 @@ class UsersReport
                    AND tcp.is_vip = td.is_vip
                    AND tcp.valid_from <= td.created_at
                    AND (tcp.valid_to >= td.created_at OR tcp.valid_to IS NULL)
-                WHERE td.edited_by IN ({$userIdsPlaceholders})
+                WHERE td.created_by IN ({$userIdsPlaceholders})
     
                 UNION ALL
     
@@ -197,14 +198,12 @@ class UsersReport
             GROUP BY user_id
         ";
     
-        // params = userIds × 3 + dateParams
         $finalParams = array_merge($userParams, $userParams, $userParams, $dateParams);
     
         $stmt = $this->db->prepare($sql);
         $stmt->execute($finalParams);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-        // Convert to associative array keyed by user_id
         $userStats = [];
         foreach ($results as $row) {
             $userStats[$row['user_id']] = [
@@ -216,7 +215,6 @@ class UsersReport
             ];
         }
     
-        // Cache the results
         $this->setCache($cacheKey, $userStats);
     
         return $userStats;
@@ -424,8 +422,11 @@ require_once APPROOT . '/helpers/DateTimeHelper.php';
             return [];
         }
 
-        // Try cache first
-        $cacheKey = $this->getCacheKey('quality_scores', [$userIds, $filters]);
+        // Try cache first - use original dates for cache key
+        $cacheFilters = $filters;
+        if (isset($cacheFilters['original_date_from'])) $cacheFilters['date_from'] = $cacheFilters['original_date_from'];
+        if (isset($cacheFilters['original_date_to'])) $cacheFilters['date_to'] = $cacheFilters['original_date_to'];
+        $cacheKey = $this->getCacheKey('quality_scores', [$userIds, $cacheFilters]);
         $cached = $this->getCached($cacheKey);
         if ($cached !== null) {
             return $cached;
@@ -434,13 +435,13 @@ require_once APPROOT . '/helpers/DateTimeHelper.php';
         $dateConditionsSql = "";
         $dateParams = [];
 
-        if (!empty($filters['date_from'])) {
-            $dateConditionsSql .= " AND r.reviewed_at >= ?";
-            $dateParams[] = $filters['date_from'] . ' 00:00:00';
+        if (!empty($filters['original_date_from'])) {
+            $dateConditionsSql .= " AND DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) >= ?";
+            $dateParams[] = $filters['original_date_from'];
         }
-        if (!empty($filters['date_to'])) {
-            $dateConditionsSql .= " AND r.reviewed_at <= ?";
-            $dateParams[] = $filters['date_to'] . ' 23:59:59';
+        if (!empty($filters['original_date_to'])) {
+            $dateConditionsSql .= " AND DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) <= ?";
+            $dateParams[] = $filters['original_date_to'];
         }
 
         $userIdsPlaceholders = implode(',', array_fill(0, count($userIds), '?'));

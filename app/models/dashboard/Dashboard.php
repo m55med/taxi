@@ -14,7 +14,7 @@ class Dashboard
         $this->db = Database::getInstance();
     }
 
-    public function getDashboardData($user, $dateFrom = null, $dateTo = null)
+    public function getDashboardData($user, $dateFrom = null, $dateTo = null, $originalDateFrom = null, $originalDateTo = null)
     {
         $data = [];
         $role = $user['role_name'];
@@ -24,32 +24,36 @@ class Dashboard
         // Set default date range if not provided
         $dateTo = $dateTo && strtotime($dateTo) ? $dateTo : date('Y-m-d');
         $dateFrom = $dateFrom && strtotime($dateFrom) ? $dateFrom : date('Y-m-d', strtotime('-30 days', strtotime($dateTo)));
-        
-        $data['date_from'] = $dateFrom;
-        $data['date_to'] = $dateTo;
+
+        // استخدم التواريخ الأصلية إذا كانت متوفرة، وإلا استخدم التواريخ المحولة
+        $originalDateFrom = $originalDateFrom ?: $dateFrom;
+        $originalDateTo = $originalDateTo ?: $dateTo;
+
+        $data['date_from'] = $originalDateFrom;
+        $data['date_to'] = $originalDateTo;
         
         $data['user_role'] = $role;
 
         if ($isPrivileged) {
             // Privileged users get all stats
-            $data['driver_stats'] = ($role === 'admin') ? $this->getDriverStats() : $this->getDriverStats($dateFrom, $dateTo);
-            $data['leaderboards'] = $this->getLeaderboards($dateFrom, $dateTo, null);
+            $data['driver_stats'] = ($role === 'admin') ? $this->getDriverStats() : $this->getDriverStats($originalDateFrom, $originalDateTo);
+            $data['leaderboards'] = $this->getLeaderboards($originalDateFrom, $originalDateTo, null);
             $data['user_stats'] = $this->getUserStats(); // User stats are not time-dependent
-            $data['ticket_stats'] = $this->getTicketStats(null, $dateFrom, $dateTo);
-            $data['review_discussion_stats'] = $this->getReviewDiscussionStats(null, $dateFrom, $dateTo);
-            $data['call_stats'] = $this->getCallStats(null, $dateFrom, $dateTo);
-            $data['call_ratio'] = $this->getCallRatio(null, $dateFrom, $dateTo);
-            $data['daily_trends'] = $this->getDailyTrends($dateFrom, $dateTo);
+            $data['ticket_stats'] = $this->getTicketStats(null, $originalDateFrom, $originalDateTo);
+            $data['review_discussion_stats'] = $this->getReviewDiscussionStats(null, $originalDateFrom, $originalDateTo);
+            $data['call_stats'] = $this->getCallStats(null, $originalDateFrom, $originalDateTo);
+            $data['call_ratio'] = $this->getCallRatio(null, $originalDateFrom, $originalDateTo);
+            $data['daily_trends'] = $this->getDailyTrends($originalDateFrom, $originalDateTo);
             $data['top_reviews'] = $this->getTopReviews(null, 10);
             if (in_array($role, ['admin', 'developer', 'marketer'])) {
                 $data['marketer_stats'] = $this->getMarketerStats(null, $dateFrom, $dateTo);
             }
         } else {
             // Non-privileged users get their own stats only
-            $data['ticket_stats'] = $this->getTicketStats($userId, $dateFrom, $dateTo);
-            $data['review_discussion_stats'] = $this->getReviewDiscussionStats($userId, $dateFrom, $dateTo);
-            $data['call_stats'] = $this->getCallStats($userId, $dateFrom, $dateTo);
-            $data['call_ratio'] = $this->getCallRatio($userId, $dateFrom, $dateTo);
+            $data['ticket_stats'] = $this->getTicketStats($userId, $originalDateFrom, $originalDateTo);
+            $data['review_discussion_stats'] = $this->getReviewDiscussionStats($userId, $originalDateFrom, $originalDateTo);
+            $data['call_stats'] = $this->getCallStats($userId, $originalDateFrom, $originalDateTo);
+            $data['call_ratio'] = $this->getCallRatio($userId, $originalDateFrom, $originalDateTo);
             $data['top_reviews'] = $this->getTopReviews($userId, 10);
             
             // Don't show leaderboards for non-privileged users
@@ -61,7 +65,7 @@ class Dashboard
             ];
             
             if ($role === 'marketer') {
-                $data['marketer_stats'] = $this->getMarketerStats($userId, $dateFrom, $dateTo);
+                $data['marketer_stats'] = $this->getMarketerStats($userId, $originalDateFrom, $originalDateTo);
             }
         }
 
@@ -85,17 +89,17 @@ class Dashboard
         foreach ($dates as $date) {
             try {
                 // Get tickets for this date
-                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM ticket_details WHERE DATE(created_at) = ?");
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM ticket_details WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) = ?");
                 $stmt->execute([$date]);
                 $ticketCount = (int) $stmt->fetchColumn();
 
                 // Get calls for this date
-                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM driver_calls WHERE DATE(created_at) = ?");
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM driver_calls WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) = ?");
                 $stmt->execute([$date]);
                 $callCount = (int) $stmt->fetchColumn();
 
                 // Get reviews for this date
-                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM reviews WHERE DATE(reviewed_at) = ?");
+                $stmt = $this->db->prepare("SELECT COUNT(id) as count FROM reviews WHERE DATE(CONVERT_TZ(reviewed_at, '+00:00', '+02:00')) = ?");
                 $stmt->execute([$date]);
                 $reviewCount = (int) $stmt->fetchColumn();
 
@@ -160,7 +164,7 @@ class Dashboard
         $params = [];
         $whereClause = '';
         if ($dateFrom && $dateTo) {
-            $whereClause = 'WHERE DATE(created_at) BETWEEN :date_from AND :date_to';
+            $whereClause = 'WHERE DATE(CONVERT_TZ(created_at, \'+00:00\', \'+02:00\')) BETWEEN :date_from AND :date_to';
             $params = [':date_from' => $dateFrom, ':date_to' => $dateTo];
         }
 
@@ -179,7 +183,7 @@ class Dashboard
 
         $tripWhereClause = '';
         if ($dateFrom && $dateTo) {
-            $tripWhereClause = 'WHERE DATE(d.created_at) BETWEEN :date_from AND :date_to';
+            $tripWhereClause = 'WHERE DATE(CONVERT_TZ(d.created_at, \'+00:00\', \'+02:00\')) BETWEEN :date_from AND :date_to';
         }
 
         $tripQuery = "
@@ -213,7 +217,7 @@ class Dashboard
             $params[':user_id'] = $userId;
         }
 
-        $ticketQuery = "SELECT COUNT(*) FROM tickets WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere;
+        $ticketQuery = "SELECT COUNT(*) FROM tickets WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to" . $userWhere;
         $stmt = $this->db->prepare($ticketQuery);
         $stmt->execute($params);
         $stats['total_tickets'] = (int) $stmt->fetchColumn();
@@ -224,12 +228,12 @@ class Dashboard
              unset($params[':user_id']);
         }
 
-        $detailQuery = "SELECT COUNT(*) FROM ticket_details WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere;
+        $detailQuery = "SELECT COUNT(*) FROM ticket_details WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to" . $userWhere;
         $stmt = $this->db->prepare($detailQuery);
         $stmt->execute($params);
         $stats['total_details'] = (int) $stmt->fetchColumn();
         
-        $vipQuery = "SELECT is_vip, COUNT(*) as count FROM ticket_details WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhere . " GROUP BY is_vip";
+        $vipQuery = "SELECT is_vip, COUNT(*) as count FROM ticket_details WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to" . $userWhere . " GROUP BY is_vip";
         $stmt = $this->db->prepare($vipQuery);
         $stmt->execute($params);
         $vipCounts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -269,7 +273,7 @@ class Dashboard
             FROM reviews r
             LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
             LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
-            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to{$whereSql}
+            WHERE DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to{$whereSql}
         ";
     
         try {
@@ -289,7 +293,7 @@ class Dashboard
                 FROM reviews r
                 LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
                 LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
-                WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to
+                WHERE DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to
                 AND (td.edited_by = :agent_review_user_id_ticket OR dc.call_by = :agent_review_user_id_call)
                 ORDER BY r.reviewed_at DESC
                 LIMIT 5
@@ -313,7 +317,7 @@ class Dashboard
             $discussionsParams[':user_id'] = $userId;
         }
     
-        $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(created_at) BETWEEN :date_from AND :date_to{$userWhereDiscussions}";
+        $discussionsQuery = "SELECT COUNT(*) FROM discussions WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to{$userWhereDiscussions}";
         
         try {
             $stmt_discussions = $this->db->prepare($discussionsQuery);
@@ -407,7 +411,7 @@ class Dashboard
             $params[':user_id'] = $userId;
         }
 
-        $incomingQuery = "SELECT COUNT(*) FROM incoming_calls WHERE DATE(call_started_at) BETWEEN :date_from AND :date_to" . $userWhereIncoming;
+        $incomingQuery = "SELECT COUNT(*) FROM incoming_calls WHERE DATE(CONVERT_TZ(call_started_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to" . $userWhereIncoming;
         $stmt_incoming = $this->db->prepare($incomingQuery);
         $stmt_incoming->execute($params);
         $stats['incoming'] = (int) $stmt_incoming->fetchColumn();
@@ -416,7 +420,7 @@ class Dashboard
             unset($params[':user_id']);
         }
 
-        $outgoingQuery = "SELECT COUNT(*) FROM driver_calls WHERE DATE(created_at) BETWEEN :date_from AND :date_to" . $userWhereOutgoing;
+        $outgoingQuery = "SELECT COUNT(*) FROM driver_calls WHERE DATE(CONVERT_TZ(created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to" . $userWhereOutgoing;
         $stmt_outgoing = $this->db->prepare($outgoingQuery);
         $stmt_outgoing->execute($params);
         $stats['outgoing'] = (int) $stmt_outgoing->fetchColumn();
@@ -453,7 +457,7 @@ class Dashboard
             SELECT u.name, COUNT(td.id) as count 
             FROM ticket_details td 
             JOIN users u ON td.edited_by = u.id 
-            WHERE DATE(td.created_at) BETWEEN :date_from AND :date_to
+            WHERE DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
@@ -466,7 +470,7 @@ class Dashboard
             SELECT u.name, COUNT(dc.id) as count 
             FROM driver_calls dc 
             JOIN users u ON dc.call_by = u.id 
-            WHERE DATE(dc.created_at) BETWEEN :date_from AND :date_to
+            WHERE DATE(CONVERT_TZ(dc.created_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
@@ -479,7 +483,7 @@ class Dashboard
             SELECT u.name, COUNT(ic.id) as count 
             FROM incoming_calls ic 
             JOIN users u ON ic.call_received_by = u.id 
-            WHERE DATE(ic.call_started_at) BETWEEN :date_from AND :date_to
+            WHERE DATE(CONVERT_TZ(ic.call_started_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to
             GROUP BY u.id, u.name 
             ORDER BY count DESC 
             LIMIT 10
@@ -528,7 +532,7 @@ class Dashboard
                     ELSE NULL
                 END
             ) = u.id
-            WHERE DATE(r.reviewed_at) BETWEEN :date_from AND :date_to{$reviewsWhereSql}
+            WHERE DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) BETWEEN :date_from AND :date_to{$reviewsWhereSql}
             GROUP BY u.id, u.name
             ORDER BY average_rating DESC, total_reviews DESC
             LIMIT 10

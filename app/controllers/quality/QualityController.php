@@ -61,19 +61,38 @@ class QualityController extends Controller
     public function get_reviews_api()
     {
         header('Content-Type: application/json');
-        
+
+        // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+        $filters = $_GET;
+
+        // تحويل التواريخ من Cairo إلى UTC للبحث في قاعدة البيانات
+        if (!empty($filters['start_date'])) {
+            // احفظ التاريخ الأصلي الذي أرسله المستخدم
+            $filters['original_start_date'] = $filters['start_date'];
+
+            // تحويل التاريخ من Cairo إلى UTC
+            $startCairo = new \DateTimeImmutable($filters['start_date'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+            $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
+        if (!empty($filters['end_date'])) {
+            $filters['original_end_date'] = $filters['end_date'];
+            $endCairo = new \DateTimeImmutable($filters['end_date'] . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
         // Debug mode for testing
-        if (isset($_GET['debug_skip_auth']) && $_GET['debug_skip_auth'] === 'yes') {
+        if (isset($filters['debug_skip_auth']) && $filters['debug_skip_auth'] === 'yes') {
             $debug_info = [
                 'session_role' => \App\Core\Auth::getUserRole() ?? 'not_set',
                 'session_user_id' => \App\Core\Auth::getUserId() ?? 'not_set',
                 'session_data' => $_SESSION['user'] ?? 'no_user_session',
                 'timestamp' => date('Y-m-d H:i:s'),
-                'filters' => $_GET
+                'filters' => $filters
             ];
-            
+
             try {
-                $reviews = $this->qualityModel->getFilteredReviews($_GET);
+                $reviews = $this->qualityModel->getFilteredReviews($filters);
                 echo json_encode([
                     'debug' => $debug_info,
                     'reviews' => $reviews,
@@ -89,11 +108,9 @@ class QualityController extends Controller
                 return;
             }
         }
-        
+
         // Normal authorization check: allow all relevant roles. The model handles the logic.
         $this->authorize(['admin', 'quality_manager', 'Team_leader', 'developer', 'agent']);
-        
-        $filters = $_GET; // Using GET parameters for filtering
         
         // Add debug information for troubleshooting
         $debug_info = [
@@ -301,6 +318,23 @@ class QualityController extends Controller
         // Validate parameters
         if ($page < 1) $page = 1;
         if ($perPage < 1 || $perPage > 100) $perPage = 25;
+
+        // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+        // تحويل التواريخ من Cairo إلى UTC للبحث في قاعدة البيانات
+        if (!empty($filters['start_date'])) {
+            // احفظ التاريخ الأصلي الذي أرسله المستخدم
+            $filters['original_start_date'] = $filters['start_date'];
+
+            // تحويل التاريخ من Cairo إلى UTC
+            $startCairo = new \DateTimeImmutable($filters['start_date'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+            $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
+        if (!empty($filters['end_date'])) {
+            $filters['original_end_date'] = $filters['end_date'];
+            $endCairo = new \DateTimeImmutable($filters['end_date'] . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
 
         // Remove search parameters from filters
         unset($filters['q'], $filters['page'], $filters['per_page']);

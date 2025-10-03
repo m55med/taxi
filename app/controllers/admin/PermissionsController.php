@@ -28,54 +28,61 @@ class PermissionsController extends Controller
     }
 
     public function index()
-    {
-        // Sync permissions from files to DB on each visit
-        $this->permissionModel->syncPermissions();
+{
+    // مزامنة الصلاحيات من الملفات للقاعدة
+    $this->permissionModel->syncPermissions();
 
-        $selectedRoleId = isset($_GET['role_id']) && is_numeric($_GET['role_id']) ? (int)$_GET['role_id'] : null;
-        
-        $users = [];
-        $userPermissions = [];
-        $rolePermissions = [];
+    $selectedRoleId = isset($_GET['role_id']) && is_numeric($_GET['role_id']) ? (int)$_GET['role_id'] : null;
+    
+    $users = [];
+    $userPermissions = [];
+    $rolePermissions = [];
 
-        if ($selectedRoleId) {
-            $users = $this->userModel->getUsersByRole($selectedRoleId);
-            if (!empty($users)) {
-                foreach ($users as $user) {
-                    $userPermissions[$user['id']] = $this->permissionModel->getPermissionsByUser($user['id']);
-                }
+    if ($selectedRoleId) {
+        $users = $this->userModel->getUsersByRole($selectedRoleId);
+
+        if (!empty($users)) {
+            foreach ($users as $user) {
+                // دعم object أو array
+                $userId = is_object($user) ? $user->id : $user['id'];
+                $userPermissions[$userId] = $this->permissionModel->getPermissionsByUser($userId);
             }
-            $rolePermissions = $this->permissionModel->getPermissionsByRole($selectedRoleId);
         }
-        
-        // Group permissions by a key (e.g., controller name)
-        $allPermissions = $this->permissionModel->getAllPermissions();
-        $groupedPermissions = [];
-        foreach ($allPermissions as $permission) {
-            // Group by the Controller part of the key. "Users/index" -> "Users"
-            $key = $permission['permission_key'];
-            $parts = explode('/', $key);
-            $groupKey = $parts[0]; // The controller name is the group key
-            
-            if (!isset($groupedPermissions[$groupKey])) {
-                $groupedPermissions[$groupKey] = [];
-            }
-            $groupedPermissions[$groupKey][] = $permission;
-        }
-        ksort($groupedPermissions);
 
-        $data = [
-            'page_main_title' => 'Manage Permissions',
-            'roles' => $this->userModel->getRoles(),
-            'users' => $users,
-            'permissions' => $groupedPermissions, // Use grouped permissions
-            'userPermissions' => $userPermissions,
-            'rolePermissions' => $rolePermissions,
-            'selectedRoleId' => $selectedRoleId,
-        ];
-
-        $this->view('admin/permissions/index', $data);
+        $rolePermissions = $this->permissionModel->getPermissionsByRole($selectedRoleId);
     }
+
+    // جلب كل الصلاحيات وترتيبها
+    $allPermissions = $this->permissionModel->getAllPermissions();
+    $groupedPermissions = [];
+
+    foreach ($allPermissions as $permission) {
+        // دعم object أو array
+        $permissionKey = is_object($permission) ? $permission->permission_key : $permission['permission_key'];
+        $parts = explode('/', $permissionKey);
+        $groupKey = $parts[0];
+
+        if (!isset($groupedPermissions[$groupKey])) {
+            $groupedPermissions[$groupKey] = [];
+        }
+        $groupedPermissions[$groupKey][] = $permission;
+    }
+
+    ksort($groupedPermissions);
+
+    $data = [
+        'page_main_title' => 'Manage Permissions',
+        'roles' => $this->userModel->getRoles(),
+        'users' => $users,
+        'permissions' => $groupedPermissions,
+        'userPermissions' => $userPermissions,
+        'rolePermissions' => $rolePermissions,
+        'selectedRoleId' => $selectedRoleId,
+    ];
+
+    $this->view('admin/permissions/index', $data);
+}
+
     
     public function toggle()
     {

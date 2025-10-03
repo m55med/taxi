@@ -6,8 +6,6 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Helpers\ExportHelper;
 
-// تحميل DateTime Helper للتعامل مع التوقيت
-require_once APPROOT . '/helpers/DateTimeHelper.php';
 
 class ListingsController extends Controller
 {
@@ -15,6 +13,69 @@ class ListingsController extends Controller
     private $ticketCategoryModel;
     private $userModel;
     private $platformModel;
+    private $teamModel;
+
+    /**
+     * Convert UTC datetime to Cairo timezone safely
+     */
+/**
+ * Convert UTC datetime to Cairo timezone
+ */
+    private function convertToCairoTime($utcDateTime)
+    {
+        if (empty($utcDateTime)) return $utcDateTime;
+
+        try {
+            $utc = new \DateTimeImmutable($utcDateTime, new \DateTimeZone('UTC'));
+            $cairo = new \DateTimeZone('Africa/Cairo');
+            $cairoTime = $utc->setTimezone($cairo);
+
+            // 12-hour format مع AM/PM للعرض
+            return $cairoTime->format('Y-m-d h:i:s A');
+
+        } catch (\Exception $e) {
+            error_log('Error converting datetime to Cairo timezone: ' . $e->getMessage());
+            return $utcDateTime;
+        }
+    }
+
+/**
+ * Convert Cairo datetime to UTC for filtering
+ */
+private function convertCairoToUTC($cairoDateTime)
+{
+    if (empty($cairoDateTime)) return $cairoDateTime;
+
+    try {
+        $cairo = new \DateTimeImmutable($cairoDateTime, new \DateTimeZone('Africa/Cairo'));
+        $utc = new \DateTimeZone('UTC');
+        $utcTime = $cairo->setTimezone($utc);
+
+        return $utcTime->format('Y-m-d H:i:s');
+
+    } catch (\Exception $e) {
+        error_log('Error converting Cairo datetime to UTC: ' . $e->getMessage());
+        return $cairoDateTime;
+    }
+}
+
+
+    
+
+    /**
+     * Convert datetime fields in array from UTC to Cairo timezone
+     */
+    private function convertArrayTimesToCairo(&$tickets, $fields = ['ticket_created_at','ticket_updated_at','detail_created_at','detail_updated_at'])
+    {
+        foreach ($tickets as &$ticket) {
+            foreach ($fields as $field) {
+                if (!empty($ticket[$field])) {
+                    $ticket[$field] = $this->convertToCairoTime($ticket[$field]);
+                }
+            }
+        }
+    }
+    
 
     public function __construct()
     {
@@ -26,70 +87,109 @@ class ListingsController extends Controller
         $this->ticketCategoryModel = $this->model('Tickets/Category');
         $this->userModel = $this->model('User/User');
         $this->platformModel = $this->model('Admin/Platform');
+        $this->teamModel = $this->model('Admin/Team');
     }
 
     /**
      * Display the main tickets listing page or export data.
      */
     public function tickets()
-    {
-        $this->authorize('listings/tickets');
+{
+    $this->authorize('listings/tickets');
 
-        $filters = $_GET;
-        
-        // Debug logging
-        error_log('ListingsController::tickets - Filters received: ' . json_encode($filters));
+    $filters = $_GET;
 
-        // If the user is an agent, force filter by their user ID
-        if (Auth::hasRole('agent')) {
-            $filters['created_by'] = Auth::getUserId();
-            error_log('ListingsController::tickets - User is agent, forced created_by: ' . $filters['created_by']);
-        }
+    // Debug logging: الفلاتر الأصلية
+    error_log('ListingsController::tickets - Filters received: ' . json_encode($filters));
 
-        // Check for export request
-        if (isset($filters['export'])) {
-            $tickets = $this->listingModel->getFilteredTickets($filters, false); // Get all for export
-            $this->exportTickets($tickets['data'], $filters['export']);
-            return; // Stop further execution
-        }
-
-        // Get initial data for page load (server-side pagination)
-        $ticketsData = $this->listingModel->getFilteredTickets($filters, true);
-        $stats = $this->listingModel->getTicketStats($filters);
-
-        // Debug logging
-        error_log('ListingsController::tickets - Tickets data: ' . json_encode([
-            'total' => $ticketsData['total'] ?? 0,
-            'count' => count($ticketsData['data'] ?? []),
-            'first_ticket' => !empty($ticketsData['data']) ? $ticketsData['data'][0]['ticket_number'] : 'N/A'
-        ]));
-        error_log('ListingsController::tickets - Stats: ' . json_encode($stats));
-
-        // Additional debug for search issues
-        if (!empty($filters['search_term'])) {
-            error_log('ListingsController::tickets - Search debug for term: ' . $filters['search_term']);
-            error_log('ListingsController::tickets - User is agent check: ' . (Auth::hasRole('agent') ? 'YES' : 'NO'));
-        }
-
-        $data = [
-            'page_main_title' => 'All Tickets',
-            'tickets' => $ticketsData['data'] ?? [],
-            'pagination' => [
-                'total' => $ticketsData['total'] ?? 0,
-                'total_pages' => $ticketsData['total_pages'] ?? 1,
-                'current_page' => $ticketsData['current_page'] ?? 1,
-                'limit' => $ticketsData['limit'] ?? 25,
-            ],
-            'stats' => $stats,
-            'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
-            'platforms' => $this->platformModel->getAll(),
-            'users' => $this->userModel->getAllUsers(),
-            'listingModel' => $this->listingModel, // For logs functionality
-            'filters' => $filters // Pass current filters back to the view
-        ];
-
-        $this->view('listings/tickets', $data);
+    // إذا المستخدم agent، نحدّد created_by تلقائياً
+    if (Auth::hasRole('agent')) {
+        $filters['created_by'] = Auth::getUserId();
+        error_log('ListingsController::tickets - User is agent, forced created_by: ' . $filters['created_by']);
     }
+
+    // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+    // الحل الأمثل: احفظ التاريخ الأصلي للمقارنة في قاعدة البيانات
+    if (!empty($filters['start_date'])) {
+        // احفظ التاريخ الأصلي الذي أرسله المستخدم
+        $filters['original_start_date'] = $filters['start_date'];
+
+        // للتوافق مع باقي النظام، احتفظ بالتحويل إلى UTC
+        $startCairo = new \DateTimeImmutable($filters['start_date'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+        $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+
+        // إذا لم يتم تحديد end_date، اجعلها تغطي يوم كامل
+        if (empty($filters['end_date'])) {
+            $originalDate = $startCairo->setTimezone(new \DateTimeZone('Africa/Cairo'))->format('Y-m-d');
+            $endCairo = new \DateTimeImmutable($originalDate . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        }
+    }
+
+    if (!empty($filters['end_date']) && empty($filters['start_date'])) {
+        $filters['original_end_date'] = $filters['end_date'];
+        $originalEndDate = $filters['end_date'];
+        $endCairo = new \DateTimeImmutable($originalEndDate . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+        $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+
+        $startCairo = new \DateTimeImmutable($originalEndDate . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+        $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    }
+
+
+    // Debug logging: الفلاتر بعد التحويل
+    error_log('ListingsController::tickets - Filters after Cairo->UTC conversion: ' . json_encode($filters));
+    // ============================================================
+
+    // طلب تصدير
+    if (isset($filters['export'])) {
+        $tickets = $this->listingModel->getFilteredTickets($filters, false); // كل الداتا للتصدير
+        $this->exportTickets($tickets['data'], $filters['export']);
+        return;
+    }
+
+    // جلب البيانات مع pagination
+    $ticketsData = $this->listingModel->getFilteredTickets($filters, true);
+
+    // تحويل كل التواريخ من UTC للقاهرة للعرض
+    $this->convertArrayTimesToCairo($ticketsData['data'], [
+        'ticket_created_at',
+        'ticket_updated_at',
+        'detail_created_at',
+        'detail_updated_at'
+    ]);
+
+    $stats = $this->listingModel->getTicketStats($filters);
+
+    // Debug logging: عرض البيانات المسترجعة قبل عرض الفيو
+    error_log('ListingsController::tickets - Tickets data: ' . json_encode([
+        'total' => $ticketsData['total'] ?? 0,
+        'count' => count($ticketsData['data'] ?? []),
+        'first_ticket' => !empty($ticketsData['data']) ? $ticketsData['data'][0]['ticket_number'] : 'N/A'
+    ]));
+
+    $data = [
+        'page_main_title' => 'All Tickets',
+        'tickets' => $ticketsData['data'] ?? [],
+        'pagination' => [
+            'total' => $ticketsData['total'] ?? 0,
+            'total_pages' => $ticketsData['total_pages'] ?? 1,
+            'current_page' => $ticketsData['current_page'] ?? 1,
+            'limit' => $ticketsData['limit'] ?? 25,
+        ],
+        'stats' => $stats,
+        'ticket_categories' => $this->ticketCategoryModel->getAllCategoriesWithSubcategoriesAndCodes(),
+        'platforms' => $this->platformModel->getAll(),
+        'users' => $this->userModel->getAllUsers(),
+        'teams' => $this->teamModel->getAll(),
+        'listingModel' => $this->listingModel,
+        'filters' => $filters
+    ];
+
+    $this->view('listings/tickets', $data);
+}
+
+
 
     /**
      * Handle the export of ticket data.
@@ -101,6 +201,8 @@ class ListingsController extends Controller
     {
         $filename = 'tickets_export';
         $exportData = [];
+
+        // Keep original datetime format without timezone conversion
 
         if ($format === 'excel') {
             // Prepare data for Excel export
@@ -119,7 +221,7 @@ class ListingsController extends Controller
                     $ticket['platform_name'],
                     $ticket['phone'] ?? '',
                     $classification,
-                    date('Y-m-d H:i', strtotime($ticket['created_at'])),
+                    $ticket['created_at'], // بعد convertArrayTimesToCairo,
                     $ticket['is_vip'] == 1 ? 'Yes' : 'No'
                 ];
             }, $tickets);
@@ -213,6 +315,9 @@ class ListingsController extends Controller
         // Fetch paginated calls for display
         $callsData = $this->listingModel->getFilteredCalls($filters);
 
+        // Convert datetime fields to Cairo timezone
+        $this->convertArrayTimesToCairo($callsData['data']);
+
         $data = [
             'page_main_title' => 'All Calls',
             'stats' => $this->listingModel->getCallStats($filters),
@@ -233,6 +338,9 @@ class ListingsController extends Controller
 
     private function exportCalls(array $calls, string $format)
     {
+        // Convert datetime fields to Cairo timezone before export
+        $this->convertArrayTimesToCairo($calls);
+
         $filename = 'calls_export';
         $headers = ['Type', 'Contact Name', 'Contact Phone', 'User', 'Status', 'Details', 'Call Time'];
         $rows = array_map(function ($call) {
@@ -243,7 +351,7 @@ class ListingsController extends Controller
                 $call['user_name'],
                 $call['status'],
                 '', // Details placeholder
-                date('Y-m-d H:i', strtotime($call['call_time']))
+                $call['call_time'] // بعد convertArrayTimesToCairo,
             ];
         }, $calls);
 
@@ -290,6 +398,13 @@ class ListingsController extends Controller
         
         $filters = $_GET;
         $driversData = $driverModel->getFilteredDrivers($filters);
+
+        // Convert datetime fields to Cairo timezone
+        if (isset($driversData['data'])) {
+            $this->convertArrayTimesToCairo($driversData['data']);
+        } else {
+            $this->convertArrayTimesToCairo($driversData);
+        }
     
         if (isset($filters['export'])) {
             $this->exportDrivers($driversData['data'], $filters['export']);
@@ -318,6 +433,9 @@ class ListingsController extends Controller
 
     private function exportDrivers(array $drivers, string $format)
     {
+        // Convert datetime fields to Cairo timezone before export
+        $this->convertArrayTimesToCairo($drivers);
+
         $filename = 'drivers_export';
         $headers = ['ID', 'Name', 'Phone', 'Email', 'Main Status', 'App Status', 'Car Type', 'Call Count', 'Missing Docs'];
         $rows = array_map(function ($driver) {

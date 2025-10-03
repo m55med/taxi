@@ -10,6 +10,31 @@
                     <p class="mt-1 text-sm text-gray-500">Teams and employee performance - <?php echo date('l, F j, Y'); ?></p>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <!-- Date Filter -->
+                    <div class="flex items-center space-x-2">
+                        <label for="date-filter" class="text-sm font-medium text-gray-700">Date:</label>
+                        <input type="date" id="date-filter" class="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               value="<?php echo date('Y-m-d'); ?>" max="<?php echo date('Y-m-d'); ?>">
+                    </div>
+
+                    <!-- Auto Refresh Toggle -->
+                    <div class="flex items-center space-x-2">
+                        <label for="auto-refresh" class="text-sm font-medium text-gray-700">Auto Refresh:</label>
+                        <div class="flex items-center space-x-2">
+                            <button id="auto-refresh-toggle" onclick="toggleAutoRefresh()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                                <i class="fas fa-play mr-2" id="auto-refresh-icon"></i>
+                                <span id="auto-refresh-text">Start</span>
+                            </button>
+                            <div id="countdown-container" class="hidden flex items-center space-x-1">
+                                <div class="w-8 h-8 bg-blue-100 border border-blue-300 rounded-full flex items-center justify-center">
+                                    <span id="countdown-number" class="text-sm font-bold text-blue-700">60</span>
+                                </div>
+                                <span class="text-xs text-gray-500">sec</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Refresh -->
                     <button onclick="refreshData()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
                         <i class="fas fa-sync-alt mr-2"></i>
                         Refresh
@@ -45,15 +70,27 @@
 
 <script>
 let teamsData = null;
+let autoRefreshInterval = null;
+let countdownInterval = null;
+let isAutoRefreshActive = false;
+let countdownSeconds = 60;
 
 async function loadTeamsData() {
     try {
-        const response = await fetch('<?php echo URLROOT; ?>/performance/api/team-performance');
+        const dateFilter = document.getElementById('date-filter').value;
+        const url = `<?php echo URLROOT; ?>/performance/api/team-performance${dateFilter ? `?date=${dateFilter}` : ''}`;
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
             teamsData = data.data;
             updateTeamsUI();
+
+            // Reset countdown if auto refresh is active
+            if (isAutoRefreshActive) {
+                startCountdown();
+            }
         } else {
             console.error('Failed to load teams data:', data.error);
             showError('Failed to load team data');
@@ -137,20 +174,83 @@ function updateTeamsUI() {
 }
 
 function viewTeamDetails(teamId) {
-    // Get current date
-    const now = new Date();
+    // Get selected date from filter
+    const selectedDate = document.getElementById('date-filter').value;
 
-    // Get first day of current month
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const dateFrom = firstDay.toISOString().split('T')[0];
-
-    // Get last day of current month
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const dateTo = lastDay.toISOString().split('T')[0];
-
-    // Redirect to users reports with team filter and current month date range
-    window.location.href = `<?php echo URLROOT; ?>/reports/users?team_id=${teamId}&date_from=${dateFrom}&date_to=${dateTo}`;
+    // Redirect to users reports with team filter and selected date
+    window.location.href = `<?php echo URLROOT; ?>/reports/users?team_id=${teamId}&date_from=${selectedDate}&date_to=${selectedDate}`;
 }
+
+function startCountdown() {
+    const countdownContainer = document.getElementById('countdown-container');
+    const countdownNumber = document.getElementById('countdown-number');
+
+    // قبل ما تبدأ، أوقف أي عداد قديم
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+
+    countdownSeconds = 60;
+    countdownNumber.textContent = countdownSeconds;
+    countdownContainer.classList.remove('hidden');
+
+    countdownInterval = setInterval(() => {
+        countdownSeconds--;
+        countdownNumber.textContent = countdownSeconds;
+
+        if (countdownSeconds <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+
+            // اعمل refresh بالـ spinner
+            refreshData();
+            startCountdown();
+        }
+
+    }, 1000);
+}
+
+
+function stopCountdown() {
+    const countdownContainer = document.getElementById('countdown-container');
+
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+
+    countdownContainer.classList.add('hidden');
+}
+
+function toggleAutoRefresh() {
+    const button = document.getElementById('auto-refresh-toggle');
+    const icon = document.getElementById('auto-refresh-icon');
+    const text = document.getElementById('auto-refresh-text');
+
+    if (isAutoRefreshActive) {
+        // Stop auto refresh
+        isAutoRefreshActive = false;
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        autoRefreshInterval = null;
+        countdownInterval = null;
+
+        icon.className = 'fas fa-play mr-2';
+        text.textContent = 'Start';
+        button.className = button.className.replace('bg-blue-50 border-blue-300 text-blue-700', 'bg-white hover:bg-gray-50 text-gray-700');
+    } else {
+        // Start auto refresh
+        isAutoRefreshActive = true;
+        loadTeamsData(); // أول تحميل
+        startCountdown(); // يبدأ العداد بشكل دوري
+
+        icon.className = 'fas fa-stop mr-2';
+        text.textContent = 'Stop';
+        button.className = button.className.replace('bg-white hover:bg-gray-50 text-gray-700', 'bg-blue-50 border-blue-300 text-blue-700');
+    }
+}
+
 
 function refreshData() {
     document.getElementById('loading-state').style.display = 'block';
@@ -180,8 +280,11 @@ function showError(message) {
 document.addEventListener('DOMContentLoaded', function() {
     loadTeamsData();
 
-    // Auto refresh every 10 minutes
-    setInterval(loadTeamsData, 10 * 60 * 1000);
+    // Add date filter change listener
+    document.getElementById('date-filter').addEventListener('change', function() {
+        refreshData();
+       startCountdown();
+    });
 });
 </script>
 

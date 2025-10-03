@@ -38,20 +38,41 @@ class DashboardController extends Controller
         $dateFrom = $_GET['date_from'] ?? date('Y-m-01'); // أول يوم في الشهر
         $dateTo   = $_GET['date_to']   ?? date('Y-m-t');  // آخر يوم في الشهر
 
+        // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+        // الحل الأمثل: احفظ التاريخ الأصلي للمقارنة في قاعدة البيانات
+        if (!empty($dateFrom)) {
+            // احفظ التاريخ الأصلي الذي أرسله المستخدم
+            $originalDateFrom = $dateFrom;
+
+            // للتوافق مع باقي النظام، احتفظ بالتحويل إلى UTC
+            $dateFromCairo = new \DateTimeImmutable($dateFrom . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+            $dateFrom = $dateFromCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
+        if (!empty($dateTo)) {
+            $originalDateTo = $dateTo;
+            $dateToCairo = new \DateTimeImmutable($dateTo . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $dateTo = $dateToCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
         $userDataForModel = [
             'id' => $user->id,
             'role_name' => $user->role_name
         ];
-        
+
         // Fetch all dashboard data using the centralized model method
-        $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel, $dateFrom, $dateTo);
+        $dashboardData = $this->dashboardModel->getDashboardData($userDataForModel, $dateFrom, $dateTo, $originalDateFrom ?? null, $originalDateTo ?? null);
+
+        // أعد التواريخ الأصلية للـ view (للروابط)
+        $originalDateFrom = $originalDateFrom ?? $dateFrom;
+        $originalDateTo = $originalDateTo ?? $dateTo;
 
         // Pass everything to the view
         $data = [
             'title' => 'Dashboard',
             'dashboardData' => $dashboardData,
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo,
+            'date_from' => $originalDateFrom,
+            'date_to' => $originalDateTo,
         ];
 
         $this->view('dashboard/index', $data);

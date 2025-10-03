@@ -39,6 +39,11 @@
                         <div id="bulk-actions-menu"
                             class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
                             <div class="py-1">
+                                <button type="button" id="copy-ticket-numbers-btn"
+                                    class="js-copy-ticket-numbers w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                    <i class="fas fa-copy text-purple-500 w-5 text-center mr-2"></i> Copy Ticket
+                                    Numbers
+                                </button>
                                 <button type="button" data-format="excel"
                                     class="js-export-selected w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                                     <i class="fas fa-file-excel text-green-500 w-5 text-center mr-2"></i> Export
@@ -132,6 +137,7 @@
         const bulkActionsMenu = document.getElementById('bulk-actions-menu');
         const selectedCountSpan = document.getElementById('selected-activities-count');
         const exportSelectedBtns = document.querySelectorAll('.js-export-selected');
+        const copyTicketNumbersBtn = document.getElementById('copy-ticket-numbers-btn');
 
         // --- LIVE SEARCH/FILTER LOGIC ---
         const globalSearchInput = document.getElementById('search');
@@ -293,6 +299,59 @@
             });
         });
 
+        // COPY TICKET NUMBERS LOGIC
+        if (copyTicketNumbersBtn) {
+            copyTicketNumbersBtn.addEventListener('click', () => {
+                if (selectedActivities.length === 0) {
+                    alert('Please select at least one activity to copy ticket numbers.');
+                    return;
+                }
+
+                // جمع أرقام التذاكر من العناصر المحددة
+                const ticketNumbers = [];
+                activityCheckboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        // الحصول على الصف الخاص بالـ checkbox
+                        const row = checkbox.closest('tr');
+                        if (row) {
+                            // الحصول على خلية التفاصيل (Details)
+                            const detailsCell = row.cells[2]; // الخلية الثالثة (index 2)
+                            if (detailsCell) {
+                                // الحصول على النص من الرابط الأول في الخلية
+                                const link = detailsCell.querySelector('a');
+                                if (link) {
+                                    // استخراج رقم التذكرة من النص (أول جزء قبل أي فراغ أو شرطة)
+                                    const ticketText = link.textContent.trim();
+                                    // استخراج رقم التذكرة من النص
+                                    const ticketMatch = ticketText.match(/^([A-Za-z0-9\-]+)/);
+                                    if (ticketMatch) {
+                                        ticketNumbers.push(ticketMatch[1]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (ticketNumbers.length > 0) {
+                    // نسخ الأرقام إلى الحافظة
+                    const ticketNumbersText = ticketNumbers.join('\n');
+                    navigator.clipboard.writeText(ticketNumbersText).then(() => {
+                        // إظهار رسالة تأكيد
+                        showNotification(`Copied ${ticketNumbers.length} ticket number(s) to clipboard!`, 'success');
+
+                        // إغلاق القائمة
+                        if (bulkActionsMenu) bulkActionsMenu.classList.add('hidden');
+                    }).catch(err => {
+                        console.error('Failed to copy ticket numbers:', err);
+                        showNotification('Failed to copy ticket numbers to clipboard.', 'error');
+                    });
+                } else {
+                    alert('No ticket numbers found in selected activities.');
+                }
+            });
+        }
+
         // DATE FILTERS
             const dateFrom = document.getElementById('date_from');
             const dateTo = document.getElementById('date_to');
@@ -332,6 +391,31 @@
                 const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
                 setAndSubmit(firstDayOfMonth, lastDayOfMonth);
             });
+        }
+
+        // NOTIFICATION FUNCTION
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // إزالة الإشعار بعد 3 ثوانٍ
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
         }
         });
     </script>

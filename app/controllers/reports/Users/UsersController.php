@@ -90,9 +90,35 @@ class UsersController extends Controller
             $filters['date_to'] = date('Y-m-t');
         }
 
+        // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+        // الحل الأمثل: احفظ التاريخ الأصلي للمقارنة في قاعدة البيانات
+        if (!empty($filters['date_from'])) {
+            // احفظ التاريخ الأصلي الذي أرسله المستخدم
+            $filters['original_date_from'] = $filters['date_from'];
+
+            // للتوافق مع باقي النظام، احتفظ بالتحويل إلى UTC
+            $dateFromCairo = new \DateTimeImmutable($filters['date_from'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+            $filters['date_from'] = $dateFromCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
+        if (!empty($filters['date_to'])) {
+            $filters['original_date_to'] = $filters['date_to'];
+            $dateToCairo = new \DateTimeImmutable($filters['date_to'] . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $filters['date_to'] = $dateToCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
+
         $usersData = $this->usersReportModel->getUsersReportWithPointsPaginated($filters);
 
 
+
+        // أعد التواريخ الأصلية للـ view (للروابط)
+        $originalFilters = $filters;
+        if (!empty($originalFilters['original_date_from'])) {
+            $originalFilters['date_from'] = $originalFilters['original_date_from'];
+        }
+        if (!empty($originalFilters['original_date_to'])) {
+            $originalFilters['date_to'] = $originalFilters['original_date_to'];
+        }
 
         $data = [
 
@@ -106,7 +132,7 @@ class UsersController extends Controller
 
             'all_users' => $this->usersReportModel->getAllUsersForFilter(),
 
-            'filters' => $filters,
+            'filters' => $originalFilters,
 
         ];
 
@@ -138,7 +164,18 @@ class UsersController extends Controller
 
         ];
 
+        // ======= تحويل التواريخ من Cairo إلى UTC قبل الاستعلام =======
+        if (!empty($filters['date_from'])) {
+            $filters['original_date_from'] = $filters['date_from'];
+            $dateFromCairo = new \DateTimeImmutable($filters['date_from'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+            $filters['date_from'] = $dateFromCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
 
+        if (!empty($filters['date_to'])) {
+            $filters['original_date_to'] = $filters['date_to'];
+            $dateToCairo = new \DateTimeImmutable($filters['date_to'] . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+            $filters['date_to'] = $dateToCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
+        }
 
         $usersData = $this->usersReportModel->getUsersReportWithPoints($filters);
 

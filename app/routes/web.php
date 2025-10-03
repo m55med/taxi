@@ -501,6 +501,8 @@ $router->get("performance/api/realtime-data", "Performance/PerformanceController
 $router->get("performance/api/recent-tickets", "Performance/PerformanceController@getRecentTickets");
 $router->get("performance/api/active-sessions", "Performance/PerformanceController@getActiveSessions");
 $router->get("performance/api/performance-reports", "Performance/PerformanceController@getPerformanceReports");
+$router->get("performance/api/realtime-activity", "Performance/PerformanceController@getRealtimeActivity");
+$router->get("performance/api/active-users-list", "Performance/PerformanceController@getActiveUsersList");
 
 // Reports
 

@@ -94,6 +94,40 @@ function format_datetime_display_12h($datetime, $format = 'Y-m-d h:i:s A') {
 }
 
 /**
+ * تحويل تاريخ في مصفوفة للعرض بتنسيق 12 ساعة فقط (بدون تغيير التوقيت)
+ */
+function convert_dates_to_12h_format($data, $dateFields) {
+    if (empty($data)) {
+        return $data;
+    }
+
+    // Check if it's a single row or multiple rows
+    $isMultiDimensional = is_array($data) && count($data) > 0 && is_array($data[array_key_first($data)]);
+
+    if ($isMultiDimensional) {
+        foreach ($data as &$row) {
+            foreach ($dateFields as $field) {
+                if (isset($row[$field]) && !empty($row[$field])) {
+                    // تحويل من تنسيق 24 ساعة إلى 12 ساعة فقط
+                    $dateTime = new \DateTime($row[$field]);
+                    $row[$field] = $dateTime->format('Y-m-d h:i:s A');
+                }
+            }
+        }
+    } else {
+        foreach ($dateFields as $field) {
+            if (isset($data[$field]) && !empty($data[$field])) {
+                // تحويل من تنسيق 24 ساعة إلى 12 ساعة فقط
+                $dateTime = new \DateTime($data[$field]);
+                $data[$field] = $dateTime->format('Y-m-d h:i:s A');
+            }
+        }
+    }
+
+    return $data;
+}
+
+/**
  * تحويل تاريخ في مصفوفة للعرض بتنسيق 12 ساعة
  */
 function convert_dates_for_display_12h($data, $dateFields) {

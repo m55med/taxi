@@ -235,16 +235,16 @@ input:disabled + .slider {
                     <p class="text-center text-gray-500">No users found in this role.</p>
             <?php else : ?>
                 <?php foreach ($data['users'] as $user) :
-                    // Gracefully handle missing role_name
-                    $roleName = $user['role_name'] ?? '';
+                    // Gracefully handle missing role_name - support both objects and arrays
+                    $roleName = is_object($user) ? ($user->role_name ?? '') : ($user['role_name'] ?? '');
                     $isLocked = in_array(strtolower($roleName), ['admin', 'developer']);
                 ?>
-                    <div class="user-card" data-user-name="<?= strtolower(htmlspecialchars($user['username'])) ?>" data-user-email="<?= strtolower(htmlspecialchars($user['email'])) ?>">
+                    <div class="user-card" data-user-name="<?= strtolower(htmlspecialchars(is_object($user) ? $user->username : $user['username'])) ?>" data-user-email="<?= strtolower(htmlspecialchars(is_object($user) ? $user->email : $user['email'])) ?>">
                         <div class="user-card-header <?= $isLocked ? 'is-locked' : '' ?>">
-                            <strong><?= htmlspecialchars($user['username']) ?> (<?= htmlspecialchars($user['email']) ?>)</strong>
+                            <strong><?= htmlspecialchars(is_object($user) ? $user->username : $user['username']) ?> (<?= htmlspecialchars(is_object($user) ? $user->email : $user['email']) ?>)</strong>
                                 <span><?= $isLocked ? '🔒 Fixed Permissions' : 'Click to view/hide permissions' ?></span>
                         </div>
-                        <div class="permissions-list" data-user-id="<?= $user['id'] ?>">
+                        <div class="permissions-list" data-user-id="<?= is_object($user) ? $user->id : $user['id'] ?>">
                             <!-- Master Toggle Switch -->
                             <div class="permission-item master-toggle-item p-2 bg-gray-100 rounded mb-3">
                                     <span class="font-bold text-blue-600">Toggle All</span>
@@ -270,9 +270,9 @@ input:disabled + .slider {
                                                 <label class="switch">
                                             <input type="checkbox"
                                                         class="permission-toggle"
-                                                            data-user-id="<?= $user['id'] ?>"
+                                                            data-user-id="<?= is_object($user) ? $user->id : $user['id'] ?>"
                                                         data-permission-id="<?= $permission['id'] ?>"
-                                                        <?= in_array($permission['permission_key'], $data['userPermissions'][$user['id']] ?? []) ? 'checked' : '' ?>
+                                                        <?= in_array($permission['permission_key'], $data['userPermissions'][(is_object($user) ? $user->id : $user['id'])] ?? []) ? 'checked' : '' ?>
                                                         <?= $isLocked ? 'disabled' : '' ?>>
                                                     <span class="slider"></span>
                                         </label>

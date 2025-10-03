@@ -104,13 +104,13 @@ class QualityModel extends Model
         // --- FILTERING LOGIC ---
 
         // Date range filter
-        if (!empty($filters['start_date'])) {
-            $whereClauses[] = "DATE(r.reviewed_at) >= :start_date";
-            $params[':start_date'] = $filters['start_date'];
+        if (!empty($filters['original_start_date'])) {
+            $whereClauses[] = "DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) >= :start_date";
+            $params[':start_date'] = $filters['original_start_date'];
         }
-        if (!empty($filters['end_date'])) {
-            $whereClauses[] = "DATE(r.reviewed_at) <= :end_date";
-            $params[':end_date'] = $filters['end_date'];
+        if (!empty($filters['original_end_date'])) {
+            $whereClauses[] = "DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) <= :end_date";
+            $params[':end_date'] = $filters['original_end_date'];
         }
 
         // Context type filter
@@ -238,13 +238,13 @@ class QualityModel extends Model
         // --- FILTERING LOGIC ---
 
         // Date range filter
-        if (!empty($filters['start_date'])) {
-            $whereClauses[] = "DATE(d.created_at) >= :start_date";
-            $params[':start_date'] = $filters['start_date'];
+        if (!empty($filters['original_start_date'])) {
+            $whereClauses[] = "DATE(CONVERT_TZ(d.created_at, '+00:00', '+02:00')) >= :start_date";
+            $params[':start_date'] = $filters['original_start_date'];
         }
-        if (!empty($filters['end_date'])) {
-            $whereClauses[] = "DATE(d.created_at) <= :end_date";
-            $params[':end_date'] = $filters['end_date'];
+        if (!empty($filters['original_end_date'])) {
+            $whereClauses[] = "DATE(CONVERT_TZ(d.created_at, '+00:00', '+02:00')) <= :end_date";
+            $params[':end_date'] = $filters['original_end_date'];
         }
 
         // Context type filter
@@ -456,13 +456,13 @@ class QualityModel extends Model
         }
      
          // --- FILTERING LOGIC ---
-         if (!empty($filters['start_date'])) {
-             $whereClauses[] = "DATE(r.reviewed_at) >= :start_date";
-             $params[':start_date'] = $filters['start_date'];
+         if (!empty($filters['original_start_date'])) {
+             $whereClauses[] = "DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) >= :start_date";
+             $params[':start_date'] = $filters['original_start_date'];
          }
-         if (!empty($filters['end_date'])) {
-             $whereClauses[] = "DATE(r.reviewed_at) <= :end_date";
-             $params[':end_date'] = $filters['end_date'];
+         if (!empty($filters['original_end_date'])) {
+             $whereClauses[] = "DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) <= :end_date";
+             $params[':end_date'] = $filters['original_end_date'];
          }
          if (!empty($filters['context_type'])) {
              if ($filters['context_type'] === 'Ticket') {
