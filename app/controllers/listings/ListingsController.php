@@ -114,11 +114,15 @@ private function convertCairoToUTC($cairoDateTime)
         // احفظ التاريخ الأصلي الذي أرسله المستخدم
         $filters['original_start_date'] = $filters['start_date'];
 
-        // للتوافق مع باقي النظام، احتفظ بالتحويل إلى UTC
-        $startCairo = new \DateTimeImmutable($filters['start_date'] . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+        $startInput = trim($filters['start_date']);
+        $hasTime = (bool)preg_match('/\d{1,2}:\d{2}(:\d{2})?/', $startInput);
+        $startString = $hasTime ? $startInput : ($startInput . ' 00:00:00');
+
+        // للتحويل إلى UTC
+        $startCairo = new \DateTimeImmutable($startString, new \DateTimeZone('Africa/Cairo'));
         $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
-        // إذا لم يتم تحديد end_date، اجعلها تغطي يوم كامل
+        // إذا لم يتم تحديد end_date، اجعلها تغطي يوم كامل (حسب تاريخ البداية)
         if (empty($filters['end_date'])) {
             $originalDate = $startCairo->setTimezone(new \DateTimeZone('Africa/Cairo'))->format('Y-m-d');
             $endCairo = new \DateTimeImmutable($originalDate . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
@@ -126,13 +130,29 @@ private function convertCairoToUTC($cairoDateTime)
         }
     }
 
+    // إذا تم تحديد start_date و end_date معًا، حوّل end_date كذلك إلى UTC
+    if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+        $filters['original_end_date'] = $filters['end_date'];
+        $endInputBoth = trim($filters['end_date']);
+        $endHasTimeBoth = (bool)preg_match('/\d{1,2}:\d{2}(:\d{2})?/', $endInputBoth);
+        $endStringBoth = $endHasTimeBoth ? $endInputBoth : ($endInputBoth . ' 23:59:59');
+        $endCairoBoth = new \DateTimeImmutable($endStringBoth, new \DateTimeZone('Africa/Cairo'));
+        $filters['end_date'] = $endCairoBoth->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    }
+
     if (!empty($filters['end_date']) && empty($filters['start_date'])) {
         $filters['original_end_date'] = $filters['end_date'];
-        $originalEndDate = $filters['end_date'];
-        $endCairo = new \DateTimeImmutable($originalEndDate . ' 23:59:59', new \DateTimeZone('Africa/Cairo'));
+        $endInput = trim($filters['end_date']);
+        $endHasTime = (bool)preg_match('/\d{1,2}:\d{2}(:\d{2})?/', $endInput);
+
+        // اضبط نهاية اليوم إذا لم يكن هناك وقت
+        $endString = $endHasTime ? $endInput : ($endInput . ' 23:59:59');
+        $endCairo = new \DateTimeImmutable($endString, new \DateTimeZone('Africa/Cairo'));
         $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
-        $startCairo = new \DateTimeImmutable($originalEndDate . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
+        // اجعل البداية بداية نفس اليوم في حال لم تُحدد
+        $startDateOnly = $endCairo->setTimezone(new \DateTimeZone('Africa/Cairo'))->format('Y-m-d');
+        $startCairo = new \DateTimeImmutable($startDateOnly . ' 00:00:00', new \DateTimeZone('Africa/Cairo'));
         $filters['start_date'] = $startCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 

@@ -336,6 +336,11 @@ class QualityController extends Controller
             $filters['end_date'] = $endCairo->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d');
         }
 
+        // Filter out empty parameters to prevent SQL binding issues
+        $filters = array_filter($filters, function($value) {
+            return $value !== '' && $value !== null;
+        });
+
         // Remove search parameters from filters
         unset($filters['q'], $filters['page'], $filters['per_page']);
 

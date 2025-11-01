@@ -134,11 +134,11 @@
         <!-- Quick Filters -->
         <div class="flex flex-wrap items-center gap-2 mt-4">
             <span class="text-sm font-medium text-gray-600">Quick Select:</span>
-            <a href="?period=today" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'today', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'today' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Today</a>
-            <a href="?period=last7" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'last7', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'last7' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Last 7 Days</a>
-            <a href="?period=last30" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'last30', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'last30' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Last 30 Days</a>
-            <a href="?period=this_month" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'this_month', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'this_month' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">This Month</a>
-            <a href="?period=all" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'all', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'all' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">All Time</a>
+            <a href="#" onclick="applyQuickFilter('today')" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'today', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'today' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Today</a>
+            <a href="#" onclick="applyQuickFilter('last7')" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'last7', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'last7' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Last 7 Days</a>
+            <a href="#" onclick="applyQuickFilter('last30')" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'last30', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'last30' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">Last 30 Days</a>
+            <a href="#" onclick="applyQuickFilter('this_month')" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'this_month', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'this_month' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">This Month</a>
+            <a href="#" onclick="applyQuickFilter('all')" :class="{ 'bg-indigo-600 text-white': '<?= $data['period'] ?>' === 'all', 'bg-gray-100 text-gray-600': '<?= $data['period'] ?>' !== 'all' }" class="px-3 py-1 rounded-full text-sm hover:bg-indigo-500 hover:text-white transition-colors">All Time</a>
         </div>
     </div>
 
@@ -249,6 +249,21 @@
             fromDate: fromDate || '',
             toDate: toDate || '',
         }
+    }
+
+    // Function to apply quick filter while preserving other filters
+    function applyQuickFilter(period) {
+        const url = new URL(window.location);
+
+        // Remove date-related parameters when using quick filters
+        url.searchParams.delete('from_date');
+        url.searchParams.delete('to_date');
+
+        // Set the new period
+        url.searchParams.set('period', period);
+
+        // Keep all other parameters (user_id, team_id, sort_by, etc.)
+        window.location.href = url.toString();
     }
 
 

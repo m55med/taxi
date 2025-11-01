@@ -29,12 +29,14 @@ class ListingModel extends Model
         // ---------------------------
         // Filters
         // ---------------------------
+        // نطاق التاريخ/الوقت (محفوظ في قاعدة البيانات كـ UTC)
         if (!empty($filters['start_date'])) {
-            // الحل الأمثل: قارن التواريخ باليوم في توقيت القاهرة
-            // خذ التاريخ الأصلي الذي أرسله المستخدم (قبل التحويل)
-            $cairoDate = $filters['original_start_date'] ?? date('Y-m-d', strtotime($filters['start_date']));
-            $params[':cairo_date'] = $cairoDate;
-            $whereClauses[] = "DATE(CONVERT_TZ(td.created_at, '+00:00', '+02:00')) = :cairo_date";
+            $whereClauses[] = "td.created_at >= :start_utc";
+            $params[':start_utc'] = $filters['start_date'];
+        }
+        if (!empty($filters['end_date'])) {
+            $whereClauses[] = "td.created_at <= :end_utc";
+            $params[':end_utc'] = $filters['end_date'];
         }
         if (!empty($filters['created_by'])) {
             $whereClauses[] = "td.created_by = :created_by";

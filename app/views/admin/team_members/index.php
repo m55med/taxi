@@ -32,21 +32,95 @@ if (isset($_SESSION['team_member_message'])) {
                     <form action="<?= URLROOT ?>/admin/team_members/store" method="POST">
                         <div class="mt-4">
                             <label for="user_id" class="block text-sm font-medium text-gray-700">User</label>
-                            <select name="user_id" id="user_id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Select a user</option>
-                                <?php foreach ($data['users'] as $user): ?>
-                                    <option value="<?= $user['id'] ?>"><?= htmlspecialchars($user['username']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div x-data='searchableSelect(<?= json_encode(array_map(function($user) {
+                                return ["id" => $user["id"], "name" => $user["username"]];
+                            }, $data["users"] ?? [])) ?>)'
+                                 x-init="init()"
+                                 data-model-name="user_id"
+                                 data-placeholder="Select a user..."
+                                 class="relative mt-1">
+                                <input type="hidden" name="user_id" :value="selected ? selected.id : ''">
+                                <button @click="toggle" type="button"
+                                        class="relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                    <span class="block truncate" x-text="selectedLabel"></span>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <i class="fas fa-chevron-down h-5 w-5 text-gray-400"></i>
+                                    </span>
+                                </button>
+                                <div x-show="open" @click.away="open = false" x-transition x-cloak
+                                     class="absolute mt-1 w-full rounded-md bg-white shadow-lg z-10">
+                                    <div class="p-2">
+                                        <input type="text" x-model="searchTerm" x-ref="search"
+                                               class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                               placeholder="Search users..." autocomplete="off">
+                                    </div>
+                                    <ul class="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-y-auto focus:outline-none sm:text-sm">
+                                        <template x-for="option in filteredOptions" :key="option.id">
+                                            <li @click="selectOption(option)"
+                                                class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white"
+                                                :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }">
+                                                <span class="block truncate" x-text="option.name"></span>
+                                                <template x-if="selected && selected.id == option.id">
+                                                    <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
+                                                        <i class="fas fa-check h-5 w-5"></i>
+                                                    </span>
+                                                </template>
+                                            </li>
+                                        </template>
+                                        <template x-if="filteredOptions.length === 0">
+                                            <li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">
+                                                No users found.
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                         <div class="mt-4">
                             <label for="team_id" class="block text-sm font-medium text-gray-700">Team</label>
-                            <select name="team_id" id="team_id" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">Select a team</option>
-                                <?php foreach ($data['teams'] as $team): ?>
-                                    <option value="<?= $team['id'] ?>"><?= htmlspecialchars($team['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <div x-data='searchableSelect(<?= json_encode(array_map(function($team) {
+                                return ["id" => $team["id"], "name" => $team["name"]];
+                            }, $data["teams"] ?? [])) ?>)'
+                                 x-init="init()"
+                                 data-model-name="team_id"
+                                 data-placeholder="Select a team..."
+                                 class="relative mt-1">
+                                <input type="hidden" name="team_id" :value="selected ? selected.id : ''">
+                                <button @click="toggle" type="button"
+                                        class="relative w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                    <span class="block truncate" x-text="selectedLabel"></span>
+                                    <span class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <i class="fas fa-chevron-down h-5 w-5 text-gray-400"></i>
+                                    </span>
+                                </button>
+                                <div x-show="open" @click.away="open = false" x-transition x-cloak
+                                     class="absolute mt-1 w-full rounded-md bg-white shadow-lg z-10">
+                                    <div class="p-2">
+                                        <input type="text" x-model="searchTerm" x-ref="search"
+                                               class="w-full px-2 py-1 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                               placeholder="Search teams..." autocomplete="off">
+                                    </div>
+                                    <ul class="max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-y-auto focus:outline-none sm:text-sm">
+                                        <template x-for="option in filteredOptions" :key="option.id">
+                                            <li @click="selectOption(option)"
+                                                class="text-gray-900 cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white"
+                                                :class="{ 'bg-indigo-600 text-white': selected && selected.id == option.id }">
+                                                <span class="block truncate" x-text="option.name"></span>
+                                                <template x-if="selected && selected.id == option.id">
+                                                    <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-white">
+                                                        <i class="fas fa-check h-5 w-5"></i>
+                                                    </span>
+                                                </template>
+                                            </li>
+                                        </template>
+                                        <template x-if="filteredOptions.length === 0">
+                                            <li class="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">
+                                                No teams found.
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                         <button type="submit" class="mt-4 w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium">
                             <i class="fas fa-user-plus mr-2"></i>
@@ -59,7 +133,16 @@ if (isset($_SESSION['team_member_message'])) {
             <div class="md:col-span-2">
                 <div class="bg-white rounded-lg shadow-md">
                     <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-xl font-semibold text-gray-800">Current Team Members</h2>
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-gray-800">Current Team Members</h2>
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-search text-gray-400"></i>
+                                <input type="text"
+                                       x-model="searchTerm"
+                                       placeholder="Search team members..."
+                                       class="px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            </div>
+                        </div>
                     </div>
                     <div class="p-0">
                         <div class="overflow-x-auto">
@@ -81,7 +164,7 @@ if (isset($_SESSION['team_member_message'])) {
                                         </tr>
                                     <?php else: ?>
                                         <?php foreach ($data['team_members'] as $index => $member): ?>
-                                            <tr>
+                                            <tr x-show="isVisible('<?= htmlspecialchars(addslashes($member['user_name'])) ?>', '<?= htmlspecialchars(addslashes($member['team_name'])) ?>')">
                                                 <td class="px-6 py-4 text-sm font-medium text-gray-900"><?= $index + 1 ?></td>
                                                 <td class="px-6 py-4 text-sm text-gray-500"><?= htmlspecialchars($member['user_name']) ?></td>
                                                 <td class="px-6 py-4 text-sm text-gray-500"><?= htmlspecialchars($member['team_name']) ?></td>
@@ -123,6 +206,7 @@ function teamMembersPage(flashMessage) {
     return {
         toast: { show: false, message: '', type: 'success' },
         deleteModal: { open: false, message: '', actionUrl: '' },
+        searchTerm: '',
         init() {
             if (flashMessage) {
                 this.showToast(flashMessage.message, flashMessage.type);
@@ -136,10 +220,17 @@ function teamMembersPage(flashMessage) {
             this.deleteModal.message = `Are you sure you want to remove "<strong>${userName}</strong>" from the team "<strong>${teamName}</strong>"?`;
             this.deleteModal.actionUrl = `<?= URLROOT ?>/admin/team_members/delete/${id}`;
             this.deleteModal.open = true;
+        },
+        isVisible(userName, teamName) {
+            if (!this.searchTerm) return true;
+            const term = this.searchTerm.toLowerCase();
+            return userName.toLowerCase().includes(term) || teamName.toLowerCase().includes(term);
         }
     }
 }
 </script>
+
+<script src="<?= URLROOT ?>/js/components/searchable-select.js?v=<?= time() ?>"></script>
 
 <?php include_once __DIR__ . '/../../includes/footer.php'; ?>
 </body>

@@ -46,7 +46,7 @@
 
                             <i class="fas fa-clock mr-1"></i>
 
-                            <?= date('Y-m-d H:i', strtotime($history['created_at'])) ?>
+                            <?= htmlspecialchars($history['created_at']) ?>
 
                         </div>
 

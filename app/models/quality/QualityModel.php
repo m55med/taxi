@@ -370,56 +370,53 @@ class QualityModel extends Model
      * Search reviews with pagination and filtering
      */
 
-
-    public function searchReviews($filters = [], $searchQuery = '', $page = 1, $perPage = 25)
-    {
-        // Validate inputs
-        $page = max(1, (int)$page);
-        $perPage = max(1, min(100, (int)$perPage)); // Limit perPage to reasonable range
-
-        $baseSql = "SELECT
-            r.id as review_id,
-            r.rating,
-            r.review_notes,
-            r.reviewed_at,
-            r.reviewable_type,
-            r.reviewable_id,
-            reviewer.name as reviewer_name,
-            COALESCE(agent_ticket.name, agent_call.name) as agent_name,
-            COALESCE(td.edited_by, dc.call_by) as agent_id,
-            cat.name as category_name,
-            sub.name as subcategory_name,
-            code.name as code_name,
-            CASE
-                WHEN r.reviewable_type LIKE '%TicketDetail' THEN 'Ticket'
-                WHEN r.reviewable_type LIKE '%DriverCall' THEN 'Call'
-                ELSE 'Other'
-            END as context_type,
-            td.ticket_id,
-            t.ticket_number,
-            dc.driver_id,
-            dr.name as driver_name,
-            (SELECT COUNT(*) FROM discussions d WHERE d.discussable_type LIKE '%Review' AND d.discussable_id = r.id AND d.status = 'open') as open_discussion_count,
-            (SELECT d.id FROM discussions d WHERE d.discussable_type LIKE '%Review' AND d.discussable_id = r.id ORDER BY d.created_at DESC LIMIT 1) as discussion_id
-        FROM reviews r
-        JOIN users reviewer ON r.reviewed_by = reviewer.id
-        LEFT JOIN ticket_categories cat ON r.ticket_category_id = cat.id
-        LEFT JOIN ticket_subcategories sub ON r.ticket_subcategory_id = sub.id
-        LEFT JOIN ticket_codes code ON r.ticket_code_id = code.id
-        LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
-        LEFT JOIN tickets t ON td.ticket_id = t.id
-        LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
-        LEFT JOIN drivers dr ON dc.driver_id = dr.id
-        LEFT JOIN users agent_ticket ON td.edited_by = agent_ticket.id
-        LEFT JOIN users agent_call ON dc.call_by = agent_call.id";
-
-        $whereClauses = [];
-        $params = [];
+     public function searchReviews($filters = [], $searchQuery = '', $page = 1, $perPage = 25)
+     {
+         $page = max(1, (int)$page);
+         $perPage = max(1, min(100, (int)$perPage));
      
-         // --- AUTHORIZATION ---
+         $baseSql = "SELECT
+             r.id as review_id,
+             r.rating,
+             r.review_notes,
+             r.reviewed_at,
+             r.reviewable_type,
+             r.reviewable_id,
+             reviewer.name as reviewer_name,
+             COALESCE(agent_ticket.name, agent_call.name) as agent_name,
+             COALESCE(td.edited_by, dc.call_by) as agent_id,
+             cat.name as category_name,
+             sub.name as subcategory_name,
+             code.name as code_name,
+             CASE
+                 WHEN r.reviewable_type LIKE '%TicketDetail' THEN 'Ticket'
+                 WHEN r.reviewable_type LIKE '%DriverCall' THEN 'Call'
+                 ELSE 'Other'
+             END as context_type,
+             td.ticket_id,
+             t.ticket_number,
+             dc.driver_id,
+             dr.name as driver_name,
+             (SELECT COUNT(*) FROM discussions d WHERE d.discussable_type LIKE '%Review' AND d.discussable_id = r.id AND d.status = 'open') as open_discussion_count,
+             (SELECT d.id FROM discussions d WHERE d.discussable_type LIKE '%Review' AND d.discussable_id = r.id ORDER BY d.created_at DESC LIMIT 1) as discussion_id
+         FROM reviews r
+         JOIN users reviewer ON r.reviewed_by = reviewer.id
+         LEFT JOIN ticket_categories cat ON r.ticket_category_id = cat.id
+         LEFT JOIN ticket_subcategories sub ON r.ticket_subcategory_id = sub.id
+         LEFT JOIN ticket_codes code ON r.ticket_code_id = code.id
+         LEFT JOIN ticket_details td ON r.reviewable_id = td.id AND r.reviewable_type LIKE '%TicketDetail'
+         LEFT JOIN tickets t ON td.ticket_id = t.id
+         LEFT JOIN driver_calls dc ON r.reviewable_id = dc.id AND r.reviewable_type LIKE '%DriverCall'
+         LEFT JOIN drivers dr ON dc.driver_id = dr.id
+         LEFT JOIN users agent_ticket ON td.edited_by = agent_ticket.id
+         LEFT JOIN users agent_call ON dc.call_by = agent_call.id";
+     
+         $whereClauses = [];
+         $params = [];
+     
+         // AUTH
          $role = \App\Core\Auth::getUserRole() ?? ($_SESSION['user']['role_name'] ?? 'guest');
          $userId = \App\Core\Auth::getUserId() ?? ($_SESSION['user']['id'] ?? 0);
-     
          $highAccessRoles = ['admin', 'quality_manager', 'Team_leader', 'developer', 'Quality'];
      
          if ($role === 'agent' && empty($filters['agent_id'])) {
@@ -430,32 +427,39 @@ class QualityModel extends Model
              return ['error' => 'Access denied for role: ' . $role];
          }
      
-        // --- SEARCH LOGIC ---
-        if (!empty($searchQuery)) {
-            $searchTerms = explode(' ', trim($searchQuery));
-            $searchConditions = [];
-
+         // SEARCH
+         if (!empty($searchQuery)) {
+             $searchTerms = explode(' ', trim($searchQuery));
+             $searchConditions = [];
+     
             foreach ($searchTerms as $index => $term) {
                 if (empty($term)) continue;
-                $paramName = ":search_term_$index";
-                $params[$paramName] = "%$term%";
-                $searchConditions[] = "
-                    reviewer.name LIKE $paramName
-                    OR COALESCE(agent_ticket.name, agent_call.name) LIKE $paramName
-                    OR t.ticket_number LIKE $paramName
-                    OR cat.name LIKE $paramName
-                    OR sub.name LIKE $paramName
-                    OR code.name LIKE $paramName
-                    OR r.review_notes LIKE $paramName
-                ";
-            }
+                $columns = [
+                    'reviewer.name',
+                    'COALESCE(agent_ticket.name, agent_call.name)',
+                    't.ticket_number',
+                    'cat.name',
+                    'sub.name',
+                    'code.name',
+                    'r.review_notes'
+                ];
 
-            if (!empty($searchConditions)) {
-                $whereClauses[] = "(" . implode(" OR ", $searchConditions) . ")";
+                $termOrParts = [];
+                foreach ($columns as $colIdx => $columnExpr) {
+                    $paramName = ':search_term_' . $index . '_' . $colIdx;
+                    $params[$paramName] = "%$term%";
+                    $termOrParts[] = "$columnExpr LIKE $paramName";
+                }
+
+                $searchConditions[] = '(' . implode(' OR ', $termOrParts) . ')';
             }
-        }
      
-         // --- FILTERING LOGIC ---
+             if (!empty($searchConditions)) {
+                 $whereClauses[] = "(" . implode(" OR ", $searchConditions) . ")";
+             }
+         }
+     
+         // FILTERS
          if (!empty($filters['original_start_date'])) {
              $whereClauses[] = "DATE(CONVERT_TZ(r.reviewed_at, '+00:00', '+02:00')) >= :start_date";
              $params[':start_date'] = $filters['original_start_date'];
@@ -489,83 +493,50 @@ class QualityModel extends Model
              $params[':agent_id_call'] = $filters['agent_id'];
          }
      
-         // --- Apply WHERE ---
          if ($whereClauses) {
              $baseSql .= " WHERE " . implode(" AND ", $whereClauses);
          }
      
-        // --- Count query ---
-        $countSql = "SELECT COUNT(*) as total FROM ($baseSql) as count_query";
+         // COUNT QUERY with proper prepared statement
+         $countSql = "SELECT COUNT(*) as total FROM ($baseSql) as count_query";
 
-        // Debug logging
-        error_log("Count SQL: " . $countSql);
-        error_log("Params: " . json_encode($params));
+         try {
+             $countStmt = $this->db->prepare($countSql);
 
-        try {
-            $countStmt = $this->db->prepare($countSql);
+             // Bind all parameters safely
+             foreach ($params as $key => $val) {
+                 $countStmt->bindValue($key, $val);
+             }
 
-            // Bind parameters safely - only bind what's actually needed
-            if (!empty($params)) {
-                foreach ($params as $key => $val) {
-                    // Check if the parameter is actually used in the count query
-                    if (strpos($countSql, $key) !== false) {
-                        $countStmt->bindValue($key, $val);
-                        error_log("Binding parameter: $key = $val");
-                    } else {
-                        error_log("Skipping parameter: $key (not found in query)");
-                    }
-                }
-            }
-
-            $countStmt->execute();
-            $totalCount = $countStmt->fetchColumn();
-            error_log("Total count: " . $totalCount);
-        } catch (\PDOException $e) {
-            error_log('Count query error: ' . $e->getMessage() . ' SQL: ' . $countSql . ' Params: ' . json_encode($params));
-            // Fallback: try executing without any parameters if binding fails
-            try {
-                $countStmt = $this->db->query($countSql);
-                $totalCount = $countStmt->fetchColumn();
-                error_log("Fallback count successful: " . $totalCount);
-            } catch (\PDOException $fallbackError) {
-                error_log('Fallback count query failed: ' . $fallbackError->getMessage());
-                return ['error' => 'Database error in count query: ' . $e->getMessage()];
-            }
-        }
+             $countStmt->execute();
+             $totalCount = (int)$countStmt->fetchColumn();
+         } catch (\PDOException $e) {
+             error_log("Count query error: " . $e->getMessage());
+             return ['error' => 'Database error in count query: ' . $e->getMessage()];
+         }
      
-         // --- Pagination query ---
+         // MAIN QUERY
          $offset = ($page - 1) * $perPage;
          $mainSql = $baseSql . " ORDER BY r.reviewed_at DESC LIMIT :limit OFFSET :offset";
      
-        try {
-            $stmt = $this->db->prepare($mainSql);
-
-            // Bind WHERE clause parameters safely
-            if (!empty($params)) {
-                foreach ($params as $key => $val) {
-                    if (strpos($mainSql, $key) !== false) {
-                        $stmt->bindValue($key, $val);
-
-// تحميل DateTime Helper للتعامل مع التوقيت
-require_once APPROOT . '/helpers/DateTimeHelper.php';
-
-                    }
-                }
-            }
-
-            // Bind pagination parameters
-            $stmt->bindValue(':limit', (int)$perPage, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
-            $stmt->execute();
-            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
-           error_log(
-               'Main query error: ' . $e->getMessage()
-               . ' SQL: ' . $mainSql
-               . ' Params: ' . json_encode(array_merge($params, [':limit' => $perPage, ':offset' => $offset]))
-           );
-           return ['error' => 'Database error in main query: ' . $e->getMessage()];
-        }
+         try {
+             $stmt = $this->db->prepare($mainSql);
+     
+             require_once APPROOT . '/helpers/DateTimeHelper.php';
+     
+             foreach ($params as $key => $val) {
+                 $stmt->bindValue($key, $val);
+             }
+     
+             $stmt->bindValue(':limit', (int)$perPage, PDO::PARAM_INT);
+             $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+     
+             $stmt->execute();
+             $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+         } catch (\PDOException $e) {
+             error_log('Main query error: ' . $e->getMessage());
+             return ['error' => 'Database error in main query: ' . $e->getMessage()];
+         }
      
          return [
              'reviews' => $result,
@@ -575,9 +546,7 @@ require_once APPROOT . '/helpers/DateTimeHelper.php';
              'total_pages' => ceil($totalCount / $perPage)
          ];
      }
-     
-    
-
+               
     /**
      * Get search suggestions
      */

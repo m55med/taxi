@@ -124,7 +124,6 @@
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
 
-
     <!-- Page Header -->
 
     <div class="mb-8">
@@ -673,7 +672,7 @@
 
                             <td data-label="Avg Quality" class="px-6 py-4 text-center text-sm">
                                 <?php if (($summary_stats['total_reviews'] ?? 0) > 0): ?>
-                                    <?= number_format($summary_stats['avg_quality_score'], 2) ?>%
+                                    <?= number_format($summary_stats['avg_quality_score'] ?? 0, 2) ?>%
                                     <span class="text-xs font-normal text-gray-500">(<?= $summary_stats['total_reviews'] ?>)</span>
                                 <?php else: ?>
                                     N/A

@@ -290,7 +290,7 @@ class UsersReport
         'incoming_calls' => array_sum(array_column($userStats, 'incoming_calls')),
         'outgoing_calls' => array_sum(array_column($userStats, 'outgoing_calls')),
         'total_points' => array_sum(array_column($users, 'total_points')),
-        'total_reviews' => array_sum(array_column($qualityScores, 'total_reviews')),
+        'total_reviews' => 0,
         'avg_quality_score' => 0,
     ];
 
@@ -298,9 +298,10 @@ class UsersReport
     $weightedSum = 0;
     $totalReviews = 0;
     foreach ($qualityScores as $row) {
-        $weightedSum += ($row['quality_score'] * $row['total_reviews']);
-        $totalReviews += $row['total_reviews'];
+        $weightedSum += ($row['quality_score'] ?? 0) * ($row['total_reviews'] ?? 0);
+        $totalReviews += ($row['total_reviews'] ?? 0);
     }
+    $summaryStats['total_reviews'] = $totalReviews;
     if ($totalReviews > 0) {
         $summaryStats['avg_quality_score'] = round($weightedSum / $totalReviews, 2);
     }
@@ -603,14 +604,22 @@ require_once APPROOT . '/helpers/DateTimeHelper.php';
         $allUserStats = $this->getOptimizedUserStats($userIds, $filters);
         $allQualityScores = $this->getQualityScores($userIds, $filters);
 
+        $totalReviews = 0;
+        $totalQualityScore = 0;
+        foreach ($allQualityScores as $row) {
+            $totalReviews += ($row['total_reviews'] ?? 0);
+            $totalQualityScore += ($row['quality_score'] ?? 0) * ($row['total_reviews'] ?? 0);
+        }
+
         $summaryStats = [
             'normal_tickets' => array_sum(array_column($allUserStats, 'normal_tickets')),
             'vip_tickets' => array_sum(array_column($allUserStats, 'vip_tickets')),
             'incoming_calls' => array_sum(array_column($allUserStats, 'incoming_calls')),
             'outgoing_calls' => array_sum(array_column($allUserStats, 'outgoing_calls')),
             'total_points' => array_sum(array_column($allUserStats, 'total_points')),
-            'total_quality_score' => array_sum(array_column($allQualityScores, 'quality_score')),
-            'total_reviews' => array_sum(array_column($allQualityScores, 'total_reviews')),
+            'total_quality_score' => $totalQualityScore,
+            'total_reviews' => $totalReviews,
+            'avg_quality_score' => $totalReviews > 0 ? round($totalQualityScore / $totalReviews, 2) : 0,
         ];
 
         $totalPages = ceil($totalUsers / $perPage);
