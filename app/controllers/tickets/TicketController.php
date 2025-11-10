@@ -32,7 +32,7 @@ class TicketController extends Controller
             $utc = new \DateTime($utcDateTime, new \DateTimeZone('UTC'));
             $cairo = new \DateTimeZone('Africa/Cairo');
             $utc->setTimezone($cairo);
-            return $utc->format('Y-m-d h:i A');
+            return $utc->format('Y-m-d h:i:s A');
         } catch (\Exception $e) {
             error_log('Error converting datetime to Cairo timezone: ' . $e->getMessage());
             return $utcDateTime;
@@ -190,7 +190,7 @@ class TicketController extends Controller
         // Manually fetch related tickets
         $relatedTickets = [];
         if (!empty($ticket['phone'])) {
-            $relatedTickets = $this->ticketModel->findByPhone($ticket['phone'], $id);
+            $relatedTickets = $this->ticketModel->getRelatedTickets($ticket['phone'], $id);
         }
 
         // Load categories for the review form partial

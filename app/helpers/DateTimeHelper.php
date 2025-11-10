@@ -245,3 +245,29 @@ function get_utc_timestamp_sql() {
 if (!class_exists('App\\Helpers\\DateTimeHelper')) {
     require_once __DIR__ . '/DateTimeHelperClass.php';
 }
+
+/**
+ * Returns current UTC timestamp,
+ * but applies the "12-6 صباح القاهرة" exception:
+ * إذا الوقت بين 00:00–06:00 القاهرة → التاريخ يكون اليوم السابق
+ */
+function getCurrentUTCWithCustomerException(): string {
+    // 1. الوقت الحالي بالـUTC
+    $utcNow = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+
+    // 2. تحويل لتوقيت القاهرة
+    $cairoTime = $utcNow->setTimezone(new \DateTimeZone('Africa/Cairo'));
+
+    // 3. تحقق الساعة
+    $hour = (int) $cairoTime->format('H');
+
+    if ($hour >= 0 && $hour < 6) {
+        // 4. إذا بين 12–6 صباح القاهرة → طرح يوم واحد
+        $cairoTime = $cairoTime->modify('-1 day'); // صحيح
+    }
+
+    // 5. تحويل مرة أخرى للـUTC قبل التخزين
+    $finalUtc = $cairoTime->setTimezone(new \DateTimeZone('UTC'));
+
+    return $finalUtc->format('Y-m-d H:i:s');
+}

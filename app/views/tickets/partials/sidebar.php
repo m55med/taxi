@@ -30,7 +30,7 @@
 
                         <i class="far fa-clock mr-1"></i>
 
-                        <?= date('Y-m-d', strtotime($relatedTicket['created_at'])) ?>
+                        <?= htmlspecialchars($relatedTicket['created_at']) ?>
 
                     </p>
 

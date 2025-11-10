@@ -18,40 +18,21 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    // اختبار دالة getActiveSessions من PerformanceModel
-    $sql = "SELECT
-                u.name as user_name,
-                u.is_online,
-                MAX(td.created_at) as last_ticket_time,
-                MAX(dc.created_at) as last_call_time,
-                TIMESTAMPDIFF(MINUTE, u.last_activity, NOW()) as minutes_since_activity
-            FROM users u
-            LEFT JOIN ticket_details td ON td.edited_by = u.id AND DATE(td.created_at) = CURDATE()
-            LEFT JOIN driver_calls dc ON dc.call_by = u.id AND DATE(dc.created_at) = CURDATE()
-            WHERE u.status = 'active'
-            GROUP BY u.id, u.name, u.is_online, u.last_activity
-            HAVING (last_ticket_time IS NOT NULL OR last_call_time IS NOT NULL OR minutes_since_activity < 60)
-            ORDER BY GREATEST(COALESCE(last_ticket_time, '2000-01-01'), COALESCE(last_call_time, '2000-01-01')) DESC
-            LIMIT 5";
+    // 1. وقت السيرفر
+    $serverTime = new DateTime("now", new DateTimeZone("UTC"));
+    echo "Server UTC Time: " . $serverTime->format('Y-m-d H:i:s') . "\n";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
-    $activeSessions = $stmt->fetchAll();
+    // 2. وقت قاعدة البيانات
+    $stmt = $pdo->query("SELECT NOW() AS db_time, @@global.time_zone AS db_global_tz, @@session.time_zone AS db_session_tz");
+    $row = $stmt->fetch();
+    echo "Database Time: " . $row['db_time'] . "\n";
+    echo "Database Global Timezone: " . $row['db_global_tz'] . "\n";
+    echo "Database Session Timezone: " . $row['db_session_tz'] . "\n";
 
-    echo "<h2>Active Sessions Test</h2>";
-    echo "<pre>";
-    print_r($activeSessions);
-    echo "</pre>";
-
-    // اختبار عدد المستخدمين النشطين
-    $countSql = "SELECT COUNT(*) as active_count FROM users WHERE is_online = 1";
-    $countStmt = $pdo->prepare($countSql);
-    $countStmt->execute();
-    $activeCount = $countStmt->fetch();
-
-    echo "<h2>Active Users Count: " . $activeCount['active_count'] . "</h2>";
+    // 3. وقت المستخدم (مثال: توقيت القاهرة)
+    $userTime = new DateTime("now", new DateTimeZone("Africa/Cairo"));
+    echo "User Local Time (Cairo): " . $userTime->format('Y-m-d H:i:s') . "\n";
 
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    echo "Connection failed: " . $e->getMessage();
 }
-?>
