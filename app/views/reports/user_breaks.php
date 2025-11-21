@@ -1,5 +1,4 @@
 <?php require APPROOT . '/views/includes/header.php'; ?>
-
 <div class="p-4 lg:p-6" x-data="dateFilters('<?= $data['filters']['from_date'] ?>', '<?= $data['filters']['to_date'] ?>')">
     <div class="mb-6">
         <a href="<?= URLROOT ?>/reports/breaks" class="text-indigo-600 hover:underline text-sm flex items-center">
@@ -85,24 +84,26 @@
                 <?php else: ?>
                     <?php foreach ($data['breaks'] as $break): ?>
                         <?php
+                        // Parse dates using correct format (h:i:s A, Y-m-d)
+                        $startDateTime = DateTime::createFromFormat('h:i:s A, Y-m-d', $break->start_time);
+                        $endDateTime = $break->end_time ? DateTime::createFromFormat('h:i:s A, Y-m-d', $break->end_time) : null;
+
                         // Calculate duration in minutes for coloring
                         $durationMinutes = 0;
                         if ($break->duration_seconds) {
                             $durationMinutes = round($break->duration_seconds / 60);
-                        } elseif ($break->end_time) {
+                        } elseif ($endDateTime) {
                             // If break has ended but no duration_seconds, calculate from timestamps
-                            $startTime = strtotime($break->start_time);
-                            $endTime = strtotime($break->end_time);
-                            $durationMinutes = round(($endTime - $startTime) / 60);
+                            $durationMinutes = round(($endDateTime->getTimestamp() - $startDateTime->getTimestamp()) / 60);
                         }
 
                         $isLongBreak = $durationMinutes >= 30;
                         $rowClass = $isLongBreak ? 'border-b border-gray-200 hover:bg-red-50 bg-red-25' : 'border-b border-gray-200 hover:bg-gray-50';
                         ?>
                         <tr class="<?= $rowClass ?>">
-                            <td class="py-4 px-4 font-mono"><?= date('Y-m-d h:i:s A', strtotime($break->start_time)) ?></td>
+                            <td class="py-4 px-4 font-mono"><?= $startDateTime ? $startDateTime->format('Y-m-d h:i:s A') : 'Invalid Date' ?></td>
                             <td class="py-4 px-4 font-mono">
-                                <?= $break->end_time ? date('Y-m-d h:i:s A', strtotime($break->end_time)) : '<span class="text-yellow-600 font-semibold">In Progress</span>' ?>
+                                <?= $endDateTime ? $endDateTime->format('Y-m-d h:i:s A') : '<span class="text-yellow-600 font-semibold">In Progress</span>' ?>
                             </td>
                             <td class="py-4 px-4 font-mono <?= $isLongBreak ? 'text-red-600 font-bold' : '' ?>">
                                 <?= $break->duration_formatted ?? 'N/A' ?>
