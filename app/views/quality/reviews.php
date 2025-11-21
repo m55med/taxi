@@ -1581,7 +1581,8 @@ function reviewsPage() {
         this.editForm.errors = {};
         
         // Validate
-        if (!this.editForm.rating || this.editForm.rating < 0 || this.editForm.rating > 100) {
+        const ratingNum = Number(this.editForm.rating);
+        if (!Number.isFinite(ratingNum) || ratingNum < 0 || ratingNum > 100) {
             this.editForm.errors.rating = 'Rating must be between 0 and 100';
             return;
         }
@@ -1590,7 +1591,7 @@ function reviewsPage() {
         
         const formData = new FormData();
         formData.append('review_id', this.editingReview.review_id);
-        formData.append('rating', this.editForm.rating);
+        formData.append('rating', ratingNum);
         formData.append('review_notes', this.editForm.review_notes);
         
         fetch(`<?= URLROOT ?>/quality/update_review`, {

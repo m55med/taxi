@@ -220,13 +220,18 @@ class QualityController extends Controller
             return;
         }
         
-        if (!$rating || !is_numeric($rating) || $rating < 0 || $rating > 100) {
+		// Allow 0 as a valid rating. Check presence explicitly and numeric range.
+		$ratingNum = null;
+		if ($rating !== null && $rating !== '' && is_numeric($rating)) {
+			$ratingNum = (int)$rating;
+		}
+		if ($ratingNum === null || $ratingNum < 0 || $ratingNum > 100) {
             echo json_encode(['success' => false, 'error' => 'Rating must be between 0 and 100']);
             return;
         }
         
         try {
-            $result = $this->qualityModel->updateReview($reviewId, $rating, $reviewNotes);
+			$result = $this->qualityModel->updateReview($reviewId, $ratingNum, $reviewNotes);
             echo json_encode($result);
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);

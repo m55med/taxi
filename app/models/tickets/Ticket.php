@@ -20,9 +20,16 @@ class Ticket extends Model
     {
         $this->db->beginTransaction();
         try {
-            $ticketSql = "INSERT INTO tickets (ticket_number, created_by) VALUES (:ticket_number, :created_by)";
+            // Use Cairo-based exception: if Cairo time between 00:00-06:00, store -1 day; else store now (saved in UTC)
+            $utcTimestamp = self::getCurrentUTCWithCustomerException();
+
+            $ticketSql = "INSERT INTO tickets (ticket_number, created_by, created_at) VALUES (:ticket_number, :created_by, :created_at)";
             $stmt = $this->db->prepare($ticketSql);
-            $stmt->execute([':ticket_number' => $data['ticket_number'], ':created_by' => $userId]);
+            $stmt->execute([
+                ':ticket_number' => $data['ticket_number'],
+                ':created_by' => $userId,
+                ':created_at' => $utcTimestamp
+            ]);
             $ticketId = $this->db->lastInsertId();
 
             $ticketDetailId = $this->addTicketDetail($ticketId, $data, $userId);
@@ -43,7 +50,7 @@ class Ticket extends Model
     {
         $this->db->beginTransaction();
         try {
-            $utcTimestamp = \App\Helpers\DateTimeHelper::getCurrentUTCWithCustomerException();
+            $utcTimestamp = self::getCurrentUTCWithCustomerException(); // ← هنا التعديل الوحيد
             $stmt = $this->db->prepare(
                 "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, edited_by, created_at, updated_at)
                  VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :created_by, :edited_by, :created_at, :updated_at)"
@@ -73,6 +80,22 @@ class Ticket extends Model
             return false;
         }
     }
+
+    private static function getCurrentUTCWithCustomerException(): string
+    {
+        $utcNow = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $cairoTime = $utcNow->setTimezone(new \DateTimeZone('Africa/Cairo'));
+        $hour = (int) $cairoTime->format('H');
+
+        if ($hour >= 0 && $hour < 5) {
+            $cairoTime = $cairoTime->modify('-1 day');
+        }
+
+        $finalUtc = $cairoTime->setTimezone(new \DateTimeZone('UTC'));
+        return $finalUtc->format('Y-m-d H:i:s');
+    }
+
+
 
     public function findTicketByNumber(string $ticketNumber)
     {

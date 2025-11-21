@@ -261,7 +261,7 @@ function getCurrentUTCWithCustomerException(): string {
     // 3. تحقق الساعة
     $hour = (int) $cairoTime->format('H');
 
-    if ($hour >= 0 && $hour < 6) {
+    if ($hour >= 0 && $hour < 5) {
         // 4. إذا بين 12–6 صباح القاهرة → طرح يوم واحد
         $cairoTime = $cairoTime->modify('-1 day'); // صحيح
     }

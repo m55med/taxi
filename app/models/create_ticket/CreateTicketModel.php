@@ -444,7 +444,8 @@ class CreateTicketModel extends Model
 
         }
 
-        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        // Apply Cairo 00:00–06:00 exception: store -1d else now (all in UTC) for create_ticket
+        $utcTimestamp = \getCurrentUTCWithCustomerException();
         
         $this->query("INSERT INTO tickets (ticket_number, created_by, created_at) VALUES (:ticket_number, :user_id, :created_at)");
 
@@ -463,7 +464,8 @@ class CreateTicketModel extends Model
 
 
     private function createTicketDetailEntry($ticketId, $data, $teamId) {
-        $utcTimestamp = DateTimeHelper::getCurrentUTC();
+        // Apply Cairo 00:00–06:00 exception for details created via create_ticket
+        $utcTimestamp = \getCurrentUTCWithCustomerException();
 
         $this->query("INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, edited_by, team_id_at_action, created_at, updated_at)
 
