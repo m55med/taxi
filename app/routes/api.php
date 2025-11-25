@@ -110,6 +110,12 @@ function handle_api_routes($url) {
         return true; // Route was handled
     }
 
+    // Route: /api/extension/me
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'me' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $controller->getExtensionUser();
+        return true; // Route was handled
+    }
+
     // Add other API routes here in the future
     // if (!empty($url[0]) && $url[0] === 'another_endpoint') { ... }
 
