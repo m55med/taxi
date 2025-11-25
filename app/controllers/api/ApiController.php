@@ -1311,6 +1311,41 @@ HTML;
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    private function getLatestTicketDetailWithNames($ticketId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT
+                td.*,
+                p.name as platform_name,
+                c.name as category_name,
+                sc.name as subcategory_name,
+                co.name as code_name,
+                co2.name as country_name,
+                u.name as creator_name,
+                tl.name as team_leader_name,
+                t.name as team_name,
+                t.id as team_id,
+                m.name as marketer_name,
+                m.id as marketer_id
+            FROM ticket_details td
+            LEFT JOIN platforms p ON td.platform_id = p.id
+            LEFT JOIN ticket_categories c ON td.category_id = c.id
+            LEFT JOIN ticket_subcategories sc ON td.subcategory_id = sc.id
+            LEFT JOIN ticket_codes co ON td.code_id = co.id
+            LEFT JOIN countries co2 ON td.country_id = co2.id
+            LEFT JOIN users u ON td.created_by = u.id
+            LEFT JOIN users tl ON td.assigned_team_leader_id = tl.id
+            LEFT JOIN teams t ON td.team_id_at_action = t.id
+            LEFT JOIN ticket_vip_assignments tv ON td.id = tv.ticket_detail_id
+            LEFT JOIN users m ON tv.marketer_id = m.id
+            WHERE td.ticket_id = :ticket_id
+            ORDER BY td.id DESC
+            LIMIT 1
+        ");
+        $stmt->execute([':ticket_id' => $ticketId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     public function getTicketParams($ticketNumber)
     {
         header('Content-Type: application/json');
@@ -1619,6 +1654,122 @@ HTML;
         } catch (Exception $e) {
             error_log("Error getting teams: " . $e->getMessage());
             return [];
+        }
+    }
+
+    public function getTicketDetails($ticketNumber)
+    {
+        header('Content-Type: application/json');
+
+        // Get token from header
+        $token = $_SERVER['HTTP_X_EXT_TOKEN'] ?? '';
+
+        if (empty($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token is required'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Validate token
+        if (!$this->tokenModel->isTokenValid($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            // Check if ticket exists
+            if (!$this->checkTicketExistsByNumber($ticketNumber)) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Ticket not found',
+                    'ticket_number' => $ticketNumber
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Get ticket data
+            $ticket = $this->getTicketByNumberOnly($ticketNumber);
+
+            if (!$ticket) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Ticket not found',
+                    'ticket_number' => $ticketNumber
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Get latest ticket detail with full information
+            $latestDetail = $this->getLatestTicketDetailWithNames($ticket['id']);
+
+            if (!$latestDetail) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No ticket details found',
+                    'ticket_number' => $ticketNumber
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Update token activity
+            $this->tokenModel->updateTokenActivity($token);
+
+            // Return the complete ticket detail information
+            echo json_encode([
+                'success' => true,
+                'ticket_number' => $ticketNumber,
+                'ticket_detail' => [
+                    'id' => (int)$latestDetail['id'],
+                    'name' => $latestDetail['detail_name'] ?? 'Ticket Detail #' . $latestDetail['id'],
+                    'platform' => [
+                        'id' => (int)$latestDetail['platform_id'],
+                        'name' => $latestDetail['platform_name']
+                    ],
+                    'category' => [
+                        'id' => (int)$latestDetail['category_id'],
+                        'name' => $latestDetail['category_name']
+                    ],
+                    'subcategory' => [
+                        'id' => (int)$latestDetail['subcategory_id'],
+                        'name' => $latestDetail['subcategory_name']
+                    ],
+                    'code' => [
+                        'id' => (int)$latestDetail['code_id'],
+                        'name' => $latestDetail['code_name']
+                    ],
+                    'phone' => $latestDetail['phone'],
+                    'notes' => $latestDetail['notes'],
+                    'country' => $latestDetail['country_id'] ? [
+                        'id' => (int)$latestDetail['country_id'],
+                        'name' => $latestDetail['country_name']
+                    ] : null,
+                    'is_vip' => (bool)$latestDetail['is_vip'],
+                    'marketer' => $latestDetail['marketer_id'] ? [
+                        'id' => (int)$latestDetail['marketer_id'],
+                        'name' => $latestDetail['marketer_name']
+                    ] : null,
+                    'assigned_team_leader' => $latestDetail['assigned_team_leader_id'] ? [
+                        'id' => (int)$latestDetail['assigned_team_leader_id'],
+                        'name' => $latestDetail['team_leader_name']
+                    ] : null,
+                    'team' => $latestDetail['team_id'] ? [
+                        'id' => (int)$latestDetail['team_id'],
+                        'name' => $latestDetail['team_name']
+                    ] : null,
+                    'created_by' => [
+                        'id' => (int)$latestDetail['created_by'],
+                        'name' => $latestDetail['creator_name']
+                    ],
+                    'created_at' => $latestDetail['created_at'],
+                    'updated_at' => $latestDetail['updated_at']
+                ]
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        } catch (Exception $e) {
+            error_log("Error getting ticket details: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }
     }
 

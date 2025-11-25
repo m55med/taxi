@@ -123,9 +123,16 @@ function handle_api_routes($url) {
     }
 
     // Route: /api/extension/tickets/{ticketNumber}/params
-    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'tickets' && isset($url[2]) && is_numeric($url[2]) && !empty($url[3]) && $url[3] === 'params' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'tickets' && !empty($url[2]) && !empty($url[3]) && $url[3] === 'params' && $_SERVER['REQUEST_METHOD'] === 'GET' && $url[2] !== 'create' && $url[2] !== 'details') {
         $ticketNumber = $url[2];
         $controller->getTicketParams($ticketNumber);
+        return true; // Route was handled
+    }
+
+    // Route: /api/extension/tickets/{ticketNumber}/details
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'tickets' && !empty($url[2]) && !empty($url[3]) && $url[3] === 'details' && $_SERVER['REQUEST_METHOD'] === 'GET' && $url[2] !== 'create' && $url[2] !== 'params') {
+        $ticketNumber = $url[2];
+        $controller->getTicketDetails($ticketNumber);
         return true; // Route was handled
     }
 
