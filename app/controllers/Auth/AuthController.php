@@ -182,6 +182,9 @@ class AuthController extends Controller
             }
         }
 
+        // Update token activity on every page load (like session check)
+        \App\Core\Auth::updateCurrentUserTokenActivity();
+
         $data = [
             'user' => $user,
             'current_token' => $_SESSION['user']['current_token'] ?? null

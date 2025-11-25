@@ -16,7 +16,11 @@ use App\Core\Auth;
 
 use App\Models\Admin\Restaurant;
 
+use App\Models\Admin\TeamMember;
+
 use App\Models\Token\Token;
+
+use App\Models\Tickets\Ticket;
 
 use App\Core\Database;
 
@@ -33,6 +37,8 @@ class ApiController extends Controller
 
     private $tokenModel;
 
+    private $ticketModel;
+
     private $db;
 
 
@@ -48,6 +54,8 @@ class ApiController extends Controller
         $this->restaurantModel = new Restaurant();
 
         $this->tokenModel = new Token();
+
+        $this->ticketModel = new Ticket();
 
         $this->db = Database::getInstance();
 
@@ -969,6 +977,237 @@ HTML;
             error_log("Error getting user with team: " . $e->getMessage());
             return null;
         }
+    }
+
+    public function createTicketFromExtension()
+    {
+        header('Content-Type: application/json');
+
+        // Get token from header
+        $token = $_SERVER['HTTP_X_EXT_TOKEN'] ?? '';
+
+        if (empty($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token is required']);
+            return;
+        }
+
+        // Validate token
+        if (!$this->tokenModel->isTokenValid($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid or expired token']);
+            return;
+        }
+
+        // Get token info to retrieve user_id
+        $tokenInfo = $this->tokenModel->getTokenInfo($token);
+
+        if (!$tokenInfo) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token not found']);
+            return;
+        }
+
+        $userId = $tokenInfo['user_id'];
+
+        // Get request data
+        $input = json_decode(file_get_contents('php://input'), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid JSON input']);
+            return;
+        }
+
+        // Validate required fields
+        $requiredFields = ['ticket_number', 'platform_id', 'category_id', 'subcategory_id', 'code_id'];
+        foreach ($requiredFields as $field) {
+            if (empty($input[$field])) {
+                http_response_code(400);
+                echo json_encode(['error' => "Missing required field: {$field}"]);
+                return;
+            }
+        }
+
+        try {
+            // Get team leader for the user (same logic as in CreateTicketController)
+            $teamLeaderId = $this->ticketModel->getTeamLeaderForUser($userId);
+
+            if (empty($teamLeaderId)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'User is not assigned to a team with a leader']);
+                return;
+            }
+
+            // Prepare ticket data
+            $ticketData = [
+                'ticket_number' => $input['ticket_number'],
+                'platform_id' => $input['platform_id'],
+                'category_id' => $input['category_id'],
+                'subcategory_id' => $input['subcategory_id'],
+                'code_id' => $input['code_id'],
+                'phone' => $input['phone'] ?? null,
+                'notes' => $input['notes'] ?? null,
+                'country_id' => $input['country_id'] ?? null,
+                'is_vip' => $input['is_vip'] ?? false,
+                'marketer_id' => $input['marketer_id'] ?? null,
+                'assigned_team_leader_id' => $teamLeaderId,
+                'user_id' => $userId,
+                'coupons' => $input['coupons'] ?? []
+            ];
+
+            // Create ticket using existing logic
+            $result = $this->createTicketViaApi($ticketData);
+
+            if ($result['success']) {
+                // Update token activity
+                $this->tokenModel->updateTokenActivity($token);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Ticket created successfully',
+                    'ticket_id' => $result['ticket_id'],
+                    'ticket_detail_id' => $result['ticket_detail_id']
+                ]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => $result['message']]);
+            }
+
+        } catch (Exception $e) {
+            error_log("Error creating ticket from extension: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    private function createTicketViaApi($data)
+    {
+        $this->db->beginTransaction();
+
+        try {
+            // Use Cairo-based exception: if Cairo time between 00:00-06:00, store -1 day; else store now (saved in UTC)
+            $utcTimestamp = $this->getCurrentUTCWithCustomerException();
+
+            $ticketSql = "INSERT INTO tickets (ticket_number, created_by, created_at) VALUES (:ticket_number, :created_by, :created_at)";
+            $stmt = $this->db->prepare($ticketSql);
+            $stmt->execute([
+                ':ticket_number' => $data['ticket_number'],
+                ':created_by' => $data['user_id'],
+                ':created_at' => $utcTimestamp
+            ]);
+            $ticketId = $this->db->lastInsertId();
+
+            // Create ticket detail
+            $ticketDetailId = $this->createTicketDetailViaApi($ticketId, $data);
+
+            // Handle VIP assignment if needed
+            if (!empty($data['is_vip']) && !empty($data['marketer_id'])) {
+                $this->db->prepare("INSERT INTO ticket_vip_assignments (ticket_detail_id, marketer_id) VALUES (:ticket_detail_id, :marketer_id)")
+                    ->execute([
+                        ':ticket_detail_id' => $ticketDetailId,
+                        ':marketer_id' => $data['marketer_id']
+                    ]);
+            }
+
+            // Handle coupons if provided
+            if (!empty($data['coupons'])) {
+                $this->processCouponsViaApi($ticketId, $ticketDetailId, $data);
+            }
+
+            $this->db->commit();
+
+            return [
+                'success' => true,
+                'ticket_id' => $ticketId,
+                'ticket_detail_id' => $ticketDetailId
+            ];
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error in createTicketViaApi: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to create ticket'];
+        }
+    }
+
+    private function createTicketDetailViaApi($ticketId, $data)
+    {
+        $utcTimestamp = $this->getCurrentUTCWithCustomerException();
+
+        // Get current team ID for the user
+        $teamId = $this->getCurrentTeamIdForUser($data['user_id']);
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO ticket_details (ticket_id, is_vip, platform_id, phone, category_id, subcategory_id, code_id, notes, country_id, assigned_team_leader_id, created_by, edited_by, team_id_at_action, created_at, updated_at)
+             VALUES (:ticket_id, :is_vip, :platform_id, :phone, :category_id, :subcategory_id, :code_id, :notes, :country_id, :assigned_team_leader_id, :created_by, :edited_by, :team_id_at_action, :created_at, :updated_at)"
+        );
+
+        $stmt->execute([
+            ':ticket_id' => $ticketId,
+            ':is_vip' => $data['is_vip'] ?? 0,
+            ':platform_id' => $data['platform_id'],
+            ':phone' => $data['phone'] ?? null,
+            ':category_id' => $data['category_id'],
+            ':subcategory_id' => $data['subcategory_id'],
+            ':code_id' => $data['code_id'],
+            ':notes' => $data['notes'] ?? null,
+            ':country_id' => $data['country_id'] ?? null,
+            ':assigned_team_leader_id' => $data['assigned_team_leader_id'],
+            ':created_by' => $data['user_id'],
+            ':edited_by' => $data['user_id'],
+            ':team_id_at_action' => $teamId,
+            ':created_at' => $utcTimestamp,
+            ':updated_at' => $utcTimestamp
+        ]);
+
+        return $this->db->lastInsertId();
+    }
+
+    private function processCouponsViaApi($ticketId, $ticketDetailId, $data)
+    {
+        foreach ($data['coupons'] as $couponId) {
+            if (empty($couponId)) continue;
+
+            // Update coupon status
+            $stmt = $this->db->prepare("UPDATE coupons SET is_used = 1, used_by = :user_id, used_in_ticket = :ticket_id, used_at = :used_at, held_by = NULL, held_at = NULL, used_for_phone = :phone WHERE id = :coupon_id");
+            $stmt->execute([
+                ':user_id' => $data['user_id'],
+                ':ticket_id' => $ticketId,
+                ':used_at' => $this->getCurrentUTCWithCustomerException(),
+                ':phone' => $data['phone'] ?? null,
+                ':coupon_id' => $couponId
+            ]);
+
+            // Add to ticket_coupons
+            $stmt = $this->db->prepare("INSERT INTO ticket_coupons (ticket_id, ticket_detail_id, coupon_id) VALUES (:ticket_id, :ticket_detail_id, :coupon_id)");
+            $stmt->execute([
+                ':ticket_id' => $ticketId,
+                ':ticket_detail_id' => $ticketDetailId,
+                ':coupon_id' => $couponId
+            ]);
+        }
+    }
+
+    private function getCurrentTeamIdForUser($userId)
+    {
+        $stmt = $this->db->prepare("SELECT t.id FROM teams t JOIN team_members tm ON t.id = tm.team_id WHERE tm.user_id = :user_id LIMIT 1");
+        $stmt->execute([':user_id' => $userId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? $result['id'] : null;
+    }
+
+    private function getCurrentUTCWithCustomerException(): string
+    {
+        $utcNow = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
+        $cairoTime = $utcNow->setTimezone(new \DateTimeZone('Africa/Cairo'));
+        $hour = (int) $cairoTime->format('H');
+
+        if ($hour >= 0 && $hour < 5) {
+            $cairoTime = $cairoTime->modify('-1 day');
+        }
+
+        $finalUtc = $cairoTime->setTimezone(new \DateTimeZone('UTC'));
+        return $finalUtc->format('Y-m-d H:i:s');
     }
 
 }

@@ -426,4 +426,14 @@ class Auth
         return $tokenModel->updateTokenActivity($token);
     }
 
+    /**
+     * Update current user's token activity (called on every authenticated request)
+     */
+    public static function updateCurrentUserTokenActivity(): void
+    {
+        if (self::isLoggedIn() && isset($_SESSION['user']['current_token'])) {
+            self::updateTokenActivity($_SESSION['user']['current_token']);
+        }
+    }
+
 }

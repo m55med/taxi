@@ -75,6 +75,9 @@ class TokenManagementController extends Controller
      */
     public function index()
     {
+        // Update token activity on every page access
+        \App\Core\Auth::updateCurrentUserTokenActivity();
+
         $filters = [];
 
         // معالجة الفلاتر من GET parameters

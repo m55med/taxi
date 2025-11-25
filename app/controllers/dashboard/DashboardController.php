@@ -22,6 +22,9 @@ class DashboardController extends Controller
 
     public function index()
     {
+        // Update token activity on every dashboard access
+        Auth::updateCurrentUserTokenActivity();
+
         $userId = Auth::getUserId();
         if (!$userId) {
             redirect('auth/logout');

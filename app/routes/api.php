@@ -116,6 +116,12 @@ function handle_api_routes($url) {
         return true; // Route was handled
     }
 
+    // Route: /api/extension/tickets/create
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'tickets' && !empty($url[2]) && $url[2] === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $controller->createTicketFromExtension();
+        return true; // Route was handled
+    }
+
     // Add other API routes here in the future
     // if (!empty($url[0]) && $url[0] === 'another_endpoint') { ... }
 
