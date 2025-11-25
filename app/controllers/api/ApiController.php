@@ -894,14 +894,14 @@ HTML;
 
         if (empty($token)) {
             http_response_code(401);
-            echo json_encode(['error' => 'Token is required']);
+            echo json_encode(['error' => 'Token is required'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
         // Validate token
         if (!$this->tokenModel->isTokenValid($token)) {
             http_response_code(401);
-            echo json_encode(['error' => 'Invalid or expired token']);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -910,7 +910,7 @@ HTML;
 
         if (!$tokenInfo) {
             http_response_code(401);
-            echo json_encode(['error' => 'Token not found']);
+            echo json_encode(['error' => 'Token not found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -921,7 +921,7 @@ HTML;
 
         if (!$userData) {
             http_response_code(404);
-            echo json_encode(['error' => 'User not found']);
+            echo json_encode(['error' => 'User not found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -929,7 +929,7 @@ HTML;
         $this->tokenModel->updateTokenActivity($token);
 
         // Return user data
-        echo json_encode($userData);
+        echo json_encode($userData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
     private function getUserWithTeam($userId)
@@ -988,14 +988,14 @@ HTML;
 
         if (empty($token)) {
             http_response_code(401);
-            echo json_encode(['error' => 'Token is required']);
+            echo json_encode(['error' => 'Token is required'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
         // Validate token
         if (!$this->tokenModel->isTokenValid($token)) {
             http_response_code(401);
-            echo json_encode(['error' => 'Invalid or expired token']);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -1004,7 +1004,7 @@ HTML;
 
         if (!$tokenInfo) {
             http_response_code(401);
-            echo json_encode(['error' => 'Token not found']);
+            echo json_encode(['error' => 'Token not found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -1019,45 +1019,33 @@ HTML;
             return;
         }
 
-        // Validate required fields
-        $requiredFields = ['ticket_number', 'platform_id', 'category_id', 'subcategory_id', 'code_id'];
-        foreach ($requiredFields as $field) {
-            if (empty($input[$field])) {
-                http_response_code(400);
-                echo json_encode(['error' => "Missing required field: {$field}"]);
-                return;
-            }
-        }
-
         try {
-            // Get team leader for the user (same logic as in CreateTicketController)
-            $teamLeaderId = $this->ticketModel->getTeamLeaderForUser($userId);
+            // Check if ticket exists by number only (not requiring ticket details)
+            $ticketExists = $this->checkTicketExistsByNumber($input['ticket_number']);
 
-            if (empty($teamLeaderId)) {
+            if ($ticketExists) {
+                // Get the ticket ID
+                $ticketData = $this->getTicketByNumberOnly($input['ticket_number']);
+                if (!$ticketData) {
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Failed to retrieve ticket data']);
+                    return;
+                }
+
+                // Create new ticket detail based on existing ticket
+                $result = $this->createTicketDetailFromExtension($ticketData['id'], $input, $userId);
+            } else {
+                // Create new ticket - validate required fields
+                $requiredFields = ['ticket_number', 'platform_id', 'category_id', 'subcategory_id', 'code_id'];
+                foreach ($requiredFields as $field) {
+                    if (empty($input[$field])) {
                 http_response_code(400);
-                echo json_encode(['error' => 'User is not assigned to a team with a leader']);
+                echo json_encode(['error' => "Missing required field: {$field}"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                 return;
+                    }
+                }
+                $result = $this->createNewTicketFromExtension($input, $userId);
             }
-
-            // Prepare ticket data
-            $ticketData = [
-                'ticket_number' => $input['ticket_number'],
-                'platform_id' => $input['platform_id'],
-                'category_id' => $input['category_id'],
-                'subcategory_id' => $input['subcategory_id'],
-                'code_id' => $input['code_id'],
-                'phone' => $input['phone'] ?? null,
-                'notes' => $input['notes'] ?? null,
-                'country_id' => $input['country_id'] ?? null,
-                'is_vip' => $input['is_vip'] ?? false,
-                'marketer_id' => $input['marketer_id'] ?? null,
-                'assigned_team_leader_id' => $teamLeaderId,
-                'user_id' => $userId,
-                'coupons' => $input['coupons'] ?? []
-            ];
-
-            // Create ticket using existing logic
-            $result = $this->createTicketViaApi($ticketData);
 
             if ($result['success']) {
                 // Update token activity
@@ -1065,19 +1053,19 @@ HTML;
 
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Ticket created successfully',
+                    'message' => $ticketExists ? 'Ticket detail created successfully' : 'Ticket created successfully',
                     'ticket_id' => $result['ticket_id'],
                     'ticket_detail_id' => $result['ticket_detail_id']
-                ]);
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             } else {
                 http_response_code(500);
-                echo json_encode(['error' => $result['message']]);
+                echo json_encode(['error' => $result['message']], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             }
 
         } catch (Exception $e) {
             error_log("Error creating ticket from extension: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Internal server error']);
+            echo json_encode(['error' => 'Internal server error'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1194,6 +1182,469 @@ HTML;
         $stmt->execute([':user_id' => $userId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result['id'] : null;
+    }
+
+    private function createTicketDetailFromExtension($ticketId, $input, $userId)
+    {
+        $this->db->beginTransaction();
+
+        try {
+            // Get the latest ticket detail to use as base (if exists)
+            $latestDetail = $this->getLatestTicketDetail($ticketId);
+
+            // If no existing ticket details, this will be the first detail
+            // Use input data directly or provide defaults
+            $defaultData = [
+                'platform_id' => null,
+                'category_id' => null,
+                'subcategory_id' => null,
+                'code_id' => null,
+                'phone' => null,
+                'notes' => null,
+                'country_id' => null,
+                'is_vip' => false,
+                'marketer_id' => null
+            ];
+
+            // Merge input data with existing data (input takes precedence) or defaults
+            $baseData = $latestDetail ?: $defaultData;
+
+            // Get team leader for the user
+            $teamLeaderId = $this->ticketModel->getTeamLeaderForUser($userId);
+
+            if (empty($teamLeaderId)) {
+                throw new \Exception('User is not assigned to a team with a leader');
+            }
+
+            $ticketData = [
+                'ticket_id' => $ticketId,
+                'platform_id' => $input['platform_id'] ?? $baseData['platform_id'],
+                'category_id' => $input['category_id'] ?? $baseData['category_id'],
+                'subcategory_id' => $input['subcategory_id'] ?? $baseData['subcategory_id'],
+                'code_id' => $input['code_id'] ?? $baseData['code_id'],
+                'phone' => $input['phone'] ?? $baseData['phone'],
+                'notes' => $input['notes'] ?? $baseData['notes'],
+                'country_id' => $input['country_id'] ?? $baseData['country_id'],
+                'is_vip' => isset($input['is_vip']) ? $input['is_vip'] : ($baseData['is_vip'] ?? false),
+                'marketer_id' => $input['marketer_id'] ?? $baseData['marketer_id'],
+                'assigned_team_leader_id' => $teamLeaderId,
+                'user_id' => $userId,
+                'coupons' => $input['coupons'] ?? []
+            ];
+
+            // Validate required fields for ticket detail creation
+            if (empty($ticketData['platform_id']) || empty($ticketData['category_id']) ||
+                empty($ticketData['subcategory_id']) || empty($ticketData['code_id'])) {
+                throw new \Exception('Platform, category, subcategory, and code are required for ticket detail creation');
+            }
+
+            // Create ticket detail
+            $ticketDetailId = $this->createTicketDetailViaApi($ticketId, $ticketData);
+
+            // Handle VIP assignment if applicable
+            if ($ticketData['is_vip'] && $ticketData['marketer_id']) {
+                $this->db->prepare("INSERT INTO ticket_vip_assignments (ticket_detail_id, marketer_id) VALUES (:ticket_detail_id, :marketer_id)")
+                    ->execute([
+                        ':ticket_detail_id' => $ticketDetailId,
+                        ':marketer_id' => $ticketData['marketer_id']
+                    ]);
+            }
+
+            // Handle coupons if provided
+            if (!empty($ticketData['coupons'])) {
+                $this->processCouponsViaApi($ticketId, $ticketDetailId, $ticketData);
+            }
+
+            $this->db->commit();
+
+            return [
+                'success' => true,
+                'ticket_id' => $ticketId,
+                'ticket_detail_id' => $ticketDetailId
+            ];
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error in createTicketDetailFromExtension: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    private function createNewTicketFromExtension($input, $userId)
+    {
+        // Get team leader for the user
+        $teamLeaderId = $this->ticketModel->getTeamLeaderForUser($userId);
+
+        if (empty($teamLeaderId)) {
+            return ['success' => false, 'message' => 'User is not assigned to a team with a leader'];
+        }
+
+        // Prepare ticket data
+        $ticketData = [
+            'ticket_number' => $input['ticket_number'],
+            'platform_id' => $input['platform_id'],
+            'category_id' => $input['category_id'],
+            'subcategory_id' => $input['subcategory_id'],
+            'code_id' => $input['code_id'],
+            'phone' => $input['phone'] ?? null,
+            'notes' => $input['notes'] ?? null,
+            'country_id' => $input['country_id'] ?? null,
+            'is_vip' => $input['is_vip'] ?? false,
+            'marketer_id' => $input['marketer_id'] ?? null,
+            'assigned_team_leader_id' => $teamLeaderId,
+            'user_id' => $userId,
+            'coupons' => $input['coupons'] ?? []
+        ];
+
+        return $this->createTicketViaApi($ticketData);
+    }
+
+    private function getLatestTicketDetail($ticketId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM ticket_details
+            WHERE ticket_id = :ticket_id
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        $stmt->execute([':ticket_id' => $ticketId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getTicketParams($ticketNumber)
+    {
+        header('Content-Type: application/json');
+
+        // Get token from header
+        $token = $_SERVER['HTTP_X_EXT_TOKEN'] ?? '';
+
+        if (empty($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token is required'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Validate token
+        if (!$this->tokenModel->isTokenValid($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            // Check if ticket exists
+            if (!$this->checkTicketExistsByNumber($ticketNumber)) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Ticket not found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Get ticket data
+            $ticket = $this->getTicketByNumberOnly($ticketNumber);
+
+            if (!$ticket) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Ticket not found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Get latest ticket detail
+            $latestDetail = $this->getLatestTicketDetail($ticket['id']);
+
+            if (!$latestDetail) {
+                http_response_code(404);
+                echo json_encode(['error' => 'No ticket details found'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Return the parameters needed to create a new detail
+            echo json_encode([
+                'success' => true,
+                'ticket_number' => $ticketNumber,
+                'current_params' => [
+                    'platform_id' => (int)$latestDetail['platform_id'],
+                    'category_id' => (int)$latestDetail['category_id'],
+                    'subcategory_id' => (int)$latestDetail['subcategory_id'],
+                    'code_id' => (int)$latestDetail['code_id'],
+                    'phone' => $latestDetail['phone'],
+                    'notes' => $latestDetail['notes'],
+                    'country_id' => $latestDetail['country_id'] ? (int)$latestDetail['country_id'] : null,
+                    'is_vip' => (bool)$latestDetail['is_vip'],
+                    'marketer_id' => $latestDetail['marketer_id'] ? (int)$latestDetail['marketer_id'] : null
+                ]
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        } catch (Exception $e) {
+            error_log("Error getting ticket params: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            echo json_encode(['error' => 'Internal server error']);
+        }
+    }
+
+    public function getExtensionOptions()
+    {
+        header('Content-Type: application/json');
+
+        // Get token from header
+        $token = $_SERVER['HTTP_X_EXT_TOKEN'] ?? '';
+
+        if (empty($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Token is required'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Validate token
+        if (!$this->tokenModel->isTokenValid($token)) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid or expired token'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        try {
+            // Update token activity
+            $this->tokenModel->updateTokenActivity($token);
+            // Get all platforms
+            $platforms = $this->getAllPlatforms();
+
+            // Get hierarchical categories, subcategories, and codes
+            $categoriesHierarchy = $this->getCategoriesHierarchy();
+
+            // Get countries
+            $countries = $this->getAllCountries();
+
+            // Get active marketers
+            $marketers = $this->getAllMarketers();
+
+            // Get active users for assignment
+            $activeUsers = $this->getActiveUsers();
+
+            // Get teams
+            $teams = $this->getAllTeams();
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'platforms' => $platforms,
+                    'categories' => $categoriesHierarchy,
+                    'countries' => $countries,
+                    'marketers' => $marketers,
+                    'users' => $activeUsers,
+                    'teams' => $teams
+                ]
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        } catch (Exception $e) {
+            error_log("Error getting extension options: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getAllPlatforms()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id, name FROM platforms WHERE name IS NOT NULL AND name != '' ORDER BY name ASC");
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(function($item) {
+                return [
+                    'id' => (int)$item['id'],
+                    'name' => $item['name']
+                ];
+            }, $result);
+        } catch (Exception $e) {
+            error_log("Error getting platforms: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getCategoriesHierarchy()
+    {
+        try {
+            // Get categories with their subcategories and codes
+            $stmt = $this->db->prepare("
+                SELECT
+                    c.id as category_id, c.name as category_name,
+                    sc.id as subcategory_id, sc.name as subcategory_name,
+                    co.id as code_id, co.name as code_name
+                FROM ticket_categories c
+                LEFT JOIN ticket_subcategories sc ON c.id = sc.category_id
+                LEFT JOIN ticket_codes co ON sc.id = co.subcategory_id
+                WHERE c.name IS NOT NULL AND c.name != ''
+                ORDER BY c.name, sc.name, co.name
+            ");
+            $stmt->execute();
+
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $categories = [];
+            foreach ($results as $row) {
+                $catId = $row['category_id'];
+
+                if (!isset($categories[$catId])) {
+                    $categories[$catId] = [
+                        'id' => (int)$row['category_id'],
+                        'name' => $row['category_name'],
+                        'subcategories' => []
+                    ];
+                }
+
+                if ($row['subcategory_id']) {
+                    $subId = $row['subcategory_id'];
+
+                    if (!isset($categories[$catId]['subcategories'][$subId])) {
+                        $categories[$catId]['subcategories'][$subId] = [
+                            'id' => (int)$row['subcategory_id'],
+                            'name' => $row['subcategory_name'],
+                            'codes' => []
+                        ];
+                    }
+
+                    if ($row['code_id']) {
+                        $categories[$catId]['subcategories'][$subId]['codes'][] = [
+                            'id' => (int)$row['code_id'],
+                            'name' => $row['code_name']
+                        ];
+                    }
+                }
+            }
+
+            // Convert to indexed array
+            $result = array_values(array_map(function($category) {
+                $category['subcategories'] = array_values($category['subcategories']);
+                return $category;
+            }, $categories));
+
+            return $result;
+
+        } catch (Exception $e) {
+            error_log("Error getting categories hierarchy: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getAllCountries()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id, name FROM countries WHERE name IS NOT NULL AND name != '' ORDER BY name ASC");
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(function($item) {
+                return [
+                    'id' => (int)$item['id'],
+                    'name' => $item['name']
+                ];
+            }, $result);
+        } catch (Exception $e) {
+            error_log("Error getting countries: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getAllMarketers()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.id, u.name, u.username
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE r.name = 'VIP' AND u.status = 'active' AND u.name IS NOT NULL AND u.name != ''
+                ORDER BY u.name ASC
+            ");
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(function($item) {
+                return [
+                    'id' => (int)$item['id'],
+                    'name' => $item['name'],
+                    'username' => $item['username']
+                ];
+            }, $result);
+        } catch (Exception $e) {
+            error_log("Error getting marketers: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getActiveUsers()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT u.id, u.name, u.username, r.name as role_name
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE u.status = 'active' AND u.name IS NOT NULL AND u.name != ''
+                ORDER BY u.name ASC
+            ");
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(function($item) {
+                return [
+                    'id' => (int)$item['id'],
+                    'name' => $item['name'],
+                    'username' => $item['username'],
+                    'role' => $item['role_name']
+                ];
+            }, $result);
+        } catch (Exception $e) {
+            error_log("Error getting active users: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getAllTeams()
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT t.id, t.name, u.name as leader_name, u.id as leader_id
+                FROM teams t
+                LEFT JOIN users u ON t.team_leader_id = u.id
+                WHERE t.name IS NOT NULL AND t.name != ''
+                ORDER BY t.name ASC
+            ");
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(function($item) {
+                return [
+                    'id' => (int)$item['id'],
+                    'name' => $item['name'],
+                    'leader' => $item['leader_name'] ? [
+                        'id' => (int)$item['leader_id'],
+                        'name' => $item['leader_name']
+                    ] : null
+                ];
+            }, $result);
+        } catch (Exception $e) {
+            error_log("Error getting teams: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function checkTicketExistsByNumber(string $ticketNumber): bool
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM tickets WHERE ticket_number = :ticket_number");
+            $stmt->execute([':ticket_number' => $ticketNumber]);
+            return (int)$stmt->fetchColumn() > 0;
+        } catch (Exception $e) {
+            error_log("Error checking ticket existence: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getTicketByNumberOnly(string $ticketNumber): ?array
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT id, ticket_number, created_by, created_at FROM tickets WHERE ticket_number = :ticket_number LIMIT 1");
+            $stmt->execute([':ticket_number' => $ticketNumber]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ?: null;
+        } catch (Exception $e) {
+            error_log("Error getting ticket by number: " . $e->getMessage());
+            return null;
+        }
     }
 
     private function getCurrentUTCWithCustomerException(): string

@@ -122,6 +122,19 @@ function handle_api_routes($url) {
         return true; // Route was handled
     }
 
+    // Route: /api/extension/tickets/{ticketNumber}/params
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'tickets' && isset($url[2]) && is_numeric($url[2]) && !empty($url[3]) && $url[3] === 'params' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $ticketNumber = $url[2];
+        $controller->getTicketParams($ticketNumber);
+        return true; // Route was handled
+    }
+
+    // Route: /api/extension/options
+    if (!empty($url[0]) && $url[0] === 'extension' && !empty($url[1]) && $url[1] === 'options' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $controller->getExtensionOptions();
+        return true; // Route was handled
+    }
+
     // Add other API routes here in the future
     // if (!empty($url[0]) && $url[0] === 'another_endpoint') { ... }
 
