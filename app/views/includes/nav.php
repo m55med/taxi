@@ -374,6 +374,8 @@ function getAdminNavItems($role) {
 
                         ['title' => 'System Logs', 'href' => '/logs', 'icon' => 'fas fa-clipboard-list', 'permissions' => ['admin', 'developer']],
 
+                        ['title' => 'Token Management', 'href' => '/token-management', 'icon' => 'fas fa-key', 'permissions' => ['admin', 'developer']],
+
                         ['title' => 'User Delegations', 'href' => '/admin/user-delegations', 'icon' => 'fas fa-people-arrows'],
 
                     ]

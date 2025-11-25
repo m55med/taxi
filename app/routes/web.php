@@ -1091,6 +1091,12 @@ $router->get('discussions', 'discussions/DiscussionsController@index')->middlewa
 
 $router->get('api/discussions', 'discussions/DiscussionsController@index');
 
+// Token Management Routes (Admin Only)
+$router->get('token-management', 'TokenManagement/TokenManagementController@index')->middleware(['admin', 'developer']);
+$router->post('token-management/revoke/{id}', 'TokenManagement/TokenManagementController@revoke')->middleware(['admin', 'developer']);
+$router->post('token-management/delete/{id}', 'TokenManagement/TokenManagementController@delete')->middleware(['admin', 'developer']);
+$router->get('token-management/export', 'TokenManagement/TokenManagementController@export')->middleware(['admin', 'developer']);
+
 // Search Routes
 $router->get('search', 'SearchController@index');
 $router->get('search/suggestions', 'SearchController@suggestions');
