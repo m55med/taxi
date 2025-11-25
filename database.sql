@@ -993,3 +993,16 @@ CREATE TABLE ticket_edit_logs (
     INDEX idx_edited_by (edited_by),
     INDEX idx_created_at (created_at)
 );
+
+
+CREATE TABLE user_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    last_activity DATETIME NOT NULL,
+    expires_after_minutes INT DEFAULT 30,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+);

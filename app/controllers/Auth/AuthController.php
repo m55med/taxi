@@ -5,15 +5,18 @@ namespace App\Controllers\Auth;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Services\ActiveUserService;
+use App\Models\Token\Token;
 
 class AuthController extends Controller
 {
     private $userModel;
+    private $tokenModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->userModel = $this->model('User/User');
+        $this->tokenModel = new Token();
         if (!$this->userModel) { die('❌ Failed to load user model'); } // Debugging line
     }
 
@@ -115,6 +118,12 @@ class AuthController extends Controller
                 $activeUserService = new ActiveUserService();
                 $activeUserService->recordUserActivity($user->id);
 
+                // Create new token for the user
+                $token = $this->tokenModel->createToken($user->id, 30); // 30 minutes expiry
+
+                // Store token in session for display in profile
+                $_SESSION['user']['current_token'] = $token;
+
                 header('Location: ' . URLROOT . '/dashboard');
                 exit();
             } else {
@@ -133,6 +142,9 @@ class AuthController extends Controller
     {
         if (isset($_SESSION['user_id'])) {
             $userId = $_SESSION['user_id'];
+
+            // Delete all user tokens
+            $this->tokenModel->deleteUserTokens($userId);
 
             // Use ActiveUserService to handle logout
             $activeUserService = new ActiveUserService();
@@ -159,11 +171,20 @@ class AuthController extends Controller
             header('Location: ' . URLROOT . '/login');
             exit();
         }
-    
+
         $user = $this->userModel->getUserById($_SESSION['user_id']);
 
+        // Get current token if not in session
+        if (!isset($_SESSION['user']['current_token'])) {
+            $currentToken = $this->tokenModel->getUserToken($_SESSION['user_id']);
+            if ($currentToken) {
+                $_SESSION['user']['current_token'] = $currentToken;
+            }
+        }
+
         $data = [
-            'user' => $user
+            'user' => $user,
+            'current_token' => $_SESSION['user']['current_token'] ?? null
         ];
 
         $this->view('profile/index', $data);

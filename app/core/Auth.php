@@ -4,12 +4,11 @@
 
 namespace App\Core;
 
-
+use App\Models\Token\Token;
 
 class Auth
 
 {
-
     /**
 
      * Get a value from the authenticated user's session data.
@@ -73,9 +72,6 @@ class Auth
         return self::user() !== null;
 
     }
-
-
-
     /**
 
      * Gets the current user's ID.
@@ -85,15 +81,11 @@ class Auth
      */
 
     public static function getUserId(): ?int
-
     {
 
         return self::user('id');
 
     }
-
-
-
     /**
 
      * Gets the current user's role name.
@@ -109,9 +101,6 @@ class Auth
         return self::user('role_name');
 
     }
-
-
-
     /**
 
      * Checks if the current user has a specific role.
@@ -410,6 +399,31 @@ class Auth
 
         self::requireRole(['admin', 'developer']);
 
+    }
+
+    /**
+     * التحقق من صحة التوكن
+     * التوكن صالح إذا: NOW() - last_activity < expires_after_minutes
+     *
+     * @param string $token التوكن المراد التحقق منه
+     * @return bool
+     */
+    public static function isTokenValid(string $token): bool
+    {
+        $tokenModel = new Token();
+        return $tokenModel->isTokenValid($token);
+    }
+
+    /**
+     * تحديث آخر نشاط للتوكن
+     *
+     * @param string $token التوكن المراد تحديث نشاطه
+     * @return bool
+     */
+    public static function updateTokenActivity(string $token): bool
+    {
+        $tokenModel = new Token();
+        return $tokenModel->updateTokenActivity($token);
     }
 
 }
