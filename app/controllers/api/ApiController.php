@@ -1657,6 +1657,199 @@ HTML;
         }
     }
 
+    /**
+     * Get Trengo API base URL
+     */
+    private function getTrengoBaseUrl(): string
+    {
+        return "https://app.trengo.com/api/v2";
+    }
+
+    /**
+     * Get Trengo API token
+     * TODO: Move this to environment variables or config file
+     */
+    private function getTrengoToken(): string
+    {
+        return "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzc2Y2Y2ODhmZmQ1MDhiMTJhYzE3YzNiMWQ1MzMzNzU1ZDYzMjVlMzMxYWM4ZjFjODIzMDYwMDY4YzQ1OGU5MzBmZTZmNTdmYzcxZTM1MzciLCJpYXQiOjE3NjQyNzUyNTksIm5iZiI6MTc2NDI3NTI1OSwiZXhwIjo0ODg4NDEyODU5LCJzdWIiOiI3MjQ3MTgiLCJzY29wZXMiOltdLCJhZ2VuY3lfaWQiOjIyNTU1fQ.qIwiEZFIIZ5GziIR6NMZR9uE0wLgh_GTiZsH4Oxd5onBflT_aYTug9c5tE3hpXC_grfju0KI_APduTNXcFpb_g";
+    }
+
+    /**
+     * Make a GET request to Trengo API
+     */
+    private function trengoGet(string $path): ?array
+    {
+        $url = $this->getTrengoBaseUrl() . $path;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Authorization: ' . $this->getTrengoToken()
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            error_log("Trengo API cURL Error: " . $curlError);
+            return null;
+        }
+
+        if ($httpCode >= 400) {
+            error_log("Trengo API HTTP Error: Status code {$httpCode}");
+            return null;
+        }
+
+        $data = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("Trengo API JSON Error: " . json_last_error_msg());
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Detect country from phone number
+     */
+    private function detectCountryFromPhone(?string $phone): ?array
+    {
+        if (empty($phone)) {
+            return null;
+        }
+
+        $countryCodes = [
+            "+973" => ["id" => 13, "name" => "Bahrain"],
+            "+20"  => ["id" => 10, "name" => "Egypt"],
+            "+962" => ["id" => 5, "name" => "Jordan"],
+            "+965" => ["id" => 8, "name" => "Kuwait"],
+            "+961" => ["id" => 9, "name" => "Lebanon"],
+            "+968" => ["id" => 7, "name" => "Oman"],
+            "+974" => ["id" => 6, "name" => "Qatar"],
+            "+963" => ["id" => 11, "name" => "Syria"],
+            "+263" => ["id" => 12, "name" => "Zimbabwe"],
+        ];
+
+        foreach ($countryCodes as $code => $data) {
+            if (strpos($phone, $code) === 0) {
+                return $data;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Detect platform from contact channels
+     */
+    private function detectPlatformFromChannels(?array $channels): ?array
+    {
+        if (empty($channels) || !is_array($channels)) {
+            return null;
+        }
+
+        $firstChannel = $channels[0] ?? null;
+        if (!$firstChannel || !isset($firstChannel['type'])) {
+            return null;
+        }
+
+        $channelType = strtoupper($firstChannel['type']);
+
+        $platforms = [
+            "CALL" => ["id" => 11, "name" => "Call"],
+            "EMAIL" => ["id" => 12, "name" => "Email"],
+            "FACEBOOK" => ["id" => 8, "name" => "Facebook"],
+            "INSTAGRAM" => ["id" => 9, "name" => "instagram"],
+            "TELEGRAM" => ["id" => 10, "name" => "Telegram"],
+            "WHATSAPP" => ["id" => 7, "name" => "Whatsapp"],
+            "VIP" => ["id" => 5, "name" => "VIP 👑"],
+            "WA_BUSINESS" => ["id" => 7, "name" => "Whatsapp"],
+        ];
+
+        return $platforms[$channelType] ?? null;
+    }
+
+    /**
+     * Get ticket context from Trengo API
+     * This function mimics the Python get_ticket_context function
+     */
+    private function getTrengoTicketContext(string $ticketNumber): ?array
+    {
+        try {
+            // Try to extract ticket ID from ticket number
+            // If ticket_number is like "0000000000002", we need to extract the ID
+            $ticketId = ltrim($ticketNumber, '0');
+            if (empty($ticketId)) {
+                // If all zeros, try the original number
+                $ticketId = $ticketNumber;
+            }
+
+            // First, try to get ticket info to verify it exists
+            $ticketInfo = $this->trengoGet("/tickets/{$ticketId}");
+            if (!$ticketInfo) {
+                // If direct ticket ID doesn't work, try the original ticket number
+                if ($ticketId !== $ticketNumber) {
+                    $ticketInfo = $this->trengoGet("/tickets/{$ticketNumber}");
+                    if ($ticketInfo) {
+                        $ticketId = $ticketNumber;
+                    }
+                }
+                if (!$ticketInfo) {
+                    return ["error" => "ticket not found in trengo"];
+                }
+            }
+
+            // 1) Fetch ticket messages
+            $messagesData = $this->trengoGet("/tickets/{$ticketId}/messages");
+            if (!$messagesData || !isset($messagesData['data']) || empty($messagesData['data'])) {
+                return ["error" => "no messages"];
+            }
+
+            $messages = $messagesData['data'];
+            $firstMessage = $messages[0] ?? null;
+            
+            if (!$firstMessage || !isset($firstMessage['contact']['id'])) {
+                return ["error" => "invalid message data"];
+            }
+
+            $contactId = $firstMessage['contact']['id'];
+
+            // 2) Fetch contact
+            $contact = $this->trengoGet("/contacts/{$contactId}");
+            if (!$contact) {
+                return ["error" => "contact not found"];
+            }
+
+            // 3) Get phone
+            $phone = null;
+            if (isset($contact['is_phone']) && $contact['is_phone'] && isset($contact['phone'])) {
+                $phone = $contact['phone'];
+            }
+
+            // 4) Detect platform
+            $platform = $this->detectPlatformFromChannels($contact['channels'] ?? null);
+
+            // 5) Detect country
+            $country = $this->detectCountryFromPhone($phone);
+
+            return [
+                "contact_id" => $contactId,
+                "phone" => $phone,
+                "platform" => $platform,
+                "country" => $country
+            ];
+
+        } catch (\Exception $e) {
+            error_log("Error getting Trengo ticket context: " . $e->getMessage());
+            return ["error" => "trengo_api_error"];
+        }
+    }
+
     public function getTicketDetails($ticketNumber)
     {
         header('Content-Type: application/json');
@@ -1680,11 +1873,21 @@ HTML;
         try {
             // Check if ticket exists
             if (!$this->checkTicketExistsByNumber($ticketNumber)) {
-                echo json_encode([
+                // Try to get ticket info from Trengo as helper data
+                $trengoInfo = $this->getTrengoTicketContext($ticketNumber);
+                
+                $response = [
                     'success' => false,
                     'message' => 'Ticket not found',
                     'ticket_number' => $ticketNumber
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                ];
+                
+                // Add Trengo helper info if available
+                if ($trengoInfo && !isset($trengoInfo['error'])) {
+                    $response['helper'] = $trengoInfo;
+                }
+                
+                echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                 return;
             }
 
