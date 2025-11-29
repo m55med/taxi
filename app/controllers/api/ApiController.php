@@ -2015,5 +2015,30 @@ HTML;
         return $finalUtc->format('Y-m-d H:i:s');
     }
 
+    /**
+     * Health check endpoint
+     * Returns API health status
+     */
+    public function health()
+    {
+        header('Content-Type: application/json');
+        
+        // Get current timestamp in ISO 8601 format with microseconds
+        $dateTime = new \DateTime('now', new \DateTimeZone('UTC'));
+        $microseconds = $dateTime->format('u');
+        // Ensure 6 digits for microseconds
+        $microseconds = str_pad($microseconds, 6, '0', STR_PAD_LEFT);
+        $timestamp = $dateTime->format('Y-m-d\TH:i:s') . '.' . $microseconds . 'Z';
+        
+        echo json_encode([
+            'status' => 'ok',
+            'timestamp' => $timestamp,
+            'version' => '1.0.0',
+            'api_version' => 'v1'
+        ], JSON_PRETTY_PRINT);
+        
+        exit;
+    }
+
 }
 

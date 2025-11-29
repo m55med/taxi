@@ -89,6 +89,14 @@ require_once APPROOT . '/routes/api.php';
 // Parse the URL statically
 $url = App\Core\App::parseUrl();
 
+// Handle health check endpoint
+if (isset($url[0]) && $url[0] === 'health' && empty($url[1])) {
+    require_once APPROOT . '/Controllers/Api/ApiController.php';
+    $healthController = new App\Controllers\Api\ApiController();
+    $healthController->health();
+    exit;
+}
+
 // Handle API routes first
 if (isset($url[0]) && $url[0] === 'api') {
     if (handle_api_routes($url)) {
