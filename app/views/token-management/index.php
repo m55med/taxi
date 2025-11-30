@@ -122,9 +122,20 @@
                 <a href="<?= URLROOT ?>/token-management" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
                     Reset
                 </a>
-                <a href="<?= URLROOT ?>/token-management/export?<?= http_build_query($_GET) ?>"
+                <?php
+                // فلترة GET parameters - استبعاد url و format
+                $exportParams = $_GET;
+                unset($exportParams['url']);
+                unset($exportParams['format']);
+                $exportQuery = !empty($exportParams) ? '&' . http_build_query($exportParams) : '';
+                ?>
+                <a href="<?= URLROOT ?>/token-management/export?format=csv<?= $exportQuery ?>"
                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                    Export CSV
+                    <i class="fas fa-file-csv mr-2"></i> Export CSV
+                </a>
+                <a href="<?= URLROOT ?>/token-management/export?format=json<?= $exportQuery ?>"
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-file-code mr-2"></i> Export JSON
                 </a>
             </div>
         </form>

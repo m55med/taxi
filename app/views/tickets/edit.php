@@ -8,7 +8,7 @@
 
 
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Edit Ticket #<?= htmlspecialchars($data['ticket']['ticket_number']) ?></h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Edit Ticket #<?= htmlspecialchars($data['ticket']['ticket_number'] ?? '') ?></h1>
 
     <!-- Debug Panel (Remove after testing) -->
     <?php if (isset($_GET['debug']) && $_GET['debug'] == '1'): ?>
@@ -141,11 +141,27 @@
 
 
 
+                    <label for="ticket_number" class="block text-sm font-medium text-gray-700">Ticket Number</label>
+
+
+
+                    <input type="text" name="ticket_number" id="ticket_number" value="<?= htmlspecialchars($data['ticket']['ticket_number'] ?? '') ?>" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+
+
+
+                </div>
+
+
+
+                <div>
+
+
+
                     <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
 
 
 
-                    <input type="text" name="phone" id="phone" value="<?= htmlspecialchars($data['ticket']['phone']) ?>" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                    <input type="text" name="phone" id="phone" value="<?= htmlspecialchars($data['ticket']['phone'] ?? '') ?>" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
 
 
 
@@ -369,7 +385,7 @@
 
 
 
-                <textarea name="notes" id="notes" rows="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm"><?= htmlspecialchars($data['ticket']['notes']) ?></textarea>
+                <textarea name="notes" id="notes" rows="4" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm"><?= htmlspecialchars($data['ticket']['notes'] ?? '') ?></textarea>
 
 
 

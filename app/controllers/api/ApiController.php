@@ -1206,8 +1206,9 @@ HTML;
                 'marketer_id' => null
             ];
 
-            // Merge input data with existing data (input takes precedence) or defaults
-            $baseData = $latestDetail ?: $defaultData;
+            // Merge default data with existing data to ensure all keys exist
+            // This prevents "Undefined array key" warnings in PHP 8+
+            $baseData = array_merge($defaultData, $latestDetail ?: []);
 
             // Get team leader for the user
             $teamLeaderId = $this->ticketModel->getTeamLeaderForUser($userId);

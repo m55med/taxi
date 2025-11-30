@@ -602,8 +602,25 @@ class TicketController extends Controller
                 redirect('tickets/view/' . $ticketId);
                 return;
             }
+            
+            // Validate ticket_number
+            if (empty($data['ticket_number'])) {
+                $_SESSION['error_message'] = '⚠️ يرجى إدخال رقم التذكرة.';
+                redirect('tickets/view/' . $ticketId);
+                return;
+            }
+            
+            // Update ticket_number in tickets table if changed
+            if (isset($data['ticket_number']) && $data['ticket_number'] != $currentDetails['ticket_number']) {
+                $ticketNumberUpdated = $this->ticketModel->updateTicketNumber($ticketId, $data['ticket_number']);
+                if (!$ticketNumberUpdated) {
+                    $_SESSION['error_message'] = '❌ فشل في تحديث رقم التذكرة. قد يكون الرقم مستخدم بالفعل.';
+                    redirect('tickets/view/' . $ticketId);
+                    return;
+                }
+            }
     
-        
+    
             $this->logTicketChanges($detailId, $currentDetails, $data, $userId);
     
             // UPDATE the existing ticket detail instead of creating a new one
@@ -635,6 +652,7 @@ class TicketController extends Controller
         error_log("LOGGING TICKET CHANGES: Detail ID: $detailId, User: $userId");
 
         $fieldsToTrack = [
+            'ticket_number' => 'Ticket Number',
             'platform_id' => 'Platform',
             'phone' => 'Phone',
             'category_id' => 'Category',

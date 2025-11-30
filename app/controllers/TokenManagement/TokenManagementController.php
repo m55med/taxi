@@ -171,10 +171,28 @@ class TokenManagementController extends Controller
     }
 
     /**
-     * تصدير التوكنات إلى CSV
+     * تصدير التوكنات إلى CSV أو JSON
      */
     public function export()
     {
+        // تنظيف أي output buffer موجود
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        // التحقق من الصلاحيات مباشرة (بدون redirect)
+        if (!Auth::isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        if (!Auth::hasRole('admin') && !Auth::hasRole('developer')) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied. Admin privileges required.']);
+            exit;
+        }
+
         $filters = [];
 
         // معالجة الفلاتر من GET parameters
@@ -203,9 +221,32 @@ class TokenManagementController extends Controller
         // تحويل التوقيت لتوقيت القاهرة
         $this->convertArrayTimesToCairo($tokens, ['created_at', 'last_activity']);
 
+        // تحديد نوع التصدير من query parameter (افتراضي CSV)
+        $format = strtolower($_GET['format'] ?? 'csv');
+
+        if ($format === 'json') {
+            $this->exportJson($tokens);
+        } else {
+            $this->exportCsv($tokens);
+        }
+    }
+
+    /**
+     * تصدير التوكنات إلى CSV
+     */
+    private function exportCsv($tokens)
+    {
+        // تنظيف أي output buffer
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
         // إعداد headers للـ CSV
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=tokens_' . date('Y-m-d_H-i-s') . '.csv');
+        header('Content-Disposition: attachment; filename="tokens_' . date('Y-m-d_H-i-s') . '.csv"');
+        header('Cache-Control: max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         $output = fopen('php://output', 'w');
 
@@ -229,20 +270,48 @@ class TokenManagementController extends Controller
         // كتابة البيانات
         foreach ($tokens as $token) {
             fputcsv($output, [
-                $token['id'],
-                $token['token'],
-                $token['user_id'],
-                $token['user_name'],
-                $token['user_username'],
+                $token['id'] ?? '',
+                $token['token'] ?? '',
+                $token['user_id'] ?? '',
+                $token['user_name'] ?? '',
+                $token['user_username'] ?? '',
                 $token['team_name'] ?? 'No Team',
-                $token['created_at'],
-                $token['last_activity'],
-                $token['expires_after_minutes'],
-                $token['status']
+                $token['created_at'] ?? '',
+                $token['last_activity'] ?? '',
+                $token['expires_after_minutes'] ?? '',
+                $token['status'] ?? ''
             ]);
         }
 
         fclose($output);
+        exit;
+    }
+
+    /**
+     * تصدير التوكنات إلى JSON
+     */
+    private function exportJson($tokens)
+    {
+        // تنظيف أي output buffer
+        if (ob_get_level()) {
+            ob_clean();
+        }
+        
+        // إعداد headers للـ JSON
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="tokens_' . date('Y-m-d_H-i-s') . '.json"');
+        header('Cache-Control: max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        // تحضير البيانات للتصدير
+        $exportData = [
+            'export_date' => date('Y-m-d H:i:s'),
+            'total_tokens' => count($tokens),
+            'tokens' => $tokens
+        ];
+
+        echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 }

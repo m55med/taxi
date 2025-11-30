@@ -3,6 +3,7 @@
 namespace App\Models\Listings;
 
 use App\Core\Model;
+use App\Helpers\DateTimeHelper;
 use PDO;
 
 
@@ -455,7 +456,7 @@ public function getSearchSuggestions($q = '', $type = 'ticket')
                 'subcategory_id' => $detail['subcategory_id'],
                 'code_id' => $detail['code_id'],
                 'notes' => $detail['notes'],
-                'deleted_at' => \DateTimeHelper::getCurrentUTC()
+                'deleted_at' => DateTimeHelper::getCurrentUTC()
             ]);
 
             $logStmt = $this->db->prepare($logSql);

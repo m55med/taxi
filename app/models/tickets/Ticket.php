@@ -364,6 +364,34 @@ class Ticket extends Model
         return $result;
     }
 
+    public function updateTicketNumber($ticketId, $ticketNumber)
+    {
+        try {
+            // Check if ticket_number already exists for another ticket
+            $checkSql = "SELECT id FROM tickets WHERE ticket_number = :ticket_number AND id != :ticket_id";
+            $checkStmt = $this->db->prepare($checkSql);
+            $checkStmt->execute([
+                ':ticket_number' => $ticketNumber,
+                ':ticket_id' => $ticketId
+            ]);
+            if ($checkStmt->fetch()) {
+                // Ticket number already exists
+                return false;
+            }
+            
+            // Update ticket number
+            $sql = "UPDATE tickets SET ticket_number = :ticket_number WHERE id = :ticket_id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([
+                ':ticket_number' => $ticketNumber,
+                ':ticket_id' => $ticketId
+            ]);
+        } catch (\Exception $e) {
+            error_log("Exception in updateTicketNumber: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function updateTicketDetail($detailId, array $data, $userId)
     {
         try {
