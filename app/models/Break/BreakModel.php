@@ -145,23 +145,24 @@ class BreakModel
      */
     public function getBreaksSummary($filters = [])
     {
+        // Build base query - get all users who have breaks (completed or active)
         $sql = "SELECT
                     u.id as user_id,
                     u.name as user_name,
                     t.name as team_name,
                     tm.team_id,
-                    SUM(b.duration_seconds) as total_duration_seconds,
-                    SEC_TO_TIME(SUM(b.duration_seconds)) as total_duration_formatted,
-                    COUNT(b.id) as total_breaks,
-                    ROUND(SUM(b.duration_seconds) / 60, 0) as total_minutes,
+                    SUM(CASE WHEN b.end_time IS NOT NULL THEN COALESCE(b.duration_seconds, 0) ELSE 0 END) as total_duration_seconds,
+                    SEC_TO_TIME(SUM(CASE WHEN b.end_time IS NOT NULL THEN COALESCE(b.duration_seconds, 0) ELSE 0 END)) as total_duration_formatted,
+                    COUNT(CASE WHEN b.end_time IS NOT NULL THEN b.id END) as total_breaks,
+                    ROUND(SUM(CASE WHEN b.end_time IS NOT NULL THEN COALESCE(b.duration_seconds, 0) ELSE 0 END) / 60, 0) as total_minutes,
                     MAX(CASE WHEN b.is_active = 1 THEN 1 ELSE 0 END) as currently_on_break,
                     MAX(CASE WHEN b.is_active = 1 THEN b.start_time END) as current_break_start,
                     MAX(CASE WHEN b.is_active = 1 THEN TIMESTAMPDIFF(MINUTE, b.start_time, UTC_TIMESTAMP()) END) as current_break_minutes
-                FROM breaks b
-                JOIN users u ON b.user_id = u.id
+                FROM users u
+                INNER JOIN breaks b ON b.user_id = u.id
                 LEFT JOIN team_members tm ON u.id = tm.user_id
                 LEFT JOIN teams t ON tm.team_id = t.id
-                WHERE b.end_time IS NOT NULL";
+                WHERE (b.end_time IS NOT NULL OR b.is_active = 1)";
 
         $params = [];
 
@@ -192,6 +193,15 @@ class BreakModel
             $params[':to_date'] = $filters['to_date'];
         }
 
+        // Filter for users currently on break
+        if (!empty($filters['on_break']) && $filters['on_break'] === true) {
+            $sql .= " AND u.id IN (
+                SELECT DISTINCT user_id 
+                FROM breaks 
+                WHERE is_active = 1
+            )";
+        }
+
         // Handle sorting
         $sortBy = $filters['sort_by'] ?? 'total_duration_seconds';
         $sortOrder = strtoupper($filters['sort_order'] ?? 'DESC');
@@ -214,7 +224,9 @@ class BreakModel
 
         $actualSortField = $sortFieldMap[$sortBy] ?? 'total_duration_seconds';
 
-        $sql .= " GROUP BY u.id, u.name, t.name, tm.team_id ORDER BY {$actualSortField} {$sortOrder}";
+        $sql .= " GROUP BY u.id, u.name, t.name, tm.team_id 
+                  HAVING (COUNT(CASE WHEN b.end_time IS NOT NULL THEN b.id END) > 0 OR MAX(CASE WHEN b.is_active = 1 THEN 1 ELSE 0 END) = 1)
+                  ORDER BY {$actualSortField} {$sortOrder}";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

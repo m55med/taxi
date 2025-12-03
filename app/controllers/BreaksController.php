@@ -188,10 +188,26 @@ public function report()
         }
     }
 
+    // Get current user info
+    $currentUserId = $_SESSION['user_id'] ?? null;
+    $currentUserRole = $_SESSION['user']['role_name'] ?? '';
+    
+    // Auto-filter by team for Team Leaders
     $selectedUserId = $_GET['user_id'] ?? null;
     $selectedUserName = '';
     $selectedTeamId = $_GET['team_id'] ?? null;
     $selectedTeamName = '';
+    $autoFilteredByTeam = false;
+    
+    // If user is Team Leader and no team_id is explicitly set, auto-filter by their team
+    if (strtolower($currentUserRole) === 'team_leader' && empty($selectedTeamId) && $currentUserId) {
+        $teamId = \App\Models\Admin\TeamMember::getCurrentTeamIdForUser($currentUserId);
+        if ($teamId) {
+            $selectedTeamId = $teamId;
+            $selectedTeamName = $this->breakModel->getTeamNameById($teamId);
+            $autoFilteredByTeam = true;
+        }
+    }
 
     if (!empty($selectedUserId)) {
         $user = $this->userModel->getUserById($selectedUserId);
@@ -200,9 +216,12 @@ public function report()
         }
     }
 
-    if (!empty($selectedTeamId)) {
+    if (!empty($selectedTeamId) && !$autoFilteredByTeam) {
         $selectedTeamName = $this->breakModel->getTeamNameById($selectedTeamId);
     }
+
+    // Filter for currently on break
+    $showOnlyOnBreak = isset($_GET['on_break']) && $_GET['on_break'] === '1';
 
     $sortBy = $_GET['sort_by'] ?? 'total_duration_seconds';
     $sortOrder = $_GET['sort_order'] ?? 'desc';
@@ -214,6 +233,7 @@ public function report()
         'to_date' => $toDate,
         'sort_by' => $sortBy,
         'sort_order' => $sortOrder,
+        'on_break' => $showOnlyOnBreak,
     ];
 
     if (empty($selectedUserId) && !empty($_GET['search'])) {
@@ -248,7 +268,9 @@ public function report()
         'selected_team_name' => $selectedTeamName,
         'sort_by' => $sortBy,
         'sort_order' => $sortOrder,
-        'current_break_count' => $currentBreakCount
+        'current_break_count' => $currentBreakCount,
+        'on_break_filter' => $showOnlyOnBreak,
+        'auto_filtered_by_team' => $autoFilteredByTeam
     ]);
 }
 

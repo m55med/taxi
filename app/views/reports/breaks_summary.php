@@ -1,8 +1,6 @@
 <?php require APPROOT . '/views/includes/header.php'; ?>
 
-<pre><?php print_r($data); ?></pre>
-
-<div class="p-4 lg:p-6" x-data="dateFilters('<?= $data['filters']['from_date'] ?>', '<?= $data['filters']['to_date'] ?>')">
+<div class="p-4 lg:p-6" x-data="dateFilters('<?= $data['filters']['from_date'] ?? '' ?>', '<?= $data['filters']['to_date'] ?? '' ?>')">
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-6">
             <h1 class="text-3xl font-bold text-gray-800 flex items-center">
@@ -18,6 +16,19 @@
             </div>
         </div>
     </div>
+
+    <!-- Auto-filter notification for Team Leaders -->
+    <?php if (isset($data['auto_filtered_by_team']) && $data['auto_filtered_by_team']): ?>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                <span class="text-blue-800 font-medium">
+                    Showing breaks for your team: <strong><?= htmlspecialchars($data['selected_team_name'] ?? 'Your Team') ?></strong>
+                    <a href="<?= URLROOT ?>/reports/breaks" class="text-blue-600 underline ml-2">Show All Teams</a>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -126,6 +137,13 @@
             <label for="to_date" class="block text-sm font-medium text-gray-700 mb-1">To</label>
             <input type="date" name="to_date" id="to_date" class="w-full border-gray-300 rounded-lg shadow-sm" x-model="toDate">
         </div>
+    </div>
+    <!-- On Break Filter -->
+    <div class="md:col-span-1">
+        <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" name="on_break" value="1" <?= (isset($data['on_break_filter']) && $data['on_break_filter']) ? 'checked' : '' ?> class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="text-sm font-medium text-gray-700">Show Only On Break</span>
+        </label>
     </div>
     <!-- Action Buttons -->
     <div class="md:col-span-1 flex items-end gap-2" style="grid-column: span 5;">
