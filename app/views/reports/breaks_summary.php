@@ -1,4 +1,7 @@
 <?php require APPROOT . '/views/includes/header.php'; ?>
+
+<pre><?php print_r($data); ?></pre>
+
 <div class="p-4 lg:p-6" x-data="dateFilters('<?= $data['filters']['from_date'] ?>', '<?= $data['filters']['to_date'] ?>')">
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-6">

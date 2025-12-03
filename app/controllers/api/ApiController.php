@@ -925,6 +925,10 @@ HTML;
             return;
         }
 
+        // Get ticket details statistics
+        $ticketStats = $this->getUserTicketDetailsStats($userId);
+        $userData['ticket_details_stats'] = $ticketStats;
+
         // Update token activity (extend its life)
         $this->tokenModel->updateTokenActivity($token);
 
@@ -976,6 +980,78 @@ HTML;
         } catch (PDOException $e) {
             error_log("Error getting user with team: " . $e->getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Get ticket details statistics for a user
+     * Returns counts for: last 10 minutes, last hour, last 24 hours, today
+     */
+    private function getUserTicketDetailsStats($userId)
+    {
+        try {
+            $stats = [];
+
+            // Get current UTC time
+            $now = new \DateTime('now', new \DateTimeZone('UTC'));
+
+            // Last 10 minutes
+            $tenMinutesAgo = clone $now;
+            $tenMinutesAgo->modify('-10 minutes');
+            $stats['last_10_minutes'] = $this->countTicketDetailsByTimeRange($userId, $tenMinutesAgo, $now);
+
+            // Last 1 hour
+            $oneHourAgo = clone $now;
+            $oneHourAgo->modify('-1 hour');
+            $stats['last_hour'] = $this->countTicketDetailsByTimeRange($userId, $oneHourAgo, $now);
+
+            // Last 24 hours
+            $twentyFourHoursAgo = clone $now;
+            $twentyFourHoursAgo->modify('-24 hours');
+            $stats['last_24_hours'] = $this->countTicketDetailsByTimeRange($userId, $twentyFourHoursAgo, $now);
+
+            // Today (from 00:00:00 to now)
+            $todayStart = clone $now;
+            $todayStart->setTime(0, 0, 0);
+            $stats['today'] = $this->countTicketDetailsByTimeRange($userId, $todayStart, $now);
+
+            return $stats;
+
+        } catch (\Exception $e) {
+            error_log("Error getting ticket details stats: " . $e->getMessage());
+            return [
+                'last_10_minutes' => 0,
+                'last_hour' => 0,
+                'last_24_hours' => 0,
+                'today' => 0
+            ];
+        }
+    }
+
+    /**
+     * Count ticket details created by user within a time range
+     */
+    private function countTicketDetailsByTimeRange($userId, $startTime, $endTime)
+    {
+        try {
+            $sql = "SELECT COUNT(*) 
+                    FROM ticket_details 
+                    WHERE created_by = :user_id 
+                    AND created_at >= :start_time 
+                    AND created_at <= :end_time";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':user_id' => $userId,
+                ':start_time' => $startTime->format('Y-m-d H:i:s'),
+                ':end_time' => $endTime->format('Y-m-d H:i:s')
+            ]);
+
+            return (int)$stmt->fetchColumn();
+
+        } catch (\Exception $e) {
+            error_log("Error counting ticket details: " . $e->getMessage());
+            return 0;
         }
     }
 
