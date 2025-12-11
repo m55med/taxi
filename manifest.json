@@ -1,0 +1,58 @@
+{
+    "manifest_version": 3,
+    "name": "CS Taxif",
+    "version": "1.0.2",
+    "description": "Customer Support Ticket Management Extension for Taxif",
+    "permissions": [
+        "storage",
+        "contextMenus",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "https://cs.taxif.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://cs.taxif.com/*",
+                "https://app.sowork.com/*",
+                "https://app.trengo.com/*"
+            ],
+            "js": [
+                "content/content.js"
+            ],
+            "css": [
+                "content/content.css"
+            ],
+            "run_at": "document_end"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "action": {
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        },
+        "default_title": "CS Taxif"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "content/panel.html",
+                "content/panel.js",
+                "utils/*.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}
