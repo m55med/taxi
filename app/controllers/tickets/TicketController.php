@@ -602,7 +602,7 @@ class TicketController extends Controller
                 redirect('tickets/view/' . $ticketId);
                 return;
             }
-            
+    
             // Validate ticket_number
             if (empty($data['ticket_number'])) {
                 $_SESSION['error_message'] = '⚠️ يرجى إدخال رقم التذكرة.';
@@ -620,7 +620,7 @@ class TicketController extends Controller
                 }
             }
     
-    
+        
             $this->logTicketChanges($detailId, $currentDetails, $data, $userId);
     
             // UPDATE the existing ticket detail instead of creating a new one

@@ -26,14 +26,54 @@ class UsersController extends Controller {
     }
 
     public function index() {
+        // Cleanup inactive users first to ensure accurate count
         $this->activeUserService->cleanupInactiveUsers();
+        
+        // Get all users and online user IDs
         $users = $this->userModel->getAllUsers();
+        
+        // Remove duplicates by ID (extra safety check)
+        $uniqueUsers = [];
+        $seenIds = [];
+        foreach ($users as $user) {
+            $userId = is_object($user) ? $user->id : $user['id'];
+            if (!in_array($userId, $seenIds)) {
+                $uniqueUsers[] = $user;
+                $seenIds[] = $userId;
+            } else {
+                error_log("Duplicate user found: ID " . $userId);
+            }
+        }
+        $users = $uniqueUsers;
+        
         $onlineUserIds = $this->activeUserService->getOnlineUserIds();
-        $userStats = $this->userModel->getUserStats(); // Get user statistics
-
+        
+        // Get user statistics
+        $userStats = $this->userModel->getUserStats();
+        
+        // Mark users as online/offline based on ActiveUserService
         foreach ($users as &$user) {
             $user->is_online = in_array($user->id, $onlineUserIds);
         }
+        
+        // IMPORTANT: Count actual online users from the users array (not from onlineUserIds)
+        // This ensures consistency between the stats card and the table
+        // Some users in onlineUserIds might not be in the users array (deleted, banned, etc.)
+        $actualOnlineCount = 0;
+        foreach ($users as $user) {
+            if (!empty($user->is_online)) {
+                $actualOnlineCount++;
+            }
+        }
+        
+        // Debug: Log the counts for troubleshooting
+        error_log("UsersController - Online User IDs from ActiveUserService: " . count($onlineUserIds));
+        error_log("UsersController - Users in array: " . count($users));
+        error_log("UsersController - Actual Online Count (from users array): " . $actualOnlineCount);
+        error_log("UsersController - Database Online Count (from getUserStats): " . ($userStats['online_users'] ?? 'N/A'));
+        
+        // Override with the actual count from users array
+        $userStats['online_users'] = $actualOnlineCount;
         
         $data = [
             'users' => $users,

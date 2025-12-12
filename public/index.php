@@ -67,6 +67,17 @@ if (
     // echo "<script>console.log('🔗 URLROOT = " . URLROOT . "');</script>";
 }
 
+// Configure session cookie parameters for security
+// This must be called before session_start()
+session_set_cookie_params([
+    'lifetime' => 0, // Until browser closes
+    'path' => '/',
+    'domain' => '', // Use default domain
+    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', // Enable on HTTPS
+    'httponly' => true, // Prevent JavaScript access (XSS protection)
+    'samesite' => 'Lax' // CSRF protection
+]);
+
 // Start the session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

@@ -12,6 +12,9 @@ use PDO;
 
 use PDOException;
 
+// تحميل DateTime Helper للتعامل مع التوقيت
+require_once APPROOT . '/helpers/DateTimeHelper.php';
+
 
 
 class User
@@ -308,7 +311,7 @@ class User
 
         try {
 
-            $sql = "SELECT 
+            $sql = "SELECT DISTINCT
 
                         u.id,
 
@@ -382,7 +385,7 @@ class User
 
 
 
-            $sql .= " ORDER BY u.created_at DESC";
+            $sql .= " GROUP BY u.id ORDER BY u.created_at DESC";
 
 
 
@@ -391,6 +394,25 @@ class User
             $stmt->execute($params);
 
             $users = $stmt->fetchAll(PDO::FETCH_OBJ);
+
+
+
+            // Remove duplicates by ID (extra safety measure)
+            $uniqueUsers = [];
+            $seenIds = [];
+            foreach ($users as $user) {
+                $userId = is_object($user) ? $user->id : (is_array($user) ? $user['id'] : null);
+                if ($userId && !in_array($userId, $seenIds)) {
+                    $uniqueUsers[] = $user;
+                    $seenIds[] = $userId;
+                } else if ($userId) {
+                    error_log("Duplicate user found in getAllUsers: ID " . $userId);
+                }
+            }
+            $users = $uniqueUsers;
+            
+            // Log total unique users for debugging
+            error_log("getAllUsers - Total unique users: " . count($users));
 
 
 
@@ -1406,10 +1428,6 @@ class User
         try {
             // Create placeholders for the IN clause
             $placeholders = implode(',', array_fill(0, count($roles), '?'));
-
-
-// تحميل DateTime Helper للتعامل مع التوقيت
-require_once APPROOT . '/helpers/DateTimeHelper.php';
 
             $sql = "SELECT u.id, u.name, u.username
                     FROM users u

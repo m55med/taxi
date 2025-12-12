@@ -12,6 +12,7 @@ if (isset($_SESSION['user_message'])) {
 <?php include_once __DIR__ . '/../../includes/header.php'; ?>
 
 
+
 <body class="bg-gray-100">
     <div x-data="usersPage(<?= htmlspecialchars(json_encode($flashMessage), ENT_QUOTES) ?>)" x-init="init()">
 
@@ -44,6 +45,18 @@ if (isset($_SESSION['user_message'])) {
                     <div>
                         <p class="text-sm text-gray-500">Online Users</p>
                         <p class="text-2xl font-bold text-gray-800"><?= $data['stats']['online_users'] ?? 0 ?></p>
+                        <!-- Debug: Show actual count -->
+                        <?php 
+                        $onlineCount = 0;
+                        if (!empty($data['users'])) {
+                            foreach ($data['users'] as $user) {
+                                if (!empty($user->is_online)) {
+                                    $onlineCount++;
+                                }
+                            }
+                        }
+                        ?>
+                        <p class="text-xs text-gray-400 mt-1">Debug: Actual in table: <?= $onlineCount ?></p>
                     </div>
                 </div>
                 <div class="bg-white p-6 rounded-lg shadow-md flex items-center">
@@ -131,6 +144,14 @@ if (isset($_SESSION['user_message'])) {
                             <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
                             <input type="date" x-model="filters.dateTo" @change="applyFilters()" :class="filters.dateTo ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Online Status</label>
+                            <select x-model="filters.isOnline" @change="applyFilters()" :class="filters.isOnline ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300'" class="w-full rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors duration-200">
+                                <option value="">All Users</option>
+                                <option value="online">Online Only</option>
+                                <option value="offline">Offline Only</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="mt-4 text-sm text-gray-600">
                         <span x-text="getFilteredRowsCount()"></span> users displayed
@@ -169,8 +190,24 @@ if (isset($_SESSION['user_message'])) {
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php if (!empty($data['users'])): ?>
-                                <?php foreach ($data['users'] as $user): ?>
-                                <tr>
+                                <?php 
+                                // Remove duplicates by ID (final safety check in view)
+                                $displayedUsers = [];
+                                $displayedIds = [];
+                                foreach ($data['users'] as $user) {
+                                    $userId = is_object($user) ? $user->id : (is_array($user) ? $user['id'] : null);
+                                    if ($userId && !in_array($userId, $displayedIds)) {
+                                        $displayedUsers[] = $user;
+                                        $displayedIds[] = $userId;
+                                    }
+                                }
+                                ?>
+                                <?php foreach ($displayedUsers as $user): ?>
+                                <?php 
+                                    // Ensure is_online is properly converted to 1 or 0
+                                    $isOnline = isset($user->is_online) && ($user->is_online === true || $user->is_online === 1 || $user->is_online === '1');
+                                ?>
+                                <tr data-is-online="<?= $isOnline ? '1' : '0' ?>">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?= htmlspecialchars($user->id ?? '') ?>
                                     </td>
@@ -317,7 +354,8 @@ function usersPage(flashMessage) {
             role: '',
             status: '',
             dateFrom: '',
-            dateTo: ''
+            dateTo: '',
+            isOnline: ''
         },
         init() {
             if (flashMessage && flashMessage.message) {
@@ -335,14 +373,25 @@ function usersPage(flashMessage) {
                 if (row.id === 'no-users-row' || row.id === 'no-filtered-results') return;
                 if (row.cells.length < 8) return; // Skip any other special rows
                 
+                // Check if user is online using data attribute (more reliable)
+                const isOnlineAttr = row.getAttribute('data-is-online');
+                // Convert to boolean - '1' means online, anything else means offline
+                const isOnline = String(isOnlineAttr) === '1';
+                
+                // Extract username properly (skip the green dot indicator)
+                const usernameCell = row.cells[1];
+                const usernameDiv = usernameCell.querySelector('.text-sm.font-medium');
+                const username = usernameDiv ? usernameDiv.textContent.trim() : row.cells[1].textContent.trim();
+                
                 const rowData = {
                     id: row.cells[0].textContent.trim(),
-                    username: row.cells[1].textContent.trim(),
+                    username: username,
                     name: row.cells[2].textContent.trim(), 
                     email: row.cells[3].textContent.trim(),
                     role: row.cells[4].textContent.trim().toLowerCase(),
                     status: row.cells[5].textContent.trim().toLowerCase(),
-                    lastActivity: row.cells[6].textContent.trim()
+                    lastActivity: row.cells[6].textContent.trim(),
+                    isOnline: isOnline
                 };
                 
                 let shouldShow = true;
@@ -400,6 +449,21 @@ function usersPage(flashMessage) {
                     }
                 }
                 
+                // Filter by online status - must be checked after all other filters
+                if (this.filters.isOnline && this.filters.isOnline !== '') {
+                    if (this.filters.isOnline === 'online') {
+                        // Only show if user is online
+                        if (!rowData.isOnline) {
+                            shouldShow = false;
+                        }
+                    } else if (this.filters.isOnline === 'offline') {
+                        // Only show if user is offline
+                        if (rowData.isOnline) {
+                            shouldShow = false;
+                        }
+                    }
+                }
+                
                 row.style.display = shouldShow ? '' : 'none';
                 if (shouldShow) visibleRowsCount++;
             });
@@ -441,7 +505,8 @@ function usersPage(flashMessage) {
                 role: '',
                 status: '',
                 dateFrom: '',
-                dateTo: ''
+                dateTo: '',
+                isOnline: ''
             };
             this.applyFilters();
         },

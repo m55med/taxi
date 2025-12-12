@@ -985,7 +985,7 @@ HTML;
 
     /**
      * Get ticket details statistics for a user
-     * Returns counts for: last 10 minutes, last hour, last 24 hours, today
+     * Returns counts for: today, last hour, current hour (from start of current hour to now)
      */
     private function getUserTicketDetailsStats($userId)
     {
@@ -995,35 +995,29 @@ HTML;
             // Get current UTC time
             $now = new \DateTime('now', new \DateTimeZone('UTC'));
 
-            // Last 10 minutes
-            $tenMinutesAgo = clone $now;
-            $tenMinutesAgo->modify('-10 minutes');
-            $stats['last_10_minutes'] = $this->countTicketDetailsByTimeRange($userId, $tenMinutesAgo, $now);
+            // 1. Today (from 00:00:00 to now)
+            $todayStart = clone $now;
+            $todayStart->setTime(0, 0, 0);
+            $stats['today'] = $this->countTicketDetailsByTimeRange($userId, $todayStart, $now);
 
-            // Last 1 hour
+            // 2. Last 1 hour (from 1 hour ago to now)
             $oneHourAgo = clone $now;
             $oneHourAgo->modify('-1 hour');
             $stats['last_hour'] = $this->countTicketDetailsByTimeRange($userId, $oneHourAgo, $now);
 
-            // Last 24 hours
-            $twentyFourHoursAgo = clone $now;
-            $twentyFourHoursAgo->modify('-24 hours');
-            $stats['last_24_hours'] = $this->countTicketDetailsByTimeRange($userId, $twentyFourHoursAgo, $now);
-
-            // Today (from 00:00:00 to now)
-            $todayStart = clone $now;
-            $todayStart->setTime(0, 0, 0);
-            $stats['today'] = $this->countTicketDetailsByTimeRange($userId, $todayStart, $now);
+            // 3. Current hour (from start of current hour to now)
+            $currentHourStart = clone $now;
+            $currentHourStart->setTime((int)$now->format('H'), 0, 0); // Set to start of current hour (e.g., 14:00:00)
+            $stats['current_hour'] = $this->countTicketDetailsByTimeRange($userId, $currentHourStart, $now);
 
             return $stats;
 
         } catch (\Exception $e) {
             error_log("Error getting ticket details stats: " . $e->getMessage());
             return [
-                'last_10_minutes' => 0,
+                'today' => 0,
                 'last_hour' => 0,
-                'last_24_hours' => 0,
-                'today' => 0
+                'current_hour' => 0
             ];
         }
     }
