@@ -155,11 +155,11 @@ function updateTicketStats(stats) {
     if (!statsContainer) return;
 
     if (stats) {
-        const statLast10Min = document.getElementById('statLast10Min');
+        const statCurrentHour = document.getElementById('statCurrentHour');
         const statLastHour = document.getElementById('statLastHour');
         const statToday = document.getElementById('statToday');
 
-        if (statLast10Min) statLast10Min.textContent = stats.last_10_minutes || 0;
+        if (statCurrentHour) statCurrentHour.textContent = stats.current_hour || 0;
         if (statLastHour) statLastHour.textContent = stats.last_hour || 0;
         if (statToday) statToday.textContent = stats.today || 0;
 
@@ -1213,6 +1213,8 @@ function setVersionNumber() {
         
         if (versionBadge) {
             versionBadge.textContent = `v${version}`;
+            // Add click event listener to show changelog
+            versionBadge.addEventListener('click', showChangelog);
             console.log('Version badge set to:', version);
         } else {
             console.warn('Version badge element not found');
@@ -1223,8 +1225,99 @@ function setVersionNumber() {
         const versionBadge = document.getElementById('versionBadge');
         if (versionBadge) {
             versionBadge.textContent = 'v1.0.0';
+            versionBadge.addEventListener('click', showChangelog);
         }
     }
+}
+
+// Load and display changelog
+async function loadChangelog() {
+    try {
+        // Get the runtime URL for the changelog file
+        const changelogUrl = chrome?.runtime?.getURL('CHANGELOG.json') || 
+                            (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL('CHANGELOG.json'));
+        
+        if (!changelogUrl) {
+            console.error('Cannot get runtime URL');
+            return [];
+        }
+        
+        const response = await fetch(changelogUrl);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        return data.changelog || [];
+    } catch (error) {
+        console.error('Error loading changelog:', error);
+        // Return empty array or fallback data
+        return [];
+    }
+}
+
+// Show changelog modal
+async function showChangelog() {
+    const changelogModal = document.getElementById('changelogModal');
+    const changelogBody = document.getElementById('changelogBody');
+    const changelogCloseBtn = document.getElementById('changelogCloseBtn');
+    
+    if (!changelogModal || !changelogBody) {
+        console.error('Changelog modal elements not found');
+        return;
+    }
+    
+    // Load changelog data
+    const changelog = await loadChangelog();
+    
+    if (changelog.length === 0) {
+        changelogBody.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">لا توجد تعديلات متاحة</p>';
+    } else {
+        // Render changelog entries
+        changelogBody.innerHTML = changelog.map(entry => `
+            <div class="changelog-entry">
+                <div class="changelog-entry-header">
+                    <span class="changelog-version">v${entry.version}</span>
+                    <span class="changelog-date">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        ${entry.date} ${entry.time}
+                    </span>
+                </div>
+                <ul class="changelog-changes">
+                    ${entry.changes.map(change => `<li>${change}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    }
+    
+    // Show modal
+    changelogModal.classList.add('active');
+    
+    // Close handler function
+    const handleClose = () => {
+        changelogModal.classList.remove('active');
+    };
+    
+    // Close button handler
+    if (changelogCloseBtn) {
+        // Remove any existing listeners to avoid duplicates
+        const newCloseBtn = changelogCloseBtn.cloneNode(true);
+        changelogCloseBtn.parentNode.replaceChild(newCloseBtn, changelogCloseBtn);
+        newCloseBtn.addEventListener('click', handleClose);
+    }
+    
+    // Close on overlay click (remove old listener first)
+    const overlayClickHandler = (e) => {
+        if (e.target === changelogModal) {
+            handleClose();
+            changelogModal.removeEventListener('click', overlayClickHandler);
+        }
+    };
+    changelogModal.addEventListener('click', overlayClickHandler);
 }
 
 // Initialize custom category code select

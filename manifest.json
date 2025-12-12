@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "CS Taxif",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Customer Support Ticket Management Extension for Taxif",
     "permissions": [
         "storage",
@@ -48,7 +48,8 @@
             "resources": [
                 "content/panel.html",
                 "content/panel.js",
-                "utils/*.js"
+                "utils/*.js",
+                "CHANGELOG.json"
             ],
             "matches": [
                 "<all_urls>"
