@@ -2,7 +2,7 @@
 
 
 
-namespace App\Controllers\Reports\Users;
+namespace App\Controllers\reports\Users;
 
 
 
@@ -253,6 +253,8 @@ class UsersController extends Controller
 
         echo json_encode($processedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
+        exit();
+
     }
 
 
@@ -297,15 +299,23 @@ class UsersController extends Controller
 
             ];
 
-            $sheet->fromArray($headers, null, 'A1');
+            $sheet->fromArray([$headers], null, 'A1');
 
             $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->applyFromArray($headerStyle);
 
 
 
-            // Add Data
+            // Add Data - Convert associative arrays to indexed arrays
 
-            $sheet->fromArray($processedData, null, 'A2');
+            $dataRows = [];
+
+            foreach ($processedData as $row) {
+
+                $dataRows[] = array_values($row);
+
+            }
+
+            $sheet->fromArray($dataRows, null, 'A2');
 
 
 
@@ -347,7 +357,7 @@ class UsersController extends Controller
 
             ];
 
-            $sheet->fromArray($summaryRow, null, 'A' . $lastRow);
+            $sheet->fromArray([$summaryRow], null, 'A' . $lastRow);
 
 
 
@@ -375,17 +385,26 @@ class UsersController extends Controller
 
 
 
+        // Clear any output before sending file
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
         header('Content-Disposition: attachment;filename="' . $filename . '_' . date('Y-m-d') . '.xlsx"');
 
         header('Cache-Control: max-age=0');
 
+        header('Pragma: public');
+
 
 
         $writer = new Xlsx($spreadsheet);
 
         $writer->save('php://output');
+
+        exit();
 
     }
 

@@ -715,10 +715,16 @@ foreach ($adminControllers as $controller => $uri) {
 
 
 
+
 // Add custom routes that don't fit the standard RESTful pattern
 
 $router->post("admin/users/forceLogout", "admin/UsersController@forceLogout")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
+
+
+// Reports - Users Export Routes (MUST be before the commented mapReportRoutes section)
+$router->get("reports/users/export", "reports\\Users\\UsersController@export")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post("reports/users/export", "reports\\Users\\UsersController@export")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
 
 /*
@@ -740,8 +746,6 @@ function mapReportRoutes($router, $uri, $controllerPath)
     $router->get("reports/{$uri}", "{$controller}@index")->middleware(['admin', 'developer', 'Quality', 'team_leader']);
 
     $router->post("reports/{$uri}", "{$controller}@index")->middleware(['admin', 'developer', 'Quality', 'team_leader']); // For forms like search/filter
-
-
 
     // Route for methods with parameters (e.g., /reports/users/view/1)
 
@@ -766,6 +770,9 @@ function mapReportRoutes($router, $uri, $controllerPath)
 
 
 // Mapping all report routes
+
+// Add specific static export route for users report BEFORE mapReportRoutes to ensure it's matched first
+
 
 mapReportRoutes($router, 'users', 'Users/UsersController');
 
