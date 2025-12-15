@@ -10,6 +10,7 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 try {
     $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
     $dotenv->load();
+    $dotenv->required(['TRENGO_API_TOKEN']);
 } catch (\Dotenv\Exception\InvalidPathException $e) {
     // .env file is not mandatory.
 }

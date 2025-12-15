@@ -50,7 +50,7 @@ class UsersController extends Controller {
         
         // Get user statistics
         $userStats = $this->userModel->getUserStats();
-        
+
         // Mark users as online/offline based on ActiveUserService
         foreach ($users as &$user) {
             $user->is_online = in_array($user->id, $onlineUserIds);

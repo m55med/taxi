@@ -148,6 +148,11 @@ class UsersController extends Controller
 
     {
 
+        // Clean any output buffer to prevent corruption
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
         $filters = [
 
             'role_id' => $_GET['role_id'] ?? '',
@@ -241,6 +246,11 @@ class UsersController extends Controller
 
     {
 
+        // Clean any output buffer to prevent corruption
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
         header('Content-Type: application/json; charset=UTF-8');
 
         header('Content-Disposition: attachment;filename="users_report_' . date('Y-m-d') . '.json"');
@@ -262,6 +272,11 @@ class UsersController extends Controller
     private function exportUsersToExcel($reportData, $filename)
 
     {
+
+        // Clean any output buffer to prevent corruption
+        if (ob_get_level()) {
+            ob_clean();
+        }
 
         $spreadsheet = new Spreadsheet();
 
@@ -299,23 +314,27 @@ class UsersController extends Controller
 
             ];
 
-            $sheet->fromArray([$headers], null, 'A1');
+            $sheet->fromArray($headers, null, 'A1');
 
             $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->applyFromArray($headerStyle);
 
 
 
-            // Add Data - Convert associative arrays to indexed arrays
-
-            $dataRows = [];
-
+            // Add Data - Use fromArray but ensure data is clean
+            $cleanData = [];
             foreach ($processedData as $row) {
-
-                $dataRows[] = array_values($row);
-
+                $cleanRow = [];
+                foreach ($row as $value) {
+                    // Ensure value is scalar (string, number, or null)
+                    if (is_array($value) || is_object($value)) {
+                        $cleanRow[] = '';
+                    } else {
+                        $cleanRow[] = $value ?? '';
+                    }
+                }
+                $cleanData[] = $cleanRow;
             }
-
-            $sheet->fromArray($dataRows, null, 'A2');
+            $sheet->fromArray($cleanData, null, 'A2');
 
 
 
@@ -357,7 +376,7 @@ class UsersController extends Controller
 
             ];
 
-            $sheet->fromArray([$summaryRow], null, 'A' . $lastRow);
+            $sheet->fromArray($summaryRow, null, 'A' . $lastRow);
 
 
 
@@ -385,18 +404,12 @@ class UsersController extends Controller
 
 
 
-        // Clear any output before sending file
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-
+        // Set headers before output
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-
         header('Content-Disposition: attachment;filename="' . $filename . '_' . date('Y-m-d') . '.xlsx"');
-
         header('Cache-Control: max-age=0');
-
-        header('Pragma: public');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
 
 
