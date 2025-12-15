@@ -1403,6 +1403,7 @@ HTML;
 
     private function getLatestTicketDetailWithNames($ticketId)
     {
+        // OPTIMIZED: Direct query with ORDER BY + LIMIT (faster with index on ticket_id, id)
         $stmt = $this->db->prepare("
             SELECT
                 td.*,
