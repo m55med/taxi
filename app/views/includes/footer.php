@@ -18,7 +18,7 @@
                            rel="noopener noreferrer"
                            class="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200 border border-blue-200 hover:border-blue-300">
                             <i class="fas fa-code-branch mr-2 text-xs"></i>
-                            <span class="font-medium">Version V.1.2.6</span>
+                            <span class="font-medium">Version V.1.3.0</span>
                             <i class="fas fa-external-link-alt ml-2 text-xs opacity-70"></i>
                         </a>
                     </div>

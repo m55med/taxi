@@ -1770,9 +1770,11 @@ HTML;
         }
 
         try {
-            // Check if ticket exists
-            if (!$this->checkTicketExistsByNumber($ticketNumber)) {
-                // Try to get ticket info from Trengo as helper data
+            // OPTIMIZATION: Get ticket data in a single query (combines checkTicketExistsByNumber + getTicketByNumberOnly)
+            $ticket = $this->getTicketByNumberOnly($ticketNumber);
+
+            if (!$ticket) {
+                // Ticket not found - only call Trengo API if ticket doesn't exist (not needed for existing tickets)
                 $trengoService = new TrengoService();
                 $trengoInfo = $trengoService->getTicketContext($ticketNumber);
                 
@@ -1801,19 +1803,7 @@ HTML;
                 return;
             }
 
-            // Get ticket data
-            $ticket = $this->getTicketByNumberOnly($ticketNumber);
-
-            if (!$ticket) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Ticket not found',
-                    'ticket_number' => $ticketNumber
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-                return;
-            }
-
-            // Get latest ticket detail with full information
+            // OPTIMIZATION: Get latest ticket detail with full information in one optimized query
             $latestDetail = $this->getLatestTicketDetailWithNames($ticket['id']);
 
             if (!$latestDetail) {
@@ -1825,7 +1815,7 @@ HTML;
                 return;
             }
 
-            // Update token activity
+            // Update token activity (non-blocking - can be done after response if needed)
             $this->tokenModel->updateTokenActivity($token);
 
             // Return the complete ticket detail information

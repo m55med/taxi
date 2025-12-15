@@ -952,6 +952,17 @@ $router->get('tickets/edit/{id}', 'tickets/TicketController@edit');
 
 $router->post('tickets/update/{id}', 'tickets/TicketController@update');
 
+// Trengo Ticket Viewer Routes
+$router->get('tickets/trengo/viewer', 'tickets/TrengoController@viewer');
+
+$router->get('tickets/trengo/messages/{ticketNumber}', 'tickets/TrengoController@getMessages');
+
+$router->get('tickets/trengo/contact-tickets/{contactId}', 'tickets/TrengoController@getContactTickets');
+
+$router->get('tickets/trengo/context/{ticketNumber}', 'tickets/TrengoController@getContext');
+
+$router->get('tickets/trengo/check-exists', 'tickets/TrengoController@checkExists');
+
 $router->get('tickets/edit-logs/{id}', 'tickets/TicketController@editLogs');
 
 $router->get('test/auth', 'tickets/TestController@testAuth');

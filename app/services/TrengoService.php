@@ -328,5 +328,86 @@ class TrengoService
 
         return null;
     }
+
+    /**
+     * Get ticket messages with pagination
+     * @param string $ticketNumber The ticket number
+     * @param int $page Page number (default: 1)
+     * @return array|null Array containing messages data and meta, or null on failure
+     */
+    public function getTicketMessages(string $ticketNumber, int $page = 1): ?array
+    {
+        if (!$this->isAvailable()) {
+            return null;
+        }
+
+        // Get ticket ID first
+        $ticketInfo = $this->searchTicket($ticketNumber);
+        if (!$ticketInfo) {
+            return null;
+        }
+
+        $ticketId = $ticketInfo['id'] ?? null;
+        if (!$ticketId) {
+            return null;
+        }
+
+        // Fetch messages with pagination
+        $result = $this->get("/tickets/{$ticketId}/messages?page={$page}");
+        if (!$result || !isset($result['data'])) {
+            return null;
+        }
+
+        return [
+            'messages' => $result['data'],
+            'meta' => $result['meta'] ?? null,
+            'links' => $result['links'] ?? null
+        ];
+    }
+
+    /**
+     * Get other tickets for the same contact
+     * @param int $contactId The contact ID
+     * @param int $page Page number (default: 1)
+     * @param int $limit Number of tickets per page (default: 10)
+     * @return array|null Array containing tickets data, or null on failure
+     */
+    public function getContactTickets(int $contactId, int $page = 1, int $limit = 10): ?array
+    {
+        if (!$this->isAvailable()) {
+            return null;
+        }
+
+        $result = $this->get("/tickets?page={$page}&contact_id={$contactId}&sort=-date&per_page={$limit}");
+        if (!$result || !isset($result['data'])) {
+            return null;
+        }
+
+        return [
+            'tickets' => $result['data'],
+            'meta' => $result['meta'] ?? null,
+            'links' => $result['links'] ?? null
+        ];
+    }
+
+    /**
+     * Get contact information by ID
+     * @param int $contactId The contact ID
+     * @return array|null Contact data or null on failure
+     */
+    public function getContact(int $contactId): ?array
+    {
+        if (!$this->isAvailable()) {
+            return null;
+        }
+
+        $result = $this->get("/contacts/{$contactId}");
+        if (!$result) {
+            return null;
+        }
+
+        // Return direct data (not wrapped in 'data' key for single contact)
+        return $result;
+    }
 }
 

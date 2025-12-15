@@ -59,6 +59,9 @@ function getNavigationItems($role) {
 
                 ['title' => 'Search Tickets', 'href' => '/tickets/view', 'icon' => 'fas fa-search'],
 
+                ['title' => 'Trengo Tickets', 'href' => '/tickets/trengo/viewer', 'icon' => 'fas fa-comments'],
+
+
             ]
 
         ],
