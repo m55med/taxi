@@ -67,3 +67,48 @@
 #cs-taxif-extension-iframe-panel.open {
     left: 0;
 }
+
+/* Trengo Integration - Icon next to ticket number */
+.cs-taxif-trengo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: 8px;
+    padding: 0;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    outline: none;
+    flex-shrink: 0;
+}
+
+.cs-taxif-trengo-icon:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+}
+
+.cs-taxif-trengo-icon:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.cs-taxif-trengo-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    fill: none;
+}
+
+/* Ensure icon is visible in Trengo's sidebar */
+[data-test="sidebar-ticket-id"] + .cs-taxif-trengo-icon,
+.flex.items-center .cs-taxif-trengo-icon {
+    display: inline-flex !important;
+}

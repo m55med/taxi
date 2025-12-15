@@ -1,12 +1,13 @@
 {
     "manifest_version": 3,
     "name": "CS Taxif",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "Customer Support Ticket Management Extension for Taxif",
     "permissions": [
         "storage",
         "contextMenus",
-        "activeTab"
+        "activeTab",
+        "clipboardRead"
     ],
     "host_permissions": [
         "https://cs.taxif.com/*"

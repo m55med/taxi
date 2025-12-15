@@ -31,6 +31,7 @@ const elements = {
     subcategorySelect: null,
     codeSelect: null,
     phoneInput: null,
+    pastePhoneBtn: null,
     countrySelect: null,
     vipSwitch: null,
     marketerGroup: null,
@@ -75,6 +76,13 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
+// Helper function to clean phone number (remove spaces, keep + and digits)
+function cleanPhoneNumber(phone) {
+    if (!phone) return '';
+    // Remove all spaces and keep only + and digits
+    return phone.replace(/\s+/g, '').replace(/[^\d+]/g, '');
+}
+
 // Initialize DOM elements
 function initElements() {
     console.log('Initializing DOM elements...');
@@ -104,6 +112,7 @@ function initElements() {
     elements.categoryCodeSearch = document.getElementById('categoryCodeSearch');
     elements.categoryCodeOptionsList = document.getElementById('categoryCodeOptionsList');
     elements.phoneInput = document.getElementById('phoneInput');
+    elements.pastePhoneBtn = document.getElementById('pastePhoneBtn');
     elements.countrySelect = document.getElementById('countrySelect');
     elements.vipSwitch = document.getElementById('vipSwitch');
     elements.marketerGroup = document.getElementById('marketerGroup');
@@ -510,10 +519,46 @@ async function handleLogout(event) {
     }
 }
 
+// Paste from clipboard with fallback method
+async function pasteFromClipboard() {
+    try {
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            return await navigator.clipboard.readText();
+        }
+    } catch (error) {
+        console.warn('Clipboard API failed, trying fallback method:', error);
+    }
+
+    // Fallback: Use document.execCommand (requires user interaction)
+    try {
+        // Create a temporary textarea to paste into
+        const textarea = document.createElement('textarea');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        const success = document.execCommand('paste');
+        const text = textarea.value;
+        document.body.removeChild(textarea);
+
+        if (success && text) {
+            return text;
+        }
+    } catch (error) {
+        console.error('Fallback paste method failed:', error);
+    }
+
+    throw new Error('Unable to access clipboard');
+}
+
 // Paste ticket number from clipboard
 async function handlePaste() {
     try {
-        const text = await navigator.clipboard.readText();
+        const text = await pasteFromClipboard();
         const ticketNumber = text.trim().replace(/\D/g, '');
 
         if (ticketNumber) {
@@ -524,7 +569,25 @@ async function handlePaste() {
         }
     } catch (error) {
         console.error('Paste error:', error);
-        showMessage('Paste failed. Please try manually.', 'error');
+        showMessage('Paste failed. Please use Ctrl+V (Cmd+V on Mac) to paste manually.', 'error');
+    }
+}
+
+// Paste phone number from clipboard
+async function handlePastePhone() {
+    try {
+        const text = await pasteFromClipboard();
+        const phoneNumber = text.trim();
+
+        if (phoneNumber) {
+            elements.phoneInput.value = phoneNumber;
+            showMessage('Phone number pasted', 'success');
+        } else {
+            showMessage('No text found in clipboard', 'warning');
+        }
+    } catch (error) {
+        console.error('Paste phone error:', error);
+        showMessage('Paste failed. Please use Ctrl+V (Cmd+V on Mac) to paste manually.', 'error');
     }
 }
 
@@ -849,7 +912,7 @@ async function handleCreateTicket(e) {
         category_id: parseInt(categoryCodeData.categoryId),
         subcategory_id: parseInt(categoryCodeData.subcategoryId),
         code_id: parseInt(categoryCodeData.codeId),
-        phone: elements.phoneInput.value.trim() || '', // Optional - allow empty
+        phone: cleanPhoneNumber(elements.phoneInput.value.trim()) || '', // Clean phone number (remove spaces)
         notes: elements.notesInput ? (elements.notesInput.value.trim() || '') : '',
         country_id: parseInt(elements.countrySelect.value),
         is_vip: elements.vipSwitch ? elements.vipSwitch.checked : false
@@ -1125,7 +1188,7 @@ async function executeQuickClone(notes = '') {
         category_id: parseInt(ticket.category?.id),
         subcategory_id: parseInt(ticket.subcategory?.id),
         code_id: parseInt(ticket.code?.id),
-        phone: ticket.phone || '', // Optional - allow empty
+        phone: cleanPhoneNumber(ticket.phone || ''), // Clean phone number (remove spaces)
         country_id: parseInt(ticket.country?.id),
         is_vip: ticket.is_vip || false
     };
@@ -1382,6 +1445,9 @@ async function init() {
     elements.loginForm.addEventListener('submit', handleLogin);
     elements.logoutBtn.addEventListener('click', handleLogout);
     elements.pasteBtn.addEventListener('click', handlePaste);
+    if (elements.pastePhoneBtn) {
+        elements.pastePhoneBtn.addEventListener('click', handlePastePhone);
+    }
     elements.searchTicketBtn.addEventListener('click', handleSearchTicket);
     elements.platformSelect.addEventListener('change', handlePlatformChange);
     elements.vipSwitch.addEventListener('change', handleVipChange);
