@@ -189,8 +189,8 @@ async function loadMessages(page = 1) {
     
     // Save scroll metrics before loading older messages
     const container = document.getElementById('messagesContainer');
-    const scrollHeightBeforeLoad = isLoadingOlder ? container.scrollHeight : 0;
-    const scrollTopBeforeLoad = isLoadingOlder ? container.scrollTop : 0;
+    const scrollHeightBeforeLoad = container.scrollHeight;
+    const scrollTopBeforeLoad = container.scrollTop;
     
     try {
         const response = await fetch(`<?= URLROOT ?>/tickets/trengo/messages/${currentTicketNumber}?page=${page}`);
@@ -198,13 +198,13 @@ async function loadMessages(page = 1) {
         
         if (data.success && data.data) {
             const newMessages = data.data.messages || [];
-            
+
             if (page === 1) {
                 // First load - replace all messages
                 allMessages = newMessages;
             } else {
-                // Loading older messages - add to beginning
-                allMessages = [...newMessages, ...allMessages];
+                // Loading older messages - add to end (since we display newest first)
+                allMessages = [...allMessages, ...newMessages];
             }
             
             // Check if there are more pages
@@ -217,16 +217,12 @@ async function loadMessages(page = 1) {
             
             // Handle scroll position WITHOUT any animation or delay
             if (page === 1) {
-                // First load - scroll to bottom immediately
-                container.scrollTop = container.scrollHeight;
+                // First load - scroll to top immediately (newest messages are at top)
+                container.scrollTop = 0;
             } else {
-                // Loading older messages - maintain scroll position
-                // Calculate new scroll position to maintain user's view
-                const scrollHeightAfterLoad = container.scrollHeight;
-                const heightDifference = scrollHeightAfterLoad - scrollHeightBeforeLoad;
-                
-                // Adjust scroll position immediately (no setTimeout)
-                container.scrollTop = scrollTopBeforeLoad + heightDifference;
+                // Loading older messages - maintain scroll position (no change needed since we add to bottom)
+                // The scroll position should remain the same since we're adding content to the bottom
+                container.scrollTop = scrollTopBeforeLoad;
             }
         } else {
             if (page === 1) {
@@ -256,7 +252,7 @@ async function loadMessages(page = 1) {
 
 function renderMessages() {
     const container = document.getElementById('messagesContent');
-    
+
     if (allMessages.length === 0) {
         container.innerHTML = `
             <div class="text-center text-gray-500 py-12">
@@ -266,13 +262,13 @@ function renderMessages() {
         `;
         return;
     }
-    
+
     const totalMessages = allMessages.length;
-    
-    // Render messages (oldest first at top, newest at bottom)
+
+    // Render messages (newest first at top, oldest at bottom)
     // Add data-message-id to each message for scroll positioning
-    container.innerHTML = allMessages.map((msg, idx) => {
-        const messageNumber = idx + 1; // 1-based index
+    container.innerHTML = allMessages.slice().reverse().map((msg, idx) => {
+        const messageNumber = totalMessages - idx; // Reverse numbering: newest = 1, oldest = total
         const messageHtml = renderMessage(msg, messageNumber, totalMessages);
         // Wrap in div with data attribute
         return `<div data-message-id="${msg.id}" data-index="${idx}">${messageHtml}</div>`;
@@ -320,7 +316,6 @@ function renderMessage(msg, messageNumber, totalMessages) {
                     <i class="fas ${icon} ${iconColor}"></i>
                     <span class="font-medium text-xs text-gray-700">${escapeHtml(senderName)}</span>
                     <span class="text-xs text-gray-400">${time}</span>
-                    <span class="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">${messageNumber}/${totalMessages}</span>
                 </div>
                 <div class="${bgColor} border rounded-lg ${shouldShowText || mediaContent ? 'px-3 py-2' : 'p-1'} shadow-sm">
                     ${mediaContent}
@@ -561,9 +556,10 @@ function loadMoreOtherTickets() {
 
 function handleScroll() {
     const container = document.getElementById('messagesContainer');
-    
-    // When scrolled to top, load more (older) messages
-    if (container.scrollTop <= 50 && hasMoreMessages && !isLoading) {
+
+    // When scrolled to bottom, load more (older) messages
+    const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+    if (isNearBottom && hasMoreMessages && !isLoading) {
         const nextPage = currentPage + 1;
         loadMessages(nextPage);
     }
