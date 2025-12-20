@@ -146,6 +146,21 @@ const API = {
             console.error('Error creating ticket:', error);
             throw error;
         }
+    },
+
+    // Submit report (bug or suggestion)
+    async submitReport(reportData) {
+        try {
+            const data = await this.makeRequest('/report', {
+                method: 'POST',
+                body: JSON.stringify(reportData)
+            });
+
+            return data;
+        } catch (error) {
+            console.error('Error submitting report:', error);
+            throw error;
+        }
     }
 };
 

@@ -40,7 +40,13 @@ const elements = {
     createTicketBtn: null,
     clearFormBtn: null,
     logoutBtn: null,
-    closeBtn: null
+    closeBtn: null,
+    reportModal: null,
+    reportForm: null,
+    submitReportBtn: null,
+    openReportBtn: null,
+    reportCloseBtn: null,
+    reportCancelBtn: null
 };
 
 // Helper function to show loading state on buttons
@@ -122,6 +128,12 @@ function initElements() {
     elements.clearFormBtn = document.getElementById('clearFormBtn');
     elements.logoutBtn = document.getElementById('logoutBtn');
     elements.closeBtn = document.getElementById('closeBtn');
+    elements.reportModal = document.getElementById('reportModal');
+    elements.reportForm = document.getElementById('reportForm');
+    elements.submitReportBtn = document.getElementById('submitReportBtn');
+    elements.openReportBtn = document.getElementById('openReportBtn');
+    elements.reportCloseBtn = document.getElementById('reportCloseBtn');
+    elements.reportCancelBtn = document.getElementById('reportCancelBtn');
 
     // Log critical form elements
     console.log('ticketDetailsSection:', elements.ticketDetailsSection ? 'found' : 'NOT FOUND');
@@ -183,12 +195,12 @@ async function refreshUserStats() {
     try {
         // Use makeRequest directly to get fresh user data with stats
         const userData = await API.makeRequest('/me');
-        
+
         // Handle both array and object responses
-        const user = Array.isArray(userData) && userData.length > 0 
-            ? userData[0] 
+        const user = Array.isArray(userData) && userData.length > 0
+            ? userData[0]
             : (userData && typeof userData === 'object' && userData.id ? userData : null);
-        
+
         if (user && user.ticket_details_stats) {
             // Update current user data
             if (currentUser) {
@@ -444,7 +456,7 @@ function handlePlatformChange() {
     // Note: VIP platform (platform_id = 5) is separate from VIP customer flag (is_vip)
     // VIP platform doesn't automatically mean VIP customer - user must check VIP switch
     console.log('Platform changed:', platformId === 5 ? 'VIP Platform' : 'Regular Platform');
-    
+
     // No automatic VIP selection - user must manually check VIP switch if needed
 }
 
@@ -518,6 +530,53 @@ async function handleLogout(event) {
         console.error('Logout error:', error);
     }
 }
+
+// Report handlers
+function handleOpenReport() {
+    if (elements.reportModal) {
+        elements.reportModal.classList.add('active');
+        // Reset form
+        elements.reportForm.reset();
+    }
+}
+
+function handleCloseReport() {
+    if (elements.reportModal) {
+        elements.reportModal.classList.remove('active');
+    }
+}
+
+async function handleSubmitReport(e) {
+    e.preventDefault();
+
+    const type = elements.reportForm.querySelector('input[name="reportType"]:checked').value;
+    const title = document.getElementById('reportTitle').value.trim();
+    const description = document.getElementById('reportDescription').value.trim();
+
+    if (!title || !description) {
+        showMessage('Please fill in all required fields', 'warning');
+        return;
+    }
+
+    setLoading(elements.submitReportBtn, true);
+
+    try {
+        await API.submitReport({
+            type,
+            title,
+            description
+        });
+
+        showMessage(`Thank you! Your ${type} report has been submitted successfully.`, 'success');
+        handleCloseReport();
+    } catch (error) {
+        console.error('Report submission error:', error);
+        showMessage('Failed to submit report. Please try again.', 'error');
+    } finally {
+        setLoading(elements.submitReportBtn, false);
+    }
+}
+
 
 // Paste from clipboard with fallback method
 async function pasteFromClipboard() {
@@ -838,13 +897,13 @@ function populateFormWithTicket(ticket) {
     // Set category code select
     if (ticket.category?.id && ticket.subcategory?.id && ticket.code?.id) {
         // Find matching option
-        const matchingOption = categoryCodeOptions.find(opt => 
+        const matchingOption = categoryCodeOptions.find(opt =>
             opt.categoryId === ticket.category.id &&
             opt.subcategoryId === ticket.subcategory.id &&
             opt.codeId === ticket.code.id &&
             !opt.isVip
         );
-        
+
         if (matchingOption) {
             const index = categoryCodeOptions.indexOf(matchingOption);
             selectCategoryCodeOption(matchingOption, index);
@@ -974,9 +1033,16 @@ async function handleCreateTicket(e) {
 }
 
 // Clear form
-function clearForm() {
+function clearForm(event) {
+    // If triggered by a manual click (event exists), ask for confirmation
+    if (event && event.type === 'click') {
+        if (!confirm('هل أنت متأكد من مسح جميع البيانات في النموذج؟')) {
+            return;
+        }
+    }
+
     elements.ticketForm?.reset();
-    
+
     // Reset category code select
     if (elements.categoryCodeSelect) {
         const trigger = elements.categoryCodeSelect.querySelector('.custom-select-trigger .custom-select-value');
@@ -988,19 +1054,19 @@ function clearForm() {
         elements.categoryCodeValue.value = '';
     }
     selectedCategoryCode = null;
-    
+
     // Reset VIP switch
     if (elements.vipSwitch) {
         elements.vipSwitch.checked = false;
     }
-    
+
     // Reset marketer
     elements.marketerGroup?.classList.add('hidden');
     if (elements.marketerSelect) {
         elements.marketerSelect.required = false;
         elements.marketerSelect.value = '';
     }
-    
+
     currentTicket = null;
     elements.ticketDetailsSection?.classList.add('hidden');
 }
@@ -1079,9 +1145,9 @@ function handleQuickClone() {
 
     // Use the actual ticket_number from the API response
     // currentTicket.ticket_number = "905082116" (the real ticket number) ✅
-    const ticketNumber = currentTicket.ticket_number || 
-                         currentTicket.ticket_detail?.name?.replace(/\D/g, '') ||
-                         'Unknown';
+    const ticketNumber = currentTicket.ticket_number ||
+        currentTicket.ticket_detail?.name?.replace(/\D/g, '') ||
+        'Unknown';
 
     // Show confirmation modal
     showCloneConfirmationModal(ticketNumber);
@@ -1134,17 +1200,17 @@ function showCloneConfirmationModal(ticketNumber) {
     // Handle confirm
     const handleConfirm = async () => {
         modal.classList.remove('active');
-        
+
         // Get notes from modal input
         const notes = modalNotesInput ? modalNotesInput.value.trim() : '';
         console.log('Notes from modal:', notes);
-        
+
         modalCancelBtn.removeEventListener('click', handleCancel);
         modalConfirmBtn.removeEventListener('click', handleConfirm);
 
         // Proceed with cloning (pass notes)
         await executeQuickClone(notes);
-        
+
         // Clear notes after cloning
         if (modalNotesInput) {
             modalNotesInput.value = '';
@@ -1171,9 +1237,9 @@ async function executeQuickClone(notes = '') {
     // currentTicket.ticket_number = "905082116" (the real ticket number) ✅
     // ticket.id = 102672 (database ID - WRONG!) ❌
     // ticket.name = "Ticket Detail #102672" (display name - WRONG!) ❌
-    const actualTicketNumber = currentTicket.ticket_number || 
-                                currentTicket.ticket_detail?.name?.replace(/\D/g, '') ||
-                                '';
+    const actualTicketNumber = currentTicket.ticket_number ||
+        currentTicket.ticket_detail?.name?.replace(/\D/g, '') ||
+        '';
 
     if (!actualTicketNumber) {
         showMessage('Cannot determine ticket number for cloning', 'error');
@@ -1273,7 +1339,7 @@ function setVersionNumber() {
         const manifest = chrome.runtime?.getManifest();
         const version = manifest?.version || '1.0.0';
         const versionBadge = document.getElementById('versionBadge');
-        
+
         if (versionBadge) {
             versionBadge.textContent = `v${version}`;
             // Add click event listener to show changelog
@@ -1297,20 +1363,20 @@ function setVersionNumber() {
 async function loadChangelog() {
     try {
         // Get the runtime URL for the changelog file
-        const changelogUrl = chrome?.runtime?.getURL('CHANGELOG.json') || 
-                            (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL('CHANGELOG.json'));
-        
+        const changelogUrl = chrome?.runtime?.getURL('CHANGELOG.json') ||
+            (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL('CHANGELOG.json'));
+
         if (!changelogUrl) {
             console.error('Cannot get runtime URL');
             return [];
         }
-        
+
         const response = await fetch(changelogUrl);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         return data.changelog || [];
     } catch (error) {
@@ -1325,15 +1391,15 @@ async function showChangelog() {
     const changelogModal = document.getElementById('changelogModal');
     const changelogBody = document.getElementById('changelogBody');
     const changelogCloseBtn = document.getElementById('changelogCloseBtn');
-    
+
     if (!changelogModal || !changelogBody) {
         console.error('Changelog modal elements not found');
         return;
     }
-    
+
     // Load changelog data
     const changelog = await loadChangelog();
-    
+
     if (changelog.length === 0) {
         changelogBody.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">لا توجد تعديلات متاحة</p>';
     } else {
@@ -1356,15 +1422,15 @@ async function showChangelog() {
             </div>
         `).join('');
     }
-    
+
     // Show modal
     changelogModal.classList.add('active');
-    
+
     // Close handler function
     const handleClose = () => {
         changelogModal.classList.remove('active');
     };
-    
+
     // Close button handler
     if (changelogCloseBtn) {
         // Remove any existing listeners to avoid duplicates
@@ -1372,7 +1438,7 @@ async function showChangelog() {
         changelogCloseBtn.parentNode.replaceChild(newCloseBtn, changelogCloseBtn);
         newCloseBtn.addEventListener('click', handleClose);
     }
-    
+
     // Close on overlay click (remove old listener first)
     const overlayClickHandler = (e) => {
         if (e.target === changelogModal) {
@@ -1395,7 +1461,7 @@ function initCategoryCodeSelect() {
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
             elements.categoryCodeSelect.classList.toggle('active');
-            
+
             // Focus search input when opened
             if (elements.categoryCodeSelect.classList.contains('active') && searchInput) {
                 setTimeout(() => searchInput.focus(), 100);
@@ -1434,10 +1500,10 @@ function initCategoryCodeSelect() {
 // Initialize app
 async function init() {
     console.log('=== CS Taxif Panel Initializing ===');
-    
+
     // Set version number from manifest
     setVersionNumber();
-    
+
     initElements();
     console.log('Elements initialized');
 
@@ -1467,6 +1533,20 @@ async function init() {
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', handleCancelEdit);
+    }
+
+    // Report event listeners
+    if (elements.openReportBtn) {
+        elements.openReportBtn.addEventListener('click', handleOpenReport);
+    }
+    if (elements.reportCloseBtn) {
+        elements.reportCloseBtn.addEventListener('click', handleCloseReport);
+    }
+    if (elements.reportCancelBtn) {
+        elements.reportCancelBtn.addEventListener('click', handleCloseReport);
+    }
+    if (elements.reportForm) {
+        elements.reportForm.addEventListener('submit', handleSubmitReport);
     }
 
     // Support Enter key on ticket search
