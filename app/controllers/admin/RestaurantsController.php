@@ -61,7 +61,7 @@ class RestaurantsController extends Controller
     public function export($format = 'excel')
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
-            redirect('auth/login');
+            redirect('login');
         }
         
         $restaurants = $this->restaurantModel->getAll();
@@ -105,7 +105,7 @@ class RestaurantsController extends Controller
     public function edit($id)
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         $restaurant = $this->restaurantModel->getById($id);
@@ -125,7 +125,7 @@ class RestaurantsController extends Controller
     public function update($id)
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -180,7 +180,7 @@ class RestaurantsController extends Controller
     public function viewPdf($id)
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
-            redirect('auth/login');
+            redirect('login');
         }
         
         $restaurant = $this->restaurantModel->getById($id);
@@ -262,7 +262,7 @@ class RestaurantsController extends Controller
     public function delete($id)
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('admin')) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         // Before deleting the record, delete the associated PDF file

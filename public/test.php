@@ -1,27 +1,18 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-require_once __DIR__ . '/vendor/autoload.php';
+$host = 'localhost';
+$db   = 'taxif_cstaxi';
+$user = 'taxif_root';
+$pass = 'lcU*bQuQDEB0';
+$charset = 'utf8mb4';
 
-$controller = 'App\\Controllers\\reports\\Users\\UsersController';
-$model = 'App\\Models\\Reports\\Users\\UsersReport';
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
 
-echo "Checking Controller: $controller\n";
-if (class_exists($controller)) {
-    echo "Controller EXISTS.\n";
-    $reflector = new ReflectionClass($controller);
-    $method = 'export';
-    if ($reflector->hasMethod($method)) {
-        echo "Method '$method' EXISTS.\n";
-    } else {
-        echo "Method '$method' DOES NOT EXIST.\n";
-    }
-} else {
-    echo "Controller DOES NOT EXIST.\n";
-}
 
-echo "\nChecking Model: $model\n";
-if (class_exists($model)) {
-    echo "Model EXISTS.\n";
-} else {
-    echo "Model DOES NOT EXIST.\n";
-}

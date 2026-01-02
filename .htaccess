@@ -1,5 +1,5 @@
-RewriteEngine On
+# RewriteEngine On - معطل على localhost لأن PHP built-in server لا يدعم .htaccess
 
-# لو الزائر دخل من غير تحديد مجلد، نحوله على /public
-RewriteCond %{REQUEST_URI} !^/public
-RewriteRule ^(.*)$ public/$1 [L]
+# # لو الزائر دخل من غير تحديد مجلد، نحوله على /public
+# RewriteCond %{REQUEST_URI} !^/public
+# RewriteRule ^(.*)$ public/$1 [L]

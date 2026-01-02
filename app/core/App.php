@@ -55,22 +55,19 @@ class App
 $isExcluded = false;
 
 foreach ($excludedPrefixes as $excluded) {
-
     if (strpos($path, $excluded) === 0) {
-
         $isExcluded = true;
-
         break;
-
     }
-
 }
+
+
 
 
 
 if (
 
-    isset($_SESSION['user_id']) &&
+    isset($_SESSION['user']) &&
 
     isset($_SESSION['last_activity']) &&
 
@@ -98,7 +95,7 @@ if (
 
     // تحديث وقت النشاط الحالي
 
-    if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['user'])) {
 
         $_SESSION['last_activity'] = time();
 
@@ -108,17 +105,14 @@ if (
 
     // تحديث الصلاحيات وتسجيل الحالة
 
-    if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['user'])) {
 
-        $this->checkAndHandleForceLogout($_SESSION['user_id']);
-
-        $this->checkAndRefreshPermissions($_SESSION['user_id']);
-
-
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $this->checkAndHandleForceLogout($userId);
+        $this->checkAndRefreshPermissions($userId);
 
         $userModel = new User();
-
-        $userModel->updateOnlineStatus($_SESSION['user_id'], 1); // Set as online
+        $userModel->updateOnlineStatus($userId, 1); // Set as online
 
     }
 
@@ -208,7 +202,7 @@ if (
 
             $_SESSION['error'] = 'You have been logged out by an administrator' . (!empty($logoutMessage) && $logoutMessage !== '1' ? ': ' . htmlspecialchars($logoutMessage) : '.');
 
-            header('Location: ' . BASE_URL . '/auth/login');
+            header('Location: ' . BASE_URL . '/login');
 
             exit;
 
@@ -271,18 +265,30 @@ if (
 
 
     public static function parseUrl()
-
     {
-
         if (isset($_GET['url'])) {
-
             return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
-
         }
 
-        return [];
-
+        // Handle environments without .htaccess / rewrite rules (e.g., PHP built-in server)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        
+        // Remove the script name or base directory from the URI
+        $basePath = dirname($scriptName);
+        if ($basePath === '/' || $basePath === '\\') {
+            $basePath = '';
+        }
+        
+        $path = parse_url($requestUri, PHP_URL_PATH);
+        if (strpos($path, $scriptName) === 0) {
+            $path = substr($path, strlen($scriptName));
+        } elseif (!empty($basePath) && strpos($path, $basePath) === 0) {
+            $path = substr($path, strlen($basePath));
+        }
+        
+        $path = trim($path, '/');
+        return $path === '' ? [] : explode('/', $path);
     }
 
 }
-

@@ -18,8 +18,8 @@ if (!function_exists('redirectIfGuest')) {
             }
         }
 
-        if (!isset($_SESSION['user_id'])) {
-            redirect('auth/login');
+        if (!isset($_SESSION['user'])) {
+            redirect('login');
         }
     }
 }

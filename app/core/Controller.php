@@ -14,7 +14,7 @@ class Controller
         // to avoid duplicate logic and potential redirect loops.
 
         // We can still perform actions that should happen on every authenticated request.
-        if (isset($_SESSION['user_id'])) {
+        if (isset($_SESSION['user'])) {
             $_SESSION['last_activity'] = time();
 
             $activeUserService = new \App\Services\ActiveUserService();
@@ -64,7 +64,7 @@ class Controller
     public function view($view, $data = [])
     {
         // Automatically fetch mandatory notifications for any view that is loaded for a logged-in user.
-        if (isset($_SESSION['user_id'])) {
+        if (isset($_SESSION['user'])) {
             $notificationModel = $this->model('notifications/Notification');
             if ($notificationModel) {
                 // Fetch mandatory notifications for modal pop-ups

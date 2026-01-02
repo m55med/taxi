@@ -35,15 +35,9 @@ if (!empty($basePath) && strpos($requestUriPath, $basePath) === 0) {
 
 
 if (strpos($cleanUri, 'auth/') === 0) {
-
     $newUri = str_replace('auth/', '', $cleanUri);
-
-    // Redirect to the new clean URI
-
     header('Location: ' . BASE_URL . '/' . $newUri, true, 301);
-
     exit;
-
 }
 
 

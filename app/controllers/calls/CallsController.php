@@ -11,7 +11,7 @@ class CallsController extends Controller
     public function index()
     {
         if (!Auth::isLoggedIn()) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         // Load models only when needed
@@ -154,7 +154,7 @@ class CallsController extends Controller
     public function skip($driverId = null)
     {
         if (!Auth::isLoggedIn()) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         if ($driverId) {

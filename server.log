@@ -1,0 +1,4 @@
+[Thu Jan  1 17:07:56 2026] PHP 8.5.1 Development Server (http://localhost:3000) started
+[Thu Jan  1 17:07:58 2026] 127.0.0.1:49575 Accepted
+[Thu Jan  1 17:07:58 2026] 127.0.0.1:49575 [200]: GET /login
+[Thu Jan  1 17:07:58 2026] 127.0.0.1:49575 Closing

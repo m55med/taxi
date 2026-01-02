@@ -194,7 +194,7 @@ class ReferralController extends Controller
     public function marketerDashboard($dashboardModel, $userId)
     {
         if (!Auth::isLoggedIn() || !Auth::hasRole('marketer')) {
-            redirect('Auth/login');
+            redirect('login');
         }
     
         $page = $_GET['page'] ?? 1;

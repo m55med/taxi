@@ -22,7 +22,7 @@ class DataController extends Controller
     public function __construct()
     {
         // Ensure user is logged in for all data endpoints
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             // Not logged in, send a JSON error or redirect.
             // Sending JSON is better for API-like controllers.
             header('Content-Type: application/json');
@@ -50,7 +50,7 @@ class DataController extends Controller
         $debug = [];
 
         try {
-            if (!isset($_SESSION['user_id'])) {
+            if (!isset($_SESSION['user'])) {
                 throw new \Exception('User not authenticated.');
             }
             $debug['auth_check'] = 'Passed for user_id: ' . $_SESSION['user_id'];

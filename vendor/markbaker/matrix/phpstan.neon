@@ -1,4 +1,7 @@
 parameters:
+    level: 5
+    paths:
+        - app
     ignoreErrors:
         - '#Property [A-Za-z\\]+::\$[A-Za-z]+ has no typehint specified#'
         - '#Method [A-Za-z\\]+::[A-Za-z]+\(\) has no return typehint specified#'

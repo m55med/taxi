@@ -145,7 +145,7 @@ class NotificationsController extends Controller
 
     {
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
 
             $this->sendJsonResponse([], 401);
 
@@ -171,7 +171,7 @@ class NotificationsController extends Controller
 
     {
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
 
             $this->sendJsonResponse([], 401);
 
@@ -263,9 +263,9 @@ class NotificationsController extends Controller
 
     public function history() {
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
 
-            redirect('auth/login');
+            redirect('login');
 
         }
 

@@ -73,10 +73,14 @@ class AuthController extends Controller
 
     public function login()
     {
-        // إذا كان المستخدم مسجل دخوله بالفعل، قم بتوجيهه إلى لوحة التحكم
-        if (isset($_SESSION['user_id'])) {
-            header('Location: ' . URLROOT . '/dashboard');
-            exit();
+        // إذا كان المستخدم مسجل دخوله بالفعل وقد انتهت صلاحية الجلسة، لا تقم بتوجيهه
+        if (isset($_SESSION['user']) && isset($_SESSION['last_activity'])) {
+            // تحقق من عدم انتهاء صلاحية الجلسة
+            $sessionTimeout = 1800; // 30 minutes in seconds (same as App.php)
+            if ((time() - $_SESSION['last_activity']) <= $sessionTimeout) {
+                header('Location: ' . URLROOT . '/dashboard');
+                exit();
+            }
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -140,7 +144,7 @@ class AuthController extends Controller
 
     public function logout()
     {
-        if (isset($_SESSION['user_id'])) {
+        if (isset($_SESSION['user'])) {
             $userId = $_SESSION['user_id'];
 
             // Delete all user tokens
@@ -167,7 +171,7 @@ class AuthController extends Controller
 
     public function profile()
     {
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             header('Location: ' . URLROOT . '/login');
             exit();
         }
@@ -197,7 +201,7 @@ class AuthController extends Controller
 
     public function updateProfile()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user'])) {
             header('Location: ' . URLROOT . '/profile');
             exit();
         }

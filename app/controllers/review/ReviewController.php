@@ -25,7 +25,7 @@ class ReviewController extends Controller
     public function index($status = 'waiting_chat')
     {
         // التحقق من تسجيل الدخول
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             $_SESSION['error'] = 'يجب تسجيل الدخول أولاً';
             header('Location: ' . URLROOT . '/auth/login');
             exit();
@@ -63,7 +63,7 @@ class ReviewController extends Controller
     {
         header('Content-Type: application/json');
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             echo json_encode(['error' => 'غير مصرح']);
             exit;
         }
@@ -87,7 +87,7 @@ class ReviewController extends Controller
             exit;
         }
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             echo json_encode(['success' => false, 'message' => 'غير مصرح']);
             exit;
         }
@@ -118,7 +118,7 @@ class ReviewController extends Controller
             exit;
         }
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             echo json_encode(['success' => false, 'message' => 'غير مصرح']);
             exit;
         }

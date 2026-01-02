@@ -62,7 +62,7 @@ class TicketController extends Controller
     {
         parent::__construct();
         if (!Auth::isLoggedIn()) {
-            redirect('auth/login');
+            redirect('login');
         }
         $this->ticketModel = $this->model('Tickets/Ticket');
         $this->discussionModel = $this->model('Discussion/Discussion');
@@ -232,7 +232,7 @@ class TicketController extends Controller
         $debug = [];
 
         try {
-            if (!isset($_SESSION['user_id'])) {
+            if (!isset($_SESSION['user'])) {
                 throw new \Exception('User not authenticated.');
             }
             $debug['auth_check'] = 'Passed for user_id: ' . $_SESSION['user_id'];

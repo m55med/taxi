@@ -15,7 +15,7 @@ class BaseCallController extends Controller
         $this->db = Database::getInstance();
         
         // التحقق من تسجيل الدخول
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             // For API requests (like form submissions), send a JSON error
             // instead of redirecting.
             if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)) {

@@ -30,7 +30,7 @@ class BreaksController extends Controller
      */
     public function start()
     {
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
             return;
         }
@@ -58,7 +58,7 @@ class BreaksController extends Controller
      */
     public function stop()
     {
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
             return;
         }
@@ -83,7 +83,7 @@ class BreaksController extends Controller
      */
     public function status()
     {
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
             $this->sendJsonResponse(['status' => 'error', 'message' => 'Unauthorized'], 401);
             return;
         }

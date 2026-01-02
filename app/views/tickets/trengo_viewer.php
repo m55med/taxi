@@ -1,710 +1,628 @@
 <?php include_once __DIR__ . '/../includes/header.php'; ?>
 
-<div class="container mx-auto px-4 py-6">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="container mx-auto px-4 py-8 max-w-7xl font-['Inter']">
     <!-- Flash Messages -->
     <?php include_once __DIR__ . '/../includes/flash_messages.php'; ?>
 
-    <!-- Header -->
-    <div class="mb-4">
-        <h1 class="text-2xl font-bold text-gray-800">
-            <i class="fas fa-comments text-blue-500 mr-2"></i>
-            Trengo Ticket Viewer
-        </h1>
-        <p class="text-gray-600 text-sm mt-1" id="ticketInfo">
-            <?php if (!empty($data['ticket_number'])): ?>
-                Viewing Ticket #<?= htmlspecialchars($data['ticket_number']) ?>
-            <?php else: ?>
-                Enter a ticket number to view conversation
-            <?php endif; ?>
-        </p>
-    </div>
-
-    <!-- Search Box -->
-    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
-        <div class="flex gap-3">
-            <div class="flex-1">
-                <label for="ticketSearch" class="block text-xs font-medium text-gray-600 mb-1">
-                    <i class="fas fa-ticket-alt mr-1"></i>Ticket Number
-                </label>
+    <!-- Premium Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center">
+                <span class="bg-blue-600 text-white p-2 rounded-xl mr-3 shadow-lg shadow-blue-200">
+                    <i class="fas fa-comment-alt-lines"></i>
+                </span>
+                Trengo <span class="text-blue-600 ml-2">Viewer</span>
+            </h1>
+            <p class="text-gray-500 mt-2 flex items-center text-sm" id="ticketInfo">
+                <?php if (!empty($data['ticket_number'])): ?>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                        Ticket #<?= htmlspecialchars($data['ticket_number']) ?>
+                    </span>
+                    Real-time conversation inspection
+                <?php else: ?>
+                    <i class="fas fa-info-circle mr-2 text-blue-400"></i>
+                    Input a ticket ID to begin exploration
+                <?php endif; ?>
+            </p>
+        </div>
+        
+        <!-- Premium Search Box -->
+        <div class="flex-1 max-w-md">
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-hashtag text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                </div>
                 <input 
                     type="text" 
                     id="ticketSearch" 
-                    placeholder="Paste or enter ticket number (e.g., 867529236)"
+                    placeholder="Enter ticket number (e.g. 913822465)"
                     value="<?= htmlspecialchars($data['ticket_number'] ?? '') ?>"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full pl-10 pr-3 py-3 border-none bg-white rounded-2xl shadow-sm ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 transition-all text-sm placeholder-gray-400"
                 >
-            </div>
-            <div class="flex items-end">
-                <button 
-                    onclick="loadTicket()" 
-                    class="bg-blue-500 text-white px-5 py-2 text-sm rounded-md hover:bg-blue-600 transition-colors shadow-sm">
-                    <i class="fas fa-search mr-1"></i>Load
-                </button>
+                <div class="absolute inset-y-0 right-1 flex items-center pr-1">
+                    <button 
+                        onclick="loadTicket()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all font-semibold text-sm shadow-md shadow-blue-100 flex items-center">
+                        <i class="fas fa-search mr-2"></i>Load
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <!-- Messages Area (8/12 width on large screens) -->
-        <div class="lg:col-span-8">
-            <div class="bg-white rounded-lg shadow-sm" style="height: calc(100vh - 280px); min-height: 500px; display: flex; flex-direction: column;">
-                <!-- Messages Header -->
-                <div class="border-b border-gray-200 px-4 py-3 bg-gradient-to-r from-blue-50 to-white">
-                    <h3 class="font-semibold text-gray-700 text-sm">
-                        <i class="fas fa-comment-dots text-blue-500 mr-2"></i>Conversation
-                    </h3>
-                </div>
-
-                <!-- Loading Indicator (Top) -->
-                <div id="loadingIndicatorTop" class="hidden p-3 text-center border-b border-gray-200 bg-blue-50">
-                    <div class="flex items-center justify-center">
-                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                        <span class="ml-2 text-gray-600 text-xs">Loading older messages...</span>
+    <!-- Main Content Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left: Messages Area (Main) -->
+        <div class="lg:col-span-8 flex flex-col h-[calc(100vh-220px)] min-h-[600px]">
+            <div class="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 flex-1 flex flex-col overflow-hidden">
+                
+                <!-- Messages Top Static Nav -->
+                <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-white z-10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                            <i class="fas fa-users-class text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 id="chatHeaderName" class="font-bold text-gray-800 text-sm">Conversation History</h3>
+                            <p id="chatHeaderStatus" class="text-xs text-gray-400 flex items-center">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+                                Active View
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="scrollToBottom()" class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Scroll to newest">
+                            <i class="fas fa-arrow-down-to-line"></i>
+                        </button>
+                        <button onclick="loadTicket()" class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Messages Container (scrollable) -->
+                <!-- Messages Feed -->
                 <div 
                     id="messagesContainer" 
-                    class="flex-1 overflow-y-auto p-4"
+                    class="flex-1 overflow-y-auto px-6 py-6 scroll-smooth bg-[#f8fafc]/50"
                     onscroll="handleScroll()">
-                    <div id="messagesContent" class="space-y-2">
-                        <!-- Initial state -->
-                        <div class="text-center text-gray-500 py-12">
-                            <i class="fas fa-inbox fa-3x mb-4 text-gray-300"></i>
-                            <p class="text-sm">Enter a ticket number and click "Load" to view messages</p>
+                    
+                    <!-- Internal Container for grouping -->
+                    <div id="messagesContent" class="space-y-6 flex flex-col">
+                        <!-- Initial state / Empty state -->
+                        <div id="emptyState" class="flex flex-col items-center justify-center py-20 text-center">
+                            <div class="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center mb-6">
+                                <i class="fas fa-comment-medical text-3xl text-blue-400"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-800">No ticket loaded yet</h4>
+                            <p class="text-gray-500 mt-2 max-w-xs mx-auto">Enter a valid Trengo ticket ID in the search box above to inspect the conversation details.</p>
+                        </div>
+                    </div>
+
+                    <!-- Manual Load Button (Alternative to scroll) -->
+                    <div id="manualLoadOlder" class="hidden py-4 text-center order-first border-b border-gray-50 mb-4">
+                        <button onclick="handleManualLoadOlder()" class="text-[10px] font-bold text-blue-500 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-full transition-all">
+                            <i class="fas fa-history mr-2"></i>Load Older History
+                        </button>
+                    </div>
+
+                    <!-- Loading older messages indicator (appears at TOP) -->
+                    <div id="loadingIndicatorTop" class="hidden py-4 text-center order-first">
+                        <div class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-xs font-semibold shadow-sm ring-1 ring-blue-100">
+                            <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Fetching older history...
                         </div>
                     </div>
                 </div>
 
-                <!-- Loading Indicator (Bottom) -->
-                <div id="loadingIndicatorBottom" class="hidden p-3 text-center border-t border-gray-200 bg-gray-50">
-                    <div class="flex items-center justify-center">
-                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                        <span class="ml-2 text-gray-600 text-xs">Loading messages...</span>
+                <!-- Footer / Status Bar -->
+                <div class="px-6 py-3 border-t border-gray-50 bg-white flex items-center justify-between text-[11px] text-gray-400 font-medium">
+                    <div id="msgCountDisplay">0 nodes active</div>
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center"><i class="fas fa-shield-check text-green-500 mr-1"></i>Secure View</span>
+                        <span class="flex items-center"><i class="fas fa-bolt text-yellow-500 mr-1"></i>Optimized</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar (4/12 width on large screens) -->
-        <div class="lg:col-span-4">
-            <!-- Contact Info Card -->
-            <div id="contactCard" class="bg-white rounded-lg shadow-sm p-4 mb-4 hidden">
-                <h3 class="font-semibold text-gray-700 mb-3 pb-2 border-b text-sm">
-                    <i class="fas fa-user text-blue-500 mr-2"></i>Contact Info
-                </h3>
-                <div id="contactInfo" class="space-y-2 text-xs">
-                    <!-- Will be populated dynamically -->
+        <!-- Right: Contextual Sidebar -->
+        <div class="lg:col-span-4 space-y-6 sticky top-8">
+            
+            <!-- Skeleton Sidebar Loading -->
+            <div id="sidebarSkeleton" class="hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-50 animate-pulse">
+                    <div class="h-4 bg-gray-100 rounded w-1/3 mb-6"></div>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <div class="h-10 w-10 bg-gray-100 rounded-full"></div>
+                            <div class="flex-1 space-y-2 py-1">
+                                <div class="h-3 bg-gray-100 rounded w-3/4"></div>
+                                <div class="h-2 bg-gray-100 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="h-px bg-gray-100"></div>
+                        <div class="h-10 bg-gray-100 rounded-xl"></div>
+                        <div class="h-10 bg-gray-100 rounded-xl"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Other Tickets Card -->
-            <div id="otherTicketsCard" class="bg-white rounded-lg shadow-sm p-4 hidden" style="max-height: calc(100vh - 400px); overflow-y: auto;">
-                <h3 class="font-semibold text-gray-700 mb-3 pb-2 border-b text-sm sticky top-0 bg-white">
-                    <i class="fas fa-ticket-alt text-blue-500 mr-2"></i>Other Tickets
-                </h3>
-                <div id="otherTickets" class="space-y-2">
-                    <!-- Will be populated dynamically -->
+            <!-- Contact Intelligence Card -->
+            <div id="contactCard" class="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 p-6 hidden transform transition-all duration-500 translate-y-4 opacity-0">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-bold text-gray-900 text-sm flex items-center">
+                        <i class="fas fa-fingerprint text-blue-500 mr-2"></i>Contact Identity
+                    </h3>
+                    <span id="platformBadge" class="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider">Loading...</span>
                 </div>
-                <button 
-                    id="loadMoreTickets" 
-                    class="w-full mt-3 text-xs text-blue-600 hover:text-blue-800 py-2 border border-blue-200 rounded-md hover:bg-blue-50 transition-colors hidden"
-                    onclick="loadMoreOtherTickets()">
-                    <i class="fas fa-chevron-down mr-1"></i>Load More
-                </button>
+                
+                <div class="flex items-center gap-4 mb-6">
+                    <div id="contactInitials" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-100">
+                        ??
+                    </div>
+                    <div>
+                        <h4 id="contactNameDisplay" class="font-bold text-gray-800">Searching...</h4>
+                        <div id="countryDisplay" class="text-xs text-gray-400 font-medium">Identifying origin...</div>
+                    </div>
+                </div>
+
+                <div id="contactInfo" class="space-y-3">
+                    <!-- Dynamic details -->
+                </div>
+            </div>
+
+            <!-- Contextual Intelligence Card (Other Tickets) -->
+            <div id="otherTicketsCard" class="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 overflow-hidden hidden transform transition-all duration-500 translate-y-4 opacity-0">
+                <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+                    <h3 class="font-bold text-gray-900 text-sm">
+                        <i class="fas fa-history text-indigo-500 mr-2"></i>Other Interactions
+                    </h3>
+                    <span id="otherTicketsCount" class="bg-white text-gray-500 px-2 py-0.5 rounded-lg text-[10px] border border-gray-100 font-bold">0</span>
+                </div>
+                
+                <div id="otherTickets" class="divide-y divide-gray-50 max-h-[400px] overflow-y-auto overscroll-contain">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div id="otherTicketsFooter" class="p-4 bg-white border-t border-gray-50">
+                    <button 
+                        id="loadMoreTickets" 
+                        class="w-full text-xs font-bold text-blue-600 hover:text-white hover:bg-blue-600 py-3 rounded-2xl transition-all border border-blue-50 flex items-center justify-center hidden"
+                        onclick="loadMoreOtherTickets()">
+                        View More Activities <i class="fas fa-chevron-right ml-2 text-[10px]"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Image View Modal (Premium) -->
+<div id="imageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/95 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 p-4">
+    <div class="absolute top-6 right-6 flex items-center gap-3">
+        <a id="modalDownloadLink" href="#" download class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">
+            <i class="fas fa-download"></i>
+        </a>
+        <button onclick="closeImageModal()" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="max-w-5xl w-full flex flex-col items-center">
+        <img id="modalImage" src="" class="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain message-image-anim" alt="Detailed view">
+        <p id="modalCaption" class="mt-4 text-white/60 text-sm font-medium"></p>
+    </div>
+</div>
+
 <script>
-// Global state
-let currentTicketNumber = '<?= htmlspecialchars($data['ticket_number'] ?? '') ?>';
-let currentPage = 1;
-let hasMoreMessages = false;
-let isLoading = false;
-let contactId = null;
-let otherTicketsPage = 1;
-let hasMoreOtherTickets = false;
-let allMessages = []; // Store all loaded messages
+/**
+ * PREMIUM TRENGO VIEWER ENGINE - VERSION 2.2
+ * Features: Infinite Scroll, Cross-Ticket Merging, High-Fidelity UI
+ */
 
-// Load ticket when page loads if ticket number is provided
-document.addEventListener('DOMContentLoaded', function() {
-    if (currentTicketNumber) {
-        loadTicket();
+// 1. UI Configuration
+const THEME = {
+    INBOUND: { bubble: 'bg-white border-gray-100 shadow-sm', text: 'text-gray-800', align: 'items-start' },
+    OUTBOUND: { bubble: 'bg-blue-600 border-blue-500 shadow-md shadow-blue-100', text: 'text-white', align: 'items-end' }
+};
+
+// 2. Global Application State
+let G = {
+    contactId: null,
+    activeTicketId: null,
+    ticketQueue: [], 
+    loadedMessages: [], 
+    currentTicketPage: 1,
+    hasMoreInCurrentTicket: false,
+    isLoading: false,
+    isInitialLoad: true,
+    otherTicketsPage: 1,
+    hasMoreOtherTickets: false
+};
+
+// 3. DOM Abstraction Layer
+const dom = {
+    get: (id) => document.getElementById(id),
+    show: (id) => { const e = dom.get(id); if(e) e.classList.remove('hidden'); },
+    hide: (id) => { const e = dom.get(id); if(e) e.classList.add('hidden'); },
+    html: (id, content) => { const e = dom.get(id); if(e) e.innerHTML = content; },
+    val: (id) => { const e = dom.get(id); return e ? e.value : ''; }
+};
+
+// 4. Utility Functions
+const utils = {
+    parseId: (input) => {
+        if (!input) return '';
+        let cleaned = String(input).trim().replace(/^#/, '').trim();
+        return /^\d+$/.test(cleaned) ? cleaned : '';
+    },
+    escape: (text) => {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    },
+    formatTime: (dateStr) => {
+        return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    },
+    formatDate: (dateStr) => {
+        const d = new Date(dateStr);
+        const now = new Date();
+        if (d.toDateString() === now.toDateString()) return 'Today';
+        const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+};
+
+/**
+ * CORE WORKFLOWS
+ */
+
+// Initial Load
+document.addEventListener('DOMContentLoaded', () => {
+    const initialTicket = '<?= htmlspecialchars($data['ticket_number'] ?? '') ?>';
+    if (initialTicket) {
+        const searchInput = dom.get('ticketSearch');
+        if (searchInput) searchInput.value = initialTicket;
+        loadTicket(initialTicket);
     }
 });
 
-function loadTicket() {
-    const ticketNumber = document.getElementById('ticketSearch').value.trim();
+/**
+ * Main switch - Loads a ticket and its context
+ */
+async function loadTicket(ticketId = null) {
+    const idInput = ticketId || dom.val('ticketSearch');
+    const parsed = utils.parseId(idInput);
     
-    if (!ticketNumber) {
-        alert('Please enter a ticket number');
+    if (!parsed) {
+        alert('Please enter a valid numeric Ticket ID');
         return;
     }
-    
-    // Reset state
-    currentTicketNumber = ticketNumber;
-    currentPage = 1;
-    allMessages = [];
-    contactId = null;
-    otherTicketsPage = 1;
-    
-    // Update URL
+
+    // Prepare State
+    G.activeTicketId = parsed;
+    G.loadedMessages = [];
+    G.currentTicketPage = 1;
+    G.isInitialLoad = true;
+    G.isLoading = false;
+
+    // UI Reset
+    dom.html('messagesContent', '');
+    dom.show('loadingIndicatorTop');
+    dom.hide('emptyState');
+    dom.show('sidebarSkeleton');
+    dom.hide('contactCard');
+    dom.hide('otherTicketsCard');
+
+    // Update Browser State
     const url = new URL(window.location);
-    url.searchParams.set('ticket', ticketNumber);
+    url.searchParams.set('ticket', idInput);
     window.history.pushState({}, '', url);
-    
-    // Update ticket info
-    document.getElementById('ticketInfo').textContent = `Viewing Ticket #${ticketNumber}`;
-    
-    // Load context and messages
-    loadTicketContext();
-    loadMessages(1);
-}
 
-async function loadTicketContext() {
+    dom.html('ticketInfo', `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white mr-2">Ticket #${parsed}</span> Synchronizing...`);
+
     try {
-        const response = await fetch(`<?= URLROOT ?>/tickets/trengo/context/${currentTicketNumber}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-            contactId = data.data.contact_id;
-            displayContactInfo(data.data);
-            loadOtherTickets();
+        // Fetch Context
+        const ctxRes = await fetch(`<?= URLROOT ?>/tickets/trengo/context/${parsed}`);
+        const ctx = await ctxRes.json();
+
+        if (ctx.success && ctx.data) {
+            G.contactId = ctx.data.contact_id;
+            renderContactInfo(ctx.data);
+            await loadOtherInteractions(false); 
         }
-    } catch (error) {
-        console.error('Error loading ticket context:', error);
+
+        // Fetch Messages
+        await fetchMessages(parsed, 1);
+        
+    } catch (e) {
+        console.error('Workflow Error:', e);
     }
 }
 
-async function loadMessages(page = 1) {
-    if (isLoading) return;
-    
-    isLoading = true;
-    const isLoadingOlder = page > 1;
-    showLoading(true, isLoadingOlder);
-    
-    // Save scroll metrics before loading older messages
-    const container = document.getElementById('messagesContainer');
-    const scrollHeightBeforeLoad = container.scrollHeight;
-    const scrollTopBeforeLoad = container.scrollTop;
-    
-    try {
-        const response = await fetch(`<?= URLROOT ?>/tickets/trengo/messages/${currentTicketNumber}?page=${page}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-            const newMessages = data.data.messages || [];
+/**
+ * Message Fetching
+ */
+async function fetchMessages(ticketId, page = 1) {
+    if (G.isLoading) return;
+    G.isLoading = true;
 
-            if (page === 1) {
-                // First load - replace all messages
-                allMessages = newMessages;
-            } else {
-                // Loading older messages - add to end (since we display newest first)
-                allMessages = [...allMessages, ...newMessages];
-            }
+    dom.show('loadingIndicatorTop');
+    dom.hide('manualLoadOlder');
+    
+    const container = dom.get('messagesContainer');
+    const hBefore = container ? container.scrollHeight : 0;
+
+    try {
+        const response = await fetch(`<?= URLROOT ?>/tickets/trengo/messages/${ticketId}?page=${page}`);
+        const json = await response.json();
+
+        if (json.success && json.data) {
+            const msgs = json.data.messages || [];
+            const mapped = msgs.map(m => ({ ...m, _ticket_id: ticketId }));
             
-            // Check if there are more pages
-            const meta = data.data.meta;
-            hasMoreMessages = meta && meta.current_page < (meta.last_page || Infinity);
-            currentPage = page;
+            G.loadedMessages = [...G.loadedMessages, ...mapped];
+            G.hasMoreInCurrentTicket = json.data.meta && json.data.meta.current_page < json.data.meta.last_page;
+            G.currentTicketPage = page;
             
-            // Render all messages
-            renderMessages();
-            
-            // Handle scroll position WITHOUT any animation or delay
-            if (page === 1) {
-                // First load - scroll to top immediately (newest messages are at top)
-                container.scrollTop = 0;
-            } else {
-                // Loading older messages - maintain scroll position (no change needed since we add to bottom)
-                // The scroll position should remain the same since we're adding content to the bottom
-                container.scrollTop = scrollTopBeforeLoad;
-            }
-        } else {
-            if (page === 1) {
-                document.getElementById('messagesContent').innerHTML = `
-                    <div class="text-center text-red-500 py-12">
-                        <i class="fas fa-exclamation-triangle fa-3x mb-4"></i>
-                        <p class="text-sm">Failed to load messages</p>
-                    </div>
-                `;
+            renderFeed();
+
+            if (G.isInitialLoad) {
+                scrollToBottom();
+                G.isInitialLoad = false;
+            } else if (container) {
+                container.scrollTop = (container.scrollHeight - hBefore);
             }
         }
-    } catch (error) {
-        console.error('Error loading messages:', error);
-        if (page === 1) {
-            document.getElementById('messagesContent').innerHTML = `
-                <div class="text-center text-red-500 py-12">
-                    <i class="fas fa-times-circle fa-3x mb-4"></i>
-                    <p class="text-sm">Error: ${error.message}</p>
-                </div>
-            `;
-        }
+    } catch (e) {
+        console.error('Fetch Error:', e);
     } finally {
-        isLoading = false;
-        showLoading(false, isLoadingOlder);
-    }
-}
-
-function renderMessages() {
-    const container = document.getElementById('messagesContent');
-
-    if (allMessages.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-gray-500 py-12">
-                <i class="fas fa-inbox fa-3x mb-4 text-gray-300"></i>
-                <p class="text-sm">No messages found</p>
-            </div>
-        `;
-        return;
-    }
-
-    const totalMessages = allMessages.length;
-
-    // Render messages (newest first at top, oldest at bottom)
-    // Add data-message-id to each message for scroll positioning
-    container.innerHTML = allMessages.slice().reverse().map((msg, idx) => {
-        const messageNumber = totalMessages - idx; // Reverse numbering: newest = 1, oldest = total
-        const messageHtml = renderMessage(msg, messageNumber, totalMessages);
-        // Wrap in div with data attribute
-        return `<div data-message-id="${msg.id}" data-index="${idx}">${messageHtml}</div>`;
-    }).join('');
-}
-
-function renderMessage(msg, messageNumber, totalMessages) {
-    const isInbound = msg.type === 'INBOUND';
-    const bgColor = isInbound ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200';
-    const alignment = isInbound ? 'ml-auto' : 'mr-auto';
-    const icon = isInbound ? 'fa-user-circle' : 'fa-headset';
-    const iconColor = isInbound ? 'text-blue-600' : 'text-green-600';
-    
-    const senderName = isInbound 
-        ? (msg.contact?.name || msg.contact?.display_name || 'Customer')
-        : (msg.agent?.name || 'Agent');
-    
-    const time = new Date(msg.created_at).toLocaleString('en-GB', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    // Render media based on body_type
-    let mediaContent = '';
-    if (msg.body_type === 'IMAGE' && msg.file_url) {
-        mediaContent = renderImage(msg.file_url, msg.file_name);
-    } else if (msg.body_type === 'VIDEO' && msg.file_url) {
-        mediaContent = renderVideo(msg.file_url);
-    } else if (msg.body_type === 'BUTTONS' && msg.meta) {
-        mediaContent = renderButtons(msg.meta);
-    }
-    
-    // Show message text only if it's not just "Image" or "Video"
-    const shouldShowText = msg.message && 
-                          msg.message !== 'Image' && 
-                          msg.message !== 'Video' &&
-                          msg.message !== '*Message type unknown*';
-    
-    return `
-        <div class="flex ${isInbound ? 'justify-end' : 'justify-start'} mb-2">
-            <div class="max-w-[75%]">
-                <div class="flex items-center gap-2 mb-1 ${isInbound ? 'flex-row-reverse' : ''}">
-                    <i class="fas ${icon} ${iconColor}"></i>
-                    <span class="font-medium text-xs text-gray-700">${escapeHtml(senderName)}</span>
-                    <span class="text-xs text-gray-400">${time}</span>
-                </div>
-                <div class="${bgColor} border rounded-lg ${shouldShowText || mediaContent ? 'px-3 py-2' : 'p-1'} shadow-sm">
-                    ${mediaContent}
-                    ${shouldShowText ? `<div class="text-sm text-gray-800 whitespace-pre-wrap ${mediaContent ? 'mt-2' : ''}">${escapeHtml(msg.message)}</div>` : ''}
-                    ${msg.attachments && msg.attachments.length > 0 ? renderAttachments(msg.attachments) : ''}
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderImage(imageUrl, fileName) {
-    return `
-        <div class="rounded-lg overflow-hidden bg-gray-100">
-            <a href="${imageUrl}" target="_blank" class="block" onclick="openImageModal(event, '${imageUrl}')">
-                <img 
-                    src="${imageUrl}" 
-                    alt="${escapeHtml(fileName || 'Image')}"
-                    class="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity message-image"
-                    style="max-height: 300px; object-fit: contain; display: block; margin: 0 auto;"
-                    loading="lazy"
-                    onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23ddd%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3EImage not available%3C/text%3E%3C/svg%3E'"
-                >
-            </a>
-        </div>
-    `;
-}
-
-function renderVideo(videoUrl) {
-    return `
-        <div class="rounded-lg overflow-hidden">
-            <video 
-                controls 
-                class="max-w-full h-auto rounded-lg"
-                style="max-height: 400px;"
-                preload="metadata">
-                <source src="${videoUrl}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
-    `;
-}
-
-function renderButtons(meta) {
-    if (!meta || !meta.buttons) return '';
-    
-    const guidingText = meta.button_guiding_text || '';
-    const buttons = meta.buttons || [];
-    
-    return `
-        <div class="space-y-2">
-            ${guidingText ? `<p class="text-sm font-medium text-gray-700">${escapeHtml(guidingText)}</p>` : ''}
-            <div class="flex flex-wrap gap-2">
-                ${buttons.map((btn, idx) => `
-                    <div class="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs text-gray-700">
-                        ${idx + 1}. ${escapeHtml(btn.text || '')}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function renderAttachments(attachments) {
-    if (!attachments || attachments.length === 0) return '';
-    
-    return `
-        <div class="mt-2 space-y-1">
-            ${attachments.map(att => `
-                <div class="flex items-center gap-2 text-xs bg-gray-100 rounded px-2 py-1">
-                    <i class="fas fa-paperclip text-gray-500"></i>
-                    <a href="${att.url || '#'}" target="_blank" class="hover:text-blue-600 hover:underline">${escapeHtml(att.name || 'Attachment')}</a>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-function displayContactInfo(contextData) {
-    const contactCard = document.getElementById('contactCard');
-    const contactInfo = document.getElementById('contactInfo');
-    
-    const phone = contextData.phone || 'N/A';
-    const platform = contextData.platform ? contextData.platform.name : 'N/A';
-    const country = contextData.country ? contextData.country.name : 'N/A';
-    
-    contactInfo.innerHTML = `
-        <div class="flex items-center gap-2">
-            <i class="fas fa-phone text-gray-400"></i>
-            <span class="text-gray-700">${escapeHtml(phone)}</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <i class="fas fa-desktop text-gray-400"></i>
-            <span class="text-gray-700">${escapeHtml(platform)}</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <i class="fas fa-globe text-gray-400"></i>
-            <span class="text-gray-700">${escapeHtml(country)}</span>
-        </div>
-        <div class="flex items-center gap-2">
-            <i class="fas fa-id-badge text-gray-400"></i>
-            <span class="text-gray-700 text-xs">ID: ${contextData.contact_id}</span>
-        </div>
-    `;
-    
-    contactCard.classList.remove('hidden');
-}
-
-async function loadOtherTickets(append = false) {
-    if (!contactId) return;
-    
-    try {
-        const response = await fetch(`<?= URLROOT ?>/tickets/trengo/contact-tickets/${contactId}?page=${otherTicketsPage}&limit=10`);
-        const data = await response.json();
+        G.isLoading = false;
+        dom.hide('loadingIndicatorTop');
         
-        if (data.success && data.data) {
-            await displayOtherTickets(data.data.tickets, !append);
-            
-            const meta = data.data.meta;
-            hasMoreOtherTickets = meta && meta.current_page < (meta.last_page || Infinity);
-            
-            document.getElementById('loadMoreTickets').classList.toggle('hidden', !hasMoreOtherTickets);
-        }
-    } catch (error) {
-        console.error('Error loading other tickets:', error);
+        const hasMoreAny = G.hasMoreInCurrentTicket || G.ticketQueue.findIndex(id => String(id) === String(G.activeTicketId)) < G.ticketQueue.length - 1;
+        if (hasMoreAny) dom.show('manualLoadOlder');
+        
+        dom.html('msgCountDisplay', `${G.loadedMessages.length} nodes active`);
     }
 }
 
-async function displayOtherTickets(tickets, clearFirst = true) {
-    const container = document.getElementById('otherTickets');
-    const card = document.getElementById('otherTicketsCard');
+/**
+ * Cross-Ticket Merging Logic
+ */
+async function loadOlderTicketInStream() {
+    if (G.isLoading) return;
     
-    if (clearFirst) {
-        container.innerHTML = '';
-    }
-    
-    if (tickets.length === 0 && clearFirst) {
-        container.innerHTML = '<p class="text-xs text-gray-500 text-center py-3">No other tickets found</p>';
-        card.classList.remove('hidden');
-        return;
-    }
-    
-    // Check which tickets exist in our database
-    const ticketNumbers = tickets.map(t => t.id).join(',');
-    let existingTickets = {};
-    
-    try {
-        const checkResponse = await fetch(`<?= URLROOT ?>/tickets/trengo/check-exists?ticket_numbers=${ticketNumbers}`);
-        const checkData = await checkResponse.json();
-        if (checkData.success) {
-            existingTickets = checkData.data;
-            console.log('Existing tickets mapping:', existingTickets);
-        }
-    } catch (error) {
-        console.error('Error checking ticket existence:', error);
-    }
-    
-    const ticketsHtml = tickets.map(ticket => {
-        const status = ticket.status || 'UNKNOWN';
-        const statusColor = status === 'OPEN' ? 'bg-green-100 text-green-800' : 
-                           status === 'CLOSED' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-800';
-        
-        const latestMsg = ticket.latest_received_message?.message || 'No messages';
-        const truncatedMsg = latestMsg.length > 35 ? latestMsg.substring(0, 35) + '...' : latestMsg;
-        
-        const createdAt = new Date(ticket.created_at).toLocaleDateString('en-GB', {
-            month: 'short',
-            day: 'numeric'
-        });
-        
-        // existingTickets is a mapping: trengoTicketNumber => databaseTicketId
-        const dbTicketId = existingTickets[ticket.id];
-        
-        // Debug log
-        if (dbTicketId) {
-            console.log(`Ticket #${ticket.id} exists in DB with ID: ${dbTicketId}`);
-        }
-        
-        return `
-            <div class="border ${dbTicketId ? 'border-green-300 bg-green-50' : 'border-gray-200'} rounded-lg p-2 transition-all hover:shadow-md"
-                 style="position: relative;">
-                <!-- Main clickable area - loads in Trengo viewer -->
-                <div class="cursor-pointer" onclick="loadOtherTicket('${ticket.id}')">
-                    <div class="flex justify-between items-start mb-1">
-                        <div class="flex items-center gap-1">
-                            <span class="text-xs font-mono text-gray-700">#${ticket.id}</span>
-                            ${dbTicketId ? `<span class="text-xs text-green-600">(DB: ${dbTicketId})</span>` : ''}
-                        </div>
-                        <span class="text-xs px-1.5 py-0.5 rounded-full ${statusColor}">${status}</span>
-                    </div>
-                    <p class="text-xs text-gray-700 mb-1 line-clamp-2">${escapeHtml(truncatedMsg)}</p>
-                    <div class="flex justify-between items-center text-xs text-gray-500">
-                        <span><i class="far fa-calendar mr-1"></i>${createdAt}</span>
-                        <span><i class="fas fa-comment mr-1"></i>${ticket.messages_count || 0}</span>
-                    </div>
-                </div>
-                
-                <!-- Action buttons -->
-                <div class="mt-2 pt-2 border-t ${dbTicketId ? 'border-green-300' : 'border-gray-200'} flex gap-1.5">
-                    <button 
-                        onclick="event.stopPropagation(); loadOtherTicket('${ticket.id}')"
-                        class="flex-1 text-xs px-2 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors shadow-sm"
-                        title="View messages in Trengo">
-                        <i class="fas fa-comments mr-1"></i>Trengo
-                    </button>
-                    ${dbTicketId ? `
-                        <button 
-                            onclick="event.stopPropagation(); window.location.href='<?= URLROOT ?>/tickets/view/${dbTicketId}'"
-                            class="flex-1 text-xs px-2 py-1.5 bg-green-500 text-white rounded hover:bg-green-600 transition-colors shadow-sm"
-                            title="Open saved ticket in database (ID: ${dbTicketId})">
-                            <i class="fas fa-database mr-1"></i>View
-                        </button>
-                    ` : `
-                        <div 
-                            class="flex-1 text-xs px-2 py-1.5 bg-gray-100 text-gray-400 rounded text-center border border-dashed border-gray-300"
-                            title="This ticket is not saved in database">
-                            <i class="fas fa-ban mr-1"></i>Not Saved
-                        </div>
-                    `}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.innerHTML += ticketsHtml;
-    card.classList.remove('hidden');
-}
+    const currentIndex = G.ticketQueue.findIndex(id => String(id) === String(G.activeTicketId));
+    const nextId = G.ticketQueue[currentIndex + 1];
 
-function loadOtherTicket(ticketId) {
-    document.getElementById('ticketSearch').value = ticketId;
-    loadTicket();
-}
-
-function loadMoreOtherTickets() {
-    otherTicketsPage++;
-    loadOtherTickets(true); // append = true
-}
-
-function handleScroll() {
-    const container = document.getElementById('messagesContainer');
-
-    // When scrolled to bottom, load more (older) messages
-    const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
-    if (isNearBottom && hasMoreMessages && !isLoading) {
-        const nextPage = currentPage + 1;
-        loadMessages(nextPage);
-    }
-}
-
-function showLoading(show, isTop = false) {
-    const topIndicator = document.getElementById('loadingIndicatorTop');
-    const bottomIndicator = document.getElementById('loadingIndicatorBottom');
-    
-    if (isTop) {
-        // Show/hide top indicator
-        if (show) {
-            topIndicator.classList.remove('hidden');
-            bottomIndicator.classList.add('hidden');
-        } else {
-            topIndicator.classList.add('hidden');
-        }
+    if (nextId) {
+        console.log(`Merging history with older ticket #${nextId}`);
+        G.activeTicketId = nextId;
+        G.currentTicketPage = 1;
+        await fetchMessages(nextId, 1);
     } else {
-        // Show/hide bottom indicator
-        if (show) {
-            bottomIndicator.classList.remove('hidden');
-            topIndicator.classList.add('hidden');
-        } else {
-            bottomIndicator.classList.add('hidden');
-        }
+        G.hasMoreInCurrentTicket = false;
+        dom.hide('manualLoadOlder');
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+/**
+ * Rendering Logic
+ */
+function renderFeed() {
+    const list = dom.get('messagesContent');
+    if (!list) return;
 
-// Keyboard shortcuts
-const ticketInput = document.getElementById('ticketSearch');
+    const sorted = [...G.loadedMessages].reverse();
+    let html = '';
+    let lastDate = null;
+    let lastTid = null;
 
-// Enter to load
-ticketInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        loadTicket();
-    }
-});
-
-// Auto-load on paste
-ticketInput.addEventListener('paste', function(e) {
-    setTimeout(() => {
-        const pastedValue = ticketInput.value.trim();
-        if (pastedValue && /^\d+$/.test(pastedValue)) {
-            loadTicket();
+    sorted.forEach(msg => {
+        // Boundary check
+        if (msg._ticket_id !== lastTid) {
+            html += `<div class="flex items-center gap-4 my-10"><div class="h-px bg-gray-100 flex-1"></div><div class="px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-[9px] font-bold text-blue-600">REFERENCE #${msg._ticket_id}</div><div class="h-px bg-gray-100 flex-1"></div></div>`;
+            lastTid = msg._ticket_id;
         }
-    }, 100);
-});
 
-// Image modal functionality
-function openImageModal(event, imageUrl) {
-    event.preventDefault();
-    
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4';
-    modal.onclick = function() { document.body.removeChild(modal); };
-    
-    modal.innerHTML = `
-        <div class="relative max-w-6xl max-h-full" onclick="event.stopPropagation()">
-            <button 
-                class="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors z-10"
-                onclick="document.body.removeChild(this.closest('.fixed'))">
-                <i class="fas fa-times text-gray-700"></i>
-            </button>
-            <img 
-                src="${imageUrl}" 
-                class="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
-                style="object-fit: contain;"
-            >
-            <a href="${imageUrl}" download target="_blank" 
-               class="absolute bottom-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-download text-gray-700"></i>
-            </a>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
+        // Date check
+        const d = utils.formatDate(msg.created_at);
+        if (d !== lastDate) {
+            html += `<div class="flex justify-center my-6 sticky top-0 z-30"><span class="px-4 py-1 bg-white/90 shadow-sm border border-gray-50 rounded-full text-[10px] font-bold text-gray-400">${d}</span></div>`;
+            lastDate = d;
+        }
+
+        html += renderBubble(msg);
+    });
+
+    list.innerHTML = html;
 }
+
+function renderBubble(msg) {
+    const isIn = msg.type === 'INBOUND';
+    const t = isIn ? THEME.INBOUND : THEME.OUTBOUND;
+    const name = isIn ? (msg.contact?.name || 'Customer') : (msg.agent?.name || 'Agent');
+    
+    let media = '';
+    if (msg.body_type === 'IMAGE' && msg.file_url) {
+        media = `<div class="mb-2 rounded-xl overflow-hidden cursor-zoom-in" onclick="openImageModal('${msg.file_url}', 'Media')"><img src="${msg.file_url}" class="max-w-full h-auto" style="max-height: 280px"></div>`;
+    } else if (msg.body_type === 'VIDEO' && msg.file_url) {
+        media = `<video controls class="rounded-xl mb-2 w-full max-h-[280px]"><source src="${msg.file_url}" type="video/mp4"></video>`;
+    }
+
+    const hasMsg = msg.message && !['Image', 'Video'].includes(msg.message);
+    const body = hasMsg ? `<p class="whitespace-pre-wrap text-[13px] leading-relaxed">${utils.escape(msg.message)}</p>` : '';
+
+    let atts = '';
+    if (msg.attachments?.length > 0) {
+        atts = `<div class="mt-2 pt-2 border-t border-white/10">${msg.attachments.map(a => `<a href="${a.url}" target="_blank" class="flex items-center gap-2 text-[10px] font-bold py-1 px-2 bg-black/5 rounded mb-1"><i class="fas fa-file-download"></i> ${utils.escape(a.name)}</a>`).join('')}</div>`;
+    }
+
+    return `
+        <div class="flex flex-col ${t.align} mb-6">
+            <div class="flex items-center gap-2 mb-1 px-1 ${isIn ? '' : 'flex-row-reverse'}"><span class="text-[9px] font-black uppercase text-gray-300">${utils.escape(name)}</span><span class="text-[8px] text-gray-200">${utils.formatTime(msg.created_at)}</span></div>
+            <div class="max-w-[80%] md:max-w-[65%]"><div class="${t.bubble} rounded-2xl p-3 ${t.text} ${isIn ? 'rounded-tl-none' : 'rounded-tr-none'}">${media}${body}${atts}</div></div>
+        </div>`;
+}
+
+/**
+ * SIDEBAR LOGIC
+ */
+function renderContactInfo(data) {
+    dom.html('contactInitials', (data.name || '??').substring(0, 2).toUpperCase());
+    dom.html('contactNameDisplay', data.name || 'Unidentified');
+    dom.html('countryDisplay', data.country?.name || 'Unknown');
+    dom.html('platformBadge', data.platform?.name || 'Channel');
+
+    const details = [
+        { icon: 'fa-phone', label: 'Primary Contact', val: data.phone || 'N/A' },
+        { icon: 'fa-id-badge', label: 'Trengo UID', val: data.contact_id }
+    ];
+
+    dom.html('contactInfo', details.map(d => `<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-transparent hover:border-blue-100"><div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500"><i class="fas ${d.icon} text-xs"></i></div><div><div class="text-[8px] font-black text-gray-300 uppercase">${d.label}</div><div class="text-xs font-bold text-gray-600">${d.val}</div></div></div>`).join(''));
+    dom.hide('sidebarSkeleton');
+    dom.get('contactCard').classList.remove('hidden', 'opacity-0', 'translate-y-4');
+}
+
+async function loadOtherInteractions(append = false) {
+    if (!G.contactId) return;
+    try {
+        const res = await fetch(`<?= URLROOT ?>/tickets/trengo/contact-tickets/${G.contactId}?page=${G.otherTicketsPage}&limit=12`);
+        const json = await res.json();
+        if (json.success && json.data) {
+            const list = json.data.tickets || [];
+            if (!append) G.ticketQueue = list.map(t => t.id);
+            else G.ticketQueue = [...G.ticketQueue, ...list.map(t => t.id)];
+            
+            G.hasMoreOtherTickets = json.data.meta?.current_page < json.data.meta?.last_page;
+            dom.get('loadMoreTickets').classList.toggle('hidden', !G.hasMoreOtherTickets);
+            dom.html('otherTicketsCount', json.data.meta?.total || 0);
+            
+            await renderOtherList(list, append);
+        }
+    } catch (e) { console.error('History Fail:', e); }
+}
+
+async function renderOtherList(tickets, append) {
+    const box = dom.get('otherTickets');
+    if (!box) return;
+    if (!append) box.innerHTML = '';
+
+    const ids = tickets.map(t => t.id).join(',');
+    let dbMap = {};
+    try {
+        const res = await fetch(`<?= URLROOT ?>/tickets/trengo/check-exists?ticket_numbers=${ids}`);
+        const d = await res.json();
+        if (d.success) dbMap = d.data;
+    } catch(e) {}
+
+    const html = tickets.map(t => {
+        const dbId = dbMap[t.id];
+        const stat = t.status === 'CLOSED' ? 'bg-gray-100 text-gray-400' : 'bg-green-100 text-green-600';
+        return `
+            <div class="px-6 py-4 hover:bg-blue-50/50 cursor-pointer group relative border-b border-gray-50" onclick="switchTicket('${t.id}')">
+                <div class="flex justify-between items-center mb-1"><span class="text-xs font-black text-gray-800">#${t.id}</span><span class="px-1.5 py-0.5 rounded text-[8px] font-black ${stat}">${t.status}</span></div>
+                <p class="text-[10px] text-gray-400 truncate mb-1 italic group-hover:text-blue-500">"${utils.escape(t.latest_received_message?.message || 'New Ticket')}"</p>
+                <div class="flex justify-between text-[9px] text-gray-300 font-bold"><span>${utils.formatDate(t.created_at)}</span>${dbId ? `<span class="text-green-500"><i class="fas fa-database mr-1"></i>Saved</span>` : ''}</div>
+                ${dbId ? `<div class="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"><button onclick="event.stopPropagation(); window.open('<?= URLROOT ?>/tickets/view/${dbId}', '_blank')" class="w-7 h-7 bg-blue-600 text-white rounded-lg shadow-lg flex items-center justify-center"><i class="fas fa-external-link-alt text-[9px]"></i></button></div>` : ''}
+            </div>`;
+    }).join('');
+
+    box.insertAdjacentHTML('beforeend', html);
+    dom.get('otherTicketsCard').classList.remove('hidden', 'opacity-0', 'translate-y-4');
+}
+
+/**
+ * ACTIONS
+ */
+function handleScroll() {
+    const c = dom.get('messagesContainer');
+    if (c && c.scrollTop < 50 && !G.isLoading) {
+        if (G.hasMoreInCurrentTicket) fetchMessages(G.activeTicketId, G.currentTicketPage + 1);
+        else loadOlderTicketInStream();
+    }
+}
+
+function handleManualLoadOlder() {
+    if (G.hasMoreInCurrentTicket) fetchMessages(G.activeTicketId, G.currentTicketPage + 1);
+    else loadOlderTicketInStream();
+}
+
+function scrollToBottom() { const c = dom.get('messagesContainer'); if(c) c.scrollTop = c.scrollHeight; }
+
+function switchTicket(id) {
+    const s = dom.get('ticketSearch');
+    if(s) { s.value = id; loadTicket(id); }
+}
+
+function loadMoreOtherTickets() { G.otherTicketsPage++; loadOtherInteractions(true); }
+
+function openImageModal(url, cap) {
+    const i = dom.get('modalImage'); if(i) i.src = url;
+    const l = dom.get('modalDownloadLink'); if(l) l.href = url;
+    dom.html('modalCaption', cap);
+    const m = dom.get('imageModal'); if(m) { m.classList.remove('pointer-events-none', 'opacity-0'); document.body.style.overflow = 'hidden'; }
+}
+
+function closeImageModal() {
+    const m = dom.get('imageModal'); if(m) { m.classList.add('pointer-events-none', 'opacity-0'); document.body.style.overflow = ''; }
+}
+
+const searchInput = dom.get('ticketSearch');
+if (searchInput) searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') loadTicket(); });
 </script>
 
+
 <style>
-/* Custom scrollbar for messages */
-#messagesContainer::-webkit-scrollbar,
-#otherTicketsCard::-webkit-scrollbar {
-    width: 6px;
+/* Custom Layout & Animations */
+.message-image-anim {
+    animation: zoom-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#messagesContainer::-webkit-scrollbar-track,
-#otherTicketsCard::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+@keyframes zoom-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
-#messagesContainer::-webkit-scrollbar-thumb,
-#otherTicketsCard::-webkit-scrollbar-thumb {
-    background: #cbd5e0;
-    border-radius: 3px;
-}
-
-#messagesContainer::-webkit-scrollbar-thumb:hover,
-#otherTicketsCard::-webkit-scrollbar-thumb:hover {
-    background: #a0aec0;
-}
-
-/* Disable smooth scrolling to prevent jumps */
 #messagesContainer {
-    scroll-behavior: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 transparent;
 }
 
-/* Line clamp for truncated text */
-.line-clamp-2 {
+#messagesContainer::-webkit-scrollbar {
+    width: 5px;
+}
+
+#messagesContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#messagesContainer::-webkit-scrollbar-thumb {
+    background-color: #e2e8f0;
+    border-radius: 20px;
+}
+
+.line-clamp-1 {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-/* Image hover effect */
-img.message-image {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-img.message-image:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Video styling */
-video {
-    background: #000;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .max-w-\[75\%\] {
-        max-width: 90%;
-    }
+/* Glassmorphism for bubbles if needed */
+.msg-glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 </style>
 
 <?php include_once __DIR__ . '/../includes/footer.php'; ?>
-

@@ -26,7 +26,7 @@ class AssignmentsController extends Controller
 
         parent::__construct();
 
-        if (!isset($_SESSION['user_id'])) {
+        if (!isset($_SESSION['user'])) {
 
             $this->sendJsonResponse(['success' => false, 'message' => 'انتهت صلاحية الجلسة', 'redirect' => BASE_PATH . '/auth/login'], 401);
 

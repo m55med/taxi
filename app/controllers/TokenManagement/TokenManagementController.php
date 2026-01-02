@@ -58,7 +58,7 @@ class TokenManagementController extends Controller
 
         // التحقق من تسجيل الدخول
         if (!Auth::isLoggedIn()) {
-            redirect('auth/login');
+            redirect('login');
         }
 
         // التحقق من صلاحية الأدمن فقط

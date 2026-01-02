@@ -71,7 +71,6 @@ class TrengoService
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
-        curl_close($ch);
 
         if ($curlError) {
             error_log("Trengo API cURL Error: " . $curlError);
@@ -97,13 +96,44 @@ class TrengoService
     }
 
     /**
+     * Parse ticket ID from various formats (e.g., "# 913822465", "913822465", "#913822465")
+     * @param string $input Raw ticket input
+     * @return string Cleaned ticket number or null if invalid
+     */
+    public function parseTicketId(string $input): ?string
+    {
+        // Remove leading/trailing whitespace
+        $cleaned = trim($input);
+
+        // Remove # symbol if present
+        $cleaned = ltrim($cleaned, '#');
+
+        // Remove any additional whitespace after #
+        $cleaned = trim($cleaned);
+
+        // Check if it's numeric after cleaning
+        if (!is_numeric($cleaned) || empty($cleaned)) {
+            return null;
+        }
+
+        return $cleaned;
+    }
+
+    /**
      * Search for tickets by number in Trengo API
      * Trengo API may require searching instead of direct ticket ID access
      */
     public function searchTicket(string $ticketNumber): ?array
     {
+        // Parse ticket ID to handle formats like "# 913822465"
+        $parsedTicketId = $this->parseTicketId($ticketNumber);
+        if (!$parsedTicketId) {
+            error_log("searchTicket: Invalid ticket number format: {$ticketNumber}");
+            return null;
+        }
+
         // Strategy 1: Try direct ticket ID (Trengo ticket IDs are usually numeric without leading zeros)
-        $ticketId = ltrim($ticketNumber, '0');
+        $ticketId = ltrim($parsedTicketId, '0');
         if (!empty($ticketId)) {
             $ticketInfo = $this->get("/tickets/{$ticketId}");
             // Check if response has 'data' key or direct ticket data
@@ -124,25 +154,25 @@ class TrengoService
             }
         }
 
-        // Strategy 2: Try original ticket number
-        if ($ticketNumber !== $ticketId) {
-            $ticketInfo = $this->get("/tickets/{$ticketNumber}");
+        // Strategy 2: Try parsed ticket number (without leading zeros removed)
+        if ($parsedTicketId !== $ticketId) {
+            $ticketInfo = $this->get("/tickets/{$parsedTicketId}");
             if ($ticketInfo) {
                 if (isset($ticketInfo['data'])) {
                     $ticket = $ticketInfo['data'];
                 } else {
                     $ticket = $ticketInfo;
                 }
-                
+
                 $returnedTicketId = $ticket['ticket_id'] ?? $ticket['id'] ?? null;
-                if ($returnedTicketId && (string)$returnedTicketId === $ticketNumber) {
-                    error_log("searchTicket: Found ticket {$ticketNumber}");
+                if ($returnedTicketId && (string)$returnedTicketId === $parsedTicketId) {
+                    error_log("searchTicket: Found ticket {$parsedTicketId} (parsed from {$ticketNumber})");
                     return $ticket;
                 }
             }
         }
 
-        error_log("searchTicket: Ticket {$ticketNumber} not found");
+        error_log("searchTicket: Ticket {$ticketNumber} (parsed as {$parsedTicketId}) not found");
         return null;
     }
 
