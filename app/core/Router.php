@@ -269,11 +269,17 @@ class Router
     {
 
         if (!class_exists($controller)) {
-
-            $this->triggerNotFound("Controller class {$controller} not found.");
-
-            return;
-
+            // Try to load the controller file manually if autoloader didn't find it
+            $controllerPath = $this->getControllerPath($controller);
+            if ($controllerPath && file_exists($controllerPath)) {
+                require_once $controllerPath;
+            }
+            
+            // Check again after manual load
+            if (!class_exists($controller)) {
+                $this->triggerNotFound("Controller class {$controller} not found.");
+                return;
+            }
         }
 
 
@@ -297,6 +303,23 @@ class Router
     }
 
 
+
+    /**
+     * Get the file path for a controller class
+     */
+    private function getControllerPath($controllerClass)
+    {
+        // Remove App\Controllers\ prefix
+        $relativePath = str_replace('App\\Controllers\\', '', $controllerClass);
+        
+        // Convert namespace separators to directory separators
+        $filePath = str_replace('\\', '/', $relativePath) . '.php';
+        
+        // Build full path
+        $fullPath = APPROOT . '/controllers/' . $filePath;
+        
+        return $fullPath;
+    }
 
     private function triggerNotFound($message = 'Page not found.')
 

@@ -29,9 +29,16 @@ class TrengoController extends Controller
         // Get ticket number from URL parameter
         $ticketNumber = $_GET['ticket'] ?? null;
 
+        // Check token expiry
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        $tokenExpiryDate = $this->trengoService->getTokenExpiryDate();
+
         $data = [
             'title' => 'Trengo Ticket Viewer',
-            'ticket_number' => $ticketNumber
+            'ticket_number' => $ticketNumber,
+            'token_expired' => $tokenExpired,
+            'token_expiry_date' => $tokenExpiryDate,
+            'trengo_available' => $this->trengoService->isAvailable()
         ];
 
         $this->view('tickets/trengo_viewer', $data);
@@ -52,17 +59,34 @@ class TrengoController extends Controller
             return;
         }
 
-        if (!$this->trengoService->isAvailable()) {
+        // Check token availability but don't block if token is expired
+        // (we still want to try to get data even with expired token)
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        if (!$this->trengoService->isAvailable() && !$tokenExpired) {
             http_response_code(503);
             echo json_encode(['error' => 'Trengo API is not available']);
             return;
         }
 
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        
-        $result = $this->trengoService->getTicketMessages($ticketNumber, $page);
-        
+        // Check if we should load all messages at once
+        $loadAll = isset($_GET['all']) && $_GET['all'] === 'true';
+
+        if ($loadAll) {
+            // Load all messages at once
+            $result = $this->trengoService->getAllTicketMessages($ticketNumber);
+        } else {
+            // Load single page (for backward compatibility)
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $result = $this->trengoService->getTicketMessages($ticketNumber, $page);
+        }
+
         if (!$result) {
+            // If token is expired, provide a more helpful message
+            if ($tokenExpired) {
+                http_response_code(503);
+                echo json_encode(['error' => 'Token expired - please contact administrator to renew']);
+                return;
+            }
             http_response_code(404);
             echo json_encode(['error' => 'Ticket not found or no messages available']);
             return;
@@ -89,7 +113,9 @@ class TrengoController extends Controller
             return;
         }
 
-        if (!$this->trengoService->isAvailable()) {
+        // Check token availability but don't block if token is expired
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        if (!$this->trengoService->isAvailable() && !$tokenExpired) {
             http_response_code(503);
             echo json_encode(['error' => 'Trengo API is not available']);
             return;
@@ -127,7 +153,9 @@ class TrengoController extends Controller
             return;
         }
 
-        if (!$this->trengoService->isAvailable()) {
+        // Check token availability but don't block if token is expired
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        if (!$this->trengoService->isAvailable() && !$tokenExpired) {
             http_response_code(503);
             echo json_encode(['error' => 'Trengo API is not available']);
             return;
@@ -210,6 +238,89 @@ class TrengoController extends Controller
             'success' => true,
             'data' => $result
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * API endpoint to get Trengo users
+     * GET /tickets/trengo/users?page=1
+     */
+    public function getUsers()
+    {
+        header('Content-Type: application/json');
+
+        if (!Auth::isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+
+        // Check token availability but don't block if token is expired
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        if (!$this->trengoService->isAvailable() && !$tokenExpired) {
+            http_response_code(503);
+            echo json_encode(['error' => 'Trengo API is not available']);
+            return;
+        }
+
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $result = $this->trengoService->getUsers($page);
+
+        if (!$result) {
+            http_response_code(404);
+            echo json_encode(['error' => 'No users found']);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'data' => $result
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * API endpoint to assign a ticket
+     * POST /tickets/trengo/assign
+     */
+    public function assignTicket()
+    {
+        header('Content-Type: application/json');
+
+        if (!Auth::isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+
+        // Get post data
+        $postData = json_decode(file_get_contents('php://input'), true);
+        
+        $ticketNumber = $postData['ticket_number'] ?? null;
+        $trengoUserId = $postData['user_id'] ?? null;
+        $note = $postData['note'] ?? '';
+
+        if (!$ticketNumber || !$trengoUserId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing required fields (ticket_number, user_id)']);
+            return;
+        }
+
+        // Check token availability but don't block if token is expired
+        $tokenExpired = $this->trengoService->isTokenExpired();
+        if (!$this->trengoService->isAvailable() && !$tokenExpired) {
+            http_response_code(503);
+            echo json_encode(['error' => 'Trengo API is not available']);
+            return;
+        }
+
+        $success = $this->trengoService->assignTicket($ticketNumber, (int)$trengoUserId, $note);
+
+        if (!$success) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to assign ticket']);
+            return;
+        }
+
+        echo json_encode(['success' => true, 'message' => 'OK']);
     }
 }
 

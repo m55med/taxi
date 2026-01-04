@@ -1,5 +1,6 @@
 <?php
 
+if (!function_exists('getNavigationItems')) {
 function getNavigationItems($role) {
 
     $items = [
@@ -229,7 +230,22 @@ function getNavigationItems($role) {
 
         
 
-         [
+        [
+
+            'title' => 'Tasks',
+
+            'icon' => 'fas fa-tasks',
+
+            'children' => [
+
+                ['title' => 'All Tasks', 'href' => '/tasks', 'icon' => 'fas fa-list'],
+
+                ['title' => 'Create Task', 'href' => '/tasks/create', 'icon' => 'fas fa-plus', 'permissions' => ['admin', 'developer', 'Team_leader']],
+
+            ]
+
+        ],
+    [
 
             'title' => 'Help',
 
@@ -250,17 +266,15 @@ function getNavigationItems($role) {
 
 
     return array_filter($items, function ($item) use ($role) {
-
         if (empty($item['permissions'])) return true;
-
         return in_array($role, $item['permissions']);
-
     });
-
+}
 }
 
 
 
+if (!function_exists('getAdminNavItems')) {
 function getAdminNavItems($role) {
 
     $items = [
@@ -394,17 +408,15 @@ function getAdminNavItems($role) {
     ];
 
     return array_filter($items, function ($item) use ($role) {
-
         if (empty($item['permissions'])) return true;
-
         return in_array($role, $item['permissions']);
-
     });
-
+}
 }
 
 
 
+if (!function_exists('renderNavItem')) {
 function renderNavItem($item, $currentPath) {
 
         $hasChildren = !empty($item['children']);
@@ -441,7 +453,15 @@ function renderNavItem($item, $currentPath) {
 
         echo "<button @click='open = !open' class='w-full flex justify-between items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-200'>";
 
-        echo "<div class='flex items-center gap-3'><i class='{$item['icon']} w-5 text-center'></i><span x-show='!isSidebarCollapsed' class='text-sm font-medium'>{$item['title']}</span></div>";
+        echo "<div class='flex items-center gap-3'><i class='{$item['icon']} w-5 text-center'></i><span x-show='!isSidebarCollapsed' class='text-sm font-medium'>{$item['title']}</span>";
+
+        if ($item['title'] === 'Tasks' && $GLOBALS['pendingTasksCount'] > 0) {
+
+            echo "<span class='ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full'>{$GLOBALS['pendingTasksCount']}</span>";
+
+        }
+
+        echo "</div>"; // Close the flex items-center gap-3 div
 
         echo "<i class='fas fa-chevron-down w-4 h-4 transition-transform' x-show='!isSidebarCollapsed' :class='{ \"rotate-180\": open }'></i>";
 
@@ -492,10 +512,24 @@ function renderNavItem($item, $currentPath) {
     }
 
 }
+}
 
 
 
 $userRole = $_SESSION['user']['role_name'] ?? 'agent';
+
+$GLOBALS['pendingTasksCount'] = 0;
+if (isset($_SESSION['user_id'])) {
+    try {
+        if (!class_exists('\App\Models\Task\Task')) {
+            require_once APPROOT . '/models/Task/Task.php';
+        }
+        $taskModel = new \App\Models\Task\Task();
+        $GLOBALS['pendingTasksCount'] = $taskModel->getPendingCountForUser($_SESSION['user_id']);
+    } catch (\Exception $e) {
+        // Silently fail if something goes wrong with the count
+    }
+}
 
 $navigationItems = getNavigationItems($userRole);
 

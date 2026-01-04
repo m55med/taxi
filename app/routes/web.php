@@ -6,10 +6,11 @@
 
 
 
+// File serving routes for safe access to uploads
+$router->get('serve/{filename}', 'upload/UploadController@serveFile');
+
 // Catch-all route to block direct access to /uploads directory
-
 $router->get('uploads/{any:.*}', 'error/ErrorController@notFound');
-
 $router->post('uploads/{any:.*}', 'error/ErrorController@notFound');
 
 
@@ -100,7 +101,7 @@ if (strpos($cleanUri, 'auth/') === 0) {
 
 $router->get('', 'HomeController@index');
 
-
+$router->get('tasks-test', 'TestController@routerHit');
 
 // Authentication Routes
 
@@ -128,6 +129,18 @@ $router->get('reset-password/{token}', 'password/PasswordResetController@showRes
 
 $router->post('reset-password', 'password/PasswordResetController@handleReset');
 
+// Task Management Routes
+$router->get('tasks', 'TasksController@index')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get('tasks/create', 'TasksController@create')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/create', 'TasksController@create')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get('tasks/show/{id}', 'TasksController@show')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->get('tasks/edit/{id}', 'TasksController@edit')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/edit/{id}', 'TasksController@edit')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/update_status', 'TasksController@update_status')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/add_comment', 'TasksController@add_comment')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/update_assignees/{id}', 'TasksController@update_assignees')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/delete_attachment/{id}', 'TasksController@deleteAttachment')->middleware(['admin', 'developer', 'Quality', 'team_leader']);
+$router->post('tasks/delete/{id}', 'TasksController@delete')->middleware(['admin', 'developer']);
 
 
 // Profile routes
@@ -312,6 +325,9 @@ $router->get("admin/users/edit/{id}", "admin/UsersController@edit");
 $router->post("admin/users/update/{id}", "admin/UsersController@update");
 
 $router->post("admin/users/destroy", "admin/UsersController@destroy");
+
+$router->get("admin/users/change_password/{id}", "admin/UsersController@changePassword");
+$router->post("admin/users/change_password/{id}", "admin/UsersController@changePassword");
 
 
 
@@ -954,7 +970,8 @@ $router->get('tickets/trengo/messages/{ticketNumber}', 'tickets/TrengoController
 $router->get('tickets/trengo/contact-tickets/{contactId}', 'tickets/TrengoController@getContactTickets');
 
 $router->get('tickets/trengo/context/{ticketNumber}', 'tickets/TrengoController@getContext');
-
+$router->get('tickets/trengo/users', 'Tickets/TrengoController@getUsers');
+$router->post('tickets/trengo/assign', 'Tickets/TrengoController@assignTicket');
 $router->get('tickets/trengo/check-exists', 'tickets/TrengoController@checkExists');
 
 $router->get('tickets/edit-logs/{id}', 'tickets/TicketController@editLogs');
@@ -1113,4 +1130,9 @@ $router->get('token-management/export', 'TokenManagement/TokenManagementControll
 $router->get('search', 'SearchController@index');
 $router->get('search/suggestions', 'SearchController@suggestions');
 $router->get('search/results', 'SearchController@search');
+
+
+
+
+
 ?>

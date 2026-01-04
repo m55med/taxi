@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Controller;
+use App\Core\Database;
 use App\Models\Admin\Permission;
 use App\Models\User\User;
 
@@ -10,6 +11,7 @@ class PermissionsController extends Controller
 {
     private $permissionModel;
     private $userModel;
+    private $db;
 
     public function __construct()
     {
@@ -18,6 +20,7 @@ class PermissionsController extends Controller
         \App\Core\Auth::checkAdmin();
         $this->permissionModel = $this->model('Admin/Permission');
         $this->userModel = $this->model('User/User');
+        $this->db = Database::getInstance();
     }
 
     private function jsonResponse(array $data, int $statusCode = 200)
@@ -28,9 +31,12 @@ class PermissionsController extends Controller
     }
 
     public function index()
-{
+    {
     // مزامنة الصلاحيات من الملفات للقاعدة
     $this->permissionModel->syncPermissions();
+
+    // إنشاء permissions للمهام يدوياً إذا لم تكن موجودة
+    $this->ensureTaskPermissionsExist();
 
     $selectedRoleId = isset($_GET['role_id']) && is_numeric($_GET['role_id']) ? (int)$_GET['role_id'] : null;
     
@@ -211,5 +217,82 @@ class PermissionsController extends Controller
             mkdir($dir, 0755, true);
         }
         touch($dir . '/' . $userId);
+    }
+
+    /**
+     * Ensures that task-related permissions exist in the database
+     */
+    private function ensureTaskPermissionsExist()
+    {
+        // First sync all permissions from controllers
+        $this->permissionModel->syncPermissions();
+
+        $taskPermissions = [
+            'Tasks/index' => 'View all tasks',
+            'Tasks/create' => 'Create new tasks',
+            'Tasks/show' => 'View task details',
+            'Tasks/edit' => 'Edit tasks',
+            'Tasks/update_status' => 'Update task status',
+            'Tasks/add_comment' => 'Add comments to tasks',
+            'Tasks/update_assignees' => 'Update task assignees'
+        ];
+
+        foreach ($taskPermissions as $permissionKey => $description) {
+            // Check if permission already exists
+            $stmt = $this->db->prepare("SELECT id FROM permissions WHERE permission_key = ?");
+            $stmt->execute([$permissionKey]);
+            $exists = $stmt->fetch();
+
+            if (!$exists) {
+                // Insert the permission
+                $insertStmt = $this->db->prepare("INSERT INTO permissions (permission_key, description) VALUES (?, ?)");
+                $insertStmt->execute([$permissionKey, $description]);
+            }
+        }
+
+        // Also ensure that default roles have access to task permissions
+        $this->ensureDefaultTaskPermissionsForRoles();
+    }
+
+    /**
+     * Ensures that default roles have access to task permissions
+     */
+    private function ensureDefaultTaskPermissionsForRoles()
+    {
+        $taskPermissions = ['Tasks/index', 'Tasks/create', 'Tasks/show', 'Tasks/edit', 'Tasks/update_status', 'Tasks/add_comment', 'Tasks/update_assignees'];
+        $defaultRoles = ['Quality', 'team_leader']; // These roles should have task access by default
+
+        foreach ($defaultRoles as $roleName) {
+            // Get role ID
+            $roleStmt = $this->db->prepare("SELECT id FROM roles WHERE name = ?");
+            $roleStmt->execute([$roleName]);
+            $role = $roleStmt->fetch();
+
+            if ($role) {
+                $roleId = $role['id'];
+
+                foreach ($taskPermissions as $permissionKey) {
+                    // Get permission ID
+                    $permStmt = $this->db->prepare("SELECT id FROM permissions WHERE permission_key = ?");
+                    $permStmt->execute([$permissionKey]);
+                    $permission = $permStmt->fetch();
+
+                    if ($permission) {
+                        $permissionId = $permission['id'];
+
+                        // Check if role already has this permission
+                        $checkStmt = $this->db->prepare("SELECT id FROM role_permissions WHERE role_id = ? AND permission_id = ?");
+                        $checkStmt->execute([$roleId, $permissionId]);
+                        $exists = $checkStmt->fetch();
+
+                        if (!$exists) {
+                            // Grant permission to role
+                            $insertStmt = $this->db->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)");
+                            $insertStmt->execute([$roleId, $permissionId]);
+                        }
+                    }
+                }
+            }
+        }
     }
 } 

@@ -263,6 +263,9 @@ if (isset($_SESSION['user_message'])) {
                                             <a href="<?= URLROOT ?>/admin/users/edit/<?= htmlspecialchars($user->id ?? '') ?>" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            <a href="<?= URLROOT ?>/admin/users/change_password/<?= htmlspecialchars($user->id ?? '') ?>" class="text-green-600 hover:text-green-900 mr-3" title="Change Password">
+                                                <i class="fas fa-key"></i>
+                                            </a>
                                             <button @click="openForceLogoutModal(<?= htmlspecialchars($user->id ?? '') ?>, '<?= htmlspecialchars($user->username ?? '') ?>')" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Force Logout">
                                                 <i class="fas fa-sign-out-alt"></i>
                                             </button>
@@ -270,7 +273,7 @@ if (isset($_SESSION['user_message'])) {
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         <?php else: ?>
-                                            <a href="<?= URLROOT ?>/admin/users/change_password" class="text-indigo-600 hover:text-indigo-900" title="Change Password">
+                                            <a href="<?= URLROOT ?>/admin/users/change_password/<?= htmlspecialchars($user->id ?? '') ?>" class="text-indigo-600 hover:text-indigo-900" title="Change Password">
                                                 <i class="fas fa-key"></i>
                                             </a>
                                         <?php endif; ?>

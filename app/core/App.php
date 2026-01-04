@@ -1,69 +1,36 @@
 <?php
-
-
-
 namespace App\Core;
-
-
-
 use App\Models\User\User;
-
 use App\Core\Router;
-
 
 
 class App
 
 {
-
     private const SESSION_TIMEOUT = 1800; // 30 minutes in seconds
-
-
-
     public function __construct()
-
 {
-
     if (session_status() == PHP_SESSION_NONE) {
-
         session_start();
-
     }
-
     ini_set('display_errors', 1);
-
     ini_set('display_startup_errors', 1);
-
     error_reporting(E_ALL);
-
-
-
     // نتحقق من المسار الحالي
 
     $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 
     $path = parse_url($requestUri, PHP_URL_PATH);
-
-
-
     $excludedPrefixes = ['/login', '/register', '/auth/login', '/auth/register', '/tickets/edit-logs/'];
-
-
-
 // التحقق هل الرابط الحالي يبدأ بأي من الروابط المستثناة
 
 $isExcluded = false;
-
 foreach ($excludedPrefixes as $excluded) {
     if (strpos($path, $excluded) === 0) {
         $isExcluded = true;
         break;
     }
 }
-
-
-
-
 
 if (
 
@@ -128,7 +95,7 @@ if (
 
     try {
 
-        (new Router())->loadRoutes('../app/routes/web.php')->dispatch($uri, $_SERVER['REQUEST_METHOD']);
+        (new Router())->loadRoutes(APPROOT . '/routes/web.php')->dispatch($uri, $_SERVER['REQUEST_METHOD']);
 
     } catch (\Throwable $e) {
 
@@ -151,10 +118,6 @@ if (
     }
 
 }
-
-
-
-
 
     /**
 
@@ -266,29 +229,71 @@ if (
 
     public static function parseUrl()
     {
-        if (isset($_GET['url'])) {
-            return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
+        // First, check if .htaccess rewrite passed the URL via $_GET['url']
+        if (isset($_GET['url']) && !empty($_GET['url'])) {
+            $url = filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL);
+            if (!empty($url)) {
+                return explode('/', $url);
+            }
         }
 
-        // Handle environments without .htaccess / rewrite rules (e.g., PHP built-in server)
+        // Handle environments without .htaccess / rewrite rules
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
         
-        // Remove the script name or base directory from the URI
-        $basePath = dirname($scriptName);
-        if ($basePath === '/' || $basePath === '\\') {
-            $basePath = '';
-        }
-        
+        // Get the path from REQUEST_URI
         $path = parse_url($requestUri, PHP_URL_PATH);
-        if (strpos($path, $scriptName) === 0) {
-            $path = substr($path, strlen($scriptName));
-        } elseif (!empty($basePath) && strpos($path, $basePath) === 0) {
-            $path = substr($path, strlen($basePath));
+        if ($path === null) {
+            $path = '';
         }
         
-        $path = trim($path, '/');
-        return $path === '' ? [] : explode('/', $path);
+        // Remove query string if present
+        if (($pos = strpos($path, '?')) !== false) {
+            $path = substr($path, 0, $pos);
+        }
+        
+        // If document root is the main directory (not public/), we need to handle it differently
+        // Check if script is in /public/ directory
+        $isInPublic = strpos($scriptName, '/public/') !== false || strpos($scriptName, '/public') === 0;
+        
+        if ($isInPublic) {
+            // Script is in /public/, so remove /public/ from path
+            if (strpos($path, '/public/') === 0) {
+                $path = substr($path, 7); // Remove '/public/'
+            } elseif (strpos($path, '/public') === 0) {
+                $path = substr($path, 7); // Remove '/public'
+            }
+        }
+        
+        // Remove the script name from the URI
+        if ($path && $scriptName) {
+            // Remove /public/index.php or /index.php
+            if (strpos($path, $scriptName) === 0) {
+                $path = substr($path, strlen($scriptName));
+            } elseif (strpos($path, '/index.php') !== false) {
+                $path = substr($path, strpos($path, '/index.php') + 10);
+            } elseif (strpos($path, 'index.php') === 0) {
+                $path = substr($path, 10);
+            }
+        }
+        
+        // Remove leading slash and clean up
+        $path = trim($path ?? '', '/');
+        
+        // If path is empty or just 'index.php', return empty array
+        if (empty($path) || $path === 'index.php') {
+            return [];
+        }
+        
+        // Split into array
+        $parts = explode('/', $path);
+        
+        // Filter out empty parts
+        $parts = array_filter($parts, function($part) {
+            return !empty($part) && $part !== 'index.php';
+        });
+        
+        return array_values($parts);
     }
 
 }

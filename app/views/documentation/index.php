@@ -26,6 +26,8 @@
                             <li><a href="#user-guide" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">User Guide</a></li>
                             <li><a href="#staff-procedures" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Staff Procedures</a></li>
                             <li><a href="#reports" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Reports</a></li>
+                            <li><a href="#task-system" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Task Management</a></li>
+                            <li><a href="#trengo-integration" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Trengo Integration</a></li>
                             <li><a href="#developer-docs" class="nav-link block py-2.5 px-4 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 font-medium transition-all duration-200">Developer Docs</a></li>
                         </ul>
                     </nav>
@@ -209,6 +211,54 @@
                                 </a>
                             </div>
 
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Task Management Section -->
+                <section id="task-system" class="scroll-mt-24">
+                    <div class="bg-white p-8 rounded-xl shadow-sm transition-shadow duration-300 hover:shadow-lg">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Task Management System</h2>
+                        <div class="prose prose-lg max-w-none text-gray-600">
+                            <p>The Task Management system (v2.1.0) is designed for assigning, tracking, and completing operational tasks across the team.</p>
+                            
+                            <h3 class="font-bold text-gray-800 mt-6 text-sm uppercase tracking-wider">For Administrators & Team Leaders</h3>
+                            <ul>
+                                <li><strong>Task Creation:</strong> Use the "New Task" button to assign work. You can search for users and assign a single task to multiple people.</li>
+                                <li><strong>Monitoring:</strong> Admins can filter the task list by assignee, status, or project to track overall progress.</li>
+                                <li><strong>Attachments:</strong> You can upload images, videos, and PDFs. Supported formats: JPG, PNG, MP4, PDF.</li>
+                            </ul>
+
+                            <h3 class="font-bold text-gray-800 mt-6 text-sm uppercase tracking-wider">For Employees</h3>
+                            <ul>
+                                <li><strong>View Tasks:</strong> You will only see tasks assigned to you. A red badge in the sidebar indicates how many tasks are pending your action.</li>
+                                <li><strong>Status Updates:</strong> Update your task status as you progress. Use the "Post Update" feature to add comments or mark your portion as "Done".</li>
+                                <li><strong>Completion:</strong> Once all work is finished, the task can be marked as "Completed". A confirmation modal will appear to prevent accidental closure.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Trengo Integration Section -->
+                <section id="trengo-integration" class="scroll-mt-24">
+                    <div class="bg-white p-8 rounded-xl shadow-sm transition-shadow duration-300 hover:shadow-lg">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">Trengo Integration</h2>
+                        <div class="prose prose-lg max-w-none text-gray-600">
+                            <p>The system is integrated with Trengo API v2 to provide real-time ticket inspection and management features.</p>
+                            
+                            <h3 class="font-bold text-gray-800 mt-6 text-sm uppercase tracking-wider">Ticket Viewer</h3>
+                            <ul>
+                                <li><strong>Conversation History:</strong> View full chat history from Trengo directly in our dashboard.</li>
+                                <li><strong>Contact Intelligence:</strong> Automatically identifies contact details, phone numbers, and platform origin.</li>
+                                <li><strong>Engagement History:</strong> Shows other tickets belonging to the same contact to provide context.</li>
+                            </ul>
+
+                            <h3 class="font-bold text-gray-800 mt-6 text-sm uppercase tracking-wider">Ticket Assignment (New v2.2.0)</h3>
+                            <ul>
+                                <li><strong>Assign to Agent:</strong> Use the "Assign" button in the ticket viewer to assign a ticket to a Trengo agent.</li>
+                                <li><strong>Agent Search:</strong> The system fetches all active Trengo users and allows you to search by name or email.</li>
+                                <li><strong>Note:</strong> Assignments are recorded in Trengo with a system note "Assigned via TaxiF Dashboard".</li>
+                            </ul>
                         </div>
                     </div>
                 </section>

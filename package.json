@@ -5,7 +5,17 @@
   "main": "index.js",
   "scripts": {
     "build:css": "npx tailwindcss -i ./public/css/app.css -o ./public/css/dist/style.css",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "npm run lint:php && npm run lint:js",
+    "lint:php": "npm run phpcs && npm run phpmd && npm run phpstan",
+    "lint:js": "npm run eslint",
+    "lint:fix": "npm run phpcs:fix && npm run eslint:fix",
+    "phpcs": "./vendor/bin/phpcs --standard=phpcs.xml",
+    "phpcs:fix": "./vendor/bin/phpcbf --standard=phpcs.xml",
+    "phpmd": "./vendor/bin/phpmd app,public/index.php text phpmd.xml",
+    "phpstan": "./vendor/bin/phpstan analyse --configuration=phpstan.neon",
+    "eslint": "npx eslint public/js/**/*.js --config .eslintrc.js",
+    "eslint:fix": "npx eslint public/js/**/*.js --config .eslintrc.js --fix"
   },
   "repository": {
     "type": "git",
@@ -20,6 +30,7 @@
   "homepage": "https://github.com/m55med/taxi#readme",
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.11"
   }

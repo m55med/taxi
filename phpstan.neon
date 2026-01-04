@@ -1,0 +1,42 @@
+parameters:
+    level: 4
+    paths:
+        - app/
+        - public/index.php
+    excludePaths:
+        - vendor/*
+        - node_modules/*
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    treatPhpDocTypesAsCertain: false
+
+    # Ignore errors in specific files/patterns
+    ignoreErrors:
+        # Ignore undefined variables in views (they come from controllers)
+        - '#Undefined variable: .+#'
+        - '#Variable \$.+ might not be defined#'
+        - '#Access to an undefined property App\\Core\\Controller::\$.+#'
+        - '#Access to an undefined property .+::\$.+#'
+        - '#Method .+ should return .+ but returns .+#'
+        - '#Cannot call method .+ on mixed#'
+        - '#Parameter .+ of method .+ expects .+ but .+ given#'
+        - '#Call to an undefined method .+::.+'
+        - '#Cannot access property .+ on mixed#'
+        - '#Property .+ does not exist on .+#'
+
+    # Autoloader configuration
+    autoload_files:
+        - app/helpers/session_helper.php
+        - app/helpers/url_helper.php
+        - app/helpers/view_helper.php
+        - app/helpers/DateTimeHelper.php
+
+    # Bootstrap file
+    bootstrapFiles:
+        - vendor/autoload.php
+
+services:
+    -
+        class: PHPStan\Rules\Rule
+        tags:
+            - phpstan.rules.rule

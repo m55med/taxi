@@ -337,4 +337,55 @@ class UsersController extends Controller {
         $username = preg_replace('/[^a-zA-Z0-9]/', '', transliterator_transliterate('Any-Latin; Latin-ASCII', $name));
         return strtolower($username);
     }
+
+    public function changePassword($id) {
+        // Get user info
+        $user = $this->userModel->getUserById($id);
+        if (!$user) {
+            flash('error', 'User not found.');
+            redirect('admin/users');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $newPassword = trim($_POST['password'] ?? '');
+            $confirmPassword = trim($_POST['confirm_password'] ?? '');
+
+            // Validation
+            if (empty($newPassword)) {
+                flash('error', 'Password is required.');
+                redirect('admin/users/change_password/' . $id);
+                return;
+            }
+
+            if (strlen($newPassword) < 6) {
+                flash('error', 'Password must be at least 6 characters long.');
+                redirect('admin/users/change_password/' . $id);
+                return;
+            }
+
+            if ($newPassword !== $confirmPassword) {
+                flash('error', 'Passwords do not match.');
+                redirect('admin/users/change_password/' . $id);
+                return;
+            }
+
+            // Update password
+            if ($this->userModel->updatePasswordByEmail($user->email, $newPassword)) {
+                flash('success', 'Password updated successfully.');
+                redirect('admin/users');
+            } else {
+                flash('error', 'Failed to update password.');
+                redirect('admin/users/change_password/' . $id);
+            }
+        } else {
+            // Show form
+            $data = [
+                'page_main_title' => 'Change User Password',
+                'user' => $user
+            ];
+
+            $this->view('admin/users/change_password', $data);
+        }
+    }
 } 

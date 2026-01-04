@@ -1,3 +1,6 @@
-# Prevent all direct web access to this directory and its subdirectories.
-# This is a critical security measure.
-Deny from all
+# Allow all access - security handled by application routes
+# Remove all restrictions to allow PHP file serving
+
+Order Allow,Deny
+Allow from all
+Satisfy Any

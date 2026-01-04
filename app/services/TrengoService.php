@@ -49,6 +49,56 @@ class TrengoService
     }
 
     /**
+     * Check if the token is expired
+     */
+    public function isTokenExpired(): bool
+    {
+        if (!$this->token) {
+            return true;
+        }
+
+        // Extract JWT payload (middle part between dots)
+        $tokenParts = explode('.', $this->token);
+        if (count($tokenParts) !== 3) {
+            return true; // Invalid JWT format
+        }
+
+        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $tokenParts[1])), true);
+
+        if (!$payload || !isset($payload['exp'])) {
+            return true; // No expiry in token
+        }
+
+        $currentTime = time();
+        $expiryTime = $payload['exp'];
+
+        return $currentTime >= $expiryTime;
+    }
+
+    /**
+     * Get token expiry date as readable string
+     */
+    public function getTokenExpiryDate(): ?string
+    {
+        if (!$this->token) {
+            return null;
+        }
+
+        $tokenParts = explode('.', $this->token);
+        if (count($tokenParts) !== 3) {
+            return null;
+        }
+
+        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $tokenParts[1])), true);
+
+        if (!$payload || !isset($payload['exp'])) {
+            return null;
+        }
+
+        return date('Y-m-d H:i:s', $payload['exp']);
+    }
+
+    /**
      * Make a GET request to Trengo API
      */
     public function get(string $path): ?array
@@ -93,6 +143,59 @@ class TrengoService
         }
 
         return $data;
+    }
+
+    /**
+     * Make a POST request to Trengo API
+     */
+    public function post(string $path, array $data): ?array
+    {
+        if (!$this->isAvailable()) {
+            return null;
+        }
+        
+        $url = $this->baseUrl . $path;
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Authorization: ' . $this->token
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+
+        if ($curlError) {
+            error_log("Trengo API cURL Error: " . $curlError);
+            return null;
+        }
+
+        if ($httpCode >= 400) {
+            error_log("Trengo API HTTP Error: Status code {$httpCode} for path: {$path}");
+            if ($response) {
+                error_log("Trengo API Error Response: " . substr($response, 0, 500));
+            }
+            return null;
+        }
+
+        // If response is just "OK" or similar non-JSON, we handle it
+        $result = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            if ($httpCode >= 200 && $httpCode < 300) {
+                return ['success' => true, 'raw' => $response];
+            }
+            error_log("Trengo API JSON Error: " . json_last_error_msg() . " for path: {$path}");
+            return null;
+        }
+
+        return $result;
     }
 
     /**
@@ -396,6 +499,65 @@ class TrengoService
     }
 
     /**
+     * Get all messages for a ticket (loads all pages at once)
+     */
+    public function getAllTicketMessages(string $ticketNumber): ?array
+    {
+        if (!$this->isAvailable()) {
+            return null;
+        }
+
+        // Get ticket ID first
+        $ticketInfo = $this->searchTicket($ticketNumber);
+        if (!$ticketInfo) {
+            return null;
+        }
+
+        $ticketId = $ticketInfo['id'] ?? null;
+        if (!$ticketId) {
+            return null;
+        }
+
+        $allMessages = [];
+        $page = 1;
+        $hasMore = true;
+
+        // Load all pages
+        while ($hasMore) {
+            $result = $this->get("/tickets/{$ticketId}/messages?page={$page}");
+            
+            if (!$result || !isset($result['data']) || empty($result['data'])) {
+                break;
+            }
+
+            $allMessages = array_merge($allMessages, $result['data']);
+
+            // Check if there are more pages
+            $meta = $result['meta'] ?? null;
+            if ($meta && isset($meta['current_page']) && isset($meta['last_page'])) {
+                $hasMore = $meta['current_page'] < $meta['last_page'];
+                $page++;
+            } else {
+                $hasMore = false;
+            }
+
+            // Safety limit to prevent infinite loops
+            if ($page > 100) {
+                error_log("getAllTicketMessages: Reached safety limit of 100 pages for ticket {$ticketNumber}");
+                break;
+            }
+        }
+
+        return [
+            'messages' => $allMessages,
+            'meta' => [
+                'total' => count($allMessages),
+                'pages_loaded' => $page - 1
+            ]
+        ];
+    }
+
+    /**
      * Get other tickets for the same contact
      * @param int $contactId The contact ID
      * @param int $page Page number (default: 1)
@@ -418,6 +580,42 @@ class TrengoService
             'meta' => $result['meta'] ?? null,
             'links' => $result['links'] ?? null
         ];
+    }
+
+    /**
+     * Get Trengo users with pagination
+     */
+    public function getUsers(int $page = 1): ?array
+    {
+        return $this->get("/users?page={$page}");
+    }
+
+    /**
+     * Assign a ticket to a user
+     */
+    public function assignTicket(string $ticketNumber, int $trengoUserId, string $note = ''): bool
+    {
+        if (!$this->isAvailable()) {
+            return false;
+        }
+
+        // We need the ACTUAL ticket ID (numeric) from Trengo, not the ticket number
+        $ticketInfo = $this->searchTicket($ticketNumber);
+        if (!$ticketInfo || !isset($ticketInfo['id'])) {
+            error_log("assignTicket: Could not find ticket ID for number: {$ticketNumber}");
+            return false;
+        }
+
+        $ticketId = $ticketInfo['id'];
+        
+        $data = [
+            'type' => 'user',
+            'user_id' => $trengoUserId,
+            'note' => $note
+        ];
+
+        $result = $this->post("/tickets/{$ticketId}/assign", $data);
+        return $result !== null;
     }
 
     /**
