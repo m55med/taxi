@@ -1,0 +1,24 @@
+{
+  "name": "extsnion",
+  "version": "1.0.0",
+  "description": "🎫 **Professional Chrome Extension for Efficient Customer Support Ticket Management**",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m55med/taxi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/m55med/taxi/issues"
+  },
+  "homepage": "https://github.com/m55med/taxi#readme",
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
+}

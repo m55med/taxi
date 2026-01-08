@@ -16,11 +16,23 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'searchTicket' && info.selectionText) {
     // Extract ticket number from selection (remove any non-numeric characters)
     const ticketNumber = info.selectionText.trim().replace(/\D/g, '');
-    
+
     // Send message to content script to open panel with ticket number
     chrome.tabs.sendMessage(tab.id, {
       action: 'openPanelWithTicket',
       ticketNumber: ticketNumber
+    }, (response) => {
+      // Handle case where content script is not loaded
+      if (chrome.runtime.lastError) {
+        console.error('Failed to send message to content script:', chrome.runtime.lastError.message);
+        // Optionally notify user
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon48.png',
+          title: 'CS Taxif',
+          message: 'Please refresh the page to use this feature.'
+        });
+      }
     });
   }
 });

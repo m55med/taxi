@@ -62,9 +62,9 @@ const API = {
 
     // Validate token and get user info
     async validateToken(token) {
+        const savedToken = await Storage.getToken();
         try {
             // Temporarily use the provided token
-            const savedToken = await Storage.getToken();
             await Storage.setToken(token);
 
             const data = await this.makeRequest('/me');
@@ -75,12 +75,17 @@ const API = {
             } else if (data && typeof data === 'object' && data.id) {
                 return data; // Returns user object directly
             } else {
-                // Invalid response format
-                await Storage.setToken(savedToken); // Restore old token
+                // Invalid response format - restore old token
+                await Storage.setToken(savedToken);
                 throw new Error('Invalid response format');
             }
         } catch (error) {
-            // Restore old token on error
+            // Restore old token on any error
+            if (savedToken) {
+                await Storage.setToken(savedToken);
+            } else {
+                await Storage.removeToken();
+            }
             throw error;
         }
     },
@@ -164,7 +169,8 @@ const API = {
     }
 };
 
-// Make available globally for content scripts
-if (typeof window !== 'undefined') {
+// Make available globally for content scripts (only in extension context)
+if (typeof window !== 'undefined' && typeof chrome !== 'undefined' && chrome.runtime) {
+    // Only expose in secure extension context
     window.API = API;
 }

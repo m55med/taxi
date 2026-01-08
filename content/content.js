@@ -3,6 +3,11 @@
 (function () {
     'use strict';
 
+    // Constants
+    const IFRAME_LOAD_DELAY_MS = 300;
+    const TRENGO_CHECK_DELAY_MS = 1000;
+    const TRENGO_CHECK_DELAY_EXTENDED_MS = 3000;
+
     let panelIframe = null;
     let toggleButton = null;
     let isOpen = false;
@@ -85,14 +90,17 @@
 
             // Wait a bit for iframe to load, then send ticket number
             setTimeout(() => {
-                panelIframe?.contentWindow?.postMessage({
-                    action: 'searchTicket',
-                    ticketNumber: request.ticketNumber
-                }, '*');
-            }, 300);
+                if (panelIframe && panelIframe.contentWindow) {
+                    panelIframe.contentWindow.postMessage({
+                        action: 'searchTicket',
+                        ticketNumber: request.ticketNumber
+                    }, '*');
+                }
+            }, IFRAME_LOAD_DELAY_MS);
 
             sendResponse({ success: true });
         }
+        return true; // Keep channel open for async response
     });
 
     // Trengo integration: Add icon next to ticket number
@@ -132,11 +140,13 @@
 
                 // Wait a bit for iframe to load, then send ticket number
                 setTimeout(() => {
-                    panelIframe?.contentWindow?.postMessage({
-                        action: 'searchTicket',
-                        ticketNumber: ticketNumber
-                    }, '*');
-                }, 300);
+                    if (panelIframe && panelIframe.contentWindow) {
+                        panelIframe.contentWindow.postMessage({
+                            action: 'searchTicket',
+                            ticketNumber: ticketNumber
+                        }, '*');
+                    }
+                }, IFRAME_LOAD_DELAY_MS);
             });
 
             return icon;
@@ -209,10 +219,10 @@
                 ticketElements.forEach(addIconToTicketElement);
             };
 
-            // Check immediately and after a delay (for dynamic content)
+            // Check immediately and after delays (for dynamic content)
             checkExisting();
-            setTimeout(checkExisting, 1000);
-            setTimeout(checkExisting, 3000);
+            setTimeout(checkExisting, TRENGO_CHECK_DELAY_MS);
+            setTimeout(checkExisting, TRENGO_CHECK_DELAY_EXTENDED_MS);
         }
 
         // Initialize Trengo integration

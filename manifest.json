@@ -7,7 +7,8 @@
         "storage",
         "contextMenus",
         "activeTab",
-        "clipboardRead"
+        "clipboardRead",
+        "notifications"
     ],
     "host_permissions": [
         "https://cs.taxif.com/*"
@@ -53,7 +54,9 @@
                 "CHANGELOG.json"
             ],
             "matches": [
-                "<all_urls>"
+                "https://cs.taxif.com/*",
+                "https://app.sowork.com/*",
+                "https://app.trengo.com/*"
             ]
         }
     ]

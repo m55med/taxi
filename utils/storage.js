@@ -3,82 +3,115 @@
 const Storage = {
     // Token management
     async setToken(token) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.set({ token }, () => {
-                console.log('Token saved successfully');
-                resolve();
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('Token saved successfully');
+                    resolve();
+                }
             });
         });
     },
 
     async getToken() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.get(['token'], (result) => {
-                resolve(result.token || null);
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(result.token || null);
+                }
             });
         });
     },
 
     async removeToken() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.remove(['token', 'user'], () => {
-                console.log('Token and user data removed');
-                resolve();
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('Token and user data removed');
+                    resolve();
+                }
             });
         });
     },
 
     // User data management
     async setUser(userData) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.set({ user: userData }, () => {
-                console.log('User data saved');
-                resolve();
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('User data saved');
+                    resolve();
+                }
             });
         });
     },
 
     async getUser() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.get(['user'], (result) => {
-                resolve(result.user || null);
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(result.user || null);
+                }
             });
         });
     },
 
     // Options/variables cache
     async setOptions(options) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.set({
                 options,
                 optionsTimestamp: new Date().toISOString()
             }, () => {
-                console.log('Options cached successfully');
-                resolve();
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('Options cached successfully');
+                    resolve();
+                }
             });
         });
     },
 
     async getOptions() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.get(['options'], (result) => {
-                resolve(result.options || null);
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    resolve(result.options || null);
+                }
             });
         });
     },
 
     // Clear all data
     async clearAll() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             chrome.storage.local.clear(() => {
-                console.log('All storage cleared');
-                resolve();
+                if (chrome.runtime.lastError) {
+                    reject(new Error(chrome.runtime.lastError.message));
+                } else {
+                    console.log('All storage cleared');
+                    resolve();
+                }
             });
         });
     }
 };
 
-// Make available globally for content scripts
-if (typeof window !== 'undefined') {
+// Make available globally for content scripts (only in extension context)
+if (typeof window !== 'undefined' && typeof chrome !== 'undefined' && chrome.runtime) {
+    // Only expose in secure extension context
     window.Storage = Storage;
 }

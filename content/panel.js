@@ -1,5 +1,10 @@
 // CS Taxif Panel Logic
 
+// Constants
+const MESSAGE_TIMEOUT_MS = 5000;
+const IFRAME_LOAD_DELAY_MS = 300;
+const DEBUG_MODE = false; // Set to true for development
+
 // State management
 let currentUser = null;
 let ticketOptions = null;
@@ -67,6 +72,13 @@ function setLoading(button, isLoading) {
     }
 }
 
+// Helper function for safe console logging
+function debugLog(...args) {
+    if (DEBUG_MODE) {
+        debugLog(...args);
+    }
+}
+
 // Helper function to show messages
 function showMessage(message, type = 'info') {
     const messageDiv = document.createElement('div');
@@ -76,10 +88,10 @@ function showMessage(message, type = 'info') {
     elements.messageContainer.innerHTML = '';
     elements.messageContainer.appendChild(messageDiv);
 
-    // Auto-remove after 5 seconds
+    // Auto-remove after timeout
     setTimeout(() => {
         messageDiv.remove();
-    }, 5000);
+    }, MESSAGE_TIMEOUT_MS);
 }
 
 // Helper function to clean phone number (remove spaces, keep + and digits)
@@ -91,13 +103,13 @@ function cleanPhoneNumber(phone) {
 
 // Initialize DOM elements
 function initElements() {
-    console.log('Initializing DOM elements...');
+    debugLog('Initializing DOM elements...');
     elements.loginView = document.getElementById('loginView');
     elements.appView = document.getElementById('appView');
 
     // Log critical elements
-    console.log('loginView:', elements.loginView ? 'found' : 'NOT FOUND');
-    console.log('appView:', elements.appView ? 'found' : 'NOT FOUND');
+    debugLog('loginView:', elements.loginView ? 'found' : 'NOT FOUND');
+    debugLog('appView:', elements.appView ? 'found' : 'NOT FOUND');
     elements.messageContainer = document.getElementById('messageContainer');
     elements.loginForm = document.getElementById('loginForm');
     elements.loginBtn = document.getElementById('loginBtn');
@@ -136,18 +148,21 @@ function initElements() {
     elements.reportCancelBtn = document.getElementById('reportCancelBtn');
 
     // Log critical form elements
-    console.log('ticketDetailsSection:', elements.ticketDetailsSection ? 'found' : 'NOT FOUND');
-    console.log('ticketDetailsDisplay:', elements.ticketDetailsDisplay ? 'found' : 'NOT FOUND');
-    console.log('ticketFormSection:', elements.ticketFormSection ? 'found' : 'NOT FOUND');
-    console.log('searchTicketBtn:', elements.searchTicketBtn ? 'found' : 'NOT FOUND');
+    debugLog('ticketDetailsSection:', elements.ticketDetailsSection ? 'found' : 'NOT FOUND');
+    debugLog('ticketDetailsDisplay:', elements.ticketDetailsDisplay ? 'found' : 'NOT FOUND');
+    debugLog('ticketFormSection:', elements.ticketFormSection ? 'found' : 'NOT FOUND');
+    debugLog('searchTicketBtn:', elements.searchTicketBtn ? 'found' : 'NOT FOUND');
 }
 
 // Get user initials from name
 function getUserInitials(name) {
     if (!name) return '--';
-    const words = name.trim().split(' ');
-    if (words.length >= 2) {
+    const words = name.trim().split(' ').filter(word => word.length > 0);
+    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
         return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    if (words.length > 0 && words[0].length >= 2) {
+        return words[0].substring(0, 2).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
 }
@@ -208,7 +223,7 @@ async function refreshUserStats() {
             }
             // Update display
             updateTicketStats(user.ticket_details_stats);
-            console.log('User stats refreshed:', user.ticket_details_stats);
+            debugLog('User stats refreshed:', user.ticket_details_stats);
         }
     } catch (error) {
         console.error('Error refreshing user stats:', error);
@@ -383,7 +398,7 @@ function selectCategoryCodeOption(option, index) {
     // VIP is now handled separately via vipSwitch checkbox
     // No need to handle VIP here
 
-    console.log('Selected option:', option);
+    debugLog('Selected option:', option);
 }
 
 // Handle category selection change
@@ -423,8 +438,15 @@ function handleSubcategoryChange() {
 
     if (!subcategoryOption || !subcategoryOption.value) return;
 
-    // Get codes from data attribute
-    const codes = JSON.parse(subcategoryOption.dataset.codes || '[]');
+    // Get codes from data attribute with safe JSON parsing
+    let codes = [];
+    try {
+        codes = JSON.parse(subcategoryOption.dataset.codes || '[]');
+    } catch (error) {
+        console.error('Error parsing subcategory codes:', error);
+        showMessage('Error loading codes', 'error');
+        return;
+    }
 
     // Populate codes
     elements.codeSelect.disabled = false;
@@ -455,7 +477,7 @@ function handlePlatformChange() {
     // Platform ID 5 is VIP 👑
     // Note: VIP platform (platform_id = 5) is separate from VIP customer flag (is_vip)
     // VIP platform doesn't automatically mean VIP customer - user must check VIP switch
-    console.log('Platform changed:', platformId === 5 ? 'VIP Platform' : 'Regular Platform');
+    debugLog('Platform changed:', platformId === 5 ? 'VIP Platform' : 'Regular Platform');
 
     // No automatic VIP selection - user must manually check VIP switch if needed
 }
@@ -655,7 +677,7 @@ async function handlePastePhone() {
 function populateFormWithHelper(helper) {
     if (!helper) return;
 
-    console.log('Populating form with helper data:', helper);
+    debugLog('Populating form with helper data:', helper);
 
     // Platform
     if (helper.platform && helper.platform.id) {
@@ -689,19 +711,19 @@ async function handleSearchTicket() {
         showMessage('Searching for ticket...', 'info');
 
         const result = await API.getTicketDetails(ticketNumber);
-        console.log('Ticket search result:', result);
+        debugLog('Ticket search result:', result);
 
         if (result.success && result.ticket_detail) {
             currentTicket = result;
-            console.log('Displaying ticket details...');
+            debugLog('Displaying ticket details...');
             displayTicketDetails(result.ticket_detail);
-            console.log('Populating form with ticket data...');
+            debugLog('Populating form with ticket data...');
             populateFormWithTicket(result.ticket_detail);
-            console.log('Ticket details displayed successfully');
+            debugLog('Ticket details displayed successfully');
             showMessage('Ticket found successfully', 'success');
         } else if (result.helper) {
             // Helper found
-            console.log('Ticket not found, but helper data found');
+            debugLog('Ticket not found, but helper data found');
             currentTicket = null;
             elements.ticketDetailsSection.classList.add('hidden');
             elements.ticketFormSection.classList.remove('hidden');
@@ -712,7 +734,7 @@ async function handleSearchTicket() {
             showMessage('Ticket not found. Form pre-filled with available data.', 'info');
         } else {
             // Ticket not found - show empty form
-            console.log('Ticket not found, showing empty form');
+            debugLog('Ticket not found, showing empty form');
             currentTicket = null;
             elements.ticketDetailsSection.classList.add('hidden');
             elements.ticketFormSection.classList.remove('hidden');
@@ -728,7 +750,7 @@ async function handleSearchTicket() {
             await handleLogout();
         } else if (error.message.includes('not found')) {
             // Ticket not found - show empty form
-            console.log('Ticket not found (error), showing empty form');
+            debugLog('Ticket not found (error), showing empty form');
             currentTicket = null;
             elements.ticketDetailsSection.classList.add('hidden');
             elements.ticketFormSection.classList.remove('hidden');
@@ -744,7 +766,7 @@ async function handleSearchTicket() {
 
 // Display ticket details
 function displayTicketDetails(ticket) {
-    console.log('displayTicketDetails called with ticket:', ticket);
+    debugLog('displayTicketDetails called with ticket:', ticket);
 
     if (!ticket) {
         console.error('Ticket is null or undefined!');
@@ -832,18 +854,18 @@ function displayTicketDetails(ticket) {
     `;
 
     elements.ticketDetailsDisplay.innerHTML = html + actionButtonsHtml;
-    console.log('Ticket details HTML set, now showing section...');
+    debugLog('Ticket details HTML set, now showing section...');
 
     if (elements.ticketDetailsSection) {
         elements.ticketDetailsSection.classList.remove('hidden');
-        console.log('Ticket details section shown');
+        debugLog('Ticket details section shown');
     } else {
         console.error('ticketDetailsSection element not found!');
     }
 
     if (elements.ticketFormSection) {
         elements.ticketFormSection.classList.add('hidden');
-        console.log('Ticket form section hidden');
+        debugLog('Ticket form section hidden');
     } else {
         console.error('ticketFormSection element not found!');
     }
@@ -851,7 +873,7 @@ function displayTicketDetails(ticket) {
     // Add event listeners for action buttons
     const quickCloneBtn = document.getElementById('quickCloneBtn');
     if (quickCloneBtn) {
-        console.log('Adding click listener to quick clone button');
+        debugLog('Adding click listener to quick clone button');
         quickCloneBtn.addEventListener('click', handleQuickClone);
     } else {
         console.error('Quick clone button not found!');
@@ -859,19 +881,19 @@ function displayTicketDetails(ticket) {
 
     const editBtn = document.getElementById('editTicketBtn');
     if (editBtn) {
-        console.log('Adding click listener to edit button');
+        debugLog('Adding click listener to edit button');
         editBtn.addEventListener('click', () => {
-            console.log('Edit button clicked');
+            debugLog('Edit button clicked');
             // Hide ticket details section
             if (elements.ticketDetailsSection) {
                 elements.ticketDetailsSection.classList.add('hidden');
-                console.log('Ticket details section hidden');
+                debugLog('Ticket details section hidden');
             }
             // Show form section
             if (elements.ticketFormSection) {
                 elements.ticketFormSection.classList.remove('hidden');
                 elements.ticketFormSection.scrollIntoView({ behavior: 'smooth' });
-                console.log('Form section shown');
+                debugLog('Form section shown');
             }
         });
     } else {
@@ -881,7 +903,7 @@ function displayTicketDetails(ticket) {
 
 // Populate form with ticket data
 function populateFormWithTicket(ticket) {
-    console.log('populateFormWithTicket called with ticket:', ticket);
+    debugLog('populateFormWithTicket called with ticket:', ticket);
 
     if (!ticket) {
         console.error('Cannot populate form - ticket is null or undefined');
@@ -891,7 +913,7 @@ function populateFormWithTicket(ticket) {
     // Set values
     if (ticket.platform?.id) {
         elements.platformSelect.value = ticket.platform.id;
-        console.log('Platform set:', ticket.platform.id);
+        debugLog('Platform set:', ticket.platform.id);
     }
 
     // Set category code select
@@ -907,7 +929,7 @@ function populateFormWithTicket(ticket) {
         if (matchingOption) {
             const index = categoryCodeOptions.indexOf(matchingOption);
             selectCategoryCodeOption(matchingOption, index);
-            console.log('Category code option selected:', matchingOption.displayText);
+            debugLog('Category code option selected:', matchingOption.displayText);
         }
     }
 
@@ -915,31 +937,31 @@ function populateFormWithTicket(ticket) {
     if (elements.vipSwitch) {
         elements.vipSwitch.checked = ticket.is_vip || false;
         handleVipChange();
-        console.log('VIP set:', ticket.is_vip || false);
+        debugLog('VIP set:', ticket.is_vip || false);
     }
 
     if (ticket.phone) {
         elements.phoneInput.value = ticket.phone;
-        console.log('Phone set:', ticket.phone);
+        debugLog('Phone set:', ticket.phone);
     }
 
     if (ticket.country?.id) {
         elements.countrySelect.value = ticket.country.id;
-        console.log('Country set:', ticket.country.id);
+        debugLog('Country set:', ticket.country.id);
     }
 
     // Handle marketer for VIP
     if (ticket.is_vip && ticket.marketer?.id && elements.marketerSelect) {
         elements.marketerSelect.value = ticket.marketer.id;
-        console.log('Marketer set:', ticket.marketer.id);
+        debugLog('Marketer set:', ticket.marketer.id);
     }
 
     if (ticket.notes) {
         elements.notesInput.value = ticket.notes;
-        console.log('Notes set');
+        debugLog('Notes set');
     }
 
-    console.log('Form populated successfully');
+    debugLog('Form populated successfully');
 }
 
 // Create ticket
@@ -959,7 +981,15 @@ async function handleCreateTicket(e) {
         return;
     }
 
-    const categoryCodeData = JSON.parse(elements.categoryCodeValue.value);
+    // Safe JSON parsing
+    let categoryCodeData;
+    try {
+        categoryCodeData = JSON.parse(elements.categoryCodeValue.value);
+    } catch (error) {
+        console.error('Error parsing category code data:', error);
+        showMessage('Invalid category selection. Please try again.', 'error');
+        return;
+    }
 
     // VIP is now handled separately via vipSwitch checkbox, not in dropdown
     // API requires category_id even for VIP tickets, so VIP is just a flag
@@ -1088,22 +1118,22 @@ window.addEventListener('message', (event) => {
 
 // Check if user is already logged in
 async function checkAuth() {
-    console.log('Checking authentication...');
+    debugLog('Checking authentication...');
     const token = await Storage.getToken();
     const user = await Storage.getUser();
 
-    console.log('Token:', token ? 'exists' : 'not found');
-    console.log('User:', user ? user.name || user.username : 'not found');
+    debugLog('Token:', token ? 'exists' : 'not found');
+    debugLog('User:', user ? user.name || user.username : 'not found');
 
     if (token && user) {
         // User is logged in
-        console.log('User is logged in, displaying profile...');
+        debugLog('User is logged in, displaying profile...');
         displayUserProfile(user);
         await loadTicketOptions();
 
         if (elements.appView) {
             elements.appView.classList.remove('hidden');
-            console.log('App view shown');
+            debugLog('App view shown');
         } else {
             console.error('appView element not found!');
         }
@@ -1113,10 +1143,10 @@ async function checkAuth() {
         }
     } else {
         // Show login
-        console.log('User not logged in, showing login view...');
+        debugLog('User not logged in, showing login view...');
         if (elements.loginView) {
             elements.loginView.classList.remove('hidden');
-            console.log('Login view shown');
+            debugLog('Login view shown');
         } else {
             console.error('loginView element not found!');
         }
@@ -1187,14 +1217,14 @@ function showCloneConfirmationModal(ticketNumber) {
         setTimeout(() => modalNotesInput.focus(), 100);
     }
 
-    // Handle cancel
+    // Handle cancel - cleanup function
     const handleCancel = () => {
         modal.classList.remove('active');
         if (modalNotesInput) {
             modalNotesInput.value = ''; // Clear notes on cancel
         }
-        modalCancelBtn.removeEventListener('click', handleCancel);
-        modalConfirmBtn.removeEventListener('click', handleConfirm);
+        // Remove all event listeners
+        cleanup();
     };
 
     // Handle confirm
@@ -1203,10 +1233,10 @@ function showCloneConfirmationModal(ticketNumber) {
 
         // Get notes from modal input
         const notes = modalNotesInput ? modalNotesInput.value.trim() : '';
-        console.log('Notes from modal:', notes);
+        debugLog('Notes from modal:', notes);
 
-        modalCancelBtn.removeEventListener('click', handleCancel);
-        modalConfirmBtn.removeEventListener('click', handleConfirm);
+        // Remove all event listeners
+        cleanup();
 
         // Proceed with cloning (pass notes)
         await executeQuickClone(notes);
@@ -1217,16 +1247,31 @@ function showCloneConfirmationModal(ticketNumber) {
         }
     };
 
-    // Add event listeners
-    modalCancelBtn.addEventListener('click', handleCancel);
-    modalConfirmBtn.addEventListener('click', handleConfirm);
-
-    // Close on overlay click
-    modal.addEventListener('click', (e) => {
+    // Overlay click handler
+    const handleOverlayClick = (e) => {
         if (e.target === modal) {
             handleCancel();
         }
-    });
+    };
+
+    // Cleanup function to remove all event listeners
+    const cleanup = () => {
+        // Clone buttons to remove all event listeners
+        const newCancelBtn = modalCancelBtn.cloneNode(true);
+        const newConfirmBtn = modalConfirmBtn.cloneNode(true);
+        modalCancelBtn.parentNode.replaceChild(newCancelBtn, modalCancelBtn);
+        modalConfirmBtn.parentNode.replaceChild(newConfirmBtn, modalConfirmBtn);
+
+        // Remove overlay listener
+        modal.removeEventListener('click', handleOverlayClick);
+    };
+
+    // Add event listeners (will be removed by cleanup)
+    modalCancelBtn.addEventListener('click', handleCancel, { once: true });
+    modalConfirmBtn.addEventListener('click', handleConfirm, { once: true });
+
+    // Close on overlay click
+    modal.addEventListener('click', handleOverlayClick, { once: true });
 }
 
 // Execute the actual cloning process
@@ -1270,8 +1315,8 @@ async function executeQuickClone(notes = '') {
         ticketData.marketer_id = parseInt(ticket.marketer.id);
     }
 
-    console.log('Cloning ticket with data:', ticketData);
-    console.log('Notes to be sent:', ticketData.notes);
+    debugLog('Cloning ticket with data:', ticketData);
+    debugLog('Notes to be sent:', ticketData.notes);
 
     // Validate required fields (phone is now optional)
     if (!ticketData.platform_id || !ticketData.category_id || !ticketData.subcategory_id ||
@@ -1344,7 +1389,7 @@ function setVersionNumber() {
             versionBadge.textContent = `v${version}`;
             // Add click event listener to show changelog
             versionBadge.addEventListener('click', showChangelog);
-            console.log('Version badge set to:', version);
+            debugLog('Version badge set to:', version);
         } else {
             console.warn('Version badge element not found');
         }
@@ -1499,13 +1544,13 @@ function initCategoryCodeSelect() {
 
 // Initialize app
 async function init() {
-    console.log('=== CS Taxif Panel Initializing ===');
+    debugLog('=== CS Taxif Panel Initializing ===');
 
     // Set version number from manifest
     setVersionNumber();
 
     initElements();
-    console.log('Elements initialized');
+    debugLog('Elements initialized');
 
     // Event listeners
     elements.loginForm.addEventListener('submit', handleLogin);
